@@ -1,0 +1,65 @@
+{
+  "Sidebar": {
+    "dashboard": "Tổng quan",
+    "customers": "Khách hàng",
+    "analytics": "Phân tích",
+    "settings_heading": "CÀI ĐẶT",
+    "messages": "Tin nhắn",
+    "setting": "Cấu hình",
+    "help": "Trợ giúp"
+  },
+  "Topbar": {
+    "title_dashboard": "Tổng quan",
+    "title_customers": "Quản lý khách hàng",
+    "title_analytics": "Phân tích dữ liệu",
+    "title_messages": "Tin nhắn",
+    "title_setting": "Cài đặt hệ thống",
+    "title_help": "Trung tâm trợ giúp",
+    "logout": "Đăng xuất",
+    "default_title": "Quản trị hệ thống"
+  },
+  "Customers": {
+    "title": "Danh sách khách hàng",
+    "new_customer": "THÊM KHÁCH HÀNG",
+    "search": "Tìm kiếm...",
+    "full_name": "Họ và Tên",
+    "status": "Trạng thái",
+    "email": "Hộp thư",
+    "dob": "Ngày sinh",
+    "status_approved": "Đã duyệt",
+    "status_blocked": "Đã khóa",
+    "status_rejected": "Từ chối"
+  },
+  "Auth": {
+    "login_heading": "Đăng nhập",
+    "username_label": "Tên đăng nhập",
+    "username_placeholder": "Nhập tên đăng nhập",
+    "password_label": "Mật khẩu",
+    "password_placeholder": "Nhập mật khẩu",
+    "forgot_password": "Quên mật khẩu?",
+    "remember_me": "Lưu thông tin đăng nhập",
+    "logging_in": "Đang đăng nhập...",
+    "login_error_generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
+  },
+  "Common": {
+    "loading_data": "Đang tải dữ liệu...",
+    "no_data": "Không có dữ liệu",
+    "digital_sign": "Ký số",
+    "loading_file": "Đang tải file...",
+    "error_loading_pdf": "Lỗi khi tải PDF",
+    "processing_pdf": "Đang xử lý PDF gốc...",
+    "close": "Đóng",
+    "under_construction": "Tính năng đang được phát triển...",
+    "signature_position": "Vị trí đặt chữ ký",
+    "click_to_change_position": "Click ở vị trí mới để thay đổi",
+    "select_option": "Chọn một tùy chọn",
+    "loading_app": "Đang tải..."
+  },
+  "Error": {
+    "not_found_heading": "Không tìm thấy trang",
+    "not_found_message": "Xin lỗi, trang bạn đang cố gắng truy cập không tồn tại, đã bị xóa hoặc tạm thời không khả dụng.",
+    "back_to_home": "Về trang chủ",
+    "error_heading": "Đã xảy ra lỗi",
+    "reload_page": "Tải lại trang"
+  }
+}

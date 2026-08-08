@@ -1,0 +1,65 @@
+{
+  "Sidebar": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "analytics": "Analytics",
+    "settings_heading": "SETTINGS",
+    "messages": "Messages",
+    "setting": "Settings",
+    "help": "Help Centre"
+  },
+  "Topbar": {
+    "title_dashboard": "Dashboard",
+    "title_customers": "Customers",
+    "title_analytics": "Analytics",
+    "title_messages": "Messages",
+    "title_setting": "Settings",
+    "title_help": "Help Centre",
+    "logout": "Log out",
+    "default_title": "Admin Panel"
+  },
+  "Customers": {
+    "title": "Customers' List",
+    "new_customer": "NEW CUSTOMER",
+    "search": "Search...",
+    "full_name": "Full Name",
+    "status": "Status",
+    "email": "E-Mail",
+    "dob": "Date of Birth",
+    "status_approved": "Approved",
+    "status_blocked": "Blocked",
+    "status_rejected": "Rejected"
+  },
+  "Auth": {
+    "login_heading": "Sign In",
+    "username_label": "Username",
+    "username_placeholder": "Enter username",
+    "password_label": "Password",
+    "password_placeholder": "Enter password",
+    "forgot_password": "Forgot password?",
+    "remember_me": "Remember me",
+    "logging_in": "Signing in...",
+    "login_error_generic": "An error occurred. Please try again."
+  },
+  "Common": {
+    "loading_data": "Loading data...",
+    "no_data": "No data available",
+    "digital_sign": "Digital Signature",
+    "loading_file": "Loading file...",
+    "error_loading_pdf": "Error loading PDF",
+    "processing_pdf": "Processing original PDF...",
+    "close": "Close",
+    "under_construction": "Feature under development...",
+    "signature_position": "Signature Position",
+    "click_to_change_position": "Click at a new position to change",
+    "select_option": "Select an option",
+    "loading_app": "Loading..."
+  },
+  "Error": {
+    "not_found_heading": "Page Not Found",
+    "not_found_message": "Sorry, the page you are looking for does not exist, has been removed, or is temporarily unavailable.",
+    "back_to_home": "Back to Home",
+    "error_heading": "An error occurred",
+    "reload_page": "Reload Page"
+  }
+}
