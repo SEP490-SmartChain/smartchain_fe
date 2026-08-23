@@ -2,11 +2,15 @@ import { useLocation, Link } from 'react-router-dom';
 
 import {
   Home,
-  Users,
+  Package,
+  Warehouse,
+  GitBranch,
+  Truck,
+  Scale,
   PieChart,
-  MessageSquare,
+  Building2,
+  Network,
   Settings as SettingsIcon,
-  HelpCircle,
   Menu,
   ArrowLeft,
   ArrowRight,
@@ -14,22 +18,27 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { useAppStore } from '@/hooks/useAppStore';
+import { useUiStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
 export default function Sidebar() {
   const { pathname } = useLocation();
-  const { isSidebarOpen, toggleSidebar } = useAppStore();
+  const { isSidebarOpen, toggleSidebar } = useUiStore();
   const t = useTranslations('Sidebar');
 
   const MENUS: Array<{ name: string; href: string; icon?: LucideIcon; isHeading?: boolean }> = [
     { name: t('dashboard'), href: '/dashboard', icon: Home },
-    { name: t('customers'), href: '/customers', icon: Users },
+    { name: t('orders'), href: '/orders', icon: Package },
+    { name: t('inventory'), href: '/inventory', icon: Warehouse },
+    { name: t('rules'), href: '/rules', icon: GitBranch },
+    { name: t('shipments'), href: '/shipments', icon: Truck },
+    { name: t('reconciliation'), href: '/reconciliation', icon: Scale },
     { name: t('analytics'), href: '/analytics', icon: PieChart },
+    { name: t('admin_heading'), href: '', isHeading: true },
+    { name: t('admin_tenants'), href: '/admin/tenants', icon: Building2 },
+    { name: t('admin_carriers'), href: '/admin/carriers', icon: Network },
     { name: t('settings_heading'), href: '', isHeading: true },
-    { name: t('messages'), href: '/messages', icon: MessageSquare },
-    { name: t('setting'), href: '/setting', icon: SettingsIcon },
-    { name: t('help'), href: '/help', icon: HelpCircle },
+    { name: t('settings'), href: '/settings', icon: SettingsIcon },
   ];
 
   return (
@@ -57,10 +66,10 @@ export default function Sidebar() {
         <div className="py-8 px-6 flex items-center justify-center h-[5.5rem] overflow-hidden">
           {isSidebarOpen ? (
             <h1 className="text-[1.75rem] font-semibold text-white leading-none tracking-tight whitespace-nowrap">
-              Brand.
+              SmartChain
             </h1>
           ) : (
-            <h1 className="text-[1.75rem] font-semibold text-white leading-none">B.</h1>
+            <h1 className="text-[1.75rem] font-semibold text-white leading-none">SC</h1>
           )}
         </div>
 

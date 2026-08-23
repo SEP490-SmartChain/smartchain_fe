@@ -4,14 +4,14 @@ import { NextIntlClientProvider } from 'next-intl';
 import { Toaster } from 'sonner';
 import '@/styles/globals.css';
 
-import { useAppStore } from '@/hooks/useAppStore';
+import { useLocaleStore } from '@/stores';
 import { useAuth } from '@/hooks/useAuth';
 
 import enMessages from '@messages/en.json';
 import viMessages from '@messages/vi.json';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const { locale } = useAppStore();
+  const { locale } = useLocaleStore();
   const messages = locale === 'en' ? enMessages : viMessages;
   const { logout } = useAuth();
 

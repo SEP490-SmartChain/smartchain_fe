@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { Bell, Mail, ChevronDown, LogOut, Globe } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
-import { useAppStore } from '@/hooks/useAppStore';
+import { useLocaleStore } from '@/stores';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -15,17 +15,20 @@ export default function Topbar({ title }: { title?: string }) {
   const { pathname } = useLocation();
   const t = useTranslations('Topbar');
   const locale = useLocale();
-  const { setLocale } = useAppStore();
+  const { setLocale } = useLocaleStore();
   const { logout } = useAuth();
 
   const displayTitle = useMemo(() => {
     const titleMap: Record<string, string> = {
       '/dashboard': t('title_dashboard'),
-      '/customers': t('title_customers'),
+      '/orders': t('title_orders'),
+      '/inventory': t('title_inventory'),
+      '/rules': t('title_rules'),
+      '/shipments': t('title_shipments'),
+      '/reconciliation': t('title_reconciliation'),
       '/analytics': t('title_analytics'),
-      '/messages': t('title_messages'),
-      '/setting': t('title_setting'),
-      '/help': t('title_help'),
+      '/settings': t('title_settings'),
+      '/admin': t('title_admin'),
     };
     return (
       title || titleMap[pathname] || titleMap[`/${pathname.split('/')[1]}`] || t('default_title')

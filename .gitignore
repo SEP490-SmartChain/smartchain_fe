@@ -42,3 +42,5 @@ next-env.d.ts
 
 yarn.lock
 dist
+# thư mục tạm chứa code mẫu đã thay thế — xoá sau khi kiểm tra
+_to_delete/

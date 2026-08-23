@@ -1,9 +1,9 @@
 import Sidebar from '@/components/layout/Sidebar';
-import { useAppStore } from '@/hooks/useAppStore';
+import { useUiStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isSidebarOpen } = useAppStore();
+  const { isSidebarOpen } = useUiStore();
 
   return (
     <div className="min-h-screen bg-gray-50">

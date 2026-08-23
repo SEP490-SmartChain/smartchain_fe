@@ -1,34 +1,30 @@
 {
   "Sidebar": {
     "dashboard": "Tổng quan",
-    "customers": "Khách hàng",
+    "orders": "Đơn hàng",
+    "inventory": "Tồn kho",
+    "rules": "Quy tắc định tuyến",
+    "shipments": "Vận đơn",
+    "reconciliation": "Đối soát",
     "analytics": "Phân tích",
+    "admin_heading": "QUẢN TRỊ NỀN TẢNG",
+    "admin_tenants": "Khách thuê",
+    "admin_carriers": "Danh mục 3PL",
     "settings_heading": "CÀI ĐẶT",
-    "messages": "Tin nhắn",
-    "setting": "Cấu hình",
-    "help": "Trợ giúp"
+    "settings": "Cấu hình"
   },
   "Topbar": {
-    "title_dashboard": "Tổng quan",
-    "title_customers": "Quản lý khách hàng",
+    "title_dashboard": "Tổng quan vận hành",
+    "title_orders": "Quản lý đơn hàng",
+    "title_inventory": "Tồn kho đa điểm",
+    "title_rules": "Quy tắc định tuyến động",
+    "title_shipments": "Vận đơn và hành trình",
+    "title_reconciliation": "Đối soát cước phí",
     "title_analytics": "Phân tích dữ liệu",
-    "title_messages": "Tin nhắn",
-    "title_setting": "Cài đặt hệ thống",
-    "title_help": "Trung tâm trợ giúp",
+    "title_settings": "Cài đặt hệ thống",
+    "title_admin": "Quản trị nền tảng",
     "logout": "Đăng xuất",
-    "default_title": "Quản trị hệ thống"
-  },
-  "Customers": {
-    "title": "Danh sách khách hàng",
-    "new_customer": "THÊM KHÁCH HÀNG",
-    "search": "Tìm kiếm...",
-    "full_name": "Họ và Tên",
-    "status": "Trạng thái",
-    "email": "Hộp thư",
-    "dob": "Ngày sinh",
-    "status_approved": "Đã duyệt",
-    "status_blocked": "Đã khóa",
-    "status_rejected": "Từ chối"
+    "default_title": "SmartChain"
   },
   "Auth": {
     "login_heading": "Đăng nhập",

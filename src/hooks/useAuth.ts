@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-import { useAppStore } from '@/hooks/useAppStore';
+import { useAuthStore } from '@/stores';
 import { apiClient } from '@/services/apiClient';
 
 interface LoginResponse {
@@ -16,7 +16,7 @@ interface LoginResponse {
 
 export function useAuth() {
   const navigate = useNavigate();
-  const { setUser } = useAppStore();
+  const { setUser } = useAuthStore();
 
   const login = async (username: string, password: string) => {
     const data = await apiClient.post<LoginResponse>('/auth/login', {

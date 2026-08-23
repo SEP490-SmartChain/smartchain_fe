@@ -1,34 +1,30 @@
 {
   "Sidebar": {
     "dashboard": "Dashboard",
-    "customers": "Customers",
+    "orders": "Orders",
+    "inventory": "Inventory",
+    "rules": "Routing Rules",
+    "shipments": "Shipments",
+    "reconciliation": "Reconciliation",
     "analytics": "Analytics",
+    "admin_heading": "PLATFORM ADMIN",
+    "admin_tenants": "Tenants",
+    "admin_carriers": "Carrier Catalog",
     "settings_heading": "SETTINGS",
-    "messages": "Messages",
-    "setting": "Settings",
-    "help": "Help Centre"
+    "settings": "Settings"
   },
   "Topbar": {
-    "title_dashboard": "Dashboard",
-    "title_customers": "Customers",
+    "title_dashboard": "Operations Dashboard",
+    "title_orders": "Orders",
+    "title_inventory": "Multi-node Inventory",
+    "title_rules": "Dynamic Routing Rules",
+    "title_shipments": "Shipments & Tracking",
+    "title_reconciliation": "Freight Reconciliation",
     "title_analytics": "Analytics",
-    "title_messages": "Messages",
-    "title_setting": "Settings",
-    "title_help": "Help Centre",
+    "title_settings": "Settings",
+    "title_admin": "Platform Admin",
     "logout": "Log out",
-    "default_title": "Admin Panel"
-  },
-  "Customers": {
-    "title": "Customers' List",
-    "new_customer": "NEW CUSTOMER",
-    "search": "Search...",
-    "full_name": "Full Name",
-    "status": "Status",
-    "email": "E-Mail",
-    "dob": "Date of Birth",
-    "status_approved": "Approved",
-    "status_blocked": "Blocked",
-    "status_rejected": "Rejected"
+    "default_title": "SmartChain"
   },
   "Auth": {
     "login_heading": "Sign In",

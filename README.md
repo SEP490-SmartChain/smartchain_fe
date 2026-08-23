@@ -1,29 +1,53 @@
-# React SPA Base
+# SmartChain — Frontend
 
-This project provides a clean, production-ready, and highly scalable foundation for our Vite React SPA Web Admin application, applying the Feature-Sliced Design (FSD) model to ensure the source code is easy to read, maintain, and scale.
+React 19 + Vite SPA cho SmartChain — Automated Logistics Orchestration System.
+Cấu trúc thư mục ánh xạ 1-1 với **FE Package Diagram (Figure 2)**, Report 4 – SDD mục 1.2.1.
+Chi tiết quy ước xem `convention.md`.
 
 ## 📂 Directory Structure
 
-The project applies **Feature-Sliced Design (FSD)**. New features MUST NOT be crammed into `src/components`. They must be separated by Domain/Feature.
+Feature-Sliced Design. Mỗi thư mục dưới đây là một package trong Package Diagram.
 
 ```text
-src/
-├── components/           # Shared UI Components
-│   ├── common/           # Complex & basic components (DataTable, Modal, Button)
-│   └── layout/           # Layout components (Sidebar, Topbar)
-├── features/             # Core Domain logic
-│   └── [feature_name]/   # E.g., customers, orders, products...
-│       ├── api/          # API calls for this feature
-│       ├── components/   # UI Components specific to this feature
-│       └── schemas/      # TypeScript Interfaces & Zod Schemas
-├── hooks/                # Global custom hooks (useAppStore, useAuth...)
-├── pages/                # Page Components loaded by React Router
-│   ├── admin/            # Internal pages (auth required)
-│   └── LoginPage.tsx     # Public pages
-├── services/             # Global services (apiClient.ts)
-├── styles/               # Global CSS (Tailwind)
-└── main.tsx              # Entry point and Routing configuration
+smartchain_fe/
+├── messages/                 # [10] Tài nguyên đa ngữ (en.json, vi.json) — NGOÀI src/
+└── src/
+    ├── main.tsx              # [01] Application Entry — composition root, router, guard, provider
+    ├── pages/                # [02] Màn hình cấp route (chỉ lắp ghép, không chứa logic tái sử dụng)
+    │   ├── public/           #      landing, login, register, verify email, 404
+    │   ├── workspace/        #      orders, inventory, rules, shipments, reconciliation, dashboard, analytics, settings
+    │   └── admin/            #      Super Admin console: tenants, carrier catalog
+    ├── features/             # [03] 9 package nghiệp vụ, mỗi feature tự chứa api/components/hooks/schemas/types
+    │   ├── auth/             #      BE: iam                          — FE-01
+    │   ├── tenants/          #      BE: iam                          — FE-02 → FE-07
+    │   ├── catalog/          #      BE: catalog                      — FE-08 → FE-11
+    │   ├── inventory/        #      BE: inventory                    — FE-12 → FE-15
+    │   ├── rules/            #      BE: rules                        — FE-16 → FE-21
+    │   ├── orders/           #      BE: orders, allocation, rating   — FE-22 → FE-31
+    │   ├── shipments/        #      BE: dispatch, tracking           — FE-32 → FE-40
+    │   ├── reconciliation/   #      BE: reconciliation               — FE-41 → FE-46
+    │   └── analytics/        #      BE: platform                     — FE-47 → FE-52
+    ├── components/           # [04] UI dùng chung, không chứa quyết định nghiệp vụ
+    │   ├── common/           #      DataTable, Modal, Form, Pagination, Badge, Button, pdf-viewer
+    │   └── layout/           #      RootLayout, AppLayout, AdminLayout, LoginLayout, Sidebar, Topbar, ProtectedRoute
+    ├── stores/               # [05] Store toàn cục Zustand: auth, tenant, ui, locale
+    ├── hooks/                # [06] Hook dùng chung KHÔNG mang state toàn cục
+    ├── services/             # [07] apiClient — đường ra mạng duy nhất của frontend
+    ├── lib/                  # [08] Hàm tiện ích thuần, không phụ thuộc React
+    └── styles/               # [09] Tailwind config, theme variable, global style
 ```
+
+### Quy tắc phụ thuộc (FE dependency rules — SDD 1.2.1)
+
+1. `main.tsx` import trang route và toàn bộ package hỗ trợ cấp ứng dụng.
+2. Một feature **không được** import file nội bộ của feature khác — phải qua
+   `features/<name>/index.ts`, hoặc nâng phần dùng chung lên package chung.
+3. Mọi request HTTP đi qua `services/apiClient`. Trang và component UI không gọi
+   hệ thống ngoài trực tiếp.
+4. `components`, `stores`, `hooks`, `services`, `lib`, `styles`, `messages`
+   **không bao giờ** phụ thuộc ngược vào `pages` hay `features`.
+5. `stores` chỉ chứa state **dùng chung giữa nhiều feature**. State chỉ một
+   feature dùng phải nằm trong store cục bộ của feature đó.
 
 ## 📐 Best Practices & Conventions
 
@@ -43,7 +67,7 @@ src/
 ### 3. Naming Conventions
 - **Feature Folders:** lowercase, plural (e.g., `customers`, `orders`, `products`).
 - **Component Files:** PascalCase (e.g., `CustomersTable.tsx`, `CustomerForm.tsx`).
-- **Hook Files:** camelCase, starting with "use" (e.g., `useAppStore.ts`).
+- **Hook Files:** camelCase, starting with "use" (e.g., `usePagination.ts`).
 - **Variables/Functions:** camelCase (e.g., `fetchCustomers`, `handleSubmit`).
 - **Interfaces/Types:** PascalCase (e.g., `Customer`, `UserRole`).
 
@@ -58,7 +82,7 @@ When assigned to build a new page (e.g., **Products List**), follow this exact s
 1. **Step 1:** Create the domain directory `src/features/products/`.
 2. **Step 2:** Define data structures in `src/features/products/schemas/productSchema.ts` (Zod schema, interfaces).
 3. **Step 3:** Create the UI Component `src/features/products/components/ProductsTable.tsx` to render the table.
-4. **Step 4:** Create the Page Component `src/pages/admin/ProductsPage.tsx` to fetch data from the API and pass it into `<ProductsTable />`.
+4. **Step 4:** Create the Page Component `src/pages/workspace/ProductsPage.tsx` to fetch data from the API and pass it into `<ProductsTable />`.
 5. **Step 5:** Add the new route with `React.lazy()` inside `src/main.tsx`.
 6. **Step 6:** (Optional) Write API functions inside `src/features/products/api/`.
 
