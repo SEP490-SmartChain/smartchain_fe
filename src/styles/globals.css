@@ -1,10 +1,23 @@
 @import 'tailwindcss';
+@import './tokens.css';
+
+/* Import Fonts from Google Fonts: Inter, Plus Jakarta Sans, Space Grotesk */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
   --background: #ffffff;
-  --foreground: #111827;
+  --foreground: #0F172A;
 
-  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-mono: 'Space Grotesk', monospace;
+
+  /* Landing page tokens (dark theme) */
+  --sc-bg: #050B14;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -15,6 +28,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 /* Additional resets beyond Tailwind preflight */

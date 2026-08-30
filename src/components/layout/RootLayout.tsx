@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 
 import { NextIntlClientProvider } from 'next-intl';
-import { Toaster } from 'sonner';
+import { Outlet } from 'react-router-dom';
+import { Toaster } from '@/components/Common';
 import '@/styles/globals.css';
 
+import { ErrorBoundary } from '@/components/Common';
 import { useLocaleStore } from '@/stores';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -29,9 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="font-inter">
       <NextIntlClientProvider messages={messages} locale={locale}>
-        <Toaster position="top-right" richColors />
-        {children}
+        <ErrorBoundary>
+          <Toaster position="top-right" richColors />
+          {children}
+        </ErrorBoundary>
       </NextIntlClientProvider>
     </div>
   );
 }
+

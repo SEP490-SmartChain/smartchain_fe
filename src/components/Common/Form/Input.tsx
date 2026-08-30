@@ -15,7 +15,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5 mb-4">
         {label && (
-          <label htmlFor={generatedId} className="text-sm font-medium text-gray-700">
+          <label htmlFor={generatedId} className="text-sm font-medium text-[#1A1D21]">
             {label}
           </label>
         )}
@@ -23,15 +23,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={generatedId}
           ref={ref}
           className={cn(
-            'w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-md bg-white text-gray-900 transition-all duration-200 outline-none',
-            'focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/10',
-            'disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-70',
-            error && 'border-red-500 focus:border-red-500 focus:ring-red-500/10',
+            'w-full px-3.5 py-2.5 text-sm border rounded-md bg-white text-[#1A1D21] placeholder:text-[#9CA3AF] transition-all duration-200 outline-none',
+            'focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/20',
+            'disabled:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-70',
+            error ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20' : 'border-[#E5E7EB]',
             className,
           )}
           {...props}
         />
-        {error && <span className="text-xs text-red-600 mt-0.5">{error}</span>}
+        {error && <span className="text-xs text-[#EF4444] mt-0.5 font-medium">{error}</span>}
       </div>
     );
   },
