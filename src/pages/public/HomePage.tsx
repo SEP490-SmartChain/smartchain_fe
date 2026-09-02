@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import LandingCanvas, { type LandingCanvasHandle } from '@/components/landing/LandingCanvas';
 import LandingStories from '@/components/landing/LandingStories';
 import LandingNav from '@/components/landing/LandingNav';
@@ -12,6 +12,8 @@ import CustomCursor from '@/components/landing/CustomCursor';
 export default function HomePage() {
   const canvasRef = useRef<LandingCanvasHandle>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
+  const storyWrapRef = useRef<HTMLDivElement>(null);
+  const [canvasVisible, setCanvasVisible] = useState(true);
 
   // Mouse spotlight — subtle radial glow follows cursor
   useEffect(() => {
@@ -22,6 +24,18 @@ export default function HomePage() {
     };
     window.addEventListener('mousemove', onMove, { passive: true });
     return () => window.removeEventListener('mousemove', onMove);
+  }, []);
+
+  // Pause canvas compositor layer when Stories section is fully out of view
+  useEffect(() => {
+    const el = storyWrapRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setCanvasVisible(entry.isIntersecting),
+      { threshold: 0, rootMargin: '200px 0px 0px 0px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const handleSelectNode = (stopIdx: number) => {
@@ -50,10 +64,16 @@ export default function HomePage() {
           className="relative w-full"
           aria-label="SmartChain — Intelligent Multi-Warehouse Logistics"
         >
-          {/* Fixed 3D canvas — isolated compositor layer */}
+          {/* Fixed 3D canvas — hidden when user scrolls past story section */}
           <div
             className="fixed inset-0 w-full h-screen"
-            style={{ zIndex: 5, willChange: 'transform', contain: 'strict' }}
+            style={{
+              zIndex: 5,
+              contain: 'strict',
+              // visibility:hidden completely skips compositor layer — zero GPU cost
+              visibility: canvasVisible ? 'visible' : 'hidden',
+              pointerEvents: canvasVisible ? 'auto' : 'none',
+            }}
           >
             {/* Static radial glow */}
             <div
@@ -71,7 +91,7 @@ export default function HomePage() {
               style={{ zIndex: 1 }}
             />
 
-            <LandingCanvas ref={canvasRef} onSelectNode={handleSelectNode} />
+            <LandingCanvas ref={canvasRef} onSelectNode={handleSelectNode} paused={!canvasVisible} />
 
             {/* Bottom fade into page */}
             <div
@@ -80,8 +100,8 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Scroll story panels — pointer-events-none so 3D canvas receives clicks */}
-          <div className="relative pointer-events-none" style={{ zIndex: 10 }}>
+          {/* Scroll story panels */}
+          <div ref={storyWrapRef} className="relative pointer-events-none" style={{ zIndex: 10 }}>
             <LandingStories canvasRef={canvasRef} />
           </div>
         </section>

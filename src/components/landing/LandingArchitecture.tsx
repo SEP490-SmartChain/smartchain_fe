@@ -44,7 +44,7 @@ export default function LandingArchitecture() {
     <section id="architecture" className="relative py-28 px-6 sm:px-10 lg:px-16 max-w-[1360px] mx-auto z-20">
       {/* Header */}
       <div className="flex flex-col items-center text-center gap-3 mb-16">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono font-bold text-cyan-400 bg-cyan-950/50 border border-cyan-500/30 backdrop-blur-md">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono font-bold text-cyan-400 border border-cyan-500/30" style={{ background: 'rgba(8,30,45,0.95)' }}>
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           <span>KIẾN TRÚC HỆ THỐNG ENTERPRISE</span>
         </div>
@@ -66,12 +66,11 @@ export default function LandingArchitecture() {
         {ARCH_LAYERS.map((layer, idx) => (
           <div
             key={layer.step}
-            className="group relative flex flex-col justify-between p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1.5"
+            className="group relative flex flex-col justify-between p-6 rounded-2xl border transition-transform duration-300 hover:-translate-y-1.5"
             style={{
               background: 'rgba(5, 11, 20, 0.75)',
               borderColor: 'rgba(255, 255, 255, 0.08)',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.4)',
-              willChange: 'transform, opacity',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
               contain: 'layout',
             }}
           >
@@ -82,7 +81,7 @@ export default function LandingArchitecture() {
                   {layer.step}
                 </span>
                 <span
-                  className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border backdrop-blur-md"
+                  className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border"
                   style={{
                     color: layer.color,
                     borderColor: `${layer.color}40`,

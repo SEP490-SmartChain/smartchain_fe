@@ -8,16 +8,16 @@ const FOOTER_LINKS = {
 export default function LandingFooter() {
   return (
     <footer
-      className="relative border-t py-20 px-4 md:px-8 lg:px-16"
+      className="relative border-t py-12 md:py-20 px-4 md:px-8 lg:px-16"
       style={{
         background: '#050B14',
         borderColor: 'rgba(255,255,255,0.06)',
       }}
     >
       <div className="max-w-[1400px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-12 mb-12 md:mb-16">
           {/* Brand block */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 col-span-2">
             <a href="/" className="flex items-center gap-2.5 mb-4">
               <span
                 className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-sm"
@@ -70,7 +70,7 @@ export default function LandingFooter() {
           <p className="text-xs text-gray-600">
             © 2026 SmartChain · SEP490 SE_34 · FPT University Da Nang
           </p>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center flex-wrap gap-x-6 gap-y-2 justify-center sm:justify-end">
             {['Privacy Policy', 'Terms of Service', 'API Terms'].map((l) => (
               <a
                 key={l}

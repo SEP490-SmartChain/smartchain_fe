@@ -61,19 +61,19 @@ export default function Topbar({ title }: { title?: string }) {
   };
 
   return (
-    <header className="h-[4.5rem] bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-30">
-      <h2 className="text-xl font-semibold text-gray-900">{displayTitle}</h2>
+    <header className="h-[4.5rem] bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 md:px-8 sticky top-0 z-30">
+      <h2 className="text-base sm:text-xl font-semibold text-gray-900 pl-10 md:pl-0 truncate max-w-[160px] sm:max-w-none">{displayTitle}</h2>
       <div className="flex-1" />
 
       <div className="flex items-center">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             className="relative flex items-center justify-center w-9 h-9 bg-white border border-gray-200 rounded-lg text-gray-600 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
             onClick={toggleLanguage}
             title={`Switch to ${locale === 'vi' ? 'English' : 'Tiếng Việt'}`}
           >
             <Globe size={18} />
-            <span className="text-[0.65rem] font-semibold ml-1 uppercase">{locale}</span>
+              <span className="text-[0.65rem] font-semibold ml-1 uppercase hidden sm:block">{locale}</span>
           </button>
 
           <button className="relative flex items-center justify-center w-9 h-9 bg-white border border-gray-200 rounded-lg text-gray-600 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:text-gray-900">
@@ -93,7 +93,7 @@ export default function Topbar({ title }: { title?: string }) {
               <div className="w-7 h-7 rounded-md bg-[#0F766E] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
                 {initials}
               </div>
-              <span className="text-[13px] font-medium text-[#0F172A]">{displayName}</span>
+              <span className="hidden sm:block text-[13px] font-medium text-[#0F172A] truncate max-w-[120px] md:max-w-none">{displayName}</span>
               <ChevronDown
                 size={14}
                 className={cn(

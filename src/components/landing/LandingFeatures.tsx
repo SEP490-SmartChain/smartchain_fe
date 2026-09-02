@@ -71,11 +71,11 @@ const FEATURES = [
 
 export default function LandingFeatures() {
   return (
-    <section className="py-32 px-4 md:px-8 lg:px-16 max-w-[1400px] mx-auto" id="features-grid">
+    <section className="py-16 md:py-24 lg:py-32 px-4 md:px-8 lg:px-16 max-w-[1400px] mx-auto" id="features-grid">
       {/* Section header – no eyebrow (following eyebrow restraint rule) */}
-      <div className="mb-16 max-w-2xl">
+      <div className="mb-10 md:mb-16 max-w-2xl">
         <h2
-          className="text-4xl md:text-5xl font-bold tracking-tighter text-white leading-tight mb-4"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tighter text-white leading-tight mb-4"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
           Kiến trúc được xây dựng
@@ -100,7 +100,6 @@ export default function LandingFeatures() {
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)',
               contain: 'layout',
-              willChange: 'transform, opacity',
             }}
           >
             {/* Outer shell — double bezel technique */}
@@ -118,15 +117,13 @@ export default function LandingFeatures() {
             </div>
 
             {/* Content */}
-            <div className="relative z-10 p-8 flex flex-col h-full">
+            <div className="relative z-10 p-5 sm:p-6 md:p-8 flex flex-col h-full">
           {/* Accent glow blob — isolated on its own compositor layer */}
               <div
-                className="absolute -top-10 -left-10 w-40 h-40 rounded-full pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-700"
+                className="absolute -top-10 -left-10 w-44 h-44 rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                 style={{
-                  background: feat.accent,
-                  filter: 'blur(40px)',
+                  background: `radial-gradient(circle, ${feat.accent}22 0%, transparent 70%)`,
                   willChange: 'opacity',
-                  transform: 'translate3d(0,0,0)',
                 }}
               />
 

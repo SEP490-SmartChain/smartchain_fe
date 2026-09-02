@@ -67,7 +67,7 @@ export default function LandingPricing() {
     <section id="pricing" className="relative py-28 px-6 sm:px-10 lg:px-16 max-w-[1360px] mx-auto z-20">
       {/* Header */}
       <div className="flex flex-col items-center text-center gap-3 mb-16">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono font-bold text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 backdrop-blur-md">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono font-bold text-emerald-400 border border-emerald-500/30" style={{ background: 'rgba(2,30,18,0.95)' }}>
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>BẢNG GIÁ MINH BẠCH · KHÔNG CHI PHÍ ẨN</span>
         </div>
@@ -89,16 +89,15 @@ export default function LandingPricing() {
         {PRICING_TIERS.map((tier, idx) => (
           <div
             key={tier.name}
-            className={`relative flex flex-col justify-between p-8 rounded-3xl border transition-all duration-300 ${
+            className={`relative flex flex-col justify-between p-8 rounded-3xl border transition-transform duration-300 ${
               tier.popular ? 'lg:-translate-y-2' : 'hover:-translate-y-1'
             }`}
             style={{
               background: tier.popular ? 'rgba(5, 15, 28, 0.9)' : 'rgba(5, 11, 20, 0.75)',
               borderColor: tier.popular ? '#00E599' : 'rgba(255, 255, 255, 0.1)',
               boxShadow: tier.popular
-                ? '0 0 50px rgba(0, 229, 153, 0.2), 0 20px 50px rgba(0, 0, 0, 0.6)'
-                : '0 8px 30px rgba(0, 0, 0, 0.4)',
-              willChange: 'transform, opacity',
+                ? '0 0 32px rgba(0, 229, 153, 0.15), 0 12px 32px rgba(0, 0, 0, 0.5)'
+                : '0 4px 20px rgba(0, 0, 0, 0.3)',
               contain: 'layout',
             }}
           >
@@ -142,7 +141,7 @@ export default function LandingPricing() {
             {/* CTA Button */}
             <a
               href={tier.ctaLink}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 active:scale-98"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wider uppercase transition-opacity duration-200 active:scale-98"
               style={{
                 background: tier.popular ? '#00E599' : 'rgba(255, 255, 255, 0.08)',
                 color: tier.popular ? '#050B14' : '#ffffff',

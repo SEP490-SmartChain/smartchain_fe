@@ -162,7 +162,9 @@ export default function LandingStories({
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState<number>(0);
   const activeIdxRef = useRef<number>(0);
-  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  // Use ref + direct DOM mutation instead of React state to avoid re-render on every scroll tick
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const currentAccentRef = useRef<string>(SPATIAL_STOPS[0].accentColor);
 
   useEffect(() => {
     const totalStops = SPATIAL_STOPS.length;
@@ -175,7 +177,6 @@ export default function LandingStories({
         scrub: 0.1,
         onUpdate: (self) => {
           const p = self.progress;
-          setScrollProgress(p);
 
           // Determine current spatial stop index
           const rawIdx = p * totalStops;
@@ -184,6 +185,16 @@ export default function LandingStories({
           if (activeIdxRef.current !== stopIdx) {
             activeIdxRef.current = stopIdx;
             setActiveIdx(stopIdx);
+            // Update accent ref for progress bar color sync
+            currentAccentRef.current = SPATIAL_STOPS[stopIdx].accentColor;
+          }
+
+          // Direct DOM mutation — zero React re-render cost
+          if (progressBarRef.current) {
+            const accent = SPATIAL_STOPS[stopIdx].accentColor;
+            progressBarRef.current.style.width = `${p * 100}%`;
+            progressBarRef.current.style.background = accent;
+            progressBarRef.current.style.boxShadow = `0 0 12px ${accent}`;
           }
 
           // Smooth 3D Camera Drone Flight
@@ -237,7 +248,7 @@ export default function LandingStories({
         {activeIdx === 0 && (
           <div className="w-full max-w-[1440px] mx-auto px-6 sm:px-10 relative z-20 pointer-events-none flex flex-col items-center justify-end pb-8 sm:pb-10 h-full">
             <div className="flex flex-col items-center gap-2.5 text-center animate-fadeIn pointer-events-auto">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 backdrop-blur-md shadow-[0_0_25px_rgba(0,229,153,0.25)]">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-[11px] font-mono font-bold text-emerald-400 border border-emerald-500/30" style={{ background: 'rgba(2,44,28,0.9)', boxShadow: '0 0 25px rgba(0,229,153,0.2)' }}>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>HỆ THỐNG ĐIỀU PHỐI LOGISTICS ĐA KHO THÔNG MINH</span>
               </div>
@@ -258,7 +269,7 @@ export default function LandingStories({
               <button
                 type="button"
                 onClick={() => handleJumpToStop(1)}
-                className="mt-1 flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md transition-all cursor-pointer animate-bounce"
+                className="mt-1 flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold text-slate-300 hover:text-white border border-white/15 cursor-pointer transition-colors" style={{ background: 'rgba(255,255,255,0.06)' }}
               >
                 <span>Bắt đầu tham quan</span>
                 <span>↓</span>
@@ -270,18 +281,18 @@ export default function LandingStories({
         {/* ── STOPS 1-5: AR Spatial Inspector HUD (Alternating Left / Right) ── */}
         {activeIdx > 0 && (
           <div
-            className={`w-full max-w-[1440px] mx-auto px-6 sm:px-10 md:px-12 lg:px-16 relative z-20 pointer-events-none flex ${
+            className={`w-full max-w-[1440px] mx-auto px-4 sm:px-6 md:px-10 lg:px-12 xl:px-16 relative z-20 pointer-events-none flex ${
               currentStop.align === 'right' ? 'justify-end' : 'justify-start'
             }`}
           >
-            <div className="w-full max-w-[430px] lg:max-w-[460px] pt-14 md:pt-16 pointer-events-auto">
+            <div className="w-full sm:max-w-[430px] lg:max-w-[460px] pt-16 sm:pt-14 md:pt-16 pointer-events-auto">
               <div
                 key={currentStop.id}
-                className="flex flex-col gap-3.5 sm:gap-4 p-5 sm:p-6 rounded-2xl backdrop-blur-md border transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.5)] animate-fadeIn"
+                className="flex flex-col gap-3 sm:gap-3.5 p-4 sm:p-5 sm:p-6 rounded-2xl border transition-[border-color,box-shadow] duration-300 animate-fadeIn max-h-[78vh] overflow-y-auto"
                 style={{
-                  background: 'rgba(5, 11, 20, 0.72)',
+                  background: 'rgba(5, 11, 20, 0.92)',
                   borderColor: `${currentStop.accentColor}35`,
-                  boxShadow: `0 0 40px ${currentStop.accentColor}15, 0 20px 50px rgba(0,0,0,0.6)`,
+                  boxShadow: `0 0 30px ${currentStop.accentColor}12, 0 16px 40px rgba(0,0,0,0.6)`,
                 }}
               >
                 {/* Header: Node Code + Chapter Tag */}
@@ -332,7 +343,7 @@ export default function LandingStories({
                   {currentStop.hudPills.map((pill, pi) => (
                     <div
                       key={pi}
-                      className="flex items-start gap-2.5 px-3 py-2 rounded-lg backdrop-blur-sm border transition-all duration-200"
+                      className="flex items-start gap-2.5 px-3 py-2 rounded-lg border"
                       style={{
                         background: 'rgba(255, 255, 255, 0.03)',
                         borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -367,7 +378,7 @@ export default function LandingStories({
                 <div className="pt-0.5">
                   <a
                     href={currentStop.ctaLink}
-                    className="group flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all duration-300 active:scale-[0.98]"
+                    className="group flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase transition-opacity duration-200 active:scale-[0.98]"
                     style={{
                       background: currentStop.accentColor,
                       color: '#050B14',
@@ -384,25 +395,25 @@ export default function LandingStories({
         )}
       </div>
 
-      {/* ── Fixed Bottom Neon Scroll Progress Bar ────────────────────────── */}
+      {/* ── Fixed Bottom/Side Neon Scroll Progress Bar (DOM-mutated, zero React cost) ── */}
       <div
         className="fixed bottom-0 left-0 right-0 h-[3px] z-50 pointer-events-none"
         style={{ background: 'rgba(255, 255, 255, 0.06)' }}
       >
         <div
-          className="h-full transition-none"
+          ref={progressBarRef}
+          className="h-full"
           style={{
-            width: `${scrollProgress * 100}%`,
-            background: currentStop.accentColor,
-            boxShadow: `0 0 12px ${currentStop.accentColor}`,
+            width: '0%',
+            background: SPATIAL_STOPS[0].accentColor,
           }}
         />
       </div>
 
-      {/* ── Fixed Right-Side Interactive Dot Navigation ─────────────────── */}
+      {/* ── Dot Navigation: bottom-center on mobile, right-side on sm+ ───── */}
       <nav
         aria-label="Spatial Tour Navigation"
-        className="fixed right-6 sm:right-10 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50 p-2.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-auto"
+        className="fixed bottom-5 sm:bottom-auto left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-6 md:right-10 sm:top-1/2 sm:-translate-y-1/2 flex flex-row sm:flex-col gap-2.5 sm:gap-3 z-50 p-2 sm:p-2.5 rounded-full backdrop-blur-md border border-white/10 pointer-events-auto"
         style={{ background: 'rgba(5, 11, 20, 0.65)' }}
       >
         {SPATIAL_STOPS.map((stop, i) => {
@@ -415,14 +426,14 @@ export default function LandingStories({
               className="group relative flex items-center justify-center p-1 cursor-pointer"
               aria-label={`Jump to ${stop.nodeCode}`}
             >
-              {/* Tooltip Label on hover */}
-              <span className="absolute right-8 px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-white bg-[#050B14]/90 border border-white/15 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+              {/* Tooltip Label on hover — hidden on mobile, shown right on sm+ */}
+              <span className="hidden sm:block absolute right-8 px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold text-white bg-[#050B14]/90 border border-white/15 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
                 {stop.nodeCode}: {stop.tag}
               </span>
 
               {/* Dot indicator */}
               <span
-                className="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300"
                 style={{
                   background: isActive ? stop.accentColor : 'rgba(255, 255, 255, 0.25)',
                   transform: isActive ? 'scale(1.5)' : 'scale(1)',

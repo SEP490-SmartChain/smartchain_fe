@@ -84,3 +84,15 @@ ol {
     transform: translateX(0);
   }
 }
+
+/* Landing page — replaces Motion whileInView (no JS overhead, no React re-render) */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

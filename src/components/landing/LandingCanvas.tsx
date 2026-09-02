@@ -13,6 +13,7 @@ export interface LandingCanvasHandle {
 
 export interface LandingCanvasProps {
   onSelectNode?: (idx: number) => void;
+  paused?: boolean;
 }
 
 export const NODES_DATA = [
@@ -593,6 +594,7 @@ function MainScene({
   mouseRef,
   sceneIndexRef,
   onSelectNode,
+  dustCount = 260,
 }: {
   posRef: React.RefObject<THREE.Vector3>;
   lookRef: React.RefObject<THREE.Vector3>;
@@ -600,6 +602,7 @@ function MainScene({
   mouseRef: React.RefObject<{ x: number; y: number }>;
   sceneIndexRef: React.RefObject<number>;
   onSelectNode?: (idx: number) => void;
+  dustCount?: number;
 }) {
   const color = accentRef.current ?? '#00E599';
   const activeSceneIdx = sceneIndexRef.current ?? 0;
@@ -621,7 +624,7 @@ function MainScene({
       <pointLight position={[0, 0.5, 0]} color={color} intensity={1.5} distance={6} />
 
       {/* ── Orbital Dust Cloud (ThreeUI: Orbital Dust) ── */}
-      <OrbitalDust count={260} color={color} />
+      <OrbitalDust count={dustCount} color={color} />
 
       <GridFloor color={color} />
       <CentralSmartChainCore color={color} activeSceneIdx={activeSceneIdx} onSelect={onSelectNode} />
@@ -676,7 +679,7 @@ function MainScene({
 
 // ── Public Canvas Export ───────────────────────────────────────────────────────
 const LandingCanvas = forwardRef<LandingCanvasHandle, LandingCanvasProps>(
-  ({ onSelectNode }, ref) => {
+  ({ onSelectNode, paused = false }, ref) => {
     const posRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 6.8, 8.5));
     const lookRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.65, 0));
     const accentRef = useRef<string>('#00E599');
@@ -694,6 +697,10 @@ const LandingCanvas = forwardRef<LandingCanvasHandle, LandingCanvasProps>(
       return () => window.removeEventListener('mousemove', handleMouseMove);
     }, []);
 
+    // Reduce particle count on mobile for performance
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const dustCount = isMobile ? 80 : 260;
+
     useImperativeHandle(ref, () => ({
       setCameraPos(x, y, z) { posRef.current.set(x, y, z); },
       setCameraTarget(x, y, z) { lookRef.current.set(x, y, z); },
@@ -705,8 +712,10 @@ const LandingCanvas = forwardRef<LandingCanvasHandle, LandingCanvasProps>(
       // Wider FOV (50°) + closer initial camera = bigger scene feel
       <Canvas
         camera={{ position: [0, 6.8, 8.5], fov: 50 }}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: !isMobile, alpha: true }}
         style={{ background: 'transparent', pointerEvents: 'auto' }}
+        performance={{ min: 0.5 }}
+        frameloop={paused ? 'never' : 'always'}
       >
         <MainScene
           posRef={posRef}
@@ -715,6 +724,7 @@ const LandingCanvas = forwardRef<LandingCanvasHandle, LandingCanvasProps>(
           mouseRef={mouseRef}
           sceneIndexRef={sceneIndexRef}
           onSelectNode={onSelectNode}
+          dustCount={dustCount}
         />
       </Canvas>
     );
