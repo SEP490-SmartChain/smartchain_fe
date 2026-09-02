@@ -18,13 +18,14 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { useUiStore } from '@/stores';
+import { useUiStore, useAuthStore } from '@/stores';
 import { cn } from '@/lib/utils';
 
 export default function Sidebar() {
   const { pathname } = useLocation();
   const { isSidebarOpen, toggleSidebar } = useUiStore();
   const t = useTranslations('Sidebar');
+  const user = useAuthStore((s) => s.user);
 
   const MENUS: Array<{ name: string; href: string; icon?: LucideIcon; isHeading?: boolean }> = [
     { name: t('dashboard'), href: '/dashboard', icon: Home },
@@ -41,10 +42,20 @@ export default function Sidebar() {
     { name: t('settings'), href: '/settings', icon: SettingsIcon },
   ];
 
+  const displayName = user?.name ?? user?.username ?? 'User';
+  const initials = displayName
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
     <>
+      {/* Mobile burger */}
       <button
-        className="flex md:hidden fixed top-4 left-4 z-[110] p-2 bg-gray-800 text-white rounded-md border-none pointer-events-auto"
+        aria-label="Mở menu"
+        className="flex md:hidden fixed top-4 left-4 z-[110] p-2 bg-[#0F172A] text-white rounded-md border-none pointer-events-auto"
         onClick={toggleSidebar}
       >
         <Menu size={24} />
@@ -52,36 +63,51 @@ export default function Sidebar() {
 
       <aside
         className={cn(
-          'fixed top-0 left-0 h-full bg-[#24252a] text-[#9ba0a8] transition-all duration-300 z-[100] flex flex-col shadow-[2px_0_10px_rgba(0,0,0,0.1)] pointer-events-auto',
+          'fixed top-0 left-0 h-full bg-[#0F172A] text-white transition-all duration-300 z-[100] flex flex-col shadow-[2px_0_16px_rgba(0,0,0,0.25)] pointer-events-auto',
           isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-[4.5rem]',
         )}
       >
+        {/* Collapse toggle */}
         <button
-          className="absolute -right-[1.125rem] top-[1.125rem] w-9 h-9 bg-white border border-gray-200 rounded-lg text-[#1a1d21] flex items-center justify-center cursor-pointer z-[110] shadow-[0_1px_3px_rgba(0,0,0,0.1)] transition-all duration-200 hover:bg-gray-50 pointer-events-auto"
+          aria-label={isSidebarOpen ? 'Thu gọn sidebar' : 'Mở rộng sidebar'}
+          className="absolute -right-[1.125rem] top-[1.125rem] w-9 h-9 bg-white border border-[#E2E8F0] rounded-lg text-[#0F172A] flex items-center justify-center cursor-pointer z-[110] shadow-[0_1px_3px_rgba(0,0,0,0.1)] transition-all duration-200 hover:bg-[#F8FAFC] pointer-events-auto"
           onClick={toggleSidebar}
         >
           {isSidebarOpen ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
         </button>
 
-        <div className="py-8 px-6 flex items-center justify-center h-[5.5rem] overflow-hidden">
-          {isSidebarOpen ? (
-            <h1 className="text-[1.75rem] font-semibold text-white leading-none tracking-tight whitespace-nowrap">
-              SmartChain
-            </h1>
-          ) : (
-            <h1 className="text-[1.75rem] font-semibold text-white leading-none">SC</h1>
-          )}
+        {/* ── Logo / Brand ──────────────────────────────────────────── */}
+        <div className="px-4 py-4 border-b border-gray-800 bg-[#0B1120] flex-shrink-0">
+          <div
+            className={cn(
+              'flex items-center gap-2.5 overflow-hidden',
+              !isSidebarOpen && 'justify-center',
+            )}
+          >
+            {/* SC badge */}
+            <div className="w-8 h-8 rounded-lg bg-[#0F766E] flex items-center justify-center font-bold text-white text-sm shadow-md flex-shrink-0">
+              SC
+            </div>
+
+            {isSidebarOpen && (
+              <div className="font-bold text-[15px] leading-tight whitespace-nowrap">
+                <span className="text-[#10B981]">Smart</span>
+                <span className="text-white">Chain</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden">
-          <ul className="flex flex-col gap-1 m-0 p-0 list-none">
+        {/* ── Nav items ─────────────────────────────────────────────── */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+          <ul className="flex flex-col gap-0.5 m-0 p-0 list-none">
             {MENUS.map((menu) => {
               if (menu.isHeading) {
                 return (
                   <li
                     key={`heading-${menu.name}`}
                     className={cn(
-                      'text-[0.7rem] font-semibold text-[#6a6e76] px-6 pt-6 pb-2 uppercase tracking-wide whitespace-nowrap',
+                      'text-[0.65rem] font-bold text-gray-500 px-3 pt-5 pb-1.5 uppercase tracking-widest whitespace-nowrap',
                       !isSidebarOpen && 'hidden',
                     )}
                   >
@@ -94,18 +120,23 @@ export default function Sidebar() {
               const isActive = pathname === menu.href || pathname.startsWith(`${menu.href}/`);
 
               return (
-                <li key={menu.href} className="flex flex-col">
+                <li key={menu.href}>
                   <Link
                     to={menu.href}
+                    title={!isSidebarOpen ? menu.name : undefined}
                     className={cn(
-                      'flex items-center gap-4 px-5 py-3.5 mx-4 my-1 rounded-lg text-[13px] font-medium tracking-[0.02em] transition-all duration-200 no-underline whitespace-nowrap pointer-events-auto',
-                      !isSidebarOpen && 'p-3.5 mx-auto my-1 justify-center w-12',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 no-underline whitespace-nowrap pointer-events-auto',
+                      !isSidebarOpen && 'justify-center px-0 py-3 mx-auto w-12',
                       isActive
-                        ? 'bg-[#36373e] text-white'
-                        : 'text-[#9ba0a8] hover:bg-[#2d2e34] hover:text-white',
+                        ? 'bg-[#0F766E] text-white shadow-md shadow-teal-950/50 font-semibold'
+                        : 'text-gray-400 hover:bg-[#0F766E]/20 hover:text-[#10B981]',
                     )}
                   >
-                    <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className="min-w-[18px]" />
+                    <Icon
+                      size={17}
+                      className={cn('flex-shrink-0', isActive ? 'text-white' : 'text-gray-400')}
+                      strokeWidth={isActive ? 2.5 : 2}
+                    />
                     {isSidebarOpen && <span>{menu.name}</span>}
                   </Link>
                 </li>
@@ -113,6 +144,23 @@ export default function Sidebar() {
             })}
           </ul>
         </nav>
+
+        {/* ── User footer ───────────────────────────────────────────── */}
+        <div className="p-3 border-t border-gray-800 bg-[#0B1120]/60 flex-shrink-0">
+          <div
+            className={cn(
+              'flex items-center gap-2.5 px-2 py-1.5 rounded-lg overflow-hidden',
+              !isSidebarOpen && 'justify-center px-0',
+            )}
+          >
+            <div className="w-8 h-8 rounded-full bg-[#0F766E] flex items-center justify-center text-[11px] font-bold text-white shadow flex-shrink-0">
+              {initials}
+            </div>
+            {isSidebarOpen && (
+              <div className="text-xs font-semibold text-white truncate">{displayName}</div>
+            )}
+          </div>
+        </div>
       </aside>
     </>
   );

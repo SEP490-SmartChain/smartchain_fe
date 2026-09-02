@@ -40,18 +40,18 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
 
   return (
     <div
-      className="fixed inset-0 bg-gray-900/50 z-[1000] flex items-center justify-center p-4 backdrop-blur-[2px] animate-[fadeIn_0.2s_ease-out]"
+      className="fixed inset-0 bg-[#1A1D21]/40 z-[1000] flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl w-full max-h-[90vh] flex flex-col shadow-xl overflow-hidden animate-[slideUp_0.2s_ease-out]"
+        className="bg-white rounded-xl w-full max-h-[90vh] flex flex-col shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] overflow-hidden animate-[slideUp_0.2s_ease-out] border border-[#E5E7EB]"
         style={{ maxWidth: width }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 m-0">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
+          <h3 className="text-lg font-semibold text-[#1A1D21] m-0">{title}</h3>
           <button
-            className="flex items-center justify-center p-1 text-gray-500 rounded-md transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="flex items-center justify-center p-1.5 text-[#6A6E76] rounded-md transition-all hover:bg-[#F7F8FA] hover:text-[#1A1D21]"
             onClick={onClose}
             aria-label={t('close')}
           >
