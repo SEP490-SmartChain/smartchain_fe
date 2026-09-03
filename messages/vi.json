@@ -35,7 +35,27 @@
     "forgot_password": "Quên mật khẩu?",
     "remember_me": "Lưu thông tin đăng nhập",
     "logging_in": "Đang đăng nhập...",
-    "login_error_generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
+    "login_error_generic": "Đã có lỗi xảy ra. Vui lòng thử lại.",
+    "register_heading": "Đăng ký tài khoản Doanh nghiệp",
+    "register_subheading": "Tạo không gian làm việc cho doanh nghiệp của bạn",
+    "full_name_label": "Họ và tên",
+    "full_name_placeholder": "Nguyễn Văn A",
+    "email_label": "Email",
+    "email_placeholder": "admin@congty.com",
+    "phone_label": "Số điện thoại",
+    "phone_placeholder": "0901234567",
+    "company_name_label": "Tên công ty",
+    "company_name_placeholder": "Công ty TNHH ABC",
+    "tax_id_label": "Mã số thuế",
+    "tax_id_placeholder": "0123456789",
+    "tax_id_helper": "Không bắt buộc - giúp xác thực doanh nghiệp",
+    "confirm_password_label": "Xác nhận mật khẩu",
+    "confirm_password_placeholder": "Nhập lại mật khẩu",
+    "agree_to_terms_label": "Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật",
+    "register_button": "Đăng ký",
+    "registering": "Đang đăng ký...",
+    "already_have_account": "Đã có tài khoản?",
+    "login_link": "Đăng nhập"
   },
   "Common": {
     "loading_data": "Đang tải dữ liệu...",
@@ -57,5 +77,17 @@
     "back_to_home": "Về trang chủ",
     "error_heading": "Đã xảy ra lỗi",
     "reload_page": "Tải lại trang"
+  },
+  "Validation": {
+    "required": "Trường này không được để trống",
+    "min_length": "Tối thiểu {min} ký tự",
+    "max_length": "Tối đa {max} ký tự",
+    "invalid_email": "Email không hợp lệ",
+    "invalid_phone": "Số điện thoại phải là 10 số bắt đầu bằng 0",
+    "invalid_tax_id": "Mã số thuế phải là 10 hoặc 14 số",
+    "invalid_password_format": "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt",
+    "password_mismatch": "Mật khẩu xác nhận không khớp",
+    "must_agree_terms": "Bạn phải đồng ý với điều khoản sử dụng",
+    "only_letters_spaces": "Chỉ được chứa chữ cái và khoảng trắng"
   }
 }

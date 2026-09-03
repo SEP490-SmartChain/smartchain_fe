@@ -35,7 +35,27 @@
     "forgot_password": "Forgot password?",
     "remember_me": "Remember me",
     "logging_in": "Signing in...",
-    "login_error_generic": "An error occurred. Please try again."
+    "login_error_generic": "An error occurred. Please try again.",
+    "register_heading": "Business Account Registration",
+    "register_subheading": "Create your business workspace",
+    "full_name_label": "Full Name",
+    "full_name_placeholder": "John Doe",
+    "email_label": "Email",
+    "email_placeholder": "admin@company.com",
+    "phone_label": "Phone Number",
+    "phone_placeholder": "0901234567",
+    "company_name_label": "Company Name",
+    "company_name_placeholder": "ABC Company Ltd.",
+    "tax_id_label": "Tax ID",
+    "tax_id_placeholder": "0123456789",
+    "tax_id_helper": "Optional - helps verify your business",
+    "confirm_password_label": "Confirm Password",
+    "confirm_password_placeholder": "Re-enter password",
+    "agree_to_terms_label": "I agree to the Terms of Service and Privacy Policy",
+    "register_button": "Register",
+    "registering": "Registering...",
+    "already_have_account": "Already have an account?",
+    "login_link": "Sign In"
   },
   "Common": {
     "loading_data": "Loading data...",
@@ -57,5 +77,17 @@
     "back_to_home": "Back to Home",
     "error_heading": "An error occurred",
     "reload_page": "Reload Page"
+  },
+  "Validation": {
+    "required": "This field is required",
+    "min_length": "Minimum {min} characters",
+    "max_length": "Maximum {max} characters",
+    "invalid_email": "Invalid email address",
+    "invalid_phone": "Phone number must be 10 digits starting with 0",
+    "invalid_tax_id": "Tax ID must be 10 or 14 digits",
+    "invalid_password_format": "Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character",
+    "password_mismatch": "Passwords do not match",
+    "must_agree_terms": "You must agree to the terms of service",
+    "only_letters_spaces": "Only letters and spaces are allowed"
   }
 }

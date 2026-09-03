@@ -176,21 +176,25 @@ Dự án sử dụng **Tailwind CSS v4** kết hợp **CSS Variables** từ `src
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/Common/Input/Input';
 import { Button } from '@/components/Common/Button/Button';
 
 // 1. Khai báo Schema tại features/[name]/schemas/
-export const loginSchema = z.object({
-  email: z.string().email('Email không đúng định dạng'),
-  password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự'),
+// BẮT BUỘC: Export hàm tạo schema nhận vào `t` để hỗ trợ đa ngôn ngữ
+export const getLoginSchema = (t: any) => z.object({
+  email: z.string().email(t('Validation.invalid_email')),
+  password: z.string().min(6, t('Validation.min_password', { min: 6 })),
 });
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
+export type LoginFormValues = z.infer<ReturnType<typeof getLoginSchema>>;
 
 // 2. Sử dụng trong Component
 export function LoginForm() {
+  const t = useTranslations();
+  
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(getLoginSchema(t)),
   });
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -199,9 +203,9 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input label="Email" type="email" {...register('email')} error={errors.email?.message} />
-      <Input label="Mật khẩu" type="password" {...register('password')} error={errors.password?.message} />
-      <Button type="submit" isLoading={isSubmitting}>Đăng nhập</Button>
+      <Input label={t('Auth.email')} type="email" {...register('email')} error={errors.email?.message} />
+      <Input label={t('Auth.password')} type="password" {...register('password')} error={errors.password?.message} />
+      <Button type="submit" isLoading={isSubmitting}>{t('Auth.login')}</Button>
     </form>
   );
 }
@@ -469,6 +473,7 @@ return <h1>Danh sách đơn hàng</h1>;
     }
   }
   ```
+- **Tái sử dụng Message:** Những thông báo dùng chung ở nhiều nơi (như lỗi Validation, chữ trên nút bấm Lưu/Xóa, lỗi hệ thống) **BẮT BUỘC** phải gom vào các namespace chung như `Validation`, `Common`, `Error` để tái sử dụng, tuyệt đối không khai báo lặp lại ở từng feature.
 
 ---
 
@@ -518,7 +523,7 @@ Một tính năng hoặc thay đổi code chỉ được xem là hoàn tất khi
 - [ ] Đặt tên file, biến, hàm, type đúng quy tắc theo Mục 10.
 - [ ] Feature mới có cấu trúc đúng theo Mục 13 (`api/`, `components/`, `hooks/`, `schemas/`, `types/`).
 - [ ] Màn hình có fetch data xử lý đủ 4 trạng thái: Loading, Error, Empty, Success (Mục 14).
-- [ ] Form có đầy đủ Zod Schema Validation và thông báo lỗi tiếng Việt thân thiện.
+- [ ] Form có đầy đủ Zod Schema Validation và lỗi được hỗ trợ đa ngôn ngữ bằng cách truyền hàm `t` (tuyệt đối không hardcode message tiếng Việt).
 - [ ] Mọi string hiển thị người dùng đi qua `useTranslations` (Mục 15).
 - [ ] Đảm bảo a11y tối thiểu: alt, aria-label, keyboard navigation (Mục 16).
 - [ ] `npx tsc --noEmit` vượt qua với **0 errors**.

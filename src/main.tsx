@@ -11,6 +11,7 @@ import RootLayout from '@/components/layout/RootLayout';
 
 import HomePage from '@/pages/public/HomePage';
 import LoginPage from '@/pages/public/LoginPage';
+import RegisterPage from '@/pages/public/RegisterPage';
 import NotFoundPage from '@/pages/public/NotFoundPage';
 
 // Tenant workspace — lazy load để tách bundle theo route.
@@ -65,6 +66,7 @@ function App() {
               }
             >
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
             </Route>
 
             {/* --- Component Showcase (public, no auth required) --- */}

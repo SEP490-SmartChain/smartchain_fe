@@ -41,7 +41,15 @@ class ApiClient {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.message || data.error || 'Có lỗi xảy ra khi gọi API');
+        let errorMessage = 'Có lỗi xảy ra khi gọi API';
+        if (data.error && typeof data.error === 'object' && data.error.message) {
+          errorMessage = data.error.message;
+        } else if (typeof data.message === 'string') {
+          errorMessage = data.message;
+        } else if (typeof data.error === 'string') {
+          errorMessage = data.error;
+        }
+        throw new Error(errorMessage);
       }
 
       return data as T;

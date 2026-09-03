@@ -10,4 +10,13 @@ export default defineConfig({
       "@messages": path.resolve(__dirname, "./messages"),
     },
   },
+  server: {
+    port: 2324,
+    proxy: {
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
+  },
 });

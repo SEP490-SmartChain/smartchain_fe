@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -195,6 +196,19 @@ export default function LoginPage() {
                 {loading ? t('logging_in') : t('login_heading')}
               </button>
             </form>
+
+            {/* Register Link */}
+            <div className="text-center mt-6">
+              <p className="text-sm text-[#475569]">
+                Chưa có tài khoản?{' '}
+                <Link
+                  to="/register"
+                  className="text-[#0F766E] font-semibold hover:text-[#0d645d] hover:underline transition-colors"
+                >
+                  Đăng ký ngay
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>
