@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/common/Button/Button';
+import { Button } from '@/components/Common/Button/Button';
 
 export default function NotFoundPage() {
   const t = useTranslations('Error');

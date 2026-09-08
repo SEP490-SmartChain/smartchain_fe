@@ -1,5 +1,5 @@
-import Breadcrumb from '@/components/common/Breadcrumb';
-import UnderConstruction from '@/components/common/UnderConstruction';
+import { Breadcrumb } from '@/components/Common';
+import { UnderConstruction } from '@/components/Common';
 
 export default function CarrierCatalogPage() {
   return (

@@ -5,11 +5,11 @@ import { createPortal } from 'react-dom';
 import { FileText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { PdfPage } from '@/components/common/pdf-viewer/components/PdfPage';
-import { PdfThumbnail } from '@/components/common/pdf-viewer/components/PdfThumbnail';
-import { ViewerControls } from '@/components/common/pdf-viewer/components/ViewerControls';
-import { usePdfDocument } from '@/components/common/pdf-viewer/hooks/usePdfDocument';
-import { useViewerState } from '@/components/common/pdf-viewer/hooks/useViewerState';
+import { PdfPage } from '@/components/Common/pdf-viewer/components/PdfPage';
+import { PdfThumbnail } from '@/components/Common/pdf-viewer/components/PdfThumbnail';
+import { ViewerControls } from '@/components/Common/pdf-viewer/components/ViewerControls';
+import { usePdfDocument } from '@/components/Common/pdf-viewer/hooks/usePdfDocument';
+import { useViewerState } from '@/components/Common/pdf-viewer/hooks/useViewerState';
 
 interface FileViewerProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface FileViewerProps {
   fileName?: string;
 }
 
-export default function FileViewer({
+export function FileViewer({
   isOpen,
   onClose,
   fileName = 'Bao-gia-NCC-Vat-tu-T01.pdf',

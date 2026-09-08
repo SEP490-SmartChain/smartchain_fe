@@ -31,58 +31,116 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#fcfcfd]">
-      <div className="flex-1 bg-gradient-to-br from-blue-900 to-blue-700 relative hidden md:block overflow-hidden after:content-[''] after:absolute after:inset-0 after:bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.03)_0px,rgba(255,255,255,0.03)_1px,transparent_1px,transparent_40px)]">
-        {/* Placeholder for left background graphic */}
+    <div className="min-h-screen flex bg-[#F8FAFC]">
+      {/* ── Left panel — teal brand ──────────────────────────────────── */}
+      <div
+        className="flex-1 relative hidden md:flex flex-col items-center justify-center overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #0F766E 0%, #064e3b 60%, #022c22 100%)',
+        }}
+      >
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(90deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 48px), repeating-linear-gradient(180deg, rgba(255,255,255,0.04) 0px, rgba(255,255,255,0.04) 1px, transparent 1px, transparent 48px)',
+          }}
+        />
+        {/* Glow blob */}
+        <div
+          className="absolute w-[480px] h-[480px] rounded-full pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(0,229,153,0.18) 0%, transparent 70%)',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
+        {/* Brand copy */}
+        <div className="relative z-10 flex flex-col items-center gap-6 px-12 text-center">
+          <h1 className="text-4xl font-bold text-white tracking-tight leading-tight">SmartChain</h1>
+          <p className="text-[#A7F3D0] text-base leading-relaxed max-w-[320px]">
+            Intelligent Multi-Warehouse Logistics Orchestration
+          </p>
+          <div className="flex gap-3 mt-2">
+            {['#00E599', '#FFB800', '#A855F7', '#00B4FF'].map((c) => (
+              <span
+                key={c}
+                className="w-2.5 h-2.5 rounded-full opacity-70"
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center relative bg-[#fffafb]">
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="w-full max-w-[460px] p-8 z-10 flex flex-col items-center">
-          <div className="w-full bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.05),0_0_1px_rgba(0,0,0,0.1)] p-10">
-            <h2 className="text-2xl font-bold text-gray-800 text-center my-8 m-0">
+      {/* ── Right panel — login form ──────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-center relative bg-white">
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(0,0,0,0.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.025) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+          }}
+        />
+
+        <div className="w-full max-w-[460px] px-8 py-4 z-10">
+          <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.05)] p-10">
+            {/* Logo row (mobile only) */}
+            <p className="md:hidden text-center text-sm font-semibold text-[#0F766E] mb-2 tracking-wide uppercase">
+              SmartChain
+            </p>
+
+            <h2 className="text-2xl font-bold text-[#0F172A] text-center mb-8 m-0">
               {t('login_heading')}
             </h2>
 
-            <form onSubmit={handleSubmit} className="flex flex-col mt-4" autoComplete="off">
+            <form onSubmit={handleSubmit} className="flex flex-col" autoComplete="off">
+              {/* Honeypot */}
               <input type="text" style={{ display: 'none' }} name="fake_user" />
               <input type="password" style={{ display: 'none' }} name="fake_pass" />
 
+              {/* Error */}
               {error && (
-                <div className="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm border border-red-200">
+                <div className="mb-5 px-4 py-3 rounded-lg bg-[#FEF2F2] text-[#EF4444] text-sm border border-[#FECACA] font-medium">
                   {error}
                 </div>
               )}
 
-              <div className="flex flex-col gap-2 mb-5">
-                <label className="text-sm font-semibold text-gray-700">
-                  {t('username_label')} <span className="text-red-500">*</span>
+              {/* Username */}
+              <div className="flex flex-col gap-1.5 mb-5">
+                <label htmlFor="login-username" className="text-sm font-semibold text-[#0F172A]">
+                  {t('username_label')} <span className="text-[#EF4444]">*</span>
                 </label>
-                <div className="relative flex items-center">
-                  <input
-                    required
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md outline-none text-sm transition-all duration-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-600 focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
-                    placeholder={t('username_placeholder')}
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                  />
-                </div>
+                <input
+                  id="login-username"
+                  required
+                  type="text"
+                  className="w-full px-4 py-3 border border-[#E2E8F0] rounded-lg outline-none text-sm transition-all duration-200 text-[#0F172A] placeholder:text-[#94A3B8] bg-white focus:border-[#0F766E] focus:shadow-[0_0_0_3px_rgba(15,118,110,0.1)]"
+                  placeholder={t('username_placeholder')}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                />
               </div>
 
-              <div className="flex flex-col gap-2 mb-5">
-                <label className="text-sm font-semibold text-gray-700">
-                  {t('password_label')} <span className="text-red-500">*</span>
+              {/* Password */}
+              <div className="flex flex-col gap-1.5 mb-5">
+                <label htmlFor="login-password" className="text-sm font-semibold text-[#0F172A]">
+                  {t('password_label')} <span className="text-[#EF4444]">*</span>
                 </label>
                 <div className="relative flex items-center">
                   <input
+                    id="login-password"
                     required
                     type={showPassword ? 'text' : 'password'}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md outline-none text-sm transition-all duration-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-600 focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)]"
+                    className="w-full px-4 py-3 pr-12 border border-[#E2E8F0] rounded-lg outline-none text-sm transition-all duration-200 text-[#0F172A] placeholder:text-[#94A3B8] bg-white focus:border-[#0F766E] focus:shadow-[0_0_0_3px_rgba(15,118,110,0.1)]"
                     placeholder={t('password_placeholder')}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -90,44 +148,47 @@ export default function LoginPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-4 bg-transparent border-none text-gray-400 cursor-pointer p-0 flex items-center justify-center transition-colors duration-200 hover:text-gray-600"
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    className="absolute right-4 bg-transparent border-none text-[#94A3B8] cursor-pointer p-0 flex items-center justify-center transition-colors duration-200 hover:text-[#475569]"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                   >
                     {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                   </button>
                 </div>
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-end mt-1">
                   <button
                     type="button"
-                    className="text-sm text-blue-700 bg-transparent border-none cursor-pointer p-0 font-semibold hover:underline"
+                    className="text-sm text-[#0F766E] bg-transparent border-none cursor-pointer p-0 font-semibold hover:text-[#0d645d] hover:underline transition-colors"
                   >
                     {t('forgot_password')}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 mb-6 mt-2">
+              {/* Remember me */}
+              <div className="flex items-center gap-2.5 mb-7 mt-1">
                 <input
                   type="checkbox"
                   id="remember"
-                  className="w-4 h-4 rounded border border-gray-300 cursor-pointer accent-blue-700"
+                  className="w-4 h-4 rounded border border-[#CBD5E1] cursor-pointer accent-[#0F766E]"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 <label
                   htmlFor="remember"
-                  className="text-sm text-gray-600 cursor-pointer font-medium"
+                  className="text-sm text-[#475569] cursor-pointer font-medium"
                 >
                   {t('remember_me')}
                 </label>
               </div>
 
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
                 className={cn(
-                  'w-full py-3.5 px-4 bg-blue-700 text-white font-semibold rounded-md border-none cursor-pointer transition-colors duration-200 text-sm hover:not(:disabled):bg-blue-800',
+                  'w-full py-3.5 px-4 bg-[#0F766E] text-white font-semibold rounded-lg border-none cursor-pointer transition-all duration-200 text-sm hover:bg-[#0d645d] hover:shadow-md',
                   loading && 'opacity-70 cursor-not-allowed',
                 )}
               >
