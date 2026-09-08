@@ -1,23 +1,14 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
-/* Import Fonts from Google Fonts: Inter, Plus Jakarta Sans, Space Grotesk */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* Admin typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
   --background: #ffffff;
-  --foreground: #0F172A;
+  --foreground: #0f172a;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  --font-mono: 'Space Grotesk', monospace;
-
-  /* Landing page tokens (dark theme) */
-  --sc-bg: #050B14;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 body {
@@ -82,17 +73,5 @@ ol {
   }
   to {
     transform: translateX(0);
-  }
-}
-
-/* Landing page — replaces Motion whileInView (no JS overhead, no React re-render) */
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(28px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }

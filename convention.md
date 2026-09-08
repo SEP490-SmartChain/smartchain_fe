@@ -43,7 +43,7 @@ smartchain_fe/
 └── src/
     ├── main.tsx              # [01] Application Entry — composition root, router, guard, provider
     ├── pages/                # [02] Màn hình cấp route (chỉ lắp ghép, không chứa logic nghiệp vụ)
-    │   ├── public/           #      HomePage (Landing 3D), LoginPage, NotFoundPage
+    │   ├── public/           #      HomePage (redirect), LoginPage, NotFoundPage
     │   ├── workspace/        #      DashboardPage, OrdersPage, InventoryPage, RulesPage, ShipmentsPage, ReconciliationPage...
     │   └── admin/            #      Super Admin console: TenantsPage, CarrierCatalogPage
     ├── features/             # [03] 9 Package nghiệp vụ (mỗi feature tự chứa api/components/hooks/schemas/types)
@@ -58,8 +58,7 @@ smartchain_fe/
     │   └── analytics/        #      BE: platform                     — FE-47 → FE-52
     ├── components/           # [04] UI Component dùng chung (không chứa quyết định nghiệp vụ)
     │   ├── Common/           #      BẮT BUỘC VIẾT HOA CHỮ 'C': Button, Input, Modal, DataTable, Badge, Card, Alert, Pagination...
-    │   ├── layout/           #      RootLayout, AdminLayout, LoginLayout, Sidebar, Topbar, ProtectedRoute
-    │   └── landing/          #      LandingCanvas (Three.js 3D), LandingStories, LandingFeatures, LandingArchitecture, LandingPricing...
+    │   └── layout/           #      RootLayout, AdminLayout, LoginLayout, Sidebar, Topbar, ProtectedRoute
     ├── stores/               # [05] Zustand global stores: authStore, tenantStore, uiStore, localeStore
     ├── hooks/                # [06] Custom hooks dùng chung KHÔNG mang state toàn cục
     ├── services/             # [07] apiClient — Cổng kết nối HTTP/REST duy nhất của frontend
@@ -104,7 +103,7 @@ Dự án sử dụng **Tailwind CSS v4** kết hợp **CSS Variables** từ `src
 
 ### 5.1 Bảng Màu Chuẩn (Design Tokens)
 
-#### A. Workspace & Admin Dashboard (Light Theme — Slate & Emerald/Teal)
+#### Workspace & Admin Dashboard (Light Theme — Slate & Emerald/Teal)
 ```css
 /* Brand Colors */
 --sc-primary: #0F766E;          /* Teal dark - Action chính */
@@ -127,27 +126,9 @@ Dự án sử dụng **Tailwind CSS v4** kết hợp **CSS Variables** từ `src
 --sc-info: #3B82F6;             /* Xanh dương */
 ```
 
-#### B. Public Landing Page (Dark Spatial Theme — Cyber Neon)
-```css
---sc-dark-bg: #050B14;               /* Nền không gian tối 3D */
---sc-dark-surface: rgba(5, 11, 20, 0.75);
---sc-dark-surface-elevated: rgba(5, 15, 28, 0.9);
---sc-dark-border: rgba(255, 255, 255, 0.1);
-
-/* Neon Node Palette */
---sc-neon-mint: #00E599;        /* Platform Signature & SmartChain Core */
---sc-neon-amber: #FFB800;       /* Node 1: Tồn Kho Mù (Warning) */
---sc-neon-crimson: #FF4444;     /* Node 2: Trễ Hạn & Hoàn Đơn (Critical) */
---sc-neon-violet: #A855F7;      /* Node 3: Smart Routing (AI Engine) */
---sc-neon-blue: #00B4FF;        /* Node 4: Rate Shopping (Carrier Auction) */
-```
-
 ### 5.2 Quy tắc dùng màu & Typography:
 1. **Workspace/Admin:** Tuyệt đối không hardcode mã hex `#00E599` hay `#1A1D21` cũ. Sử dụng class Tailwind hoặc CSS variable `--sc-primary`, `--sc-accent`.
-2. **Typography:**
-   - Font mặc định toàn app: **Inter** (`font-sans`).
-   - Font tiêu đề display/headline: **Plus Jakarta Sans** (`font-display`).
-   - Font chỉ số công nghệ/số liệu: **Space Grotesk / JetBrains Mono** (`font-mono`).
+2. **Typography:** Font mặc định toàn app là **Inter** (`font-sans`).
 
 ---
 
@@ -288,7 +269,6 @@ Mọi file **BẮT BUỘC** sắp xếp import theo 4 nhóm, phân cách bằng 
 // ─── Nhóm 1: React & thư viện external ─────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 // ─── Nhóm 2: Common Components ───────────────────────────────────────

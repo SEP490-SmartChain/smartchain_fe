@@ -14,7 +14,7 @@ smartchain_fe/
 └── src/
     ├── main.tsx              # [01] Application Entry — composition root, router, guard, provider
     ├── pages/                # [02] Màn hình cấp route (chỉ lắp ghép, không chứa logic tái sử dụng)
-    │   ├── public/           #      landing, login, register, verify email, 404
+    │   ├── public/           #      login, register, verify email, 404 và redirect vào dashboard
     │   ├── workspace/        #      orders, inventory, rules, shipments, reconciliation, dashboard, analytics, settings
     │   └── admin/            #      Super Admin console: tenants, carrier catalog
     ├── features/             # [03] 9 package nghiệp vụ, mỗi feature tự chứa api/components/hooks/schemas/types

@@ -6,91 +6,77 @@
 
 :root {
   /* === BRAND COLORS (From Mockup) === */
-  --sc-primary: #0F766E;          /* Primary teal dark - main actions */
-  --sc-primary-hover: #0d645d;    /* Darker teal for hover */
-  --sc-accent: #10B981;           /* Emerald accent - highlights, success */
-  --sc-accent-light: #D1FAE5;     /* Very light emerald for backgrounds */
+  --sc-primary: #0f766e; /* Primary teal dark - main actions */
+  --sc-primary-hover: #0d645d; /* Darker teal for hover */
+  --sc-accent: #10b981; /* Emerald accent - highlights, success */
+  --sc-accent-light: #d1fae5; /* Very light emerald for backgrounds */
   --sc-accent-alpha-10: rgba(16, 185, 129, 0.1);
   --sc-accent-alpha-20: rgba(16, 185, 129, 0.2);
-  
+
   /* === NEUTRAL COLORS (Light Theme from Mockup) === */
-  --sc-bg-primary: #F8FAFC;       /* Main background (slate-50) */
-  --sc-bg-secondary: #F1F5F9;     /* Secondary background (slate-100) */
-  --sc-bg-elevated: #FFFFFF;      /* Cards, modals */
-  
-  --sc-border-light: #F1F5F9;     /* Very light borders */
-  --sc-border-default: #E2E8F0;   /* Default borders (slate-200) */
-  --sc-border-strong: #CBD5E1;    /* Strong borders (slate-300) */
-  
-  --sc-text-primary: #0F172A;     /* Primary text (slate-900) */
-  --sc-text-secondary: #475569;   /* Secondary text (slate-600) */
-  --sc-text-tertiary: #94A3B8;    /* Tertiary text (slate-400) */
-  --sc-text-disabled: #CBD5E1;    /* Disabled text */
-  
+  --sc-bg-primary: #f8fafc; /* Main background (slate-50) */
+  --sc-bg-secondary: #f1f5f9; /* Secondary background (slate-100) */
+  --sc-bg-elevated: #ffffff; /* Cards, modals */
+
+  --sc-border-light: #f1f5f9; /* Very light borders */
+  --sc-border-default: #e2e8f0; /* Default borders (slate-200) */
+  --sc-border-strong: #cbd5e1; /* Strong borders (slate-300) */
+
+  --sc-text-primary: #0f172a; /* Primary text (slate-900) */
+  --sc-text-secondary: #475569; /* Secondary text (slate-600) */
+  --sc-text-tertiary: #94a3b8; /* Tertiary text (slate-400) */
+  --sc-text-disabled: #cbd5e1; /* Disabled text */
+
   /* === STATUS COLORS === */
-  --sc-success: #0F766E;          /* Success teal (same as primary to avoid glare) */
-  --sc-success-bg: #F0FDFA;
-  --sc-success-border: #99F6E4;
-  
-  --sc-warning: #F59E0B;          /* Warning orange */
-  --sc-warning-bg: #FEF3C7;
-  --sc-warning-border: #FCD34D;
-  
-  --sc-error: #EF4444;            /* Error red */
-  --sc-error-bg: #FEE2E2;
-  --sc-error-border: #FECACA;
-  
-  --sc-info: #3B82F6;             /* Info blue */
-  --sc-info-bg: #DBEAFE;
-  --sc-info-border: #BFDBFE;
-  
+  --sc-success: #0f766e; /* Success teal (same as primary to avoid glare) */
+  --sc-success-bg: #f0fdfa;
+  --sc-success-border: #99f6e4;
+
+  --sc-warning: #f59e0b; /* Warning orange */
+  --sc-warning-bg: #fef3c7;
+  --sc-warning-border: #fcd34d;
+
+  --sc-error: #ef4444; /* Error red */
+  --sc-error-bg: #fee2e2;
+  --sc-error-border: #fecaca;
+
+  --sc-info: #3b82f6; /* Info blue */
+  --sc-info-bg: #dbeafe;
+  --sc-info-border: #bfdbfe;
+
   /* === SHADOWS === */
   --sc-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --sc-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --sc-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --sc-shadow-accent: 0 0 20px rgba(16, 185, 129, 0.15);
-  
+
   /* === SPACING === */
-  --sc-spacing-xs: 0.25rem;       /* 4px */
-  --sc-spacing-sm: 0.5rem;        /* 8px */
-  --sc-spacing-md: 1rem;          /* 16px */
-  --sc-spacing-lg: 1.5rem;        /* 24px */
-  --sc-spacing-xl: 2rem;          /* 32px */
-  
+  --sc-spacing-xs: 0.25rem; /* 4px */
+  --sc-spacing-sm: 0.5rem; /* 8px */
+  --sc-spacing-md: 1rem; /* 16px */
+  --sc-spacing-lg: 1.5rem; /* 24px */
+  --sc-spacing-xl: 2rem; /* 32px */
+
   /* === RADIUS === */
-  --sc-radius-sm: 0.375rem;       /* 6px */
-  --sc-radius-md: 0.5rem;         /* 8px */
-  --sc-radius-lg: 0.75rem;        /* 12px */
-  --sc-radius-xl: 1rem;           /* 16px */
-  
+  --sc-radius-sm: 0.375rem; /* 6px */
+  --sc-radius-md: 0.5rem; /* 8px */
+  --sc-radius-lg: 0.75rem; /* 12px */
+  --sc-radius-xl: 1rem; /* 16px */
+
   /* === TYPOGRAPHY === */
   --sc-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  
-  --sc-font-size-xs: 0.75rem;     /* 12px */
-  --sc-font-size-sm: 0.875rem;    /* 14px */
-  --sc-font-size-base: 1rem;      /* 16px */
-  --sc-font-size-lg: 1.125rem;    /* 18px */
-  --sc-font-size-xl: 1.25rem;     /* 20px */
-  --sc-font-size-2xl: 1.5rem;     /* 24px */
-  
+
+  --sc-font-size-xs: 0.75rem; /* 12px */
+  --sc-font-size-sm: 0.875rem; /* 14px */
+  --sc-font-size-base: 1rem; /* 16px */
+  --sc-font-size-lg: 1.125rem; /* 18px */
+  --sc-font-size-xl: 1.25rem; /* 20px */
+  --sc-font-size-2xl: 1.5rem; /* 24px */
+
   --sc-font-weight-normal: 400;
   --sc-font-weight-medium: 500;
   --sc-font-weight-semibold: 600;
   --sc-font-weight-bold: 700;
-  
-  /* === LANDING PAGE / DARK SPATIAL THEME TOKENS === */
-  --sc-dark-bg: #050B14;
-  --sc-dark-surface: rgba(5, 11, 20, 0.75);
-  --sc-dark-surface-elevated: rgba(5, 15, 28, 0.9);
-  --sc-dark-border: rgba(255, 255, 255, 0.1);
-  --sc-dark-border-subtle: rgba(255, 255, 255, 0.06);
-
-  /* Neon Node Accents */
-  --sc-neon-mint: #00E599;        /* Platform signature & Core */
-  --sc-neon-amber: #FFB800;       /* Node 1: Tồn kho mù */
-  --sc-neon-crimson: #FF4444;     /* Node 2: Trễ hạn & hoàn đơn */
-  --sc-neon-violet: #A855F7;      /* Node 3: Smart Routing */
-  --sc-neon-blue: #00B4FF;        /* Node 4: Rate Shopping */
 
   /* === TRANSITIONS === */
   --sc-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
