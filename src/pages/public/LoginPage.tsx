@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -195,6 +196,17 @@ export default function LoginPage() {
                 {loading ? t('logging_in') : t('login_heading')}
               </button>
             </form>
+
+            {/* Register link */}
+            <p className="text-center text-sm text-[#475569] mt-6">
+              {t('no_account_label')}{' '}
+              <Link
+                to="/register"
+                className="text-[#0F766E] font-semibold hover:text-[#0d645d] hover:underline transition-colors"
+              >
+                {t('register_link')}
+              </Link>
+            </p>
           </div>
         </div>
       </div>

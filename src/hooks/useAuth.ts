@@ -19,7 +19,7 @@ export function useAuth() {
   const { setUser } = useAuthStore();
 
   const login = async (username: string, password: string) => {
-    const data = await apiClient.post<LoginResponse>('/auth/login', {
+    const data = await apiClient.post<LoginResponse>('/v1/auth/login', {
       username,
       password,
     });
