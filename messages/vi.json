@@ -27,6 +27,16 @@
     "default_title": "SmartChain"
   },
   "Auth": {
+    "restoringSession": "Đang khôi phục phiên đăng nhập…",
+    "restoreSessionError": "Không thể kiểm tra phiên đăng nhập. Vui lòng kiểm tra kết nối và thử lại.",
+    "retrySession": "Thử lại",
+    "invalidWorkspaceSlug": "Mã workspace chỉ gồm chữ thường, số và dấu gạch ngang.",
+    "workspaceOptional": "Chọn workspace (không bắt buộc)",
+    "workspaceSlug": "Mã workspace",
+    "workspaceHint": "Điền mã workspace nếu email được dùng cho nhiều doanh nghiệp.",
+    "loginPasswordPlaceholder": "Nhập mật khẩu",
+    "showPassword": "Hiện mật khẩu",
+    "hidePassword": "Ẩn mật khẩu",
     "login_heading": "Đăng nhập",
     "username_label": "Tên đăng nhập",
     "username_placeholder": "Nhập tên đăng nhập",

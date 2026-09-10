@@ -5,9 +5,9 @@ import { useLocation } from 'react-router-dom';
 import { Bell, Mail, ChevronDown, LogOut, Globe } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
-import { useLocaleStore, useAuthStore } from '@/stores';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { useLocaleStore, useAuthStore } from '@/stores';
 
 export default function Topbar({ title }: { title?: string }) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -16,10 +16,10 @@ export default function Topbar({ title }: { title?: string }) {
   const t = useTranslations('Topbar');
   const locale = useLocale();
   const { setLocale } = useLocaleStore();
-  const { logout } = useAuth();
+  const { logout, isLoggingOut } = useAuth();
   const user = useAuthStore((s) => s.user);
 
-  const displayName = user?.name ?? user?.username ?? 'User';
+  const displayName = user?.fullName ?? user?.email ?? 'User';
   const initials = displayName
     .split(' ')
     .map((w) => w[0])
@@ -62,7 +62,9 @@ export default function Topbar({ title }: { title?: string }) {
 
   return (
     <header className="h-[4.5rem] bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 md:px-8 sticky top-0 z-30">
-      <h2 className="text-base sm:text-xl font-semibold text-gray-900 pl-10 md:pl-0 truncate max-w-[160px] sm:max-w-none">{displayTitle}</h2>
+      <h2 className="text-base sm:text-xl font-semibold text-gray-900 pl-10 md:pl-0 truncate max-w-[160px] sm:max-w-none">
+        {displayTitle}
+      </h2>
       <div className="flex-1" />
 
       <div className="flex items-center">
@@ -73,7 +75,9 @@ export default function Topbar({ title }: { title?: string }) {
             title={`Switch to ${locale === 'vi' ? 'English' : 'Tiếng Việt'}`}
           >
             <Globe size={18} />
-              <span className="text-[0.65rem] font-semibold ml-1 uppercase hidden sm:block">{locale}</span>
+            <span className="text-[0.65rem] font-semibold ml-1 uppercase hidden sm:block">
+              {locale}
+            </span>
           </button>
 
           <button className="relative flex items-center justify-center w-9 h-9 bg-white border border-gray-200 rounded-lg text-gray-600 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:text-gray-900">
@@ -93,7 +97,9 @@ export default function Topbar({ title }: { title?: string }) {
               <div className="w-7 h-7 rounded-md bg-[#0F766E] flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
                 {initials}
               </div>
-              <span className="hidden sm:block text-[13px] font-medium text-[#0F172A] truncate max-w-[120px] md:max-w-none">{displayName}</span>
+              <span className="hidden sm:block text-[13px] font-medium text-[#0F172A] truncate max-w-[120px] md:max-w-none">
+                {displayName}
+              </span>
               <ChevronDown
                 size={14}
                 className={cn(
@@ -109,13 +115,14 @@ export default function Topbar({ title }: { title?: string }) {
                   <div className="px-4 py-3">
                     <p className="m-0 text-sm font-semibold text-[#0F172A]">{displayName}</p>
                     <p className="mt-1 text-xs text-[#475569] mb-0 capitalize">
-                      {user?.role ?? 'Member'}
+                      {user?.roles.join(', ') ?? 'Member'}
                     </p>
                   </div>
                   <div className="h-[1px] bg-[#E2E8F0] m-0" />
                   <button
                     className="flex items-center gap-3 w-full px-4 py-3 bg-transparent border-none text-sm text-[#475569] cursor-pointer transition-colors duration-150 text-left hover:bg-[#FEF2F2] hover:text-[#EF4444]"
-                    onClick={logout}
+                    onClick={() => void logout()}
+                    disabled={isLoggingOut}
                   >
                     <LogOut size={16} />
                     <span>{t('logout')}</span>

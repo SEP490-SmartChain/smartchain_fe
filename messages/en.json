@@ -27,6 +27,16 @@
     "default_title": "SmartChain"
   },
   "Auth": {
+    "restoringSession": "Restoring your session…",
+    "restoreSessionError": "Unable to check your session. Check your connection and try again.",
+    "retrySession": "Try again",
+    "invalidWorkspaceSlug": "Use lowercase letters, numbers and hyphens for the workspace slug.",
+    "workspaceOptional": "Select workspace (optional)",
+    "workspaceSlug": "Workspace slug",
+    "workspaceHint": "Enter the workspace slug if your email belongs to multiple companies.",
+    "loginPasswordPlaceholder": "Enter your password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "login_heading": "Sign In",
     "username_label": "Username",
     "username_placeholder": "Enter username",
