@@ -26,7 +26,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             'w-full px-3.5 py-2.5 text-sm border rounded-md bg-white text-[#1A1D21] placeholder:text-[#9CA3AF] transition-all duration-200 outline-none',
             'focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/20',
             'disabled:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-70',
-            error ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20' : 'border-[#E5E7EB]',
+            error
+              ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20'
+              : 'border-[#E5E7EB]',
             className,
           )}
           {...props}

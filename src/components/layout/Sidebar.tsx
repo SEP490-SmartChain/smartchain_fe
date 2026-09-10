@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { useUiStore, useAuthStore } from '@/stores';
 import { cn } from '@/lib/utils';
+import { useUiStore, useAuthStore } from '@/stores';
 
 export default function Sidebar() {
   const { pathname } = useLocation();
@@ -27,7 +27,13 @@ export default function Sidebar() {
   const t = useTranslations('Sidebar');
   const user = useAuthStore((s) => s.user);
 
-  const MENUS: Array<{ name: string; href: string; icon?: LucideIcon; isHeading?: boolean }> = [
+  const MENUS: Array<{
+    name: string;
+    href: string;
+    icon?: LucideIcon;
+    isHeading?: boolean;
+    adminOnly?: boolean;
+  }> = [
     { name: t('dashboard'), href: '/dashboard', icon: Home },
     { name: t('orders'), href: '/orders', icon: Package },
     { name: t('inventory'), href: '/inventory', icon: Warehouse },
@@ -35,14 +41,14 @@ export default function Sidebar() {
     { name: t('shipments'), href: '/shipments', icon: Truck },
     { name: t('reconciliation'), href: '/reconciliation', icon: Scale },
     { name: t('analytics'), href: '/analytics', icon: PieChart },
-    { name: t('admin_heading'), href: '', isHeading: true },
-    { name: t('admin_tenants'), href: '/admin/tenants', icon: Building2 },
-    { name: t('admin_carriers'), href: '/admin/carriers', icon: Network },
+    { name: t('admin_heading'), href: '', isHeading: true, adminOnly: true },
+    { name: t('admin_tenants'), href: '/admin/tenants', icon: Building2, adminOnly: true },
+    { name: t('admin_carriers'), href: '/admin/carriers', icon: Network, adminOnly: true },
     { name: t('settings_heading'), href: '', isHeading: true },
     { name: t('settings'), href: '/settings', icon: SettingsIcon },
   ];
 
-  const displayName = user?.name ?? user?.username ?? 'User';
+  const displayName = user?.fullName ?? user?.email ?? 'User';
   const initials = displayName
     .split(' ')
     .map((w) => w[0])
@@ -101,47 +107,49 @@ export default function Sidebar() {
         {/* ── Nav items ─────────────────────────────────────────────── */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3">
           <ul className="flex flex-col gap-0.5 m-0 p-0 list-none">
-            {MENUS.map((menu) => {
-              if (menu.isHeading) {
+            {MENUS.filter((menu) => !menu.adminOnly || user?.roles.includes('SUPER_ADMIN')).map(
+              (menu) => {
+                if (menu.isHeading) {
+                  return (
+                    <li
+                      key={`heading-${menu.name}`}
+                      className={cn(
+                        'text-[0.65rem] font-bold text-gray-500 px-3 pt-5 pb-1.5 uppercase tracking-widest whitespace-nowrap',
+                        !isSidebarOpen && 'hidden',
+                      )}
+                    >
+                      {menu.name}
+                    </li>
+                  );
+                }
+
+                const Icon: LucideIcon = menu.icon!;
+                const isActive = pathname === menu.href || pathname.startsWith(`${menu.href}/`);
+
                 return (
-                  <li
-                    key={`heading-${menu.name}`}
-                    className={cn(
-                      'text-[0.65rem] font-bold text-gray-500 px-3 pt-5 pb-1.5 uppercase tracking-widest whitespace-nowrap',
-                      !isSidebarOpen && 'hidden',
-                    )}
-                  >
-                    {menu.name}
+                  <li key={menu.href}>
+                    <Link
+                      to={menu.href}
+                      title={!isSidebarOpen ? menu.name : undefined}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 no-underline whitespace-nowrap pointer-events-auto',
+                        !isSidebarOpen && 'justify-center px-0 py-3 mx-auto w-12',
+                        isActive
+                          ? 'bg-[#0F766E] text-white shadow-md shadow-teal-950/50 font-semibold'
+                          : 'text-gray-400 hover:bg-[#0F766E]/20 hover:text-[#10B981]',
+                      )}
+                    >
+                      <Icon
+                        size={17}
+                        className={cn('flex-shrink-0', isActive ? 'text-white' : 'text-gray-400')}
+                        strokeWidth={isActive ? 2.5 : 2}
+                      />
+                      {isSidebarOpen && <span>{menu.name}</span>}
+                    </Link>
                   </li>
                 );
-              }
-
-              const Icon: LucideIcon = menu.icon!;
-              const isActive = pathname === menu.href || pathname.startsWith(`${menu.href}/`);
-
-              return (
-                <li key={menu.href}>
-                  <Link
-                    to={menu.href}
-                    title={!isSidebarOpen ? menu.name : undefined}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 no-underline whitespace-nowrap pointer-events-auto',
-                      !isSidebarOpen && 'justify-center px-0 py-3 mx-auto w-12',
-                      isActive
-                        ? 'bg-[#0F766E] text-white shadow-md shadow-teal-950/50 font-semibold'
-                        : 'text-gray-400 hover:bg-[#0F766E]/20 hover:text-[#10B981]',
-                    )}
-                  >
-                    <Icon
-                      size={17}
-                      className={cn('flex-shrink-0', isActive ? 'text-white' : 'text-gray-400')}
-                      strokeWidth={isActive ? 2.5 : 2}
-                    />
-                    {isSidebarOpen && <span>{menu.name}</span>}
-                  </Link>
-                </li>
-              );
-            })}
+              },
+            )}
           </ul>
         </nav>
 

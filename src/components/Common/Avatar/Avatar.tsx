@@ -21,9 +21,9 @@ export function Avatar({ src, alt, fallback, size = 'md', className, ...props }:
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center shrink-0 overflow-hidden rounded-full bg-[#F1F5F9] border border-[#E2E8F0] font-semibold text-[#64748B]",
+        'relative flex items-center justify-center shrink-0 overflow-hidden rounded-full bg-[#F1F5F9] border border-[#E2E8F0] font-semibold text-[#64748B]',
         sizeClasses[size],
-        className
+        className,
       )}
       {...props}
     >

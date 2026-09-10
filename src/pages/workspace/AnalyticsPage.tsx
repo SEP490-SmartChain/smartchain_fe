@@ -1,5 +1,4 @@
-import { Breadcrumb } from '@/components/Common';
-import { UnderConstruction } from '@/components/Common';
+import { Breadcrumb, UnderConstruction } from '@/components/Common';
 
 export default function AnalyticsPage() {
   return (

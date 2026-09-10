@@ -47,11 +47,7 @@ export function Alert({
   return (
     <div
       role="alert"
-      className={cn(
-        'relative flex gap-3 p-4 rounded-lg border',
-        styles.container,
-        className,
-      )}
+      className={cn('relative flex gap-3 p-4 rounded-lg border', styles.container, className)}
       {...props}
     >
       <div className={cn('flex-shrink-0 mt-0.5', styles.iconColor)}>

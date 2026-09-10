@@ -8,10 +8,10 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import LoginLayout from '@/components/layout/LoginLayout';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import RootLayout from '@/components/layout/RootLayout';
-
 import HomePage from '@/pages/public/HomePage';
 import LoginPage from '@/pages/public/LoginPage';
 import NotFoundPage from '@/pages/public/NotFoundPage';
+import RegisterPage from '@/pages/public/RegisterPage';
 
 // Tenant workspace — lazy load để tách bundle theo route.
 const DashboardPage = React.lazy(() => import('@/pages/workspace/DashboardPage'));
@@ -19,14 +19,10 @@ const OrdersPage = React.lazy(() => import('@/pages/workspace/OrdersPage'));
 const InventoryPage = React.lazy(() => import('@/pages/workspace/InventoryPage'));
 const RulesPage = React.lazy(() => import('@/pages/workspace/RulesPage'));
 const ShipmentsPage = React.lazy(() => import('@/pages/workspace/ShipmentsPage'));
-const ReconciliationPage = React.lazy(
-  () => import('@/pages/workspace/ReconciliationPage'),
-);
+const ReconciliationPage = React.lazy(() => import('@/pages/workspace/ReconciliationPage'));
 const AnalyticsPage = React.lazy(() => import('@/pages/workspace/AnalyticsPage'));
 const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
-const ComponentShowcasePage = React.lazy(
-  () => import('@/pages/workspace/ComponentShowcasePage'),
-);
+const ComponentShowcasePage = React.lazy(() => import('@/pages/workspace/ComponentShowcasePage'));
 
 // Super Admin console
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
@@ -65,6 +61,7 @@ function App() {
               }
             >
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
             </Route>
 
             {/* --- Component Showcase (public, no auth required) --- */}
@@ -88,8 +85,10 @@ function App() {
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
 
-                <Route path="/admin/tenants" element={<TenantsPage />} />
-                <Route path="/admin/carriers" element={<CarrierCatalogPage />} />
+                <Route element={<ProtectedRoute requiredRole="SUPER_ADMIN" />}>
+                  <Route path="/admin/tenants" element={<TenantsPage />} />
+                  <Route path="/admin/carriers" element={<CarrierCatalogPage />} />
+                </Route>
               </Route>
             </Route>
 

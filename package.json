@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test": "node --test tests/*.test.mjs",
     "dev": "vite --port 2324",
     "build": "vite build",
     "start": "vite preview",

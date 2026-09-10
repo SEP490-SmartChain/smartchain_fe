@@ -1,19 +1,12 @@
-import { Link, Navigate, useLocation } from 'react-router-dom';
-
 import { useTranslations } from 'next-intl';
 
-import { LoginForm } from '@/features/auth';
-import { getPostLoginPath } from '@/lib/authRedirect';
-import { useAuthStore } from '@/stores/authStore';
+import { RegisterBusinessForm } from '@/features/auth/components/RegisterBusinessForm';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const t = useTranslations('Auth');
-  const user = useAuthStore((state) => state.user);
-  const location = useLocation();
-  if (user) return <Navigate to={getPostLoginPath(user, location.state)} replace />;
 
   return (
-    <div className="min-h-screen flex bg-[#F8FAFC]">
+    <div className="h-screen flex bg-[#F8FAFC] overflow-hidden">
       {/* ── Left panel — teal brand ──────────────────────────────────── */}
       <div
         className="flex-1 relative hidden md:flex flex-col items-center justify-center overflow-hidden"
@@ -57,8 +50,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Right panel — login form ──────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center relative bg-white">
+      {/* ── Right panel — register form ──────────────────────────────────── */}
+      <div className="flex-1 relative bg-white overflow-y-auto">
         {/* Subtle grid */}
         <div
           className="absolute inset-0 z-0 pointer-events-none"
@@ -69,29 +62,21 @@ export default function LoginPage() {
           }}
         />
 
-        <div className="w-full max-w-[460px] px-8 py-4 z-10">
-          <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.05)] p-10">
-            {/* Logo row (mobile only) */}
-            <p className="md:hidden text-center text-sm font-semibold text-[#0F766E] mb-2 tracking-wide uppercase">
-              SmartChain
-            </p>
+        <div className="min-h-full flex items-center justify-center py-8">
+          <div className="w-full max-w-[560px] px-4 sm:px-8 z-10">
+            <div className="bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.05)] p-6 sm:p-8">
+              {/* Logo row (mobile only) */}
+              <p className="md:hidden text-center text-sm font-semibold text-[#0F766E] mb-2 tracking-wide uppercase">
+                SmartChain
+              </p>
 
-            <h2 className="text-2xl font-bold text-[#0F172A] text-center mb-8 m-0">
-              {t('login_heading')}
-            </h2>
+              <h2 className="text-2xl sm:text-[26px] font-bold text-[#0F172A] text-center mb-2 tracking-tight">
+                {t('register_heading')}
+              </h2>
+              <p className="text-sm text-[#475569] text-center mb-6">{t('register_subheading')}</p>
 
-            <LoginForm />
-
-            {/* Register link */}
-            <p className="text-center text-sm text-[#475569] mt-6">
-              {t('no_account_label')}{' '}
-              <Link
-                to="/register"
-                className="text-[#0F766E] font-semibold hover:text-[#0d645d] hover:underline transition-colors"
-              >
-                {t('register_link')}
-              </Link>
-            </p>
+              <RegisterBusinessForm />
+            </div>
           </div>
         </div>
       </div>

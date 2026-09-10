@@ -23,22 +23,25 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
                 'checked:bg-[#0F766E] checked:border-[#0F766E]',
                 'focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20',
                 'disabled:bg-[#F1F5F9] disabled:border-[#E2E8F0] disabled:cursor-not-allowed disabled:checked:bg-[#CBD5E1]',
-                error && 'border-[#EF4444] checked:bg-[#EF4444] checked:border-[#EF4444] focus:ring-[#EF4444]/20 hover:border-[#EF4444]',
-                className
+                error &&
+                  'border-[#EF4444] checked:bg-[#EF4444] checked:border-[#EF4444] focus:ring-[#EF4444]/20 hover:border-[#EF4444]',
+                className,
               )}
               {...props}
             />
-            <Check 
-              size={12} 
+            <Check
+              size={12}
               strokeWidth={3}
-              className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" 
+              className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity"
             />
           </div>
           {label && (
-            <span className={cn(
-              "text-sm text-[#475569] group-hover:text-[#0F172A] transition-colors",
-              props.disabled && "text-[#94A3B8] group-hover:text-[#94A3B8]"
-            )}>
+            <span
+              className={cn(
+                'text-sm text-[#475569] group-hover:text-[#0F172A] transition-colors',
+                props.disabled && 'text-[#94A3B8] group-hover:text-[#94A3B8]',
+              )}
+            >
               {label}
             </span>
           )}
@@ -46,7 +49,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         {error && <span className="text-xs text-[#EF4444] ml-6">{error}</span>}
       </div>
     );
-  }
+  },
 );
 
 Checkbox.displayName = 'Checkbox';
