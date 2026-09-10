@@ -9,8 +9,7 @@ interface LocaleState {
 
 /** Ngôn ngữ đang chọn (vi | en), ghi nhớ trong localStorage. */
 export const useLocaleStore = create<LocaleState>((set) => ({
-  locale:
-    (typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY)) || 'vi',
+  locale: (typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY)) || 'vi',
   setLocale: (locale) => {
     if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, locale);
     set({ locale });

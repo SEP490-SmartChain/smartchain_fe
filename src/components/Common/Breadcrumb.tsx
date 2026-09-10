@@ -10,7 +10,15 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
       {items.map((item, i) => (
         <React.Fragment key={item}>
           {i > 0 && <span className="text-[#D1D5DB]">/</span>}
-          <span className={i === items.length - 1 ? 'text-[#1A1D21] font-semibold' : 'hover:text-[#0F766E] transition-colors cursor-pointer'}>{item}</span>
+          <span
+            className={
+              i === items.length - 1
+                ? 'text-[#1A1D21] font-semibold'
+                : 'hover:text-[#0F766E] transition-colors cursor-pointer'
+            }
+          >
+            {item}
+          </span>
         </React.Fragment>
       ))}
     </div>

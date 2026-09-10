@@ -125,7 +125,10 @@ function useCooldown(sentAt: number | null, cooldownSecs = 60) {
   const [remaining, setRemaining] = useState(0);
 
   useEffect(() => {
-    if (!sentAt) { setRemaining(0); return; }
+    if (!sentAt) {
+      setRemaining(0);
+      return;
+    }
     const update = () => {
       const elapsed = Math.floor((Date.now() - sentAt) / 1000);
       setRemaining(Math.max(0, cooldownSecs - elapsed));
@@ -176,8 +179,16 @@ function StepEmail({ onNext }: { onNext: (email: string) => void }) {
         type="email"
         placeholder={tAuth('email_placeholder')}
         value={email}
-        onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSend(); } }}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          setEmailError('');
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSend();
+          }
+        }}
         error={emailError}
         required
         autoComplete="email"
@@ -190,7 +201,10 @@ function StepEmail({ onNext }: { onNext: (email: string) => void }) {
       <div className="text-center">
         <p className="text-sm text-[#475569]">
           {tAuth('already_have_account')}{' '}
-          <Link to="/login" className="text-[#0F766E] font-semibold hover:underline transition-colors">
+          <Link
+            to="/login"
+            className="text-[#0F766E] font-semibold hover:underline transition-colors"
+          >
             {tAuth('login_link')}
           </Link>
         </p>
@@ -238,9 +252,7 @@ function StepOtp({
         <div className="w-12 h-12 rounded-full bg-[#F0FDF9] flex items-center justify-center">
           <ShieldCheck size={22} className="text-[#0F766E]" />
         </div>
-        <p className="text-sm text-[#475569]">
-          {tAuth('otp_hint', { email })}
-        </p>
+        <p className="text-sm text-[#475569]">{tAuth('otp_hint', { email })}</p>
       </div>
 
       <OtpInput value={otp} onChange={setOtp} disabled={isVerifying} />
@@ -255,11 +267,7 @@ function StepOtp({
       </Button>
 
       <div className="flex items-center justify-between text-sm text-[#475569]">
-        <button
-          type="button"
-          onClick={onBack}
-          className="hover:text-[#0F172A] transition-colors"
-        >
+        <button type="button" onClick={onBack} className="hover:text-[#0F172A] transition-colors">
           {tAuth('otp_change_email')}
         </button>
         {remaining > 0 ? (
@@ -306,7 +314,12 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
   };
 
   return (
-    <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" autoComplete="off">
+    <form
+      noValidate
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-4"
+      autoComplete="off"
+    >
       {/* Honeypot */}
       <input type="text" style={{ display: 'none' }} name="fake_user" />
 
@@ -396,7 +409,10 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
 
       {/* Confirm Password */}
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-semibold text-[#0F172A] mb-2">
+        <label
+          htmlFor="confirmPassword"
+          className="block text-sm font-semibold text-[#0F172A] mb-2"
+        >
           {tAuth('confirm_password_label')} <span className="text-[#EF4444]">*</span>
         </label>
         <div className="relative">
@@ -424,7 +440,9 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           </button>
         </div>
         {errors.confirmPassword && (
-          <p className="mt-1.5 text-xs text-[#EF4444] font-medium">{errors.confirmPassword.message}</p>
+          <p className="mt-1.5 text-xs text-[#EF4444] font-medium">
+            {errors.confirmPassword.message}
+          </p>
         )}
       </div>
 
@@ -436,7 +454,12 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
       />
 
       {/* Submit */}
-      <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting} className="w-full mt-2">
+      <Button
+        type="submit"
+        isLoading={isSubmitting}
+        disabled={isSubmitting}
+        className="w-full mt-2"
+      >
         {isSubmitting ? tAuth('registering') : tAuth('register_button')}
       </Button>
 
@@ -478,8 +501,8 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
                 current > s.n
                   ? 'bg-[#10B981] text-white'
                   : current === s.n
-                  ? 'bg-[#0F766E] text-white ring-4 ring-[#0F766E]/20'
-                  : 'bg-[#E2E8F0] text-[#94A3B8]',
+                    ? 'bg-[#0F766E] text-white ring-4 ring-[#0F766E]/20'
+                    : 'bg-[#E2E8F0] text-[#94A3B8]',
               )}
             >
               {current > s.n ? '✓' : s.n}
@@ -529,11 +552,7 @@ export function RegisterBusinessForm() {
       )}
 
       {step === 2 && (
-        <StepOtp
-          email={verifiedEmail}
-          onVerified={() => setStep(3)}
-          onBack={() => setStep(1)}
-        />
+        <StepOtp email={verifiedEmail} onVerified={() => setStep(3)} onBack={() => setStep(1)} />
       )}
 
       {step === 3 && <StepRegisterForm verifiedEmail={verifiedEmail} />}

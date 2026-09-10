@@ -73,9 +73,7 @@ export default function RegisterPage() {
               <h2 className="text-2xl sm:text-[26px] font-bold text-[#0F172A] text-center mb-2 tracking-tight">
                 {t('register_heading')}
               </h2>
-              <p className="text-sm text-[#475569] text-center mb-6">
-                {t('register_subheading')}
-              </p>
+              <p className="text-sm text-[#475569] text-center mb-6">{t('register_subheading')}</p>
 
               <RegisterBusinessForm />
             </div>

@@ -44,11 +44,9 @@ export function useRegisterBusiness() {
       ...(formData.taxId && formData.taxId.trim() !== '' ? { taxId: formData.taxId } : {}),
     };
 
-    const response = await apiClient.post<RegisterBusinessResponse>(
-      '/v1/auth/register',
-      payload,
-      { requiresAuth: false },
-    );
+    const response = await apiClient.post<RegisterBusinessResponse>('/v1/auth/register', payload, {
+      requiresAuth: false,
+    });
 
     if (response.success) {
       navigate('/login');

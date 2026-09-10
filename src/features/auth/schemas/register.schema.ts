@@ -12,9 +12,7 @@ export const getRegisterSchema = (t: any) =>
         .string()
         .email(t('Validation.invalid_email'))
         .max(255, t('Validation.max_length', { max: 255 })),
-      phone: z
-        .string()
-        .regex(/^0[0-9]{9}$/, t('Validation.invalid_phone')),
+      phone: z.string().regex(/^0[0-9]{9}$/, t('Validation.invalid_phone')),
       companyName: z
         .string()
         .min(3, t('Validation.min_length', { min: 3 }))

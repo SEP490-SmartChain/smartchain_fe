@@ -22,17 +22,20 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
                 'checked:border-[5px] checked:border-[#0F766E]',
                 'focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20',
                 'disabled:bg-[#F1F5F9] disabled:border-[#E2E8F0] disabled:cursor-not-allowed disabled:checked:border-[#CBD5E1]',
-                error && 'border-[#EF4444] checked:border-[#EF4444] focus:ring-[#EF4444]/20 hover:border-[#EF4444]',
-                className
+                error &&
+                  'border-[#EF4444] checked:border-[#EF4444] focus:ring-[#EF4444]/20 hover:border-[#EF4444]',
+                className,
               )}
               {...props}
             />
           </div>
           {label && (
-            <span className={cn(
-              "text-sm text-[#475569] group-hover:text-[#0F172A] transition-colors",
-              props.disabled && "text-[#94A3B8] group-hover:text-[#94A3B8]"
-            )}>
+            <span
+              className={cn(
+                'text-sm text-[#475569] group-hover:text-[#0F172A] transition-colors',
+                props.disabled && 'text-[#94A3B8] group-hover:text-[#94A3B8]',
+              )}
+            >
               {label}
             </span>
           )}
@@ -40,7 +43,7 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
         {error && <span className="text-xs text-[#EF4444] ml-7">{error}</span>}
       </div>
     );
-  }
+  },
 );
 
 Radio.displayName = 'Radio';
