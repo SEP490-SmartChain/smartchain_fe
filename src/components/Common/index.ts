@@ -37,6 +37,10 @@ export { Badge } from './Badge/Badge';
 // Navigation
 export { Breadcrumb } from './Breadcrumb';
 
+// Access control
+export { Can } from './Can/Can';
+export type { CanProps } from './Can/Can';
+
 // Utility
 export { UnderConstruction } from './UnderConstruction';
 export { ErrorBoundaryWithIntl as ErrorBoundary } from './ErrorBoundary';

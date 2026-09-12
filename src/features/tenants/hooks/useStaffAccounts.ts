@@ -6,6 +6,7 @@ import type {
   StaffAccount,
   StaffAccountFilters,
   StaffAccountStatus,
+  StaffRole,
 } from '../types/staffAccount.types';
 
 export function useStaffAccounts(filters: StaffAccountFilters) {
@@ -14,6 +15,7 @@ export function useStaffAccounts(filters: StaffAccountFilters) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [savingRolesUserId, setSavingRolesUserId] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const requestRevision = useRef(0);
 
@@ -64,15 +66,32 @@ export function useStaffAccounts(filters: StaffAccountFilters) {
     [],
   );
 
+  const updateRoles = useCallback(async (userId: string, roles: StaffRole[]): Promise<boolean> => {
+    setSavingRolesUserId(userId);
+    try {
+      const changed = await staffAccountApi.updateRoles(userId, roles);
+      setAccounts((current) =>
+        current.map((account) => (account.userId === changed.userId ? changed : account)),
+      );
+      return true;
+    } catch {
+      return false;
+    } finally {
+      setSavingRolesUserId(null);
+    }
+  }, []);
+
   return {
     accounts,
     error,
     isLoading,
     isLoadingMore,
     updatingUserId,
+    savingRolesUserId,
     hasNextPage: nextCursor !== null,
     refetch: () => loadPage(),
     loadMore: () => loadPage(nextCursor ?? undefined, true),
     changeStatus,
+    updateRoles,
   };
 }

@@ -4,30 +4,26 @@ import { Link, useLocation } from 'react-router-dom';
 
 import {
   Bell,
-  Boxes,
   Command,
-  GitBranch,
   Globe2,
-  LayoutDashboard,
   LogOut,
   Monitor,
   Moon,
-  Package,
   Search,
   Settings,
-  ShieldCheck,
   Sun,
-  Truck,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { getSearchLinks } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 import { useAuthStore, useLocaleStore, useUiStore } from '@/stores';
 import type { ThemeMode } from '@/stores/uiStore';
 
+import { NAV_ICONS } from './navIcons';
 import RouteBreadcrumbs from './RouteBreadcrumbs';
 
 type PopoverName = 'search' | 'theme' | 'notification' | 'profile' | null;
@@ -75,52 +71,17 @@ export default function Topbar() {
     { id: 'system', label: t('theme_system'), icon: Monitor },
   ];
 
+  const { roles } = useAccess();
+
   const searchItems = useMemo<SearchItem[]>(
-    () => [
-      {
-        label: sidebar('dashboard'),
-        caption: t('search_caption_dashboard'),
-        href: '/dashboard',
-        icon: LayoutDashboard,
-      },
-      {
-        label: sidebar('orders'),
-        caption: t('search_caption_orders'),
-        href: '/orders',
-        icon: Package,
-      },
-      {
-        label: sidebar('inventory'),
-        caption: t('search_caption_inventory'),
-        href: '/inventory',
-        icon: Boxes,
-      },
-      {
-        label: sidebar('rules'),
-        caption: t('search_caption_rules'),
-        href: '/rules',
-        icon: GitBranch,
-      },
-      {
-        label: sidebar('shipments'),
-        caption: t('search_caption_shipments'),
-        href: '/shipments',
-        icon: Truck,
-      },
-      {
-        label: sidebar('staff_accounts'),
-        caption: t('search_caption_staff'),
-        href: '/iam/users',
-        icon: Users,
-      },
-      {
-        label: sidebar('roles_permissions'),
-        caption: t('search_caption_roles_permissions'),
-        href: '/roles-permissions/roles',
-        icon: ShieldCheck,
-      },
-    ],
-    [sidebar, t],
+    () =>
+      getSearchLinks(roles, import.meta.env.DEV).map((link) => ({
+        label: sidebar(link.key),
+        caption: sidebar(link.groupKey),
+        href: link.href,
+        icon: NAV_ICONS[link.key] ?? Search,
+      })),
+    [roles, sidebar],
   );
 
   const filteredItems = searchItems.filter((item) => {

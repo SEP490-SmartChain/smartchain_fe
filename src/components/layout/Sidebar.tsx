@@ -2,53 +2,15 @@ import { useState } from 'react';
 
 import { Link, useLocation } from 'react-router-dom';
 
-import {
-  AppWindow,
-  Boxes,
-  Building2,
-  ChartNoAxesCombined,
-  ChevronDown,
-  CircleCheck,
-  CloudUpload,
-  CreditCard,
-  GitBranch,
-  LayoutDashboard,
-  ListTree,
-  MousePointerClick,
-  Network,
-  Package,
-  PanelLeftClose,
-  Scale,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  TableProperties,
-  Truck,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronDown, CircleCheck, PanelLeftClose, Settings, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { useAccess } from '@/hooks/useAccess';
+import { getVisibleNavGroups, type NavLink } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useUiStore } from '@/stores';
+import { useUiStore } from '@/stores';
 
-interface MenuItem {
-  name: string;
-  href?: string;
-  icon: LucideIcon;
-  adminOnly?: boolean;
-  tenantAdminOnly?: boolean;
-  children?: Array<{
-    name: string;
-    href: string;
-    icon: LucideIcon;
-  }>;
-}
-
-interface MenuGroup {
-  heading: string;
-  items: MenuItem[];
-}
+import { NAV_ICONS } from './navIcons';
 
 function isMenuPathActive(pathname: string, href: string) {
   if (href.startsWith('/roles-permissions/')) return pathname.startsWith('/roles-permissions/');
@@ -58,83 +20,13 @@ function isMenuPathActive(pathname: string, href: string) {
 export default function Sidebar() {
   const { pathname } = useLocation();
   const { isSidebarOpen, setSidebarOpen } = useUiStore();
+  const { roles, defaultPath } = useAccess();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     components: pathname.startsWith('/components'),
-    iam: pathname.startsWith('/iam') || pathname.startsWith('/roles-permissions'),
   });
   const t = useTranslations('Sidebar');
-  const user = useAuthStore((state) => state.user);
 
-  const groups: MenuGroup[] = [
-    {
-      heading: t('workspace_heading'),
-      items: [
-        { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
-        { name: t('billing'), href: '/billing', icon: CreditCard },
-        { name: t('orders'), href: '/orders', icon: Package },
-        { name: t('inventory'), href: '/inventory', icon: Boxes },
-        { name: t('rules'), href: '/rules', icon: GitBranch },
-        { name: t('shipments'), href: '/shipments', icon: Truck },
-        { name: t('reconciliation'), href: '/reconciliation', icon: Scale },
-        { name: t('analytics'), href: '/analytics', icon: ChartNoAxesCombined },
-      ],
-    },
-    {
-      heading: t('manage_accounts_heading'),
-      items: [
-        {
-          name: t('account'),
-          icon: Users,
-          tenantAdminOnly: true,
-          children: [
-            { name: t('staff_accounts'), href: '/iam/users', icon: Users },
-            {
-              name: t('roles_permissions'),
-              href: '/roles-permissions/roles',
-              icon: ShieldCheck,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      heading: t('ui_heading'),
-      items: [
-        {
-          name: t('components'),
-          icon: AppWindow,
-          children: [
-            { name: t('data_table'), href: '/components/data-table', icon: TableProperties },
-            { name: t('buttons'), href: '/components/buttons', icon: MousePointerClick },
-            { name: t('dropzone'), href: '/components/dropzone', icon: CloudUpload },
-            { name: t('data_display'), href: '/components/data-display', icon: ListTree },
-          ],
-        },
-      ],
-    },
-    {
-      heading: t('admin_heading'),
-      items: [
-        { name: t('admin_tenants'), href: '/admin/tenants', icon: Building2, adminOnly: true },
-        { name: t('admin_carriers'), href: '/admin/carriers', icon: Network, adminOnly: true },
-      ],
-    },
-    {
-      heading: t('settings_heading'),
-      items: [{ name: t('settings'), href: '/settings/profile', icon: Settings }],
-    },
-  ];
-
-  const visibleGroups = groups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter(
-        (item) =>
-          (!item.adminOnly || user?.roles.includes('SUPER_ADMIN')) &&
-          (!item.tenantAdminOnly || user?.roles.includes('TENANT_ADMIN')),
-      ),
-    }))
-    .filter((group) => group.items.length > 0);
+  const groups = getVisibleNavGroups(roles, import.meta.env.DEV);
 
   const closeTemporaryDrawer = () => {
     if (window.matchMedia('(max-width: 1199px)').matches) setSidebarOpen(false);
@@ -147,6 +39,29 @@ export default function Sidebar() {
       return;
     }
     closeTemporaryDrawer();
+  };
+
+  const renderChild = (child: NavLink) => {
+    const ChildIcon = NAV_ICONS[child.key] ?? Settings;
+    const childActive = isMenuPathActive(pathname, child.href);
+    return (
+      <li key={child.href}>
+        <Link
+          to={child.href}
+          aria-current={childActive ? 'page' : undefined}
+          onClick={closeTemporaryDrawer}
+          className={cn(
+            'my-0.5 flex min-h-9 items-center gap-2.5 rounded px-2 py-2 text-[13px] transition-colors',
+            childActive
+              ? 'bg-[var(--sc-primary-alpha-08)] font-medium text-[var(--sc-primary-dark)]'
+              : 'text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]',
+          )}
+        >
+          <ChildIcon size={16} strokeWidth={1.5} className="shrink-0" />
+          <span className="truncate">{t(child.key)}</span>
+        </Link>
+      </li>
+    );
   };
 
   return (
@@ -177,7 +92,7 @@ export default function Sidebar() {
           )}
         >
           <Link
-            to="/dashboard"
+            to={defaultPath}
             title={!isSidebarOpen ? t('expand_menu') : undefined}
             className="flex min-w-0 items-center gap-2.5"
             onClick={handleBrandClick}
@@ -219,9 +134,9 @@ export default function Sidebar() {
           )}
         >
           <nav className="py-4">
-            {visibleGroups.map((group, groupIndex) => (
+            {groups.map((group, groupIndex) => (
               <section
-                key={group.heading}
+                key={group.key}
                 className={cn(
                   groupIndex > 0 && 'mt-2 border-t border-[var(--sc-border-default)] pt-3',
                 )}
@@ -232,25 +147,24 @@ export default function Sidebar() {
                     !isSidebarOpen && 'min-[1200px]:sr-only',
                   )}
                 >
-                  {group.heading}
+                  {t(group.key)}
                 </p>
                 <ul>
                   {group.items.map((item) => {
-                    const Icon = item.icon;
+                    const Icon = NAV_ICONS[item.key] ?? Settings;
                     const hasActiveChild = item.children?.some((child) =>
                       isMenuPathActive(pathname, child.href),
                     );
                     const isActive =
                       hasActiveChild || (item.href && isMenuPathActive(pathname, item.href));
-                    const menuKey = item.children?.[0]?.href.split('/')[1] ?? item.name;
-                    const isExpanded = Boolean(expandedMenus[menuKey]) || Boolean(hasActiveChild);
+                    const isExpanded = Boolean(expandedMenus[item.key]) || Boolean(hasActiveChild);
 
                     if (item.children) {
                       return (
-                        <li key={item.name}>
+                        <li key={item.key}>
                           <button
                             type="button"
-                            title={!isSidebarOpen ? item.name : undefined}
+                            title={!isSidebarOpen ? t(item.key) : undefined}
                             aria-expanded={isExpanded}
                             className={cn(
                               'group my-0.5 flex min-h-10 w-full items-center gap-3 rounded px-2 py-2.5 text-sm leading-[18px] transition-colors duration-150 ease-out',
@@ -263,7 +177,7 @@ export default function Sidebar() {
                               if (!isSidebarOpen) setSidebarOpen(true);
                               setExpandedMenus((current) => ({
                                 ...current,
-                                [menuKey]: !isExpanded,
+                                [item.key]: !isExpanded,
                               }));
                             }}
                           >
@@ -276,7 +190,7 @@ export default function Sidebar() {
                             <span
                               className={cn('truncate', !isSidebarOpen && 'min-[1200px]:hidden')}
                             >
-                              {item.name}
+                              {t(item.key)}
                             </span>
                             <ChevronDown
                               aria-hidden="true"
@@ -291,28 +205,7 @@ export default function Sidebar() {
 
                           {isExpanded && isSidebarOpen && (
                             <ul className="mb-1 ml-4 border-l border-[var(--sc-border-default)] pl-3">
-                              {item.children.map((child) => {
-                                const ChildIcon = child.icon;
-                                const childActive = isMenuPathActive(pathname, child.href);
-                                return (
-                                  <li key={child.href}>
-                                    <Link
-                                      to={child.href}
-                                      aria-current={childActive ? 'page' : undefined}
-                                      onClick={closeTemporaryDrawer}
-                                      className={cn(
-                                        'my-0.5 flex min-h-9 items-center gap-2.5 rounded px-2 py-2 text-[13px] transition-colors',
-                                        childActive
-                                          ? 'bg-[var(--sc-primary-alpha-08)] font-medium text-[var(--sc-primary-dark)]'
-                                          : 'text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]',
-                                      )}
-                                    >
-                                      <ChildIcon size={16} strokeWidth={1.5} className="shrink-0" />
-                                      <span className="truncate">{child.name}</span>
-                                    </Link>
-                                  </li>
-                                );
-                              })}
+                              {item.children.map(renderChild)}
                             </ul>
                           )}
                         </li>
@@ -323,7 +216,7 @@ export default function Sidebar() {
                       <li key={item.href}>
                         <Link
                           to={item.href!}
-                          title={!isSidebarOpen ? item.name : undefined}
+                          title={!isSidebarOpen ? t(item.key) : undefined}
                           aria-current={isActive ? 'page' : undefined}
                           onClick={closeTemporaryDrawer}
                           className={cn(
@@ -342,7 +235,7 @@ export default function Sidebar() {
                             className="shrink-0"
                           />
                           <span className={cn('truncate', !isSidebarOpen && 'min-[1200px]:hidden')}>
-                            {item.name}
+                            {t(item.key)}
                           </span>
                         </Link>
                       </li>

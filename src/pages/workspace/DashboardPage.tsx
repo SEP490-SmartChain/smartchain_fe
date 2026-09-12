@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 
 import { Card } from '@/components/Common/Card/Card';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
+import { useAccess } from '@/hooks/useAccess';
+import { cn } from '@/lib/utils';
 
 type DashboardView = 'overview' | 'behavior' | 'performance';
 type ChartRange = 'daily' | 'monthly' | 'yearly';
@@ -133,6 +135,7 @@ function ProgressPanel({ title, description, items, delay }: ProgressPanelProps)
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
+  const { can } = useAccess();
   const [view, setView] = useState<DashboardView>('overview');
   const [range, setRange] = useState<ChartRange>('monthly');
   const points = useMemo(
@@ -142,6 +145,9 @@ export default function DashboardPage() {
     }),
     [range],
   );
+
+  // KPI tài chính chỉ hiển thị cho role có quyền xem đối soát (TA, Accountant).
+  const showFinance = can('reconciliation.view');
 
   const metrics: Omit<MetricCardProps, 'delay'>[] = [
     {
@@ -165,13 +171,17 @@ export default function DashboardPage() {
       positive: false,
       compareLabel: t('comparedToLastPeriod'),
     },
-    {
-      title: t('reconciledValue'),
-      value: '₫1.24B',
-      trend: '16.1%',
-      positive: true,
-      compareLabel: t('comparedToLastPeriod'),
-    },
+    ...(showFinance
+      ? [
+          {
+            title: t('reconciledValue'),
+            value: '₫1.24B',
+            trend: '16.1%',
+            positive: true,
+            compareLabel: t('comparedToLastPeriod'),
+          },
+        ]
+      : []),
   ];
 
   const fulfillment = [
@@ -205,7 +215,10 @@ export default function DashboardPage() {
 
       <section
         aria-label={t('overview')}
-        className="grid grid-cols-2 overflow-hidden rounded-2xl border-l border-t border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)] md:grid-cols-4"
+        className={cn(
+          'grid grid-cols-2 overflow-hidden rounded-2xl border-l border-t border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]',
+          metrics.length === 4 ? 'md:grid-cols-4' : 'md:grid-cols-3',
+        )}
       >
         {metrics.map((metric, index) => (
           <MetricCard key={metric.title} {...metric} delay={index + 1} />

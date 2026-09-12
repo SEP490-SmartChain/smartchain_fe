@@ -77,6 +77,27 @@ body {
     font-weight: 500;
     line-height: 1.375rem;
   }
+
+  /* Con trỏ pointer cho phần tử tương tác; đặt trong @layer base để tiện ích
+     `cursor-default` / `cursor-not-allowed` vẫn ghi đè được khi cần. */
+  a[href],
+  button:not(:disabled),
+  input[type='button']:not(:disabled),
+  input[type='submit']:not(:disabled),
+  input[type='reset']:not(:disabled),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  select:not(:disabled),
+  summary,
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not(:disabled),
+  [role='menuitemradio']:not(:disabled),
+  [role='menuitemcheckbox']:not(:disabled),
+  [role='tab']:not(:disabled),
+  [role='option'],
+  [role='switch']:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 button,

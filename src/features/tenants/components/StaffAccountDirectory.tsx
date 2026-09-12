@@ -24,6 +24,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Avatar } from '@/components/Common/Avatar/Avatar';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
+import { Can } from '@/components/Common/Can/Can';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
@@ -238,10 +239,12 @@ export function StaffAccountDirectory() {
         <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
           {t('title')}
         </h1>
-        <Button type="button" onClick={() => setAddModalOpen(true)}>
-          <Plus size={17} aria-hidden="true" />
-          {t('addNew')}
-        </Button>
+        <Can capability="iam.users.manage">
+          <Button type="button" onClick={() => setAddModalOpen(true)}>
+            <Plus size={17} aria-hidden="true" />
+            {t('addNew')}
+          </Button>
+        </Can>
       </header>
 
       {error ? (

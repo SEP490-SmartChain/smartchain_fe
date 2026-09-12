@@ -2,7 +2,7 @@
 
 ## 1. Trạng thái tài liệu
 
-- Trạng thái: Bản nháp để duyệt trước khi triển khai.
+- Trạng thái: Đã chốt các quyết định kỹ thuật ở mục 15; các câu hỏi nghiệp vụ còn lại ở mục 13 cần Product Owner xác nhận.
 - Phạm vi: Giao diện sau đăng nhập, sidebar, route, trang và hành động được hiển thị theo vai trò.
 - Chưa bao gồm: Thay đổi mã nguồn, API, cơ sở dữ liệu hoặc dữ liệu seed.
 - Ngày đối chiếu: 12/09/2026.
@@ -312,15 +312,15 @@ Mỗi template role phải xử lý các trạng thái sau:
 
 ## 13. Tiêu chí nghiệm thu trước khi bắt đầu code
 
-- [ ] Product Owner xác nhận bốn role chính thức và Guest không phải role đăng nhập.
+- [x] Bốn role backend là role đăng nhập chính thức; Guest là actor public, không phải role gán cho nhân viên.
 - [ ] Backend xác nhận danh sách permission code và mapping role-permission seed.
-- [ ] Xác nhận Tenant Admin chỉ được gán ba role workspace.
+- [x] Tenant Admin chỉ được gán ba role workspace; không thể gán `SUPER_ADMIN`.
 - [ ] Xác nhận quyền Tenant Admin đối với Reconciliation là chỉ đọc và xuất báo cáo.
 - [ ] Xác nhận Tenant Admin có được re-dispatch/resolve exception hay chỉ Dispatcher thực hiện.
 - [ ] Xác nhận `/billing` chỉ hiển thị plan/quota cho Tenant Admin.
-- [ ] Xác nhận `/components/*` chỉ xuất hiện trong development.
-- [ ] Chốt hành vi khi người dùng có nhiều role.
-- [ ] Chốt trang `403` và route mặc định cho từng role.
+- [x] `/components/*` chỉ xuất hiện trong development.
+- [x] Người dùng nhiều role workspace nhận hợp capability của các role đó.
+- [x] URL ngoài quyền dùng trang `403`; route mặc định theo mục 4.
 
 ## 14. Tiêu chí nghiệm thu sau khi triển khai
 
@@ -335,3 +335,46 @@ Mỗi template role phải xử lý các trạng thái sau:
 - [ ] Sidebar thu gọn, mobile drawer, breadcrumb và topbar giữ đúng design system hiện có.
 - [ ] Có test cho redirect sau login, route guard, menu visibility, global search và action visibility của cả bốn role.
 - [ ] TypeScript, ESLint, format, unit test và production build đều đạt.
+
+## 15. Quyết định kỹ thuật đã chốt trước khi triển khai
+
+### 15.1 Nguồn policy UI
+
+Chọn phương án **role kết hợp lớp capability nội bộ**.
+
+- Trong giai đoạn backend chưa seed permission, role là dữ liệu đầu vào cho policy UI và được ánh xạ sang capability theo mục 5–8.
+- Không tự động coi mảng `permissions` rỗng là lỗi, cũng không union permission server với capability fallback.
+- Khi backend có permission seed và contract chính thức, việc chuyển nguồn phải qua feature flag hoặc contract version rõ ràng. Sau khi chuyển, permission server là nguồn policy duy nhất.
+- Backend/API tiếp tục là nơi kiểm tra authorization cuối cùng ở mọi giai đoạn.
+
+### 15.2 Trang Roles & Permissions
+
+Chọn phương án **chỉ xem role/permission hệ thống và gán role**.
+
+- Bỏ Add/Delete Role và CRUD Permission.
+- Hiển thị ba role có thể gán trong workspace: Tenant Admin, Logistics Dispatcher và Finance Accountant.
+- Không hiển thị hoặc cho phép gán Super Admin.
+- Permission theo domain SmartChain được hiển thị chỉ đọc.
+- Tab System Users cho phép Tenant Admin cập nhật role của thành viên trong phạm vi workspace.
+
+### 15.3 Route chưa có nghiệp vụ
+
+Chọn phương án **tạo placeholder dùng component `UnderConstruction`**.
+
+- Tạo đủ route cần thiết để kiểm thử sidebar, breadcrumb, global search và route guard.
+- Placeholder chỉ trình bày tên và trạng thái chưa triển khai; không giả lập API, dữ liệu hay nghiệp vụ.
+
+### 15.4 UI component catalog
+
+Chọn phương án **chỉ bật trong development**.
+
+- Sidebar và route `/components/*` chỉ được đăng ký khi `import.meta.env.DEV` là `true`.
+- Production build không hiển thị và không cho truy cập catalog này.
+
+### 15.5 Kiểm thử
+
+Chọn phương án **viết test hàm thuần cho policy và redirect trong cùng đợt triển khai**.
+
+- Tách access policy khỏi React để Node test runner hiện tại có thể kiểm thử trực tiếp.
+- Bao phủ bốn role, người dùng nhiều role, redirect sau login, route, menu, global search và action visibility.
+- UI guard không thay thế test authorization ở backend.

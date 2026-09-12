@@ -7,6 +7,7 @@ import type {
   StaffAccountFilters,
   StaffAccountPage,
   StaffAccountStatus,
+  StaffRole,
 } from '../types/staffAccount.types';
 
 const staffAccountSchema = z.object({
@@ -44,6 +45,14 @@ export const staffAccountApi = {
     const { data } = await apiClient.patch<ApiResponse<unknown>>(
       `/v1/iam/users/${encodeURIComponent(userId)}/status`,
       { status },
+    );
+    return staffAccountSchema.parse(data);
+  },
+
+  async updateRoles(userId: string, roles: StaffRole[]): Promise<StaffAccount> {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
+      `/v1/iam/users/${encodeURIComponent(userId)}/roles`,
+      { roles },
     );
     return staffAccountSchema.parse(data);
   },

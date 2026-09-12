@@ -5,13 +5,28 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { useAccess } from '@/hooks/useAccess';
+
 interface BreadcrumbItem {
   label: string;
   href?: string;
 }
 
+const ADMIN_LABEL_KEYS: Record<string, string> = {
+  '/admin/tenants': 'admin_tenants',
+  '/admin/carriers': 'admin_carriers',
+  '/admin/plans': 'subscription_plans',
+  '/admin/health': 'platform_health',
+  '/admin/audit': 'admin_audit_trail',
+  '/admin/api-traffic': 'api_traffic_logs',
+  '/admin/observability': 'system_observability',
+  '/admin/webhooks': 'webhook_delivery_logs',
+  '/admin/quotas': 'quota_management',
+};
+
 export default function RouteBreadcrumbs() {
   const { pathname } = useLocation();
+  const { defaultPath } = useAccess();
   const topbar = useTranslations('Topbar');
   const sidebar = useTranslations('Sidebar');
   const settings = useTranslations('Settings');
@@ -20,7 +35,7 @@ export default function RouteBreadcrumbs() {
   const primaryPath = '/' + pathname.split('/').filter(Boolean)[0];
   const pageLabels: Record<string, string> = {
     '/dashboard': sidebar('dashboard'),
-    '/billing': sidebar('billing'),
+    '/billing': sidebar('usage'),
     '/orders': sidebar('orders'),
     '/inventory': sidebar('inventory'),
     '/rules': sidebar('rules'),
@@ -29,10 +44,12 @@ export default function RouteBreadcrumbs() {
     '/analytics': sidebar('analytics'),
     '/iam': sidebar('staff_accounts'),
     '/roles-permissions': sidebar('roles_permissions'),
-    '/settings': sidebar('settings'),
+    '/audit': sidebar('audit_trail'),
+    '/integration-errors': sidebar('integration_errors'),
+    '/settings': sidebar('profile'),
   };
 
-  const items: BreadcrumbItem[] = [{ label: topbar('home'), href: '/dashboard' }];
+  const items: BreadcrumbItem[] = [{ label: topbar('home'), href: defaultPath }];
 
   if (primaryPath === '/components') {
     const componentLabels: Record<string, string> = {
@@ -45,35 +62,34 @@ export default function RouteBreadcrumbs() {
     items.push({ label: sidebar('components'), href: '/components/data-table' });
     items.push({ label: componentLabels[pathname] ?? sidebar('components') });
   } else if (primaryPath === '/admin') {
-    items.push({ label: sidebar('admin_heading') });
-    items.push({
-      label: pathname.startsWith('/admin/carriers')
-        ? sidebar('admin_carriers')
-        : sidebar('admin_tenants'),
-    });
+    items.push({ label: sidebar('platform_heading') });
+    items.push({ label: sidebar(ADMIN_LABEL_KEYS[pathname] ?? 'admin_tenants') });
   } else if (primaryPath === '/settings') {
-    items.push({ label: sidebar('settings_heading') });
     const settingTab = pathname.split('/').filter(Boolean)[1] ?? 'profile';
-    if (
-      ['profile', 'general', 'pricing', 'internationalization', 'authentication'].includes(
-        settingTab,
-      )
-    ) {
+    items.push({
+      label: sidebar(settingTab === 'profile' ? 'account_heading' : 'workspace_settings_heading'),
+    });
+    if (['profile', 'general', 'integrations', 'webhooks'].includes(settingTab)) {
       items.push({ label: settings(settingTab) });
     }
   } else if (primaryPath === '/iam') {
+    items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('staff_accounts') });
   } else if (primaryPath === '/roles-permissions') {
     const roleTab = pathname.split('/').filter(Boolean)[1] ?? 'roles';
+    items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('roles_permissions'), href: '/roles-permissions/roles' });
     items.push({
       label:
         roleTab === 'permissions'
           ? rolesPermissions('permissions')
-          : roleTab === 'system-users'
-            ? rolesPermissions('systemUsers')
+          : roleTab === 'members'
+            ? rolesPermissions('members')
             : rolesPermissions('roles'),
     });
+  } else if (primaryPath === '/billing') {
+    items.push({ label: sidebar('workspace_settings_heading') });
+    items.push({ label: sidebar('usage') });
   } else {
     items.push({ label: sidebar('workspace_heading') });
     items.push({ label: pageLabels[primaryPath] ?? topbar('default_title') });

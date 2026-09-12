@@ -14,19 +14,8 @@ export interface AddStaffAccountModalProps {
 
 type DraftAccountStatus = 'ACTIVE' | 'PENDING' | 'REPORTED' | 'BLOCKED';
 
-const ROLE_OPTIONS = [
-  'Super Admin',
-  'Admin',
-  'Billing Admin',
-  'Product Designer',
-  'Developer',
-  'Tester',
-  'Project Manager',
-  'Scrum Master',
-  'Auditor',
-  'Guest',
-  'Marketing',
-] as const;
+/** Tenant chỉ được gán ba role workspace; SUPER_ADMIN là role nền tảng (mục 3). */
+const ROLE_OPTIONS = ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] as const;
 
 export function AddStaffAccountModal({ isOpen, onClose }: AddStaffAccountModalProps) {
   const t = useTranslations('StaffAccounts');
@@ -50,6 +39,15 @@ export function AddStaffAccountModal({ isOpen, onClose }: AddStaffAccountModalPr
       else next.add(role);
       return next;
     });
+  };
+
+  const roleLabel = (role: (typeof ROLE_OPTIONS)[number]): string => {
+    const labels: Record<(typeof ROLE_OPTIONS)[number], string> = {
+      TENANT_ADMIN: t('roleTenantAdmin'),
+      DISPATCHER: t('roleDispatcher'),
+      ACCOUNTANT: t('roleAccountant'),
+    };
+    return labels[role];
   };
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,7 +202,7 @@ export function AddStaffAccountModal({ isOpen, onClose }: AddStaffAccountModalPr
                   key={role}
                   name="roles"
                   value={role}
-                  label={role}
+                  label={roleLabel(role)}
                   checked={selectedRoles.has(role)}
                   onChange={() => toggleRole(role)}
                 />
