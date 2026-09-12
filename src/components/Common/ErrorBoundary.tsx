@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useTranslations } from 'next-intl';
+
 import { Button } from '@/components/Common';
 
 interface ErrorBoundaryProps {

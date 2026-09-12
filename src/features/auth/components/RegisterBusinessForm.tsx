@@ -1,19 +1,21 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Mail, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/Common/Button/Button';
-import { Input } from '@/components/Common/Input/Input';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
+import { Input } from '@/components/Common/Input/Input';
 import { cn } from '@/lib/utils';
 
-import { getRegisterSchema, type RegisterFormData } from '../schemas/register.schema';
-import { useRegisterBusiness } from '../hooks/useRegisterBusiness';
 import { useEmailVerification } from '../hooks/useEmailVerification';
+import { useRegisterBusiness } from '../hooks/useRegisterBusiness';
+import { getRegisterSchema, type RegisterFormData } from '../schemas/register.schema';
 
 // ─── OTP Input (6 individual digit boxes) ────────────────────────────────────
 
@@ -26,8 +28,9 @@ function OtpInput({
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const fieldIds = ['otp-1', 'otp-2', 'otp-3', 'otp-4', 'otp-5', 'otp-6'] as const;
   const refs = useRef<Array<HTMLInputElement | null>>([]);
-  const digits = Array.from({ length: 6 }, (_, i) => value[i] || '');
+  const digits = fieldIds.map((_, index) => value[index] || '');
 
   const handleChange = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value.replace(/\D/g, '');
@@ -92,9 +95,9 @@ function OtpInput({
 
   return (
     <div className="flex gap-2 justify-center" onPaste={handlePaste}>
-      {Array.from({ length: 6 }).map((_, idx) => (
+      {fieldIds.map((fieldId, idx) => (
         <input
-          key={idx}
+          key={fieldId}
           ref={(el) => {
             refs.current[idx] = el;
           }}
@@ -108,11 +111,13 @@ function OtpInput({
           onFocus={(e) => e.target.select()}
           className={cn(
             'w-11 h-12 text-center text-lg font-bold rounded-lg border transition-all outline-none',
-            'focus:ring-2 focus:ring-[#0F766E] focus:border-transparent',
-            digits[idx] ? 'border-[#0F766E] bg-[#F0FDF9]' : 'border-[#E2E8F0] bg-white',
+            'focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]',
+            digits[idx]
+              ? 'border-[var(--sc-primary)] bg-[var(--sc-primary-alpha-08)]'
+              : 'border-[var(--sc-border-default)] bg-white',
             disabled && 'opacity-50 cursor-not-allowed',
           )}
-          style={{ color: '#0F172A', caretColor: '#0F766E' }}
+          style={{ color: 'var(--sc-text-primary)', caretColor: 'var(--sc-primary)' }}
         />
       ))}
     </div>
@@ -168,10 +173,10 @@ function StepEmail({ onNext }: { onNext: (email: string) => void }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-2 text-center">
-        <div className="w-12 h-12 rounded-full bg-[#F0FDF9] flex items-center justify-center">
-          <Mail size={22} className="text-[#0F766E]" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)]">
+          <Mail size={22} className="text-[var(--sc-primary-dark)]" />
         </div>
-        <p className="text-sm text-[#475569]">{tAuth('otp_intro')}</p>
+        <p className="text-sm text-[var(--sc-text-secondary)]">{tAuth('otp_intro')}</p>
       </div>
 
       <Input
@@ -199,11 +204,11 @@ function StepEmail({ onNext }: { onNext: (email: string) => void }) {
       </Button>
 
       <div className="text-center">
-        <p className="text-sm text-[#475569]">
+        <p className="text-sm text-[var(--sc-text-secondary)]">
           {tAuth('already_have_account')}{' '}
           <Link
             to="/login"
-            className="text-[#0F766E] font-semibold hover:underline transition-colors"
+            className="font-medium text-[var(--sc-primary-dark)] transition-colors hover:text-[var(--sc-primary)]"
           >
             {tAuth('login_link')}
           </Link>
@@ -249,10 +254,10 @@ function StepOtp({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-2 text-center">
-        <div className="w-12 h-12 rounded-full bg-[#F0FDF9] flex items-center justify-center">
-          <ShieldCheck size={22} className="text-[#0F766E]" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)]">
+          <ShieldCheck size={22} className="text-[var(--sc-primary-dark)]" />
         </div>
-        <p className="text-sm text-[#475569]">{tAuth('otp_hint', { email })}</p>
+        <p className="text-sm text-[var(--sc-text-secondary)]">{tAuth('otp_hint', { email })}</p>
       </div>
 
       <OtpInput value={otp} onChange={setOtp} disabled={isVerifying} />
@@ -266,8 +271,12 @@ function StepOtp({
         {isVerifying ? tAuth('otp_confirming') : tAuth('otp_confirm_button')}
       </Button>
 
-      <div className="flex items-center justify-between text-sm text-[#475569]">
-        <button type="button" onClick={onBack} className="hover:text-[#0F172A] transition-colors">
+      <div className="flex items-center justify-between text-sm text-[var(--sc-text-secondary)]">
+        <button
+          type="button"
+          onClick={onBack}
+          className="transition-colors hover:text-[var(--sc-text-primary)]"
+        >
           {tAuth('otp_change_email')}
         </button>
         {remaining > 0 ? (
@@ -277,7 +286,7 @@ function StepOtp({
             type="button"
             onClick={handleResend}
             disabled={isSending}
-            className="text-[#0F766E] font-semibold hover:underline transition-colors disabled:opacity-50"
+            className="font-medium text-[var(--sc-primary-dark)] transition-colors hover:text-[var(--sc-primary)] disabled:opacity-50"
           >
             {isSending ? tAuth('otp_resending') : tAuth('otp_resend_button')}
           </button>
@@ -324,8 +333,8 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
       <input type="text" style={{ display: 'none' }} name="fake_user" />
 
       {/* Email verified badge */}
-      <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#F0FDF9] border border-[#6EE7B7] text-sm text-[#065F46]">
-        <CheckCircle2 size={16} className="shrink-0 text-[#10B981]" />
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--sc-success-border)] bg-[var(--sc-success-bg)] px-3 py-2.5 text-sm text-[var(--sc-success-dark)]">
+        <CheckCircle2 size={16} className="shrink-0 text-[var(--sc-success)]" />
         <span>{tAuth('email_verified_badge', { email: verifiedEmail })}</span>
       </div>
 
@@ -375,7 +384,10 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
 
       {/* Password */}
       <div>
-        <label htmlFor="password" className="block text-sm font-semibold text-[#0F172A] mb-2">
+        <label
+          htmlFor="password"
+          className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
+        >
           {tAuth('password_label')} <span className="text-[#EF4444]">*</span>
         </label>
         <div className="relative">
@@ -383,10 +395,9 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
             id="password"
             type={showPassword ? 'text' : 'password'}
             className={cn(
-              'w-full px-4 py-2.5 pr-10 text-sm text-[#0F172A] placeholder:text-[#94A3B8]',
-              'bg-white border rounded-lg transition-all duration-200 outline-none shadow-sm',
-              'focus:border-transparent focus:ring-2 focus:ring-[#0F766E]',
-              errors.password ? 'border-[#EF4444] focus:ring-[#EF4444]' : 'border-[#E2E8F0]',
+              'h-[42px] w-full rounded-lg border bg-white px-3 py-2 pr-10 text-sm text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none placeholder:text-[var(--sc-text-tertiary)]',
+              'transition-[border-color,box-shadow] duration-150 hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]',
+              errors.password ? 'border-[var(--sc-error)]' : 'border-[var(--sc-border-default)]',
             )}
             placeholder={tAuth('password_placeholder')}
             {...register('password')}
@@ -395,7 +406,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           <button
             type="button"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#475569] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)] transition-colors hover:text-[var(--sc-text-secondary)]"
             onClick={() => setShowPassword(!showPassword)}
             tabIndex={-1}
           >
@@ -411,7 +422,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
       <div>
         <label
           htmlFor="confirmPassword"
-          className="block text-sm font-semibold text-[#0F172A] mb-2"
+          className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
         >
           {tAuth('confirm_password_label')} <span className="text-[#EF4444]">*</span>
         </label>
@@ -420,10 +431,11 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
             id="confirmPassword"
             type={showConfirmPassword ? 'text' : 'password'}
             className={cn(
-              'w-full px-4 py-2.5 pr-10 text-sm text-[#0F172A] placeholder:text-[#94A3B8]',
-              'bg-white border rounded-lg transition-all duration-200 outline-none shadow-sm',
-              'focus:border-transparent focus:ring-2 focus:ring-[#0F766E]',
-              errors.confirmPassword ? 'border-[#EF4444] focus:ring-[#EF4444]' : 'border-[#E2E8F0]',
+              'h-[42px] w-full rounded-lg border bg-white px-3 py-2 pr-10 text-sm text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none placeholder:text-[var(--sc-text-tertiary)]',
+              'transition-[border-color,box-shadow] duration-150 hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]',
+              errors.confirmPassword
+                ? 'border-[var(--sc-error)]'
+                : 'border-[var(--sc-border-default)]',
             )}
             placeholder={tAuth('confirm_password_placeholder')}
             {...register('confirmPassword')}
@@ -432,7 +444,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           <button
             type="button"
             aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#475569] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)] transition-colors hover:text-[var(--sc-text-secondary)]"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             tabIndex={-1}
           >
@@ -465,11 +477,11 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
 
       {/* Login Link */}
       <div className="text-center mt-2">
-        <p className="text-sm text-[#475569]">
+        <p className="text-sm text-[var(--sc-text-secondary)]">
           {tAuth('already_have_account')}{' '}
           <Link
             to="/login"
-            className="text-[#0F766E] font-semibold hover:text-[#0d645d] hover:underline transition-colors"
+            className="font-medium text-[var(--sc-primary-dark)] transition-colors hover:text-[var(--sc-primary)]"
           >
             {tAuth('login_link')}
           </Link>
@@ -499,10 +511,10 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
               className={cn(
                 'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all',
                 current > s.n
-                  ? 'bg-[#10B981] text-white'
+                  ? 'bg-[var(--sc-success)] text-white'
                   : current === s.n
-                    ? 'bg-[#0F766E] text-white ring-4 ring-[#0F766E]/20'
-                    : 'bg-[#E2E8F0] text-[#94A3B8]',
+                    ? 'bg-[var(--sc-primary)] text-white ring-4 ring-[var(--sc-primary-alpha-20)]'
+                    : 'bg-[var(--sc-bg-muted)] text-[var(--sc-text-tertiary)]',
               )}
             >
               {current > s.n ? '✓' : s.n}
@@ -510,7 +522,7 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
             <span
               className={cn(
                 'text-[10px] mt-1 font-medium text-center leading-tight',
-                current >= s.n ? 'text-[#0F766E]' : 'text-[#94A3B8]',
+                current >= s.n ? 'text-[var(--sc-primary-dark)]' : 'text-[var(--sc-text-tertiary)]',
               )}
             >
               {tAuth(s.key)}
@@ -520,7 +532,7 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
             <div
               className={cn(
                 'h-0.5 flex-1 mt-[-14px] transition-all',
-                current > s.n ? 'bg-[#10B981]' : 'bg-[#E2E8F0]',
+                current > s.n ? 'bg-[var(--sc-success)]' : 'bg-[var(--sc-bg-muted)]',
               )}
             />
           )}

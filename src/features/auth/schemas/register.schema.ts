@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-export const getRegisterSchema = (t: any) =>
+import type { useTranslations } from 'next-intl';
+
+type Translator = ReturnType<typeof useTranslations>;
+
+export const getRegisterSchema = (t: Translator) =>
   z
     .object({
       fullName: z

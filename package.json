@@ -15,6 +15,7 @@
     "verify": "tsc --noEmit && yarn lint:fix && yarn format:check"
   },
   "dependencies": {
+    "@fontsource/archivo": "5.2.8",
     "@hookform/resolvers": "5.2.2",
     "@tailwindcss/postcss": "4.2.4",
     "clsx": "2.1.1",

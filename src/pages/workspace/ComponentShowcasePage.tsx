@@ -17,9 +17,8 @@ import {
   Printer,
   FileText,
   Settings,
-  Bell,
-  User,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
   Button,
@@ -38,9 +37,7 @@ import {
   DatePicker,
   Avatar,
 } from '@/components/Common';
-import { toast } from 'sonner';
-
-import DataTable, { ColumnDef } from '@/components/Common/DataTable/DataTable';
+import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import Pagination from '@/components/Common/Pagination/Pagination';
 
@@ -63,7 +60,7 @@ const sampleUsers: User[] = [
 
 /**
  * Component Showcase Page
- * Demo tất cả các common components với SmartChain theme (teal accent + light background)
+ * Demo tất cả common components với SmartChain theme dựa trên SaaSable Hosting.
  */
 export default function ComponentShowcasePage() {
   const [alertVisible, setAlertVisible] = useState(true);
@@ -94,22 +91,24 @@ export default function ComponentShowcasePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FCFCFD]">
+    <div className="min-h-screen bg-[var(--sc-bg-primary)]">
       {/* Simple Header */}
-      <header className="bg-white border-b border-[#E5E7EB] sticky top-0 z-50">
+      <header className="sticky top-0 z-50 border-b border-[var(--sc-border-default)] bg-white/95 backdrop-blur-xl">
         <div className="max-w-[1400px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-lg bg-[#0F766E] flex items-center justify-center text-lg font-black text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--sc-primary)] text-lg font-semibold text-white">
               SC
             </span>
             <div>
-              <h1 className="text-xl font-bold text-[#1A1D21]">Component Showcase</h1>
-              <p className="text-xs text-[#6A6E76]">SmartChain Design System</p>
+              <h1 className="text-xl font-medium text-[var(--sc-text-primary)]">
+                Component Showcase
+              </h1>
+              <p className="text-xs text-[var(--sc-text-secondary)]">SmartChain Design System</p>
             </div>
           </div>
           <a
             href="/"
-            className="px-4 py-2 text-sm font-medium text-[#6A6E76] hover:text-[#00E599] transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--sc-text-secondary)] transition-colors hover:text-[var(--sc-primary-dark)]"
           >
             ← Back to Home
           </a>
@@ -121,8 +120,8 @@ export default function ComponentShowcasePage() {
         {/* Page Header */}
         <div className="mb-8">
           <Breadcrumb items={['Design System', 'Components', 'Showcase']} />
-          <p className="text-[#6A6E76] text-sm mt-2">
-            Preview của tất cả common components với theme xanh Teal (#0F766E)
+          <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
+            Preview các component dùng theme Hosting, typography Archivo và motion của SmartChain.
           </p>
         </div>
 
@@ -520,29 +519,33 @@ export default function ComponentShowcasePage() {
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <div className="h-16 rounded-lg bg-[#0F766E] flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">#0F766E</span>
+                  <div className="flex h-16 items-center justify-center rounded-lg bg-[var(--sc-primary)]">
+                    <span className="text-sm font-semibold text-white">#606BDF</span>
                   </div>
                   <p className="text-xs text-[#6A6E76] text-center">Primary Brand</p>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="h-16 rounded-lg bg-[#10B981] flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">#10B981</span>
+                  <div className="flex h-16 items-center justify-center rounded-lg bg-[var(--sc-primary-light)]">
+                    <span className="text-sm font-semibold text-[var(--sc-primary-darker)]">
+                      #BDC2FF
+                    </span>
                   </div>
                   <p className="text-xs text-[#6A6E76] text-center">Secondary Accent</p>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="h-16 rounded-lg bg-[#1A1D21] flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">#1A1D21</span>
+                  <div className="flex h-16 items-center justify-center rounded-lg bg-[var(--sc-text-primary)]">
+                    <span className="text-sm font-semibold text-white">#1B1B1F</span>
                   </div>
                   <p className="text-xs text-[#6A6E76] text-center">Text Primary</p>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="h-16 rounded-lg bg-[#FCFCFD] border-2 border-[#E5E7EB] flex items-center justify-center">
-                    <span className="text-[#1A1D21] font-semibold text-sm">#FCFCFD</span>
+                  <div className="flex h-16 items-center justify-center rounded-lg border-2 border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]">
+                    <span className="text-sm font-semibold text-[var(--sc-text-primary)]">
+                      #FBF8FF
+                    </span>
                   </div>
                   <p className="text-xs text-[#6A6E76] text-center">BG Primary</p>
                 </div>

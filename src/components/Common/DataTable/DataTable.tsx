@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import Pagination from '@/components/Common/Pagination/Pagination';
@@ -11,9 +12,11 @@ export interface ColumnDef<T> {
 }
 
 interface DataTableProps<T> {
+  ariaLabel?: string;
   columns: ColumnDef<T>[];
   data: T[];
   isLoading?: boolean;
+  getRowKey?: (row: T) => React.Key;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -22,44 +25,49 @@ interface DataTableProps<T> {
 }
 
 export default function DataTable<T extends object>({
+  ariaLabel,
   columns,
   data,
   isLoading,
+  getRowKey,
   pagination,
 }: DataTableProps<T>) {
   const t = useTranslations('Common');
 
   return (
-    <div className="w-full flex flex-col">
+    <div className="flex w-full flex-col">
       <div className="w-full overflow-x-auto">
-        <table className="w-full border-collapse text-left">
+        <table aria-label={ariaLabel} className="w-full border-collapse text-left">
           <thead>
-            <tr className="bg-[#F7F8FA]">
-              {columns.map((col) => (
+            <tr className="bg-[var(--sc-bg-secondary)]">
+              {columns.map((column) => (
                 <th
-                  key={String(col.key)}
-                  className="px-4 py-4 text-xs font-semibold text-[#6A6E76] uppercase tracking-wider border-y border-[#E5E7EB] whitespace-nowrap"
+                  key={String(column.key)}
+                  className="border-b border-[var(--sc-border-default)] px-4 py-3 text-xs font-medium text-[var(--sc-text-secondary)] whitespace-nowrap"
                 >
-                  {col.label}
+                  {column.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white">
+          <tbody className="bg-[var(--sc-bg-surface)]">
             {isLoading ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="p-12 text-center text-[#6A6E76] italic text-sm"
+                  className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
                 >
-                  {t('loading_data')}
+                  <span className="inline-flex items-center gap-2">
+                    <LoaderCircle aria-hidden="true" size={17} className="animate-spin" />
+                    {t('loading_data')}
+                  </span>
                 </td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="p-12 text-center text-[#6A6E76] italic text-sm"
+                  className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
                 >
                   {t('no_data')}
                 </td>
@@ -67,18 +75,17 @@ export default function DataTable<T extends object>({
             ) : (
               data.map((row, rowIndex) => (
                 <tr
-                  /* eslint-disable-next-line react/no-array-index-key */
-                  key={rowIndex}
-                  className="border-b border-[#E5E7EB] transition-colors duration-200 hover:bg-[#FCFCFD]"
+                  key={getRowKey ? getRowKey(row) : rowIndex}
+                  className="border-b border-[var(--sc-border-default)] transition-colors duration-150 last:border-b-0 hover:bg-[var(--sc-primary-alpha-08)]"
                 >
-                  {columns.map((col) => (
+                  {columns.map((column) => (
                     <td
-                      key={String(col.key)}
-                      className="px-4 py-4 text-[13px] text-[#1A1D21] align-middle"
+                      key={String(column.key)}
+                      className="px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle"
                     >
-                      {col.render
-                        ? col.render(row)
-                        : String((row as Record<string, unknown>)[col.key] ?? '')}
+                      {column.render
+                        ? column.render(row)
+                        : String((row as Record<string, unknown>)[column.key] ?? '')}
                     </td>
                   ))}
                 </tr>

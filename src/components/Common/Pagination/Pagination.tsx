@@ -1,4 +1,5 @@
-import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
@@ -10,20 +11,8 @@ export interface PaginationProps {
   onPageSizeChange?: (size: number) => void;
 }
 
-const baseBtnClass =
-  'flex items-center justify-center w-8 h-8 rounded-md text-[13px] cursor-pointer transition-all duration-200';
-const pageBtnClass = cn(
-  baseBtnClass,
-  'bg-white border border-[#E5E7EB] text-[#6A6E76] hover:bg-[#F7F8FA] hover:border-[#0F766E] hover:text-[#0F766E]',
-);
-const pageBtnActiveClass = cn(
-  baseBtnClass,
-  'bg-[#F0FDFA] border border-[#0F766E] text-[#0F766E] font-semibold',
-);
-const pageBtnDisabledClass = cn(
-  baseBtnClass,
-  'bg-[#F7F8FA] border border-[#E5E7EB] text-[#D1D5DB] cursor-not-allowed',
-);
+const pageButton =
+  'flex h-9 w-9 items-center justify-center rounded-lg border text-[13px] transition-[color,background-color,border-color,transform] duration-150';
 
 export default function Pagination({
   currentPage,
@@ -32,49 +21,68 @@ export default function Pagination({
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
-  // Generate basic page numbers for demo
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const t = useTranslations('Common');
+  const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   return (
-    <div className="flex items-center gap-6 mt-6 pt-6 border-t border-[#E5E7EB]">
-      <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--sc-border-default)] px-4 py-4">
+      <div className="flex items-center gap-1.5">
         <button
-          className={currentPage === 1 ? pageBtnDisabledClass : pageBtnClass}
-          onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+          type="button"
+          className={cn(
+            pageButton,
+            'border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] text-[var(--sc-text-secondary)] hover:border-[var(--sc-primary-light)] hover:bg-[var(--sc-primary-alpha-08)]',
+            currentPage === 1 && 'pointer-events-none opacity-45',
+          )}
+          onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
+          aria-label={t('previous_page')}
         >
-          &lt;
+          <ChevronLeft size={16} />
         </button>
         {pages.map((page) => (
           <button
+            type="button"
             key={page}
-            className={page === currentPage ? pageBtnActiveClass : pageBtnClass}
+            className={cn(
+              pageButton,
+              page === currentPage
+                ? 'border-[var(--sc-primary)] bg-[var(--sc-primary)] font-medium text-white'
+                : 'border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] text-[var(--sc-text-secondary)] hover:border-[var(--sc-primary-light)] hover:bg-[var(--sc-primary-alpha-08)]',
+            )}
             onClick={() => onPageChange(page)}
+            aria-current={page === currentPage ? 'page' : undefined}
           >
             {page}
           </button>
         ))}
         <button
-          className={currentPage === totalPages ? pageBtnDisabledClass : pageBtnClass}
-          onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+          type="button"
+          className={cn(
+            pageButton,
+            'border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] text-[var(--sc-text-secondary)] hover:border-[var(--sc-primary-light)] hover:bg-[var(--sc-primary-alpha-08)]',
+            currentPage === totalPages && 'pointer-events-none opacity-45',
+          )}
+          onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
+          aria-label={t('next_page')}
         >
-          &gt;
+          <ChevronRight size={16} />
         </button>
       </div>
       {onPageSizeChange && (
-        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-[13px] text-[var(--sc-text-secondary)]">
           <select
-            className="py-1.5 pl-3 pr-8 border border-[#E5E7EB] rounded-md text-[13px] text-[#6A6E76] bg-white cursor-pointer transition-colors hover:border-[#0F766E] focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/20 outline-none appearance-none bg-no-repeat bg-[position:right_0.5rem_center] bg-[size:1rem] bg-[url('data:image/svg+xml,%3Csvg_xmlns=%22http://www.w3.org/2000/svg%22_fill=%22none%22_viewBox=%220_0_24_24%22_stroke=%22%239ca3af%22%3E%3Cpath_stroke-linecap=%22round%22_stroke-linejoin=%22round%22_stroke-width=%222%22_d=%22M19_9l-7_7-7-7%22%3E%3C/path%3E%3C/svg%3E')]"
+            className="h-9 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 text-[13px] outline-none transition-colors hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)]"
             value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
           >
             <option value="10">10</option>
             <option value="20">20</option>
             <option value="50">50</option>
           </select>
-          <span className="text-[13px] text-[#6A6E76]">/Page</span>
-        </div>
+          {t('per_page')}
+        </label>
       )}
     </div>
   );
