@@ -25,7 +25,7 @@ export default function ProtectedRoute({
   const { user, status } = useAuthStore();
   const location = useLocation();
 
-  if (status === 'initializing' || status === 'error') return null;
+  if (status === 'initializing') return null;
 
   if (!user) {
     return (

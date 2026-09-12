@@ -22,7 +22,7 @@ interface AuthState {
   accessToken: string | null;
   expiresAt: number;
   revision: number;
-  status: 'initializing' | 'authenticated' | 'anonymous' | 'error';
+  status: 'initializing' | 'authenticated' | 'anonymous';
   setSession: (session: AuthSession) => void;
   setUser: (user: AuthUser) => void;
   clear: () => void;

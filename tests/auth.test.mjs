@@ -118,16 +118,22 @@ test('missing refresh cookie resolves initialization as anonymous', async () => 
   assert.equal(useAuthStore.getState().user, null);
 });
 
-test('temporary restoration failures allow retry without claiming the cookie is expired', async () => {
+test('a temporary network failure falls back to anonymous without expiring the cookie', async () => {
   useAuthStore.setState({ status: 'initializing' });
   globalThis.fetch = async () => {
     throw new TypeError('network offline');
   };
   await apiClient.initializeSession();
-  assert.equal(useAuthStore.getState().status, 'error');
-  globalThis.fetch = async () => ok(session());
-  await apiClient.initializeSession();
+  assert.equal(useAuthStore.getState().status, 'anonymous');
+
+  // Mạng khôi phục: request bảo vệ kế tiếp vẫn khôi phục được phiên (cookie không bị hủy).
+  globalThis.fetch = async (url) => {
+    if (url.endsWith('/refresh')) return ok(session());
+    return ok(null);
+  };
+  await apiClient.get('/orders', { silent: true });
   assert.equal(useAuthStore.getState().status, 'authenticated');
+  assert.equal(useAuthStore.getState().user.roles[0], 'TENANT_ADMIN');
 });
 
 test('parallel 401s share one refresh and replay with the new bearer token', async () => {
