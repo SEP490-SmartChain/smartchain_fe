@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-export const getRegisterSchema = (t: any) =>
+import type { useTranslations } from 'next-intl';
+
+type Translator = ReturnType<typeof useTranslations>;
+
+export const getRegisterSchema = (t: Translator) =>
   z
     .object({
       fullName: z
@@ -12,9 +16,7 @@ export const getRegisterSchema = (t: any) =>
         .string()
         .email(t('Validation.invalid_email'))
         .max(255, t('Validation.max_length', { max: 255 })),
-      phone: z
-        .string()
-        .regex(/^0[0-9]{9}$/, t('Validation.invalid_phone')),
+      phone: z.string().regex(/^0[0-9]{9}$/, t('Validation.invalid_phone')),
       companyName: z
         .string()
         .min(3, t('Validation.min_length', { min: 3 }))

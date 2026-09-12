@@ -1,42 +1,39 @@
 import React, { useEffect } from 'react';
 
 import { NextIntlClientProvider } from 'next-intl';
-import { Outlet } from 'react-router-dom';
-import { Toaster } from '@/components/Common';
-import '@/styles/globals.css';
 
-import { ErrorBoundary } from '@/components/Common';
-import { useLocaleStore } from '@/stores';
-import { useAuth } from '@/hooks/useAuth';
+import { Toaster, ErrorBoundary } from '@/components/Common';
+import { useLocaleStore, useUiStore } from '@/stores';
 
 import enMessages from '@messages/en.json';
 import viMessages from '@messages/vi.json';
 
+import { AuthSessionBoundary } from './AuthSessionBoundary';
+
+import '@/styles/globals.css';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const { locale } = useLocaleStore();
+  const { themeMode, setThemeMode } = useUiStore();
   const messages = locale === 'en' ? enMessages : viMessages;
-  const { logout } = useAuth();
 
   useEffect(() => {
-    const handleUnauthorized = () => {
-      logout();
-    };
+    if (themeMode !== 'system') return;
 
-    window.addEventListener('auth:unauthorized', handleUnauthorized as EventListener);
-    return () => {
-      window.removeEventListener('auth:unauthorized', handleUnauthorized as EventListener);
-    };
-  }, [logout]);
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const syncSystemTheme = () => setThemeMode('system');
+    mediaQuery.addEventListener('change', syncSystemTheme);
+    return () => mediaQuery.removeEventListener('change', syncSystemTheme);
+  }, [setThemeMode, themeMode]);
 
   return (
-    <div className="font-inter">
+    <div>
       <NextIntlClientProvider messages={messages} locale={locale}>
         <ErrorBoundary>
           <Toaster position="top-right" richColors />
-          {children}
+          <AuthSessionBoundary>{children}</AuthSessionBoundary>
         </ErrorBoundary>
       </NextIntlClientProvider>
     </div>
   );
 }
-

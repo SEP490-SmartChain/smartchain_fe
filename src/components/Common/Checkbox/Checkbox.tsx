@@ -1,6 +1,8 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
+
 import { Check } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
 
 export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
@@ -8,45 +10,43 @@ export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputE
 }
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, label, error, ...props }, ref) => {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <label className="flex items-center gap-2.5 cursor-pointer group">
-          <div className="relative flex items-center justify-center w-4 h-4 shrink-0">
-            <input
-              type="checkbox"
-              ref={ref}
-              className={cn(
-                'peer appearance-none w-4 h-4 border rounded-sm transition-all duration-200 cursor-pointer',
-                'bg-white border-[#CBD5E1]',
-                'hover:border-[#0F766E]',
-                'checked:bg-[#0F766E] checked:border-[#0F766E]',
-                'focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20',
-                'disabled:bg-[#F1F5F9] disabled:border-[#E2E8F0] disabled:cursor-not-allowed disabled:checked:bg-[#CBD5E1]',
-                error && 'border-[#EF4444] checked:bg-[#EF4444] checked:border-[#EF4444] focus:ring-[#EF4444]/20 hover:border-[#EF4444]',
-                className
-              )}
-              {...props}
-            />
-            <Check 
-              size={12} 
-              strokeWidth={3}
-              className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" 
-            />
-          </div>
-          {label && (
-            <span className={cn(
-              "text-sm text-[#475569] group-hover:text-[#0F172A] transition-colors",
-              props.disabled && "text-[#94A3B8] group-hover:text-[#94A3B8]"
-            )}>
-              {label}
-            </span>
-          )}
-        </label>
-        {error && <span className="text-xs text-[#EF4444] ml-6">{error}</span>}
-      </div>
-    );
-  }
+  ({ className, label, error, ...props }, ref) => (
+    <div className="flex flex-col gap-1.5">
+      <label className="group flex cursor-pointer items-center gap-2.5">
+        <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+          <input
+            type="checkbox"
+            ref={ref}
+            className={cn(
+              'peer h-4 w-4 cursor-pointer appearance-none rounded border border-[var(--sc-border-strong)] bg-white transition-[background-color,border-color,box-shadow] duration-150',
+              'hover:border-[var(--sc-primary)] checked:border-[var(--sc-primary)] checked:bg-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)] focus:outline-none',
+              'disabled:cursor-not-allowed disabled:border-[var(--sc-border-default)] disabled:bg-[var(--sc-bg-secondary)]',
+              error &&
+                'border-[var(--sc-error)] checked:border-[var(--sc-error)] checked:bg-[var(--sc-error)]',
+              className,
+            )}
+            {...props}
+          />
+          <Check
+            aria-hidden="true"
+            size={12}
+            strokeWidth={3}
+            className="pointer-events-none absolute text-white opacity-0 transition-opacity peer-checked:opacity-100"
+          />
+        </span>
+        {label && (
+          <span
+            className={cn(
+              'text-sm leading-[18px] text-[var(--sc-text-secondary)] transition-colors group-hover:text-[var(--sc-text-primary)]',
+              props.disabled && 'text-[var(--sc-text-disabled)]',
+            )}
+          >
+            {label}
+          </span>
+        )}
+      </label>
+      {error && <span className="ml-6 text-xs text-[var(--sc-error-dark)]">{error}</span>}
+    </div>
+  ),
 );
-
 Checkbox.displayName = 'Checkbox';

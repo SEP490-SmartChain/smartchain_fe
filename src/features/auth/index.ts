@@ -9,3 +9,4 @@ export { useRegisterBusiness } from './hooks/useRegisterBusiness';
 export { useEmailVerification } from './hooks/useEmailVerification';
 export { getRegisterSchema, type RegisterFormData } from './schemas/register.schema';
 
+export { LoginForm } from './components/LoginForm';

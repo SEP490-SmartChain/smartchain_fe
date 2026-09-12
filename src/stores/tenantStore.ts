@@ -5,7 +5,7 @@ interface TenantState {
   activeTenantId: string | null;
   setActiveTenantId: (tenantId: string | null) => void;
 
-  /** Quyền RBAC đã giải mã từ JWT. */
+  /** Quyền RBAC từ profile do API xác thực. */
   permissions: string[];
   setPermissions: (permissions: string[]) => void;
   can: (permission: string) => boolean;

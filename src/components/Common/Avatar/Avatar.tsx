@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { cn } from '@/lib/utils';
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -9,10 +10,10 @@ export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const sizeClasses = {
-  sm: 'w-6 h-6 text-[10px]',
-  md: 'w-8 h-8 text-xs',
-  lg: 'w-10 h-10 text-sm',
-  xl: 'w-12 h-12 text-base',
+  sm: 'h-6 w-6 text-[10px]',
+  md: 'h-8 w-8 text-xs',
+  lg: 'h-10 w-10 text-sm',
+  xl: 'h-12 w-12 text-base',
 };
 
 export function Avatar({ src, alt, fallback, size = 'md', className, ...props }: AvatarProps) {
@@ -21,9 +22,9 @@ export function Avatar({ src, alt, fallback, size = 'md', className, ...props }:
   return (
     <div
       className={cn(
-        "relative flex items-center justify-center shrink-0 overflow-hidden rounded-full bg-[#F1F5F9] border border-[#E2E8F0] font-semibold text-[#64748B]",
+        'relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--sc-primary-light)] bg-[var(--sc-primary-lighter)] font-medium text-[var(--sc-primary-dark)]',
         sizeClasses[size],
-        className
+        className,
       )}
       {...props}
     >
@@ -31,7 +32,7 @@ export function Avatar({ src, alt, fallback, size = 'md', className, ...props }:
         <img
           src={src}
           alt={alt || fallback}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover"
           onError={() => setImageError(true)}
         />
       ) : (
