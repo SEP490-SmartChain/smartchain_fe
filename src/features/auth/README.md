@@ -33,4 +33,15 @@ Local integration: Vite proxies /api to VITE_API_TARGET; BE AUTH_WEB_ORIGIN must
 http://localhost:2324 (or the actual FE origin). BE NODE_ENV=development permits HTTP cookies.
 Production requires HTTPS, a same-site API, and preferably a reverse proxy retaining /api.
 The refresh cookie is SameSite=Strict and scoped to /api/v1/auth; unrelated-site API URLs will
-not support refresh. Password recovery and account administration are separate stories.
+not support refresh.
+
+## Password Reset Request (SS-346)
+
+`POST /api/v1/auth/password-reset-requests`: `{ email }`, anonymous (`requiresAuth: false`).
+`ForgotPasswordForm` (`/forgot-password`) always renders the same generic "check your inbox"
+confirmation after a successful call — the API never reveals whether the email belongs to an
+eligible account, so the UI must not either. Errors (429 rate limit, 503 unavailable, network)
+surface through apiClient's default toast; the form simply stays on the input step so the user
+can retry. The email carries a one-time link, not an OTP code — do not route this flow through
+`/otp`, which belongs to registration's email-verification step. Token consumption (the
+`/reset-password` confirmation page) is a separate, not-yet-implemented story.

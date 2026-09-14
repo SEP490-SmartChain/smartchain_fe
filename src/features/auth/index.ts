@@ -10,3 +10,10 @@ export { useEmailVerification } from './hooks/useEmailVerification';
 export { getRegisterSchema, type RegisterFormData } from './schemas/register.schema';
 
 export { LoginForm } from './components/LoginForm';
+
+export { ForgotPasswordForm } from './components/ForgotPasswordForm';
+export { usePasswordResetRequest } from './hooks/usePasswordResetRequest';
+export {
+  getForgotPasswordSchema,
+  type ForgotPasswordFormData,
+} from './schemas/forgotPassword.schema';
