@@ -670,5 +670,24 @@
     "password_mismatch": "Passwords do not match",
     "must_agree_terms": "You must agree to the terms of service",
     "only_letters_spaces": "Only letters and spaces are allowed"
+  },
+  "ProductCatalog": {
+    "title": "Product catalog",
+    "tableLabel": "Product catalog table",
+    "searchLabel": "Search products",
+    "searchHere": "Search by SKU or name",
+    "statusFilter": "Status filter",
+    "allStatuses": "All statuses",
+    "active": "Active",
+    "inactive": "Inactive",
+    "columnSku": "SKU",
+    "columnName": "Name",
+    "columnWeight": "Weight",
+    "weightValue": "{weight} g",
+    "columnDimensions": "Dimensions",
+    "columnDeclaredValue": "Declared value",
+    "columnStatus": "Status",
+    "loadError": "Couldn't load the product catalog.",
+    "retry": "Retry"
   }
 }

@@ -670,5 +670,24 @@
     "password_mismatch": "Mật khẩu xác nhận không khớp",
     "must_agree_terms": "Bạn phải đồng ý với điều khoản sử dụng",
     "only_letters_spaces": "Chỉ được chứa chữ cái và khoảng trắng"
+  },
+  "ProductCatalog": {
+    "title": "Danh mục sản phẩm",
+    "tableLabel": "Bảng danh mục sản phẩm",
+    "searchLabel": "Tìm kiếm sản phẩm",
+    "searchHere": "Tìm theo SKU hoặc tên sản phẩm",
+    "statusFilter": "Lọc theo trạng thái",
+    "allStatuses": "Tất cả trạng thái",
+    "active": "Đang hoạt động",
+    "inactive": "Ngừng hoạt động",
+    "columnSku": "SKU",
+    "columnName": "Tên sản phẩm",
+    "columnWeight": "Khối lượng",
+    "weightValue": "{weight} g",
+    "columnDimensions": "Kích thước",
+    "columnDeclaredValue": "Giá trị khai báo",
+    "columnStatus": "Trạng thái",
+    "loadError": "Không thể tải danh mục sản phẩm.",
+    "retry": "Thử lại"
   }
 }
