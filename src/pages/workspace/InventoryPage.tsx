@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { ProductCatalogTable } from '@/features/catalog';
 
 export default function InventoryPage() {
-  return <UnderConstruction />;
+  return <ProductCatalogTable />;
 }

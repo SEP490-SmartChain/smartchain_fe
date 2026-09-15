@@ -9,6 +9,7 @@ let apiClient;
 let useAuthStore;
 let useTenantStore;
 let getLoginSchema;
+let getForgotPasswordSchema;
 let getPostLoginPath;
 const originalFetch = globalThis.fetch;
 const user = {
@@ -51,6 +52,9 @@ before(async () => {
   ({ useAuthStore } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   ({ useTenantStore } = await server.ssrLoadModule('/src/stores/tenantStore.ts'));
   ({ getLoginSchema } = await server.ssrLoadModule('/src/features/auth/schemas/loginSchema.ts'));
+  ({ getForgotPasswordSchema } = await server.ssrLoadModule(
+    '/src/features/auth/schemas/forgotPassword.schema.ts',
+  ));
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
 });
 after(async () => {
@@ -353,4 +357,46 @@ test('logout failure retains the session for an explicit retry', async () => {
   globalThis.fetch = async () => ok(null);
   await apiClient.logout();
   assert.equal(useAuthStore.getState().user, null);
+});
+
+test('password reset request posts anonymously to the SS-346 contract endpoint', async () => {
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return ok({ messageKey: 'auth.passwordResetRequested' });
+  };
+  const response = await apiClient.post(
+    '/v1/auth/password-reset-requests',
+    { email: 'user@example.com' },
+    { requiresAuth: false },
+  );
+  assert.equal(captured.url, '/api/v1/auth/password-reset-requests');
+  assert.equal(captured.options.method, 'POST');
+  assert.equal(captured.options.headers.get('Authorization'), null);
+  assert.deepEqual(JSON.parse(captured.options.body), { email: 'user@example.com' });
+  assert.deepEqual(response, {
+    success: true,
+    data: { messageKey: 'auth.passwordResetRequested' },
+    meta: {},
+  });
+});
+
+test('password reset request stays generic on rate limit (no account existence leak)', async () => {
+  globalThis.fetch = async () => fail(429, 'AUTH.PASSWORD_RESET_RATE_LIMITED');
+  await assert.rejects(
+    apiClient.post(
+      '/v1/auth/password-reset-requests',
+      { email: 'user@example.com' },
+      { requiresAuth: false },
+    ),
+    { status: 429, code: 'AUTH.PASSWORD_RESET_RATE_LIMITED' },
+  );
+});
+
+test('forgot-password validation normalizes email and rejects malformed input', () => {
+  const schema = getForgotPasswordSchema((key) => key);
+  assert.equal(schema.parse({ email: ' User@Example.COM ' }).email, 'user@example.com');
+  for (const invalid of ['not-an-email', '', 'a'.repeat(255) + '@example.com']) {
+    assert.equal(schema.safeParse({ email: invalid }).success, false);
+  }
 });

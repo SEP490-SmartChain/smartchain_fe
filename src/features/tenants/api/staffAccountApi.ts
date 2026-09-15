@@ -18,13 +18,11 @@ const staffAccountSchema = z.object({
   lastSessionAt: z.string().datetime().nullable(),
   status: z.enum(['ACTIVE', 'LOCKED', 'PENDING']),
 });
-const staffAccountPageSchema = z.object({
-  items: z.array(staffAccountSchema),
-  pagination: z.object({
-    limit: z.number().int().positive(),
-    hasNext: z.boolean(),
-    nextCursor: z.string().nullable(),
-  }),
+const staffAccountListSchema = z.array(staffAccountSchema);
+const paginationSchema = z.object({
+  limit: z.number().int().positive(),
+  hasNext: z.boolean(),
+  nextCursor: z.string().nullable(),
 });
 
 export const staffAccountApi = {
@@ -40,11 +38,14 @@ export const staffAccountApi = {
     if (filters.role) params.role = filters.role;
     if (filters.status) params.status = filters.status;
     if (cursor) params.cursor = cursor;
-    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/iam/users', {
+    const { data, meta } = await apiClient.get<ApiResponse<unknown>>('/v1/iam/users', {
       params,
       silent: true,
     });
-    return staffAccountPageSchema.parse(data);
+    return {
+      items: staffAccountListSchema.parse(data),
+      pagination: paginationSchema.parse(meta.pagination),
+    };
   },
 
   async changeStatus(userId: string, status: StaffAccountStatus): Promise<StaffAccount> {
