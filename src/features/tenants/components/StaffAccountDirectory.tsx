@@ -506,8 +506,8 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <Badge
-                              status={account.status === 'ACTIVE' ? 'success' : 'error'}
-                              label={account.status === 'ACTIVE' ? t('active') : t('blocked')}
+                              status={account.status === 'ACTIVE' ? 'success' : account.status === 'PENDING' ? 'warning' : 'error'}
+                              label={account.status === 'ACTIVE' ? t('active') : account.status === 'PENDING' ? t('pending') : t('blocked')}
                               size="md"
                             />
                           </td>
@@ -555,7 +555,7 @@ export function StaffAccountDirectory() {
                                   type="button"
                                   size="sm"
                                   variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
-                                  disabled={isSelf || updatingUserId === account.userId}
+                                  disabled={isSelf || updatingUserId === account.userId || account.status === 'PENDING'}
                                   isLoading={updatingUserId === account.userId}
                                   title={isSelf ? t('cannotLockSelf') : undefined}
                                   onClick={() => setSelectedAccount(account)}
