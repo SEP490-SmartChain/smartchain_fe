@@ -108,6 +108,7 @@ export interface RoutePolicy {
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/dashboard', roles: ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] },
   { path: '/orders', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
+  { path: '/warehouses', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
   { path: '/inventory', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
   { path: '/rules', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
   { path: '/shipments', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
@@ -192,6 +193,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'workspace',
     items: [
       { key: 'orders', href: '/orders', capability: 'orders.view' },
+      { key: 'warehouses', href: '/warehouses', capability: 'warehouses.manage' },
       { key: 'inventory', href: '/inventory', capability: 'warehouses.view' },
       { key: 'rules', href: '/rules', capability: 'rules.view' },
       { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
