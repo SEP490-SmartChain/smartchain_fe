@@ -17,6 +17,7 @@ import {
   UnderConstruction,
 } from '@/components/Common';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
+import { WebhookManager } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
 
 const ALL_SETTING_TABS = ['profile', 'general', 'integrations', 'webhooks'] as const;
@@ -90,12 +91,7 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {activeTab === 'webhooks' && (
-        <Card>
-          <CardHeader title={t('webhooks')} description={t('webhooksDescription')} />
-          <UnderConstruction />
-        </Card>
-      )}
+      {activeTab === 'webhooks' && <WebhookManager />}
     </div>
   );
 }
