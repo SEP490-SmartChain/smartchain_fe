@@ -16,7 +16,7 @@ const staffAccountSchema = z.object({
   email: z.string().email(),
   roles: z.array(z.enum(['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'])),
   lastSessionAt: z.string().datetime().nullable(),
-  status: z.enum(['ACTIVE', 'LOCKED']),
+  status: z.enum(['ACTIVE', 'LOCKED', 'PENDING']),
 });
 const staffAccountPageSchema = z.object({
   items: z.array(staffAccountSchema),
