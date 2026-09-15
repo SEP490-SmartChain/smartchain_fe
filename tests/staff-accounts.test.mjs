@@ -24,11 +24,16 @@ const staff = {
   lastSessionAt: '2026-09-10T02:00:00.000Z',
   status: 'ACTIVE',
 };
-const ok = (data) =>
+const ok = (data, pagination) =>
   Response.json({
     success: true,
     data,
-    meta: { timestamp: '2026-09-11T02:00:00.000Z', path: '', requestId: 'test' },
+    meta: {
+      timestamp: '2026-09-11T02:00:00.000Z',
+      path: '',
+      requestId: 'test',
+      pagination,
+    },
   });
 
 before(async () => {
@@ -65,10 +70,7 @@ test('staff directory sends tenant filters through the authenticated API client'
     assert.equal(requestUrl.searchParams.get('role'), 'DISPATCHER');
     assert.equal(requestUrl.searchParams.get('status'), 'ACTIVE');
     assert.equal(options.headers.get('Authorization'), 'Bearer admin-token');
-    return ok({
-      items: [staff],
-      pagination: { limit: 100, hasNext: false, nextCursor: null },
-    });
+    return ok([staff], { limit: 100, hasNext: false, nextCursor: null });
   };
 
   const page = await staffAccountApi.list({
@@ -78,6 +80,7 @@ test('staff directory sends tenant filters through the authenticated API client'
   });
 
   assert.deepEqual(page.items, [staff]);
+  assert.deepEqual(page.pagination, { limit: 100, hasNext: false, nextCursor: null });
 });
 
 test('lock action uses PATCH with only the allowed status field', async () => {
@@ -94,9 +97,10 @@ test('lock action uses PATCH with only the allowed status field', async () => {
 
 test('malformed staff responses are rejected before reaching the UI', async () => {
   globalThis.fetch = async () =>
-    ok({
-      items: [{ ...staff, status: 'SUSPENDED' }],
-      pagination: { limit: 100, hasNext: false, nextCursor: null },
+    ok([{ ...staff, status: 'SUSPENDED' }], {
+      limit: 100,
+      hasNext: false,
+      nextCursor: null,
     });
 
   await assert.rejects(staffAccountApi.list({ search: '', role: '', status: '' }), {

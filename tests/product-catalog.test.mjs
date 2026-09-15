@@ -28,11 +28,16 @@ const product = {
   isActive: true,
   createdAt: '2026-09-01T02:00:00.000Z',
 };
-const ok = (data) =>
+const ok = (items, pagination) =>
   Response.json({
     success: true,
-    data,
-    meta: { timestamp: '2026-09-11T02:00:00.000Z', path: '', requestId: 'test' },
+    data: items,
+    meta: {
+      timestamp: '2026-09-11T02:00:00.000Z',
+      path: '',
+      requestId: 'test',
+      pagination,
+    },
   });
 
 before(async () => {
@@ -66,22 +71,20 @@ test('product catalog sends tenant filters through the authenticated API client'
     assert.equal(requestUrl.searchParams.get('search'), 'sku');
     assert.equal(requestUrl.searchParams.get('isActive'), 'true');
     assert.equal(options.headers.get('Authorization'), 'Bearer admin-token');
-    return ok({
-      items: [product],
-      pagination: { limit: 100, hasNext: false, nextCursor: null },
-    });
+    return ok([product], { limit: 100, hasNext: false, nextCursor: null });
   };
 
   const page = await productApi.list({ search: ' sku ', isActive: 'true' });
 
   assert.deepEqual(page.items, [product]);
+  assert.deepEqual(page.pagination, { limit: 100, hasNext: false, nextCursor: null });
 });
 
 test('omits isActive from the query when the filter is unset', async () => {
   globalThis.fetch = async (url) => {
     const requestUrl = new URL(url, 'https://app.example.test');
     assert.equal(requestUrl.searchParams.has('isActive'), false);
-    return ok({ items: [], pagination: { limit: 100, hasNext: false, nextCursor: null } });
+    return ok([], { limit: 100, hasNext: false, nextCursor: null });
   };
 
   await productApi.list({ search: '', isActive: '' });
@@ -89,9 +92,10 @@ test('omits isActive from the query when the filter is unset', async () => {
 
 test('malformed product responses are rejected before reaching the UI', async () => {
   globalThis.fetch = async () =>
-    ok({
-      items: [{ ...product, weightG: 'not-a-number' }],
-      pagination: { limit: 100, hasNext: false, nextCursor: null },
+    ok([{ ...product, weightG: 'not-a-number' }], {
+      limit: 100,
+      hasNext: false,
+      nextCursor: null,
     });
 
   await assert.rejects(productApi.list({ search: '', isActive: '' }), {
