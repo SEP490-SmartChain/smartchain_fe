@@ -57,9 +57,10 @@ export function CarrierCredentialModal({
       setApiToken('');
       setShopId('');
     } else {
-      setCarrierId(availableCarriers[0]?.id ?? '');
-      setName('');
-      setEnvironment('SANDBOX');
+      const defaultCarrier = availableCarriers[0];
+      setCarrierId(defaultCarrier?.id ?? '');
+      setName(defaultCarrier ? `${defaultCarrier.name} Kho Chính` : '');
+      setEnvironment('PRODUCTION');
       setApiToken('');
       setShopId('');
     }
@@ -181,7 +182,7 @@ export function CarrierCredentialModal({
               const found = availableCarriers.find(
                 (c) => c.id === e.target.value,
               );
-              if (found && !name) {
+              if (found) {
                 setName(`${found.name} Kho Chính`);
               }
             }}
@@ -193,19 +194,22 @@ export function CarrierCredentialModal({
         </div>
 
         {/* Tên cấu hình */}
-        <div>
+        <div className="space-y-1.5">
           <Input
             label="Tên cấu hình phân biệt"
-            placeholder="Ví dụ: GHTK Kho Tổng Hà Nội"
+            placeholder="Ví dụ: GHN Kho Chính, GHN Chi nhánh HCM..."
             value={name}
             onChange={(e) => setName(e.target.value)}
             error={errors.name}
             required
           />
+          <p className="text-[11px] text-[var(--sc-text-secondary)]">
+            Tên gọi gợi nhớ giúp bạn phân biệt các tài khoản hoặc kho hàng khác nhau.
+          </p>
         </div>
 
         {/* Môi trường */}
-        <div>
+        <div className="space-y-1.5">
           <Select
             label="Môi trường hoạt động"
             value={environment}
@@ -215,16 +219,27 @@ export function CarrierCredentialModal({
             options={environmentOptions}
             required
           />
+          <p className="text-[11px] text-[var(--sc-text-secondary)]">
+            {environment === 'PRODUCTION' ? (
+              <span className="text-[var(--sc-success-dark)]">
+                ● <strong>PRODUCTION (Thực tế):</strong> Dùng cho tài khoản thật đang kinh doanh trên cổng chính thức của hãng.
+              </span>
+            ) : (
+              <span className="text-[var(--sc-warning-dark)]">
+                ● <strong>SANDBOX (Thử nghiệm):</strong> Chỉ dùng với API Token cấp riêng từ môi trường test dev của hãng.
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Thông tin API Token */}
         <div className="space-y-2">
           {isEditing && (
-            <div className="rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs text-[var(--sc-text-secondary)]">
+            <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3.5 text-xs text-[var(--sc-text-secondary)]">
               <span className="font-semibold text-[var(--sc-text-primary)]">
                 Key hiện tại:{' '}
               </span>
-              <code className="font-mono text-[var(--sc-primary)]">
+              <code className="rounded bg-[var(--sc-bg-surface)] px-1.5 py-0.5 font-mono text-[var(--sc-primary)] border border-[var(--sc-border-default)]">
                 {editingCredential?.maskedPreview}
               </code>
               <p className="mt-1">
@@ -263,28 +278,29 @@ export function CarrierCredentialModal({
 
         {/* Shop ID nếu là GHN */}
         {isGhn && (
-          <div>
+          <div className="space-y-1.5">
             <Input
               label="Shop ID (Bắt buộc với Giao Hàng Nhanh)"
-              placeholder="Ví dụ: 123456"
+              placeholder="Ví dụ: 5355714"
               value={shopId}
               onChange={(e) => setShopId(e.target.value)}
               error={errors.shopId}
               required={!isEditing}
             />
+            <p className="text-[11px] text-[var(--sc-text-secondary)]">
+              Mã Shop ID hiển thị cạnh số điện thoại tại góc trên bên trái trang quản lý GHN.
+            </p>
           </div>
         )}
 
         {/* Cảnh báo khi sửa key */}
         {isEditing && apiToken.trim() && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-[var(--sc-warning-border,#fde68a)] bg-[var(--sc-warning-bg,#fef3c7)] p-3 text-xs text-[var(--sc-warning-text,#92400e)]">
+          <div className="flex items-start gap-2.5 rounded-xl border border-[var(--sc-warning-border,#fde68a)] bg-[var(--sc-warning-bg,#fef3c7)] p-3.5 text-xs text-[var(--sc-warning-text,#92400e)]">
             <ShieldAlert size={16} className="shrink-0 mt-0.5" />
-            <p>
-              <strong>Lưu ý nghiệp vụ (Task 1-17):</strong> Thay đổi API Token
-              sẽ tự động đặt lại trạng thái kết nối về{' '}
-              <strong>CHƯA XÁC THỰC (UNVERIFIED)</strong>. Bạn cần bấm nút Ping
-              để kiểm tra lại kết nối trước khi hệ thống đưa vào thuật toán điều
-              phối.
+            <p className="leading-relaxed">
+              <strong>Lưu ý bảo mật:</strong> Khi thay đổi API Token mới, trạng thái kết nối
+              sẽ được chuyển về <strong>Chưa kiểm tra</strong> để đảm bảo an toàn. Bạn vui lòng bấm nút "Kiểm tra kết nối"
+              sau khi lưu để kích hoạt lại vào thuật toán điều phối.
             </p>
           </div>
         )}

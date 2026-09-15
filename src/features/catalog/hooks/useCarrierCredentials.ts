@@ -68,7 +68,7 @@ export function useCarrierCredentials(
     void loadCredentials();
   }, [loadCredentials]);
 
-  // Tạo mới cấu hình kết nối (Task 1-16)
+  // Tạo mới cấu hình kết nối hãng
   const createCredential = useCallback(
     async (
       payload: CreateCarrierCredentialInput,
@@ -80,7 +80,7 @@ export function useCarrierCredentials(
     [],
   );
 
-  // Cập nhật cấu hình kết nối (Task 1-17)
+  // Cập nhật cấu hình kết nối hãng
   const updateCredential = useCallback(
     async (
       id: string,
@@ -95,7 +95,7 @@ export function useCarrierCredentials(
     [],
   );
 
-  // Xóa / Gỡ kết nối hãng (Task 1-18)
+  // Gỡ kết nối hãng (Soft Delete)
   const deleteCredential = useCallback(
     async (id: string): Promise<boolean> => {
       await carrierCredentialApi.delete(id);
@@ -105,7 +105,7 @@ export function useCarrierCredentials(
     [],
   );
 
-  // Test kết nối Ping Sandbox (Task 1-19)
+  // Kiểm tra kết nối hãng (Ping Test)
   const testPing = useCallback(
     async (id: string): Promise<PingTestResult | null> => {
       setPingingId(id);

@@ -48,41 +48,48 @@ export function CarrierDeleteModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Xác nhận gỡ kết nối Hãng vận chuyển"
-      width="480px"
+      title="Xác nhận gỡ kết nối hãng vận chuyển"
+      width="500px"
     >
-      <div className="space-y-4 p-5 sm:p-6">
-        <div className="flex items-start gap-3 rounded-lg border border-[var(--sc-error-border,#fecaca)] bg-[var(--sc-error-bg,#fef2f2)] p-3 text-sm text-[var(--sc-error-text,#991b1b)]">
-          <AlertTriangle size={20} className="shrink-0 mt-0.5 text-[var(--sc-error)]" />
+      <div className="space-y-5 p-6">
+        {/* Warning callout */}
+        <div className="flex items-start gap-3.5 rounded-xl border border-[var(--sc-error-border,#fecaca)] bg-[var(--sc-error-bg,#fef2f2)] p-4 text-sm text-[var(--sc-error-text,#991b1b)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-[var(--sc-error)]">
+            <AlertTriangle size={20} />
+          </div>
           <div className="space-y-1">
-            <p className="font-medium">
-              Bạn có chắc chắn muốn gỡ kết nối hãng{' '}
-              <strong>{credential.carrier.name}</strong>?
+            <p className="font-semibold text-base text-[var(--sc-text-primary)]">
+              Gỡ kết nối {credential.carrier.name}?
             </p>
-            <p className="text-xs text-[var(--sc-text-secondary)]">
-              Cấu hình: <span className="font-semibold">{credential.name}</span>{' '}
-              ({credential.environment})
+            <p className="text-xs text-[var(--sc-text-secondary)] leading-relaxed">
+              Cấu hình đang chọn: <span className="font-semibold text-[var(--sc-text-primary)]">{credential.name}</span>{' '}
+              <span className="inline-block rounded-full bg-[var(--sc-bg-surface)] px-2 py-0.5 text-[10px] font-mono font-medium border border-[var(--sc-border-default)]">
+                {credential.environment}
+              </span>
             </p>
           </div>
         </div>
 
-        <div className="rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs text-[var(--sc-text-secondary)]">
-          <p className="font-semibold text-[var(--sc-text-primary)]">
-            🛡️ Cơ chế Xóa mềm bảo toàn dữ liệu (Task 1-18):
+        {/* Data safety reassurance */}
+        <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4 text-xs">
+          <p className="font-semibold text-[var(--sc-text-primary)] flex items-center gap-1.5">
+            <span>🛡️</span> Bảo toàn dữ liệu & Lịch sử vận đơn
           </p>
-          <p className="mt-1">
-            Hệ thống chỉ đánh dấu gỡ liên kết. Toàn bộ lịch sử vận đơn cũ, dữ liệu
-            đối soát cước COD và báo cáo hiệu suất trước đây liên quan đến cấu
-            hình này sẽ được <strong>bảo toàn 100%</strong>.
+          <p className="mt-1.5 text-[var(--sc-text-secondary)] leading-relaxed">
+            Hệ thống sẽ ngừng sử dụng kết nối này để tạo vận đơn mới. Toàn bộ lịch sử vận đơn, 
+            dữ liệu đối soát cước COD và báo cáo hiệu suất đã phát sinh trước đây sẽ được{' '}
+            <strong className="text-[var(--sc-text-primary)]">lưu trữ an toàn 100%</strong>.
           </p>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
+        {/* Modal actions */}
+        <div className="flex items-center justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={isDeleting}
+            className="px-4"
           >
             Hủy bỏ
           </Button>
@@ -91,6 +98,7 @@ export function CarrierDeleteModal({
             variant="danger"
             onClick={handleConfirmDelete}
             disabled={isDeleting}
+            className="px-5 shadow-sm"
           >
             {isDeleting ? 'Đang gỡ...' : 'Xác nhận gỡ kết nối'}
           </Button>
