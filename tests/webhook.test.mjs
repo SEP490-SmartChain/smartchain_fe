@@ -98,10 +98,10 @@ test('webhookApi.create sends POST /api/v1/webhooks with payload', async () => {
   assert.equal(created.secret, 'whsec_raw12345678901234567890123456');
 });
 
-test('webhookApi.update sends PUT /api/v1/webhooks/:id with payload', async () => {
+test('webhookApi.update sends PATCH /api/v1/webhooks/:id with payload', async () => {
   globalThis.fetch = async (url, options) => {
     assert.equal(url, `/api/v1/webhooks/${mockWebhook.id}`);
-    assert.equal(options.method, 'PUT');
+    assert.equal(options.method, 'PATCH');
     const body = JSON.parse(options.body);
     assert.equal(body.isActive, false);
     return ok({ ...mockWebhook, isActive: false });

@@ -35,7 +35,7 @@ export const webhookApi = {
   },
 
   async update(id: string, payload: UpdateWebhookPayload): Promise<WebhookEndpoint> {
-    const { data } = await apiClient.put<ApiResponse<unknown>>(
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
       `/v1/webhooks/${encodeURIComponent(id)}`,
       payload,
     );
