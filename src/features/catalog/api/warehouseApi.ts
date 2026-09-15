@@ -52,6 +52,18 @@ export const warehouseApi = {
     return warehousePageSchema.parse(data);
   },
 
+  async update(id: string, payload: Partial<CreateWarehousePayload>): Promise<Warehouse> {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(`/v1/warehouses/${id}`, payload);
+    return warehouseSchema.parse(data);
+  },
+
+  async setStatus(id: string, status: 'ACTIVE' | 'INACTIVE'): Promise<Warehouse> {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(`/v1/warehouses/${id}/status`, {
+      status,
+    });
+    return warehouseSchema.parse(data);
+  },
+
   async create(payload: CreateWarehousePayload): Promise<Warehouse> {
     const { data } = await apiClient.post<ApiResponse<unknown>>('/v1/warehouses', payload);
     return warehouseSchema.parse(data);

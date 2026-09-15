@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { MapPin, Building, Phone, User, Mail, Hash, Activity } from 'lucide-react';
+import { MapPin, Building, Phone, User, Mail, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -13,8 +13,9 @@ import Modal from '@/components/Common/Modal/Modal';
 
 import { warehouseApi } from '../api/warehouseApi';
 
-const createWarehouseSchema = z.object({
-  code: z.string().min(1, 'Mã kho không được để trống'),
+import type { Warehouse } from '../types/warehouse';
+
+const editWarehouseSchema = z.object({
   name: z.string().min(3, 'Tên kho từ 3-150 kí tự').max(150),
   address: z.string().min(5, 'Địa chỉ từ 5-255 kí tự').max(255),
   provinceCode: z.string().min(1, 'Vui lòng chọn Tỉnh/Thành'),
@@ -28,15 +29,15 @@ const createWarehouseSchema = z.object({
   contactEmail: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
 });
 
-type FormValues = z.infer<typeof createWarehouseSchema>;
+type FormValues = z.infer<typeof editWarehouseSchema>;
 
 interface Props {
-  isOpen: boolean;
+  warehouse: Warehouse | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props) {
+export default function EditWarehouseModal({ warehouse, onClose, onSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -45,29 +46,43 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
     reset,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(createWarehouseSchema),
-    defaultValues: {
-      dailyCapacity: 100,
-      latitude: 10.762622,
-      longitude: 106.660172,
-    },
+    resolver: zodResolver(editWarehouseSchema),
   });
 
+  useEffect(() => {
+    if (warehouse) {
+      reset({
+        name: warehouse.name,
+        address: warehouse.address,
+        provinceCode: warehouse.provinceCode,
+        districtCode: warehouse.districtCode,
+        wardCode: warehouse.wardCode,
+        latitude: warehouse.latitude,
+        longitude: warehouse.longitude,
+        dailyCapacity: warehouse.dailyCapacity,
+        contactName: warehouse.contactName || '',
+        contactPhone: warehouse.contactPhone || '',
+        contactEmail: warehouse.contactEmail || '',
+      });
+    }
+  }, [warehouse, reset]);
+
   const onSubmit = async (values: FormValues) => {
+    if (!warehouse) return;
     setIsSubmitting(true);
     try {
-      await warehouseApi.create({
+      await warehouseApi.update(warehouse.id, {
         ...values,
         contactName: values.contactName || null,
         contactPhone: values.contactPhone || null,
         contactEmail: values.contactEmail || null,
       });
-      toast.success('Thêm kho hàng thành công!');
+      toast.success('Cập nhật kho hàng thành công!');
       reset();
       onSuccess();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || 'Có lỗi xảy ra khi tạo kho');
+      toast.error(msg || 'Có lỗi xảy ra khi cập nhật kho');
     } finally {
       setIsSubmitting(false);
     }
@@ -78,45 +93,26 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
     onClose();
   };
 
+  if (!warehouse) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Thêm kho hàng mới">
+    <Modal isOpen={!!warehouse} onClose={handleClose} title="Cập nhật kho hàng">
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-5">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Mã kho <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Hash
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
-              />
-              <Input
-                {...register('code')}
-                placeholder="VD: WH-HCM-01"
-                className="pl-9"
-                error={errors.code?.message}
-              />
-            </div>
-            {errors.code && <p className="mt-1.5 text-xs text-red-500">{errors.code.message}</p>}
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Tên kho <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Building
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
-              />
-              <Input
-                {...register('name')}
-                placeholder="Tên kho hàng"
-                className="pl-9"
-                error={errors.name?.message}
-              />
-            </div>
-            {errors.name && <p className="mt-1.5 text-xs text-red-500">{errors.name.message}</p>}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
+            Tên kho <span className="text-red-500">*</span>
+          </label>
+          <div className="relative">
+            <Building
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
+            />
+            <Input
+              {...register('name')}
+              placeholder="Tên kho hàng"
+              className="pl-9"
+              error={errors.name?.message}
+            />
           </div>
         </div>
 
@@ -136,57 +132,33 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
               error={errors.address?.message}
             />
           </div>
-          {errors.address && (
-            <p className="mt-1.5 text-xs text-red-500">{errors.address.message}</p>
-          )}
         </div>
 
         <div className="grid gap-5 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Mã tỉnh/thành <span className="text-red-500">*</span>
+              Mã tỉnh/thành
             </label>
-            <Input
-              {...register('provinceCode')}
-              placeholder="VD: 79"
-              error={errors.provinceCode?.message}
-            />
-            {errors.provinceCode && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.provinceCode.message}</p>
-            )}
+            <Input {...register('provinceCode')} error={errors.provinceCode?.message} />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Mã quận/huyện <span className="text-red-500">*</span>
+              Mã quận/huyện
             </label>
-            <Input
-              {...register('districtCode')}
-              placeholder="VD: 760"
-              error={errors.districtCode?.message}
-            />
-            {errors.districtCode && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.districtCode.message}</p>
-            )}
+            <Input {...register('districtCode')} error={errors.districtCode?.message} />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Mã phường/xã <span className="text-red-500">*</span>
+              Mã phường/xã
             </label>
-            <Input
-              {...register('wardCode')}
-              placeholder="VD: 26734"
-              error={errors.wardCode?.message}
-            />
-            {errors.wardCode && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.wardCode.message}</p>
-            )}
+            <Input {...register('wardCode')} error={errors.wardCode?.message} />
           </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Latitude <span className="text-red-500">*</span>
+              Latitude
             </label>
             <Input
               type="number"
@@ -194,13 +166,10 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
               {...register('latitude', { valueAsNumber: true })}
               error={errors.latitude?.message}
             />
-            {errors.latitude && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.latitude.message}</p>
-            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Longitude <span className="text-red-500">*</span>
+              Longitude
             </label>
             <Input
               type="number"
@@ -208,13 +177,10 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
               {...register('longitude', { valueAsNumber: true })}
               error={errors.longitude?.message}
             />
-            {errors.longitude && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.longitude.message}</p>
-            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Công suất/Ngày <span className="text-red-500">*</span>
+              Công suất
             </label>
             <div className="relative">
               <Activity
@@ -228,9 +194,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
                 error={errors.dailyCapacity?.message}
               />
             </div>
-            {errors.dailyCapacity && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.dailyCapacity.message}</p>
-            )}
           </div>
         </div>
 
@@ -248,18 +211,15 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
               />
               <Input
                 {...register('contactName')}
-                placeholder="Tên người đại diện"
+                placeholder="Đại diện"
                 className="pl-9"
                 error={errors.contactName?.message}
               />
             </div>
-            {errors.contactName && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.contactName.message}</p>
-            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Số điện thoại
+              SĐT liên hệ
             </label>
             <div className="relative">
               <Phone
@@ -268,18 +228,15 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
               />
               <Input
                 {...register('contactPhone')}
-                placeholder="SĐT liên hệ"
+                placeholder="SĐT"
                 className="pl-9"
                 error={errors.contactPhone?.message}
               />
             </div>
-            {errors.contactPhone && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.contactPhone.message}</p>
-            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Email
+              Email liên hệ
             </label>
             <div className="relative">
               <Mail
@@ -288,14 +245,11 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
               />
               <Input
                 {...register('contactEmail')}
-                placeholder="Email liên hệ"
+                placeholder="Email"
                 className="pl-9"
                 error={errors.contactEmail?.message}
               />
             </div>
-            {errors.contactEmail && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.contactEmail.message}</p>
-            )}
           </div>
         </div>
 
@@ -304,7 +258,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
             Hủy
           </Button>
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
-            Tạo kho hàng
+            Lưu thay đổi
           </Button>
         </div>
       </form>

@@ -14,6 +14,7 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
@@ -21,9 +22,9 @@ import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
-import { toast } from 'sonner';
 
 import AddWarehouseModal from './AddWarehouseModal';
+import EditWarehouseModal from './EditWarehouseModal';
 import { warehouseApi } from '../api/warehouseApi';
 
 import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
@@ -40,6 +41,7 @@ export default function WarehouseDirectory() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
@@ -97,8 +99,7 @@ export default function WarehouseDirectory() {
     setUpdatingId(selectedWarehouse.id);
     try {
       const newStatus = selectedWarehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      // In a real implementation we would call the setStatus API here
-      // const updated = await warehouseApi.setStatus(selectedWarehouse.id, newStatus);
+      await warehouseApi.setStatus(selectedWarehouse.id, newStatus);
 
       setWarehouses((prev) =>
         prev.map((w) => (w.id === selectedWarehouse.id ? { ...w, status: newStatus } : w)),
@@ -280,6 +281,15 @@ export default function WarehouseDirectory() {
                                   {warehouse.contactPhone || '—'}
                                 </span>
                               </div>
+                              <div className="col-span-full mt-2 flex justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => setEditingWarehouse(warehouse)}
+                                >
+                                  Chỉnh sửa
+                                </Button>
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -306,6 +316,16 @@ export default function WarehouseDirectory() {
         onClose={() => setAddModalOpen(false)}
         onSuccess={() => {
           setAddModalOpen(false);
+          cache.current = {};
+          void fetchWarehouses();
+        }}
+      />
+
+      <EditWarehouseModal
+        warehouse={editingWarehouse}
+        onClose={() => setEditingWarehouse(null)}
+        onSuccess={() => {
+          setEditingWarehouse(null);
           cache.current = {};
           void fetchWarehouses();
         }}
