@@ -631,7 +631,7 @@ export function StaffAccountDirectory() {
           document.body,
         )}
 
-      <AddStaffAccountModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      <AddStaffAccountModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={() => refetch()} />
 
       <Modal
         isOpen={selectedAccount !== null}

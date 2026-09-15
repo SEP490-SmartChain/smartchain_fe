@@ -28,6 +28,12 @@ const staffAccountPageSchema = z.object({
 });
 
 export const staffAccountApi = {
+  
+  async create(data: { email: string; fullName: string; roleCode: string }): Promise<StaffAccount> {
+    const { data: responseData } = await apiClient.post<ApiResponse<unknown>>('/v1/iam/users', data);
+    return staffAccountSchema.parse(responseData);
+  },
+
   async list(filters: StaffAccountFilters, cursor?: string): Promise<StaffAccountPage> {
     const params: Record<string, string> = { limit: '100' };
     if (filters.search.trim()) params.search = filters.search.trim();
