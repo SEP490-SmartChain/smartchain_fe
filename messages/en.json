@@ -54,7 +54,8 @@
     "member": "Member",
     "connected_title": "Workspace connected",
     "connected_copy": "Services and carrier connections are operating normally.",
-    "online": "All systems operational"
+    "online": "All systems operational",
+    "warehouses": "Warehouses"
   },
   "Topbar": {
     "title_dashboard": "Operations Dashboard",
@@ -132,7 +133,7 @@
     "username_label": "Username",
     "username_placeholder": "Enter username",
     "password_label": "Password",
-    "password_placeholder": "Enter password",
+    "password_placeholder": "Min 8 chars, include uppercase, number & symbol",
     "forgot_password": "Forgot password?",
     "forgot_heading": "Forgot your password?",
     "forgot_subheading": "Enter your account email and we will send a verification code.",
@@ -163,8 +164,6 @@
     "tax_id_label": "Tax ID",
     "tax_id_placeholder": "0123456789",
     "tax_id_helper": "Optional - helps verify your business",
-    "password_label": "Password",
-    "password_placeholder": "Min 8 chars, include uppercase, number & symbol",
     "confirm_password_label": "Confirm Password",
     "confirm_password_placeholder": "Re-enter password",
     "agree_to_terms_label": "I agree to the Terms of Service and Privacy Policy",

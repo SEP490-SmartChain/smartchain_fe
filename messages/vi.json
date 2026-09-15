@@ -54,7 +54,8 @@
     "member": "Thành viên",
     "connected_title": "Workspace đã kết nối",
     "connected_copy": "Dịch vụ và kết nối hãng vận chuyển đang hoạt động bình thường.",
-    "online": "Tất cả hệ thống ổn định"
+    "online": "Tất cả hệ thống ổn định",
+    "warehouses": "Quản lý Kho"
   },
   "Topbar": {
     "title_dashboard": "Tổng quan vận hành",
@@ -132,7 +133,7 @@
     "username_label": "Tên đăng nhập",
     "username_placeholder": "Nhập tên đăng nhập",
     "password_label": "Mật khẩu",
-    "password_placeholder": "Nhập mật khẩu",
+    "password_placeholder": "Tối thiểu 8 ký tự, gồm chữ hoa, số và ký tự đặc biệt",
     "forgot_password": "Quên mật khẩu?",
     "forgot_heading": "Quên mật khẩu?",
     "forgot_subheading": "Nhập email tài khoản để nhận mã xác thực.",
@@ -163,8 +164,6 @@
     "tax_id_label": "Mã số thuế",
     "tax_id_placeholder": "0123456789",
     "tax_id_helper": "Không bắt buộc - giúp xác thực doanh nghiệp",
-    "password_label": "Mật khẩu",
-    "password_placeholder": "Tối thiểu 8 ký tự, gồm chữ hoa, số và ký tự đặc biệt",
     "confirm_password_label": "Xác nhận mật khẩu",
     "confirm_password_placeholder": "Nhập lại mật khẩu",
     "agree_to_terms_label": "Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật",
