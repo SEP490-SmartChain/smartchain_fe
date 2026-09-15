@@ -8,35 +8,35 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variants = {
-  default: 'bg-white border border-[#E5E7EB]',
-  bordered: 'bg-white border-2 border-[#D1D5DB]',
-  elevated: 'bg-white border border-[#E5E7EB] shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)]',
+  default:
+    'border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)]',
+  bordered: 'border border-[var(--sc-border-strong)] bg-[var(--sc-bg-surface)]',
+  elevated:
+    'border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-popover)]',
 };
 
 const paddings = {
   none: '',
   sm: 'p-4',
-  md: 'p-6',
-  lg: 'p-8',
+  md: 'p-[18px] sm:p-6',
+  lg: 'p-6 sm:p-8',
 };
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ children, variant = 'default', padding = 'md', className, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'rounded-xl transition-all duration-200',
-          variants[variant],
-          paddings[padding],
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  },
+  ({ children, variant = 'default', padding = 'md', className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-2xl transition-[border-color,box-shadow,transform] duration-200',
+        variants[variant],
+        paddings[padding],
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  ),
 );
 Card.displayName = 'Card';
 
@@ -48,10 +48,14 @@ interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function CardHeader({ title, description, action, className, ...props }: CardHeaderProps) {
   return (
-    <div className={cn('flex items-start justify-between mb-6', className)} {...props}>
+    <div className={cn('mb-6 flex items-start justify-between gap-4', className)} {...props}>
       <div>
-        <h3 className="text-lg font-semibold text-[#1A1D21]">{title}</h3>
-        {description && <p className="text-sm text-[#6A6E76] mt-1">{description}</p>}
+        <h3 className="m-0 text-lg font-medium text-[var(--sc-text-primary)]">{title}</h3>
+        {description && (
+          <p className="mb-0 mt-1 text-sm leading-5 text-[var(--sc-text-secondary)]">
+            {description}
+          </p>
+        )}
       </div>
       {action && <div>{action}</div>}
     </div>
@@ -64,7 +68,7 @@ export function CardContent({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('', className)} {...props}>
+    <div className={cn(className)} {...props}>
       {children}
     </div>
   );
@@ -76,7 +80,10 @@ export function CardFooter({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('mt-6 pt-6 border-t border-[#E5E7EB]', className)} {...props}>
+    <div
+      className={cn('mt-6 border-t border-[var(--sc-border-default)] pt-6', className)}
+      {...props}
+    >
       {children}
     </div>
   );

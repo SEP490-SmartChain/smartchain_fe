@@ -1,6 +1,6 @@
-import React from 'react';
+import { Plus, Search } from 'lucide-react';
 
-import { Search, Plus } from 'lucide-react';
+import { Button } from '@/components/Common/Button/Button';
 
 interface DataToolbarProps {
   primaryActionLabel: string;
@@ -16,22 +16,24 @@ export default function DataToolbar({
   onSearch,
 }: DataToolbarProps) {
   return (
-    <div className="flex justify-between items-center mb-6">
-      <button
-        className="flex items-center gap-2 bg-white text-blue-500 border border-blue-200 px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all duration-200 hover:bg-blue-50"
-        onClick={onPrimaryAction}
-      >
+    <div className="mb-6 flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+      <Button type="button" variant="outline" onClick={onPrimaryAction}>
         <Plus size={16} /> {primaryActionLabel}
-      </button>
-      <div className="flex items-center border border-gray-200 rounded-md px-3 py-2 w-[300px]">
-        <Search size={16} className="text-gray-400 mr-2" />
-        <input
-          type="text"
-          placeholder={searchPlaceholder}
-          className="border-none outline-none text-sm w-full text-gray-600 placeholder:text-gray-400 bg-transparent"
-          onChange={(e) => onSearch(e.target.value)}
+      </Button>
+      <label className="relative sm:w-[300px]">
+        <span className="sr-only">{searchPlaceholder}</span>
+        <Search
+          aria-hidden="true"
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
         />
-      </div>
+        <input
+          type="search"
+          placeholder={searchPlaceholder}
+          className="h-[42px] w-full rounded-lg border border-[var(--sc-border-default)] bg-white py-2 pl-9 pr-3 text-sm text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none transition-[border-color,box-shadow] placeholder:text-[var(--sc-text-tertiary)] hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]"
+          onChange={(event) => onSearch(event.target.value)}
+        />
+      </label>
     </div>
   );
 }

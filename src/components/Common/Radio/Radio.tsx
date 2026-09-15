@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { cn } from '@/lib/utils';
 
 export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -7,43 +8,34 @@ export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
 }
 
 export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
-  ({ className, label, error, ...props }, ref) => {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <label className="flex items-center gap-2.5 cursor-pointer group">
-          <div className="relative flex items-center justify-center w-4.5 h-4.5 shrink-0">
-            <input
-              type="radio"
-              ref={ref}
-              className={cn(
-                'peer appearance-none w-4.5 h-4.5 border rounded-full transition-all duration-200 cursor-pointer',
-                'bg-white border-[#CBD5E1]',
-                'hover:border-[#0F766E]',
-                'checked:border-[5px] checked:border-[#0F766E]',
-                'focus:outline-none focus:ring-2 focus:ring-[#0F766E]/20',
-                'disabled:bg-[#F1F5F9] disabled:border-[#E2E8F0] disabled:cursor-not-allowed disabled:checked:border-[#CBD5E1]',
-                error &&
-                  'border-[#EF4444] checked:border-[#EF4444] focus:ring-[#EF4444]/20 hover:border-[#EF4444]',
-                className,
-              )}
-              {...props}
-            />
-          </div>
-          {label && (
-            <span
-              className={cn(
-                'text-sm text-[#475569] group-hover:text-[#0F172A] transition-colors',
-                props.disabled && 'text-[#94A3B8] group-hover:text-[#94A3B8]',
-              )}
-            >
-              {label}
-            </span>
+  ({ className, label, error, ...props }, ref) => (
+    <div className="flex flex-col gap-1.5">
+      <label className="group flex cursor-pointer items-center gap-2.5">
+        <input
+          type="radio"
+          ref={ref}
+          className={cn(
+            'h-[18px] w-[18px] shrink-0 cursor-pointer appearance-none rounded-full border border-[var(--sc-border-strong)] bg-white transition-[border-color,box-shadow] duration-150',
+            'hover:border-[var(--sc-primary)] checked:border-[5px] checked:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)] focus:outline-none',
+            'disabled:cursor-not-allowed disabled:border-[var(--sc-border-default)] disabled:bg-[var(--sc-bg-secondary)]',
+            error && 'border-[var(--sc-error)] checked:border-[var(--sc-error)]',
+            className,
           )}
-        </label>
-        {error && <span className="text-xs text-[#EF4444] ml-7">{error}</span>}
-      </div>
-    );
-  },
+          {...props}
+        />
+        {label && (
+          <span
+            className={cn(
+              'text-sm text-[var(--sc-text-secondary)] transition-colors group-hover:text-[var(--sc-text-primary)]',
+              props.disabled && 'text-[var(--sc-text-disabled)]',
+            )}
+          >
+            {label}
+          </span>
+        )}
+      </label>
+      {error && <span className="ml-7 text-xs text-[var(--sc-error-dark)]">{error}</span>}
+    </div>
+  ),
 );
-
 Radio.displayName = 'Radio';

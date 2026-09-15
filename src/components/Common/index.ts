@@ -1,6 +1,6 @@
 /**
  * SmartChain Common Components
- * Design System based on teal accent (#0F766E) with clean light backgrounds
+ * SmartChain design system adapted from the SaaSable Hosting theme.
  */
 
 // Layout
@@ -26,6 +26,8 @@ export type { AvatarProps } from './Avatar/Avatar';
 export { Toaster } from './Toast/Toaster';
 export { Select } from './Select/Select';
 export type { SelectProps } from './Select/Select';
+export { Dropzone } from './Dropzone/Dropzone';
+export type { DropzoneProps } from './Dropzone/Dropzone';
 
 // Feedback
 export { Alert } from './Alert/Alert';
@@ -34,6 +36,10 @@ export { Badge } from './Badge/Badge';
 
 // Navigation
 export { Breadcrumb } from './Breadcrumb';
+
+// Access control
+export { Can } from './Can/Can';
+export type { CanProps } from './Can/Can';
 
 // Utility
 export { UnderConstruction } from './UnderConstruction';

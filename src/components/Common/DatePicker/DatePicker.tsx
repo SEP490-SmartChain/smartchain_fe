@@ -1,9 +1,13 @@
 import * as React from 'react';
+
+import { DayPicker } from 'react-day-picker';
+
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
+
 import { cn } from '@/lib/utils';
+
+import 'react-day-picker/dist/style.css';
 
 export interface DatePickerProps {
   date?: Date;
@@ -36,35 +40,41 @@ export function DatePicker({
   }, []);
 
   return (
-    <div className="flex flex-col gap-1.5 relative" ref={wrapperRef}>
-      {label && <label className="text-sm font-semibold text-[#1A1D21]">{label}</label>}
-
+    <div className="relative flex flex-col gap-1.5" ref={wrapperRef}>
+      {label && (
+        <label className="text-sm font-medium text-[var(--sc-text-primary)]">{label}</label>
+      )}
       <button
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          'flex h-[42px] w-full items-center justify-between rounded-lg border bg-white px-4 py-2.5 text-sm text-[#1A1D21] transition-all outline-none',
-          'focus:border-[#0F766E] focus:ring-2 focus:ring-[#0F766E]/20',
-          error ? 'border-[#EF4444]' : 'border-[#E5E7EB]',
-          disabled && 'bg-[#F7F8FA] text-[#9CA3B8] cursor-not-allowed',
-          !date && 'text-[#9CA3B8]',
+          'flex h-[42px] w-full items-center justify-between rounded-lg border bg-[var(--sc-bg-surface)] px-3 py-2 text-sm text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none',
+          'transition-[border-color,box-shadow] hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]',
+          error ? 'border-[var(--sc-error)]' : 'border-[var(--sc-border-default)]',
+          disabled &&
+            'cursor-not-allowed bg-[var(--sc-bg-secondary)] text-[var(--sc-text-disabled)]',
+          !date && 'text-[var(--sc-text-tertiary)]',
         )}
       >
         <span>{date ? format(date, 'PPP') : placeholder}</span>
-        <CalendarIcon className={cn('h-4 w-4', disabled ? 'text-[#9CA3B8]' : 'text-[#6A6E76]')} />
+        <CalendarIcon
+          className={cn(
+            'h-4 w-4',
+            disabled ? 'text-[var(--sc-text-disabled)]' : 'text-[var(--sc-text-secondary)]',
+          )}
+        />
       </button>
-
-      {error && <span className="text-xs text-[#EF4444]">{error}</span>}
+      {error && <span className="text-xs text-[var(--sc-error-dark)]">{error}</span>}
 
       {isOpen && (
         <div
-          className="absolute top-[calc(100%+4px)] left-0 z-50 rounded-md border border-[#E5E7EB] bg-white p-3 shadow-lg"
+          className="sc-popover-enter absolute left-0 top-[calc(100%+4px)] z-50 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-3 shadow-[var(--sc-shadow-popover)]"
           style={
             {
-              '--rdp-accent-color': '#0F766E',
-              '--rdp-background-color': '#F0FDFA',
-              '--rdp-accent-background-color': '#0F766E',
+              '--rdp-accent-color': 'var(--sc-primary)',
+              '--rdp-background-color': 'var(--sc-primary-lighter)',
+              '--rdp-accent-background-color': 'var(--sc-primary)',
               '--rdp-day-height': '2.25rem',
               '--rdp-day-width': '2.25rem',
               '--rdp-font-family': 'inherit',
@@ -74,8 +84,8 @@ export function DatePicker({
           <DayPicker
             mode="single"
             selected={date}
-            onSelect={(d) => {
-              onChange?.(d);
+            onSelect={(selectedDate) => {
+              onChange?.(selectedDate);
               setIsOpen(false);
             }}
             showOutsideDays

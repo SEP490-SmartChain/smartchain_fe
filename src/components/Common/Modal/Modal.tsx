@@ -1,4 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
+
+import { createPortal } from 'react-dom';
 
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -13,53 +15,61 @@ interface ModalProps {
 
 export default function Modal({ isOpen, onClose, title, children, width = '400px' }: ModalProps) {
   const t = useTranslations('Common');
-  // Prevent scrolling when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Handle Escape key
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-[#1A1D21]/40 z-[1000] flex items-center justify-center p-4 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
-      onClick={onClose}
+      className="sc-backdrop-enter fixed inset-0 z-[1000] flex items-center justify-center bg-[rgb(27_27_31/35%)] p-4 backdrop-blur-[3px]"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <div
-        className="bg-white rounded-xl w-full max-h-[90vh] flex flex-col shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] overflow-hidden animate-[slideUp_0.2s_ease-out] border border-[#E5E7EB]"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="sc-modal-enter flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-[var(--sc-shadow-popover)]"
         style={{ maxWidth: width }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E5E7EB]">
-          <h3 className="text-lg font-semibold text-[#1A1D21] m-0">{title}</h3>
+        <div className="flex items-center justify-between border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
+          <h3 id={titleId} className="m-0 text-lg font-medium text-[var(--sc-text-primary)]">
+            {title}
+          </h3>
           <button
-            className="flex items-center justify-center p-1.5 text-[#6A6E76] rounded-md transition-all hover:bg-[#F7F8FA] hover:text-[#1A1D21]"
+            type="button"
+            className="sc-icon-button"
             onClick={onClose}
             aria-label={t('close')}
           >
-            <X size={20} />
+            <X size={19} />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto">{children}</div>
+        <div className="overflow-y-auto p-5 sm:p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

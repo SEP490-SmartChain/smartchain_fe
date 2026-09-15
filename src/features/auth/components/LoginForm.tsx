@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
@@ -44,7 +45,7 @@ export function LoginForm() {
       {errors.root && (
         <p
           role="alert"
-          className="px-4 py-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-200"
+          className="rounded-lg border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] px-4 py-3 text-sm text-[var(--sc-error-dark)]"
         >
           {errors.root.message}
         </p>
@@ -62,29 +63,39 @@ export function LoginForm() {
         error={errors.email?.message}
         aria-invalid={!!errors.email}
       />
-      <Input
-        id="login-password"
-        type={showPassword ? 'text' : 'password'}
-        label={t('Auth.password_label')}
-        placeholder={t('Auth.loginPasswordPlaceholder')}
-        autoComplete="current-password"
-        required
-        disabled={isSubmitting}
-        {...register('password')}
-        error={errors.password?.message}
-        aria-invalid={!!errors.password}
-        rightIcon={
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            aria-label={t(showPassword ? 'Auth.hidePassword' : 'Auth.showPassword')}
+      <div>
+        <Input
+          id="login-password"
+          type={showPassword ? 'text' : 'password'}
+          label={t('Auth.password_label')}
+          placeholder={t('Auth.loginPasswordPlaceholder')}
+          autoComplete="current-password"
+          required
+          disabled={isSubmitting}
+          {...register('password')}
+          error={errors.password?.message}
+          aria-invalid={!!errors.password}
+          rightIcon={
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={t(showPassword ? 'Auth.hidePassword' : 'Auth.showPassword')}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          }
+        />
+        <div className="mt-2 flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-[var(--sc-text-secondary)] hover:text-[var(--sc-primary-dark)] hover:underline"
           >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        }
-      />
+            {t('Auth.forgot_password')}
+          </Link>
+        </div>
+      </div>
       <details open={needsWorkspace || undefined}>
-        <summary className="cursor-pointer text-sm text-teal-700">
+        <summary className="cursor-pointer text-sm text-[var(--sc-primary-dark)]">
           {t('Auth.workspaceOptional')}
         </summary>
         <div className="mt-3">
@@ -104,13 +115,13 @@ export function LoginForm() {
       <label className="flex items-center gap-2.5 text-sm text-slate-600">
         <input
           type="checkbox"
-          className="w-4 h-4 accent-teal-700"
+          className="h-4 w-4 accent-[var(--sc-primary)]"
           disabled={isSubmitting}
           {...register('rememberSession')}
         />
         {t('Auth.remember_me')}
       </label>
-      <Button type="submit" isLoading={isSubmitting} className="w-full py-3.5">
+      <Button type="submit" isLoading={isSubmitting} className="min-w-[120px] self-start">
         {t(isSubmitting ? 'Auth.logging_in' : 'Auth.login_heading')}
       </Button>
     </form>

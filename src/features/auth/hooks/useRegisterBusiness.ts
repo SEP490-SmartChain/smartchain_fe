@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import { apiClient } from '@/services/apiClient';
+
 import type { RegisterFormData } from '../schemas/register.schema';
 
 interface RegisterBusinessPayload {

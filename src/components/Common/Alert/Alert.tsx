@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { AlertCircle, CheckCircle2, Info, XCircle, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,24 +12,23 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantStyles = {
   success: {
-    container: 'bg-[#F0FDFA] border-[#99F6E4] text-[#0F766E]',
+    container:
+      'border-[var(--sc-success-border)] bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)]',
     icon: CheckCircle2,
-    iconColor: 'text-[#0F766E]',
   },
   warning: {
-    container: 'bg-[#FEF3C7] border-[#FCD34D] text-[#D97706]',
+    container:
+      'border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)] text-[var(--sc-warning-dark)]',
     icon: AlertCircle,
-    iconColor: 'text-[#F59E0B]',
   },
   error: {
-    container: 'bg-[#FEF2F2] border-[#FCA5A5] text-[#EF4444]',
+    container:
+      'border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] text-[var(--sc-error-dark)]',
     icon: XCircle,
-    iconColor: 'text-[#EF4444]',
   },
   info: {
-    container: 'bg-[#EFF6FF] border-[#BFDBFE] text-[#3B82F6]',
+    container: 'border-[var(--sc-info-border)] bg-[var(--sc-info-bg)] text-[var(--sc-info-dark)]',
     icon: Info,
-    iconColor: 'text-[#3B82F6]',
   },
 };
 
@@ -47,25 +46,23 @@ export function Alert({
   return (
     <div
       role="alert"
-      className={cn('relative flex gap-3 p-4 rounded-lg border', styles.container, className)}
+      className={cn(
+        'relative flex gap-3 rounded-xl border p-4 text-sm',
+        styles.container,
+        className,
+      )}
       {...props}
     >
-      <div className={cn('flex-shrink-0 mt-0.5', styles.iconColor)}>
-        <Icon size={20} />
+      <Icon aria-hidden="true" className="mt-0.5 shrink-0" size={19} />
+      <div className="min-w-0 flex-1">
+        {title && <div className="mb-1 font-medium">{title}</div>}
+        <div>{children}</div>
       </div>
-
-      <div className="flex-1 text-sm">
-        {title && <div className="font-semibold mb-1">{title}</div>}
-        <div className={!title ? 'font-medium' : ''}>{children}</div>
-      </div>
-
       {onClose && (
         <button
+          type="button"
           onClick={onClose}
-          className={cn(
-            'flex-shrink-0 p-1 rounded-md transition-colors hover:bg-black/5',
-            styles.iconColor,
-          )}
+          className="shrink-0 self-start rounded-md p-1 transition-colors hover:bg-black/5"
           aria-label="Close alert"
         >
           <X size={16} />

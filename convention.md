@@ -128,7 +128,7 @@ Dự án sử dụng **Tailwind CSS v4** kết hợp **CSS Variables** từ `src
 
 ### 5.2 Quy tắc dùng màu & Typography:
 1. **Workspace/Admin:** Tuyệt đối không hardcode mã hex `#00E599` hay `#1A1D21` cũ. Sử dụng class Tailwind hoặc CSS variable `--sc-primary`, `--sc-accent`.
-2. **Typography:** Font mặc định toàn app là **Inter** (`font-sans`).
+2. **Typography:** Font mặc định toàn app là **Archivo** 400/500/600/700 (`font-sans`), theo `docs/DESIGN_SYSTEM.md`.
 
 ---
 

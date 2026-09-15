@@ -181,8 +181,11 @@ class ApiClient {
     useAuthStore.setState({ status: 'initializing' });
     this.initializationPromise = this.refreshSession()
       .catch(() => {
+        // Khôi phục thất bại (mạng/5xx) → coi như chưa xác thực và fallback về login
+        // thay vì chặn UI bằng màn lỗi. Cookie refresh KHÔNG bị đánh dấu hết hạn, nên
+        // request đăng nhập/điều hướng kế tiếp vẫn có thể khôi phục phiên thành công.
         if (useAuthStore.getState().status !== 'anonymous') {
-          useAuthStore.setState({ status: 'error' });
+          useAuthStore.setState({ status: 'anonymous' });
         }
       })
       .finally(() => {
@@ -236,6 +239,9 @@ class ApiClient {
   }
   put<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) });
+  }
+  patch<T>(endpoint: string, body: unknown, options?: FetchOptions) {
+    return this.request<T>(endpoint, { ...options, method: 'PATCH', body: JSON.stringify(body) });
   }
   delete<T>(endpoint: string, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' });
