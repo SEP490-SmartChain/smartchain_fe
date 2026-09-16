@@ -124,6 +124,13 @@ class ApiClient {
           parsed.success ? parsed.data.error.details : undefined,
         );
       }
+      if (response.status === 204) {
+        return {
+          success: true,
+          data: null,
+          meta: { timestamp: new Date().toISOString(), path: endpoint, requestId: '' },
+        } as T;
+      }
       if (!z.object({ success: z.literal(true), data: z.unknown() }).safeParse(body).success) {
         throw new ApiError(
           this.message('Phản hồi máy chủ không hợp lệ.', 'Invalid server response.'),

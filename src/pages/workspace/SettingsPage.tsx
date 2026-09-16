@@ -16,7 +16,9 @@ import {
   Tabs,
   UnderConstruction,
 } from '@/components/Common';
+import { CarrierConnectionsManager } from '@/features/catalog';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
+import { WebhookManager } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
 
 const ALL_SETTING_TABS = ['profile', 'general', 'integrations', 'webhooks'] as const;
@@ -83,19 +85,9 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {activeTab === 'integrations' && (
-        <Card>
-          <CardHeader title={t('integrations')} description={t('integrationsDescription')} />
-          <UnderConstruction />
-        </Card>
-      )}
+      {activeTab === 'integrations' && <CarrierConnectionsManager />}
 
-      {activeTab === 'webhooks' && (
-        <Card>
-          <CardHeader title={t('webhooks')} description={t('webhooksDescription')} />
-          <UnderConstruction />
-        </Card>
-      )}
+      {activeTab === 'webhooks' && <WebhookManager />}
     </div>
   );
 }
