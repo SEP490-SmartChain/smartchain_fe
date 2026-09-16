@@ -5,11 +5,13 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button, Checkbox, Input, Radio } from '@/components/Common';
+import { staffAccountApi } from '../api/staffAccountApi';
 import Modal from '@/components/Common/Modal/Modal';
 
 export interface AddStaffAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 type DraftAccountStatus = 'ACTIVE' | 'PENDING' | 'REPORTED' | 'BLOCKED';
@@ -17,12 +19,13 @@ type DraftAccountStatus = 'ACTIVE' | 'PENDING' | 'REPORTED' | 'BLOCKED';
 /** Tenant chỉ được gán ba role workspace; SUPER_ADMIN là role nền tảng (mục 3). */
 const ROLE_OPTIONS = ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] as const;
 
-export function AddStaffAccountModal({ isOpen, onClose }: AddStaffAccountModalProps) {
+export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAccountModalProps) {
   const t = useTranslations('StaffAccounts');
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<DraftAccountStatus>('PENDING');
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -61,11 +64,36 @@ export function AddStaffAccountModal({ isOpen, onClose }: AddStaffAccountModalPr
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    toast.info(t('createUnavailable'));
-    onClose();
+    if (selectedRoles.size === 0) {
+      toast.error(t('rolesOptional') + ' is required'); // Need at least one role
+      return;
+    }
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get('email') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const roleCode = Array.from(selectedRoles)[0]; // pick first selected role
+
+    try {
+      setIsSubmitting(true);
+      await staffAccountApi.create({
+        email,
+        fullName: `${firstName} ${lastName}`.trim(),
+        roleCode
+      });
+      toast.success("Staff account created and invitation sent successfully"); // Hacky message, fallback
+      onSuccess?.();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create staff account');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('addNewUser')} width="720px">
@@ -215,7 +243,7 @@ export function AddStaffAccountModal({ isOpen, onClose }: AddStaffAccountModalPr
           <Button type="button" variant="secondary" onClick={onClose}>
             {t('cancel')}
           </Button>
-          <Button type="submit">{t('createUser')}</Button>
+          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : t('createUser')}</Button>
         </div>
       </form>
     </Modal>

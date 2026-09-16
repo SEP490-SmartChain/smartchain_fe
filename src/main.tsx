@@ -33,6 +33,7 @@ const AnalyticsPage = React.lazy(() => import('@/pages/workspace/AnalyticsPage')
 const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
 const BillingPage = React.lazy(() => import('@/pages/workspace/BillingPage'));
 const StaffAccountsPage = React.lazy(() => import('@/pages/workspace/StaffAccountsPage'));
+const WarehousesPage = React.lazy(() => import('@/pages/workspace/WarehousesPage'));
 const RolesPermissionsPage = React.lazy(() => import('@/pages/workspace/RolesPermissionsPage'));
 const WorkspaceAuditPage = React.lazy(() => import('@/pages/workspace/AuditPage'));
 const IntegrationErrorsPage = React.lazy(() => import('@/pages/workspace/IntegrationErrorsPage'));
@@ -125,6 +126,7 @@ function App() {
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings/:tab" element={<SettingsPage />} />
                   <Route path="/iam/users" element={<StaffAccountsPage />} />
+                  <Route path="/warehouses" element={<WarehousesPage />} />
                   <Route path="/roles-permissions/:tab" element={<RolesPermissionsPage />} />
                   <Route path="/audit" element={<WorkspaceAuditPage />} />
                   <Route path="/integration-errors" element={<IntegrationErrorsPage />} />

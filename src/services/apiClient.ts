@@ -10,10 +10,21 @@ interface FetchOptions extends RequestInit {
   silent?: boolean;
 }
 
+export interface ApiPaginationMeta {
+  limit: number;
+  hasNext: boolean;
+  nextCursor: string | null;
+}
+
 export interface ApiResponse<T> {
   success: true;
   data: T;
-  meta: { timestamp: string; path: string; requestId: string };
+  meta: {
+    timestamp: string;
+    path: string;
+    requestId: string;
+    pagination?: ApiPaginationMeta;
+  };
 }
 
 export interface LoginInput {

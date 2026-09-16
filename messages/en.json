@@ -54,7 +54,8 @@
     "member": "Member",
     "connected_title": "Workspace connected",
     "connected_copy": "Services and carrier connections are operating normally.",
-    "online": "All systems operational"
+    "online": "All systems operational",
+    "warehouses": "Warehouses"
   },
   "Topbar": {
     "title_dashboard": "Operations Dashboard",
@@ -132,12 +133,14 @@
     "username_label": "Username",
     "username_placeholder": "Enter username",
     "password_label": "Password",
-    "password_placeholder": "Enter password",
+    "password_placeholder": "Min 8 chars, include uppercase, number & symbol",
     "forgot_password": "Forgot password?",
     "forgot_heading": "Forgot your password?",
-    "forgot_subheading": "Enter your account email and we will send a verification code.",
-    "forgot_send": "Send verification code",
-    "forgot_email_required": "Enter the email associated with your account.",
+    "forgot_subheading": "Enter your account email and, if it's eligible, we'll send a password reset link.",
+    "forgot_send": "Send reset link",
+    "forgot_sending": "Sending...",
+    "forgot_sent_hint": "If {email} matches an eligible account, we've sent a password reset link — it expires in 15 minutes. Don't see it? Check your spam folder.",
+    "forgot_try_again": "Try a different email",
     "otp_page_heading": "Verify your account",
     "otp_page_subheading": "Enter the 6-digit code sent to {email}.",
     "otp_code_label": "Verification code",
@@ -163,8 +166,6 @@
     "tax_id_label": "Tax ID",
     "tax_id_placeholder": "0123456789",
     "tax_id_helper": "Optional - helps verify your business",
-    "password_label": "Password",
-    "password_placeholder": "Min 8 chars, include uppercase, number & symbol",
     "confirm_password_label": "Confirm Password",
     "confirm_password_placeholder": "Re-enter password",
     "agree_to_terms_label": "I agree to the Terms of Service and Privacy Policy",
@@ -799,5 +800,24 @@
     "copyFailed": "Could not copy to clipboard. Please copy manually.",
     "secretStorageAdvice": "Usage: Use this key to verify the HMAC signature header (X-SmartChain-Signature) for each webhook payload received from SmartChain.",
     "savedSecretConfirmation": "I have saved my secret key"
+  }
+  "ProductCatalog": {
+    "title": "Product catalog",
+    "tableLabel": "Product catalog table",
+    "searchLabel": "Search products",
+    "searchHere": "Search by SKU or name",
+    "statusFilter": "Status filter",
+    "allStatuses": "All statuses",
+    "active": "Active",
+    "inactive": "Inactive",
+    "columnSku": "SKU",
+    "columnName": "Name",
+    "columnWeight": "Weight",
+    "weightValue": "{weight} g",
+    "columnDimensions": "Dimensions",
+    "columnDeclaredValue": "Declared value",
+    "columnStatus": "Status",
+    "loadError": "Couldn't load the product catalog.",
+    "retry": "Retry"
   }
 }

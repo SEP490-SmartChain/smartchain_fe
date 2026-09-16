@@ -22,3 +22,6 @@ export type {
   PingTestResult,
   UpdateCarrierCredentialInput,
 } from './types/carrierCredential.types';
+export { ProductCatalogTable } from './components/ProductCatalogTable';
+export { useProducts } from './hooks/useProducts';
+export type { Product, ProductFilters, ProductPage } from './types/product.types';

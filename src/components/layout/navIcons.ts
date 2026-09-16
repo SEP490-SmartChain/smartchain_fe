@@ -26,6 +26,7 @@ import {
   UserCircle,
   Users,
   Webhook,
+  Warehouse as WarehouseIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -42,6 +43,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   quota_management: Gauge,
   dashboard: LayoutDashboard,
   orders: Package,
+  warehouses: WarehouseIcon,
   inventory: Boxes,
   rules: GitBranch,
   shipments: Truck,

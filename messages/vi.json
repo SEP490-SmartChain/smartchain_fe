@@ -54,7 +54,8 @@
     "member": "Thành viên",
     "connected_title": "Workspace đã kết nối",
     "connected_copy": "Dịch vụ và kết nối hãng vận chuyển đang hoạt động bình thường.",
-    "online": "Tất cả hệ thống ổn định"
+    "online": "Tất cả hệ thống ổn định",
+    "warehouses": "Quản lý Kho"
   },
   "Topbar": {
     "title_dashboard": "Tổng quan vận hành",
@@ -132,12 +133,14 @@
     "username_label": "Tên đăng nhập",
     "username_placeholder": "Nhập tên đăng nhập",
     "password_label": "Mật khẩu",
-    "password_placeholder": "Nhập mật khẩu",
+    "password_placeholder": "Tối thiểu 8 ký tự, gồm chữ hoa, số và ký tự đặc biệt",
     "forgot_password": "Quên mật khẩu?",
     "forgot_heading": "Quên mật khẩu?",
-    "forgot_subheading": "Nhập email tài khoản để nhận mã xác thực.",
-    "forgot_send": "Gửi mã xác thực",
-    "forgot_email_required": "Nhập email được liên kết với tài khoản của bạn.",
+    "forgot_subheading": "Nhập email tài khoản, chúng tôi sẽ gửi liên kết đặt lại mật khẩu nếu tài khoản hợp lệ.",
+    "forgot_send": "Gửi liên kết đặt lại mật khẩu",
+    "forgot_sending": "Đang gửi...",
+    "forgot_sent_hint": "Nếu {email} thuộc một tài khoản hợp lệ, chúng tôi đã gửi liên kết đặt lại mật khẩu — liên kết có hiệu lực trong 15 phút. Không thấy email? Hãy kiểm tra thư mục spam.",
+    "forgot_try_again": "Nhập email khác",
     "otp_page_heading": "Xác thực tài khoản",
     "otp_page_subheading": "Nhập mã gồm 6 chữ số đã gửi đến {email}.",
     "otp_code_label": "Mã xác thực",
@@ -163,8 +166,6 @@
     "tax_id_label": "Mã số thuế",
     "tax_id_placeholder": "0123456789",
     "tax_id_helper": "Không bắt buộc - giúp xác thực doanh nghiệp",
-    "password_label": "Mật khẩu",
-    "password_placeholder": "Tối thiểu 8 ký tự, gồm chữ hoa, số và ký tự đặc biệt",
     "confirm_password_label": "Xác nhận mật khẩu",
     "confirm_password_placeholder": "Nhập lại mật khẩu",
     "agree_to_terms_label": "Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật",
@@ -799,5 +800,24 @@
     "copyFailed": "Không thể sao chép vào bộ nhớ tạm. Vui lòng chọn và sao chép thủ công.",
     "secretStorageAdvice": "Cách dùng: Sử dụng khóa này để kiểm tra tính hợp lệ của chữ ký trong header X-SmartChain-Signature đối với mỗi webhook request nhận được từ SmartChain.",
     "savedSecretConfirmation": "Tôi đã lưu mã bí mật"
+  }
+  "ProductCatalog": {
+    "title": "Danh mục sản phẩm",
+    "tableLabel": "Bảng danh mục sản phẩm",
+    "searchLabel": "Tìm kiếm sản phẩm",
+    "searchHere": "Tìm theo SKU hoặc tên sản phẩm",
+    "statusFilter": "Lọc theo trạng thái",
+    "allStatuses": "Tất cả trạng thái",
+    "active": "Đang hoạt động",
+    "inactive": "Ngừng hoạt động",
+    "columnSku": "SKU",
+    "columnName": "Tên sản phẩm",
+    "columnWeight": "Khối lượng",
+    "weightValue": "{weight} g",
+    "columnDimensions": "Kích thước",
+    "columnDeclaredValue": "Giá trị khai báo",
+    "columnStatus": "Trạng thái",
+    "loadError": "Không thể tải danh mục sản phẩm.",
+    "retry": "Thử lại"
   }
 }
