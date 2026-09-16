@@ -43,5 +43,17 @@ confirmation after a successful call — the API never reveals whether the email
 eligible account, so the UI must not either. Errors (429 rate limit, 503 unavailable, network)
 surface through apiClient's default toast; the form simply stays on the input step so the user
 can retry. The email carries a one-time link, not an OTP code — do not route this flow through
-`/otp`, which belongs to registration's email-verification step. Token consumption (the
-`/reset-password` confirmation page) is a separate, not-yet-implemented story.
+`/otp`, which belongs to registration's email-verification step.
+
+## Password Reset Confirmation
+
+`POST /api/v1/auth/password-reset-confirmations`: `{ token, newPassword }`, anonymous
+(`requiresAuth: false`). `ResetPasswordForm` (`/reset-password`) reads the one-time `token` from
+the URL fragment (`#token=...`, never a query string) via `usePasswordResetConfirm` — a missing
+fragment shows the invalid-link state without ever calling the API. On success it shows a generic
+"password reset" confirmation and links back to `/login`; the API does not return session tokens,
+so the user signs in again with the new password (all of that account's other sessions were
+revoked server-side). Any API error whose code is `AUTH.PASSWORD_RESET_TOKEN_INVALID` — covering
+unknown, expired, already-used, or no-longer-eligible tokens alike — switches the form to the same
+invalid-link state with a link to `/forgot-password`; other errors (rate limit, network) surface
+through apiClient's default toast and leave the form on the input step for retry.
