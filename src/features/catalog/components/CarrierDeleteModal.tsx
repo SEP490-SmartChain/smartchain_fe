@@ -35,9 +35,7 @@ export function CarrierDeleteModal({
       onClose();
     } catch (err: unknown) {
       const message =
-        err instanceof Error
-          ? err.message
-          : 'Không thể gỡ kết nối. Vui lòng thử lại sau.';
+        err instanceof Error ? err.message : 'Không thể gỡ kết nối. Vui lòng thử lại sau.';
       toast.error(message);
     } finally {
       setIsDeleting(false);
@@ -62,7 +60,8 @@ export function CarrierDeleteModal({
               Gỡ kết nối {credential.carrier.name}?
             </p>
             <p className="text-xs text-[var(--sc-text-secondary)] leading-relaxed">
-              Cấu hình đang chọn: <span className="font-semibold text-[var(--sc-text-primary)]">{credential.name}</span>{' '}
+              Cấu hình đang chọn:{' '}
+              <span className="font-semibold text-[var(--sc-text-primary)]">{credential.name}</span>{' '}
               <span className="inline-block rounded-full bg-[var(--sc-bg-surface)] px-2 py-0.5 text-[10px] font-mono font-medium border border-[var(--sc-border-default)]">
                 {credential.environment}
               </span>
@@ -76,8 +75,8 @@ export function CarrierDeleteModal({
             <span>🛡️</span> Bảo toàn dữ liệu & Lịch sử vận đơn
           </p>
           <p className="mt-1.5 text-[var(--sc-text-secondary)] leading-relaxed">
-            Hệ thống sẽ ngừng sử dụng kết nối này để tạo vận đơn mới. Toàn bộ lịch sử vận đơn, 
-            dữ liệu đối soát cước COD và báo cáo hiệu suất đã phát sinh trước đây sẽ được{' '}
+            Hệ thống sẽ ngừng sử dụng kết nối này để tạo vận đơn mới. Toàn bộ lịch sử vận đơn, dữ
+            liệu đối soát cước COD và báo cáo hiệu suất đã phát sinh trước đây sẽ được{' '}
             <strong className="text-[var(--sc-text-primary)]">lưu trữ an toàn 100%</strong>.
           </p>
         </div>

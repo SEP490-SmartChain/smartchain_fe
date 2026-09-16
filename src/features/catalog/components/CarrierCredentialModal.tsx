@@ -19,9 +19,7 @@ interface CarrierCredentialModalProps {
   readonly onClose: () => void;
   readonly editingCredential?: CarrierCredential | null;
   readonly availableCarriers: readonly CarrierSummary[];
-  readonly onCreate: (
-    payload: CreateCarrierCredentialInput,
-  ) => Promise<CarrierCredential>;
+  readonly onCreate: (payload: CreateCarrierCredentialInput) => Promise<CarrierCredential>;
   readonly onUpdate: (
     id: string,
     payload: UpdateCarrierCredentialInput,
@@ -40,8 +38,7 @@ export function CarrierCredentialModal({
 
   const [carrierId, setCarrierId] = useState('');
   const [name, setName] = useState('');
-  const [environment, setEnvironment] =
-    useState<DeploymentEnvironment>('SANDBOX');
+  const [environment, setEnvironment] = useState<DeploymentEnvironment>('SANDBOX');
   const [apiToken, setApiToken] = useState('');
   const [shopId, setShopId] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -69,8 +66,7 @@ export function CarrierCredentialModal({
   }, [editingCredential, availableCarriers, isOpen]);
 
   const selectedCarrier = availableCarriers.find((c) => c.id === carrierId);
-  const isGhn =
-    selectedCarrier?.code === 'GHN' || editingCredential?.carrier.code === 'GHN';
+  const isGhn = selectedCarrier?.code === 'GHN' || editingCredential?.carrier.code === 'GHN';
 
   const validate = (): boolean => {
     const nextErrors: Record<string, string> = {};
@@ -136,14 +132,11 @@ export function CarrierCredentialModal({
           },
         };
         await onCreate(createPayload);
-        toast.success(
-          'Kết nối hãng vận chuyển thành công! Key đã được mã hóa an toàn.',
-        );
+        toast.success('Kết nối hãng vận chuyển thành công! Key đã được mã hóa an toàn.');
       }
       onClose();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu cấu hình.';
+      const message = err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu cấu hình.';
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -179,9 +172,7 @@ export function CarrierCredentialModal({
             value={carrierId}
             onChange={(e) => {
               setCarrierId(e.target.value);
-              const found = availableCarriers.find(
-                (c) => c.id === e.target.value,
-              );
+              const found = availableCarriers.find((c) => c.id === e.target.value);
               if (found) {
                 setName(`${found.name} Kho Chính`);
               }
@@ -213,20 +204,20 @@ export function CarrierCredentialModal({
           <Select
             label="Môi trường hoạt động"
             value={environment}
-            onChange={(e) =>
-              setEnvironment(e.target.value as DeploymentEnvironment)
-            }
+            onChange={(e) => setEnvironment(e.target.value as DeploymentEnvironment)}
             options={environmentOptions}
             required
           />
           <p className="text-[11px] text-[var(--sc-text-secondary)]">
             {environment === 'PRODUCTION' ? (
               <span className="text-[var(--sc-success-dark)]">
-                ● <strong>PRODUCTION (Thực tế):</strong> Dùng cho tài khoản thật đang kinh doanh trên cổng chính thức của hãng.
+                ● <strong>PRODUCTION (Thực tế):</strong> Dùng cho tài khoản thật đang kinh doanh
+                trên cổng chính thức của hãng.
               </span>
             ) : (
               <span className="text-[var(--sc-warning-dark)]">
-                ● <strong>SANDBOX (Thử nghiệm):</strong> Chỉ dùng với API Token cấp riêng từ môi trường test dev của hãng.
+                ● <strong>SANDBOX (Thử nghiệm):</strong> Chỉ dùng với API Token cấp riêng từ môi
+                trường test dev của hãng.
               </span>
             )}
           </p>
@@ -236,27 +227,19 @@ export function CarrierCredentialModal({
         <div className="space-y-2">
           {isEditing && (
             <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3.5 text-xs text-[var(--sc-text-secondary)]">
-              <span className="font-semibold text-[var(--sc-text-primary)]">
-                Key hiện tại:{' '}
-              </span>
+              <span className="font-semibold text-[var(--sc-text-primary)]">Key hiện tại: </span>
               <code className="rounded bg-[var(--sc-bg-surface)] px-1.5 py-0.5 font-mono text-[var(--sc-primary)] border border-[var(--sc-border-default)]">
                 {editingCredential?.maskedPreview}
               </code>
-              <p className="mt-1">
-                Để trống ô bên dưới nếu bạn chỉ muốn đổi tên hoặc môi trường.
-              </p>
+              <p className="mt-1">Để trống ô bên dưới nếu bạn chỉ muốn đổi tên hoặc môi trường.</p>
             </div>
           )}
 
           <Input
-            label={
-              isEditing ? 'Nhập API Token mới (tùy chọn)' : 'API Token / Secret'
-            }
+            label={isEditing ? 'Nhập API Token mới (tùy chọn)' : 'API Token / Secret'}
             type={showToken ? 'text' : 'password'}
             placeholder={
-              isEditing
-                ? 'Nhập Token mới nếu muốn đổi Key...'
-                : 'Dán Token/Key được cấp từ hãng...'
+              isEditing ? 'Nhập Token mới nếu muốn đổi Key...' : 'Dán Token/Key được cấp từ hãng...'
             }
             value={apiToken}
             onChange={(e) => setApiToken(e.target.value)}
@@ -298,29 +281,20 @@ export function CarrierCredentialModal({
           <div className="flex items-start gap-2.5 rounded-xl border border-[var(--sc-warning-border,#fde68a)] bg-[var(--sc-warning-bg,#fef3c7)] p-3.5 text-xs text-[var(--sc-warning-text,#92400e)]">
             <ShieldAlert size={16} className="shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              <strong>Lưu ý bảo mật:</strong> Khi thay đổi API Token mới, trạng thái kết nối
-              sẽ được chuyển về <strong>Chưa kiểm tra</strong> để đảm bảo an toàn. Bạn vui lòng bấm nút "Kiểm tra kết nối"
-              sau khi lưu để kích hoạt lại vào thuật toán điều phối.
+              <strong>Lưu ý bảo mật:</strong> Khi thay đổi API Token mới, trạng thái kết nối sẽ được
+              chuyển về <strong>Chưa kiểm tra</strong> để đảm bảo an toàn. Bạn vui lòng bấm nút
+              "Kiểm tra kết nối" sau khi lưu để kích hoạt lại vào thuật toán điều phối.
             </p>
           </div>
         )}
 
         {/* Buttons */}
         <div className="mt-6 flex justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Hủy
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? 'Đang lưu...'
-              : isEditing
-                ? 'Lưu thay đổi'
-                : 'Lưu kết nối'}
+            {isSubmitting ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Lưu kết nối'}
           </Button>
         </div>
       </form>

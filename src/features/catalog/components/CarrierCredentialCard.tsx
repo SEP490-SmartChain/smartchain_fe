@@ -1,5 +1,4 @@
-import { useState } from 'react';
-
+import { useState, type FC } from 'react';
 import {
   Check,
   CheckCircle2,
@@ -7,6 +6,7 @@ import {
   Copy,
   Edit2,
   Globe,
+  KeyRound,
   Loader2,
   RotateCw,
   Trash2,
@@ -15,12 +15,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Button, Card } from '@/components/Common';
-
-import type {
-  CarrierCredential,
-  PingTestResult,
-} from '../types/carrierCredential.types';
+import { Button } from '@/components/Common';
+import type { CarrierCredential, PingTestResult } from '../types/carrierCredential.types';
 
 interface CarrierCredentialCardProps {
   readonly credential: CarrierCredential;
@@ -32,7 +28,7 @@ interface CarrierCredentialCardProps {
   readonly onDelete: (credential: CarrierCredential) => void;
 }
 
-export function CarrierCredentialCard({
+export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
   credential,
   isPinging,
   lastPingResult,
@@ -40,7 +36,7 @@ export function CarrierCredentialCard({
   onTestPing,
   onEdit,
   onDelete,
-}: CarrierCredentialCardProps) {
+}) => {
   const [hasCopied, setHasCopied] = useState(false);
   const [logoError, setLogoError] = useState(false);
 
@@ -51,57 +47,13 @@ export function CarrierCredentialCard({
       toast.success('Đã sao chép khóa API vào bộ nhớ tạm');
       setTimeout(() => setHasCopied(false), 2000);
     } catch {
-      toast.error('Không thể sao chép');
+      toast.error('Không thể sao chép khóa API');
     }
   };
 
-  const renderStatusBadge = () => {
-    switch (credential.status) {
-      case 'CONNECTED':
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Đã kết nối</span>
-            {lastPingResult?.latencyMs ? (
-              <span className="font-mono text-[11px] text-emerald-600 opacity-90">
-                · {lastPingResult.latencyMs}ms
-              </span>
-            ) : null}
-          </span>
-        );
-      case 'FAILED':
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-            <span>Lỗi kết nối</span>
-          </span>
-        );
-      case 'UNVERIFIED':
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            <span>Chưa kiểm tra</span>
-          </span>
-        );
-    }
-  };
-
-  const renderEnvironmentBadge = () => {
-    const isProd = credential.environment === 'PRODUCTION';
-    return (
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase ${
-          isProd
-            ? 'border border-teal-200 bg-teal-50 text-[var(--sc-primary)]'
-            : 'border border-slate-200 bg-slate-100 text-slate-600'
-        }`}
-      >
-        <Globe size={11} className="opacity-75" />
-        {credential.environment}
-      </span>
-    );
-  };
+  const isProd = credential.environment === 'PRODUCTION';
+  const isConnected = credential.status === 'CONNECTED';
+  const isFailed = credential.status === 'FAILED';
 
   const formatDateTime = (dateStr: string | null) => {
     if (!dateStr) return 'Chưa kiểm tra';
@@ -116,13 +68,23 @@ export function CarrierCredentialCard({
     }
   };
 
+  const currentLatency = lastPingResult?.latencyMs;
+
   return (
-    <Card className="flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--sc-primary-light)] hover:shadow-md">
-      <div className="p-5">
-        {/* Header: Logo, Tên hãng, Môi trường & Trạng thái */}
-        <div className="flex items-start justify-between gap-3">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--sc-primary-light)] hover:shadow-md">
+      {/* Top Accent Line theo trạng thái */}
+      <div
+        className={`absolute top-0 inset-x-0 h-1 transition-colors ${
+          isConnected ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-400'
+        }`}
+      />
+
+      <div className="space-y-4 pt-1">
+        {/* HÀNG 1: Logo Hãng (Lấy từ upload của Super Admin, fallback icon xe tải chuẩn) + Environment & Actions */}
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-2 shadow-2xs">
+            {/* Khung Logo hãng chuẩn */}
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-slate-50 p-1.5 shadow-2xs">
               {credential.carrier.logoUrl && !logoError ? (
                 <img
                   src={credential.carrier.logoUrl}
@@ -131,105 +93,161 @@ export function CarrierCredentialCard({
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Truck className="h-6 w-6 text-[var(--sc-primary)]" />
+                <Truck className="h-5 w-5 text-[var(--sc-primary)]" />
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold text-[var(--sc-text-primary)]">
-                  {credential.carrier.name}
-                </h3>
-                <span className="rounded-md bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 text-[10px] font-mono font-semibold text-[var(--sc-text-secondary)] border border-[var(--sc-border-default)]">
-                  {credential.carrier.code}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
-                {credential.name}
-              </p>
+
+            {/* Code Badge & Auth Type */}
+            <div className="flex flex-col">
+              <span className="inline-flex w-fit items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-700 ring-1 ring-slate-200">
+                {credential.carrier.code}
+              </span>
+              <span className="mt-0.5 text-[10px] font-medium tracking-wide text-[var(--sc-text-tertiary)] uppercase">
+                {credential.authType}
+              </span>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1.5">
-            {renderEnvironmentBadge()}
-            {renderStatusBadge()}
+          {/* Environment Badge & Edit/Delete Icons */}
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase whitespace-nowrap shadow-2xs ${
+                isProd
+                  ? 'border border-teal-200 bg-teal-50/80 text-[var(--sc-primary)] ring-1 ring-teal-300/40'
+                  : 'border border-slate-200 bg-slate-100/90 text-slate-600'
+              }`}
+            >
+              <Globe size={11} className="opacity-75" />
+              {credential.environment}
+            </span>
+
+            {canManage && (
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => onEdit(credential)}
+                  className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  title="Chỉnh sửa cấu hình"
+                  aria-label="Chỉnh sửa cấu hình"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(credential)}
+                  className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                  title="Gỡ kết nối hãng"
+                  aria-label="Gỡ kết nối hãng"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Thông tin Key & Chi tiết Ping */}
-        <div className="mt-4 space-y-2.5 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3.5 text-xs">
-          {/* Masked Preview Key */}
+        {/* HÀNG 2: Tên Hãng Vận Chuyển Duy Nhất & Toàn Chiều Rộng (Đã bỏ dòng subtext lặp thừa) */}
+        <div className="border-b border-slate-100 pb-3">
+          <h3 className="text-base font-bold tracking-tight text-[var(--sc-text-primary)] leading-snug">
+            {credential.carrier.name}
+          </h3>
+        </div>
+
+        {/* HÀNG 3: Thanh Trạng Thái Kết Nối & Live Latency Indicator */}
+        <div className="flex items-center justify-between rounded-xl bg-slate-50/80 p-2.5 ring-1 ring-slate-100 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            {isConnected ? (
+              <>
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                </span>
+                <span className="font-semibold text-emerald-700 whitespace-nowrap">Đã kết nối</span>
+              </>
+            ) : isFailed ? (
+              <>
+                <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
+                <span className="font-semibold text-red-700 whitespace-nowrap">Lỗi kết nối</span>
+              </>
+            ) : (
+              <>
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="font-semibold text-amber-700 whitespace-nowrap">
+                  Chưa kiểm tra
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Latency badge nếu có */}
+          {currentLatency ? (
+            <span className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full whitespace-nowrap border border-emerald-200">
+              {currentLatency}ms
+            </span>
+          ) : (
+            <span className="text-[11px] text-slate-400 flex items-center gap-1">
+              <Clock size={11} />
+              {formatDateTime(credential.lastPingAt)}
+            </span>
+          )}
+        </div>
+
+        {/* HÀNG 4: Khối API Key (Secure Credential Vault) */}
+        <div className="space-y-2 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-[var(--sc-text-secondary)]">API Key:</span>
+            <span className="flex items-center gap-1.5 font-medium text-[var(--sc-text-secondary)] text-[11px]">
+              <KeyRound size={12} className="text-slate-400" /> Khóa API:
+            </span>
             <div className="flex items-center gap-1.5">
-              <code className="rounded-md bg-[var(--sc-bg-surface)] px-2 py-0.5 font-mono text-[12px] font-medium text-[var(--sc-text-primary)] border border-[var(--sc-border-default)] shadow-2xs">
+              <code className="rounded-md bg-white px-2 py-0.5 font-mono text-[12px] font-semibold text-slate-800 border border-slate-200 shadow-2xs">
                 {credential.maskedPreview}
               </code>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="cursor-pointer rounded-md p-1.5 text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-surface)] hover:text-[var(--sc-text-primary)]"
+                className="cursor-pointer rounded-md p-1.5 text-slate-400 transition-all hover:bg-white hover:text-slate-800 hover:shadow-2xs active:scale-95"
                 title="Sao chép khóa API"
                 aria-label="Sao chép khóa API"
               >
-                {hasCopied ? (
-                  <Check size={14} className="text-[var(--sc-success)]" />
-                ) : (
-                  <Copy size={14} />
-                )}
+                {hasCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
               </button>
             </div>
           </div>
 
-          {/* Lần Ping gần nhất */}
-          <div className="flex items-center justify-between border-t border-[var(--sc-border-default)] pt-2 text-[var(--sc-text-secondary)]">
-            <span className="flex items-center gap-1 text-[11px]">
-              <Clock size={12} className="opacity-70" /> Lần kiểm tra:
-            </span>
-            <span className="font-mono text-[11px] font-medium text-[var(--sc-text-primary)]">
-              {formatDateTime(credential.lastPingAt)}
-            </span>
-          </div>
-
-          {/* Thông điệp Ping */}
+          {/* Thông điệp Ping gần nhất nếu có */}
           {credential.lastPingMessage && (
             <div
-              className={`flex items-start gap-2 rounded-lg p-2.5 text-xs leading-relaxed ${
-                credential.status === 'CONNECTED'
-                  ? 'border border-emerald-200/80 bg-emerald-50/80 text-emerald-800'
-                  : 'border border-red-200/80 bg-red-50/80 text-red-800'
+              className={`flex items-start gap-1.5 rounded-lg p-2 text-[11px] leading-relaxed border ${
+                isConnected
+                  ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800'
+                  : 'border-red-200 bg-red-50/70 text-red-800'
               }`}
             >
-              {credential.status === 'CONNECTED' ? (
-                <CheckCircle2
-                  size={14}
-                  className="shrink-0 mt-0.5 text-emerald-600"
-                />
+              {isConnected ? (
+                <CheckCircle2 size={13} className="shrink-0 mt-0.5 text-emerald-600" />
               ) : (
-                <XCircle
-                  size={14}
-                  className="shrink-0 mt-0.5 text-red-600"
-                />
+                <XCircle size={13} className="shrink-0 mt-0.5 text-red-600" />
               )}
-              <span className="break-words font-medium">{credential.lastPingMessage}</span>
+              <span className="break-words line-clamp-2">{credential.lastPingMessage}</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Footer: Action Buttons */}
-      <div className="flex items-center justify-between border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-5 py-3.5">
+      {/* FOOTER: Nút Kiểm tra kết nối */}
+      <div className="mt-4 pt-3 border-t border-[var(--sc-border-default)]">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onTestPing(credential.id)}
           disabled={isPinging || !canManage}
-          className="gap-1.5 text-xs font-medium transition-all hover:border-[var(--sc-primary)] hover:text-[var(--sc-primary)]"
+          className="w-full justify-center gap-2 rounded-xl text-xs font-semibold transition-all duration-200 hover:border-[var(--sc-primary)] hover:bg-[var(--sc-primary-alpha-08)] hover:text-[var(--sc-primary)] active:scale-[0.98]"
         >
           {isPinging ? (
             <>
               <Loader2 size={13} className="animate-spin text-[var(--sc-primary)]" />
-              <span>Đang kiểm tra...</span>
+              <span>Đang kiểm tra kết nối...</span>
             </>
           ) : (
             <>
@@ -238,34 +256,7 @@ export function CarrierCredentialCard({
             </>
           )}
         </Button>
-
-        {canManage ? (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onEdit(credential)}
-              className="cursor-pointer rounded-lg p-1.5 text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
-              aria-label="Chỉnh sửa cấu hình"
-              title="Chỉnh sửa cấu hình"
-            >
-              <Edit2 size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(credential)}
-              className="cursor-pointer rounded-lg p-1.5 text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-error-bg,#fef2f2)] hover:text-[var(--sc-error)]"
-              aria-label="Gỡ kết nối"
-              title="Gỡ kết nối hãng"
-            >
-              <Trash2 size={15} />
-            </button>
-          </div>
-        ) : (
-          <span className="text-[11px] text-[var(--sc-text-tertiary)]">
-            Chỉ xem (View-only)
-          </span>
-        )}
       </div>
-    </Card>
+    </div>
   );
-}
+};
