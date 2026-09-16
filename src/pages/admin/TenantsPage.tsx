@@ -1,5 +1,6 @@
-import { UnderConstruction } from '@/components/Common';
+import { TenantDirectory } from '@/features/tenants';
 
 export default function TenantsPage() {
-  return <UnderConstruction />;
+  return <TenantDirectory />;
 }
+
