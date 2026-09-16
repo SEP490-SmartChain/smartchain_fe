@@ -102,7 +102,8 @@ export interface TenantStats {
 }
 
 export interface UserStats {
-  totalUsers: number;
+  totalUsers: number | null;
+  status?: 'AVAILABLE' | 'UNAVAILABLE';
 }
 
 export interface CarrierStats {
@@ -110,7 +111,9 @@ export interface CarrierStats {
   activeCarriers: number;
   activeEndpointsCount: number;
   activeServicesCount: number;
-  totalConnectedTenants: number;
+  totalConnectedTenants: number | null;
+  status?: 'AVAILABLE' | 'UNAVAILABLE';
+  errorRatePercentage?: number;
 }
 
 export interface RecentTenant {

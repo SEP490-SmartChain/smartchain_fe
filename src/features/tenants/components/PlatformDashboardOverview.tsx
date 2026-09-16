@@ -108,7 +108,9 @@ export function PlatformDashboardOverview({
           <div className="mt-4">
             <div className="flex flex-wrap items-baseline gap-2">
               <strong className="text-3xl font-semibold tracking-tight text-[var(--sc-text-primary)]">
-                {overview.users.totalUsers.toLocaleString()}
+                {overview.users.totalUsers !== null
+                  ? overview.users.totalUsers.toLocaleString()
+                  : 'N/A'}
               </strong>
               <span className="text-xs font-medium text-[var(--sc-text-tertiary)]">
                 {t('across_all_tenants')}
@@ -143,7 +145,11 @@ export function PlatformDashboardOverview({
               </span>
             </div>
             <p className="mb-0 mt-3 text-xs text-[var(--sc-text-tertiary)]">
-              {overview.carriers.activeEndpointsCount} {t('endpoints')} • {overview.carriers.totalConnectedTenants} {t('connected_tenants')}
+              {overview.carriers.activeEndpointsCount} {t('endpoints')} •{' '}
+              {overview.carriers.totalConnectedTenants !== null
+                ? overview.carriers.totalConnectedTenants
+                : 'N/A'}{' '}
+              {t('connected_tenants')}
             </p>
           </div>
         </div>
