@@ -41,7 +41,6 @@ export function TenantDirectory() {
     isLoading,
     isUpdatingStatus,
     error,
-    isFallbackData,
     refetch,
   } = useTenantManagement();
 
@@ -132,26 +131,31 @@ export function TenantDirectory() {
       label: t('col_workspace'),
       render: (tenant) => (
         <div className="flex items-center gap-3 py-1">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-primary-lighter)] text-xs font-semibold text-[var(--sc-primary-dark)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)] text-xs font-semibold text-[var(--sc-primary-dark)]">
             {tenant.name.slice(0, 2).toUpperCase()}
           </div>
-          <div className="min-w-0">
-            <div className="font-medium text-[var(--sc-text-primary)]">
+          <div className="min-w-0 max-w-[240px]">
+            <div
+              className="truncate text-sm font-semibold text-[var(--sc-text-primary)]"
+              title={tenant.name}
+            >
               {tenant.name}
             </div>
-            <div className="mt-0.5 flex items-center gap-1.5">
+            <div className="mt-1 flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={(e) => copyToClipboard(tenant.slug, e)}
-                title="Sao chép slug"
-                className="inline-flex items-center gap-1 rounded border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--sc-text-secondary)] transition-colors hover:border-[var(--sc-primary)] hover:text-[var(--sc-primary)]"
+                title={`Sao chép mã: ${tenant.slug}`}
+                className="inline-flex max-w-[190px] items-center gap-1 rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--sc-text-secondary)] transition-colors hover:border-[var(--sc-primary)] hover:text-[var(--sc-primary)]"
               >
-                <span>{tenant.slug}</span>
-                {copiedSlug === tenant.slug ? (
-                  <Check size={11} className="text-[var(--sc-success)]" />
-                ) : (
-                  <Copy size={11} className="opacity-50" />
-                )}
+                <span className="truncate">{tenant.slug}</span>
+                <span className="shrink-0">
+                  {copiedSlug === tenant.slug ? (
+                    <Check size={11} className="text-[var(--sc-success)]" />
+                  ) : (
+                    <Copy size={11} className="opacity-50" />
+                  )}
+                </span>
               </button>
             </div>
           </div>
@@ -162,7 +166,7 @@ export function TenantDirectory() {
       key: 'adminEmail',
       label: t('col_admin_email'),
       render: (tenant) => (
-        <span className="text-xs text-[var(--sc-text-secondary)]">
+        <span className="truncate text-xs text-[var(--sc-text-secondary)]" title={tenant.adminEmail || ''}>
           {tenant.adminEmail || '—'}
         </span>
       ),
@@ -180,16 +184,24 @@ export function TenantDirectory() {
       key: 'quota',
       label: t('col_order_quota'),
       render: (tenant) => {
-        const percent =
-          tenant.quota.ordersTotal > 0
-            ? Math.min(Math.round((tenant.quota.ordersUsed / tenant.quota.ordersTotal) * 100), 100)
-            : 0;
+        const total = tenant.quota?.ordersTotal ?? 0;
+        const used = tenant.quota?.ordersUsed ?? 0;
+
+        if (!total || total === 0) {
+          return (
+            <span className="text-xs font-medium text-[var(--sc-text-tertiary)]">
+              Chưa thiết lập
+            </span>
+          );
+        }
+
+        const percent = Math.min(Math.round((used / total) * 100), 100);
         const isCritical = percent >= 90;
         return (
           <div className="w-36 space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-[var(--sc-text-secondary)]">
               <span>
-                <strong>{tenant.quota.ordersUsed.toLocaleString()}</strong> / {tenant.quota.ordersTotal.toLocaleString()}
+                <strong>{used.toLocaleString()}</strong> / {total.toLocaleString()}
               </span>
               <span className={isCritical ? 'font-medium text-[var(--sc-error-dark)]' : 'font-medium text-[var(--sc-text-primary)]'}>
                 {percent}%
@@ -221,7 +233,7 @@ export function TenantDirectory() {
       key: 'createdAt',
       label: t('col_created_at'),
       render: (tenant) => (
-        <span className="text-xs text-[var(--sc-text-secondary)]">
+        <span className="whitespace-nowrap text-xs text-[var(--sc-text-secondary)]">
           {new Date(tenant.createdAt).toLocaleDateString('vi-VN')}
         </span>
       ),
@@ -242,7 +254,12 @@ export function TenantDirectory() {
           </Button>
           <Button
             size="sm"
-            variant={tenant.status === 'ACTIVE' ? 'danger' : 'primary'}
+            variant="outline"
+            className={
+              tenant.status === 'ACTIVE'
+                ? 'border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-950/30'
+                : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 dark:border-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-950/30'
+            }
             onClick={() => setStatusModalTenant(tenant)}
           >
             {tenant.status === 'ACTIVE' ? (
@@ -292,10 +309,9 @@ export function TenantDirectory() {
         </div>
       </div>
 
-      {/* Fallback Notice using Official Alert Component */}
-      {(isFallbackData || error) && (
-        <Alert variant="info" title="Dữ liệu mẫu kiểm thử trực tiếp">
-          Đang hiển thị dữ liệu mẫu do Platform API backend đang trong quá trình cập nhật dữ liệu.
+      {error && (
+        <Alert variant="error" title="Lỗi tải dữ liệu">
+          {error.message}
         </Alert>
       )}
 

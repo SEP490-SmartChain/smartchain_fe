@@ -14,7 +14,6 @@ import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 
 import { tenantManagementApi } from '../api/tenantManagementApi';
-import { SAMPLE_SYSTEM_OVERVIEW } from '../data/sampleTenantsData';
 import type { SystemDashboardOverview } from '../types/tenant.types';
 
 export function PlatformHealthView() {
@@ -28,7 +27,7 @@ export function PlatformHealthView() {
       const data = await tenantManagementApi.getOverview();
       setOverview(data);
     } catch {
-      setOverview((prev) => prev ?? SAMPLE_SYSTEM_OVERVIEW);
+      setOverview(null);
     } finally {
       setIsLoading(false);
     }

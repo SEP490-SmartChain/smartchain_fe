@@ -45,7 +45,6 @@ export function GlobalCarrierCatalog() {
     setSelectedCarrier,
     selectCarrier,
     isLoading,
-    isFallbackData,
     error,
     refetch,
   } = useCarrierCatalog();
@@ -205,10 +204,9 @@ export function GlobalCarrierCatalog() {
         </div>
       </div>
 
-      {/* Fallback Banner */}
-      {(isFallbackData || error) && (
-        <Alert variant="info" title="Danh mục hãng vận chuyển 3PL">
-          Hiển thị cấu hình danh mục tích hợp cho GHN, GHTK, Viettel Post, Ninja Van, Shopee Express và J&T Express.
+      {error && (
+        <Alert variant="error" title="Lỗi tải danh mục hãng vận chuyển">
+          {error.message}
         </Alert>
       )}
 
@@ -278,8 +276,13 @@ export function GlobalCarrierCatalog() {
 
       {/* View Content */}
       {viewMode === 'grid' ? (
-        /* GRID CARDS VIEW */
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        carriers.length === 0 && !isLoading ? (
+          <Card className="p-8 text-center text-sm text-[var(--sc-text-tertiary)]">
+            Không tìm thấy hãng vận chuyển nào.
+          </Card>
+        ) : (
+          /* GRID CARDS VIEW */
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {carriers.map((carrier) => {
             const tags = CARRIER_TAGS[carrier.code] || ['Vận chuyển tiêu chuẩn', 'Tích hợp API'];
             return (
@@ -365,6 +368,7 @@ export function GlobalCarrierCatalog() {
             );
           })}
         </div>
+        )
       ) : (
         /* TABLE VIEW */
         <Card className="overflow-hidden">

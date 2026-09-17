@@ -4,11 +4,6 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { tenantManagementApi } from '../api/tenantManagementApi';
-import {
-  SAMPLE_SYSTEM_OVERVIEW,
-  SAMPLE_TENANT_DETAILS,
-  SAMPLE_TENANTS,
-} from '../data/sampleTenantsData';
 import type {
   SystemDashboardOverview,
   TenantDetail,
@@ -27,7 +22,6 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [isFallbackData, setIsFallbackData] = useState(false);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
@@ -36,8 +30,7 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
       const data = await tenantManagementApi.getOverview();
       setOverview(data);
     } catch {
-      // Fallback to sample overview if offline / 500
-      setOverview((prev) => prev ?? SAMPLE_SYSTEM_OVERVIEW);
+      setOverview(null);
     }
   }, []);
 
@@ -47,43 +40,21 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
       setError(null);
       try {
         const [pageData] = await Promise.all([tenantManagementApi.list(q), fetchOverview()]);
-        if (pageData && Array.isArray(pageData.items) && pageData.items.length > 0) {
-          setTenants(pageData.items);
-          setHasNextPage(Boolean(pageData.pagination?.hasNext));
-          setNextCursor(pageData.pagination?.nextCursor ?? null);
-          setIsFallbackData(false);
-        } else {
-          // If empty array from live DB, check query filter
-          let filtered = [...SAMPLE_TENANTS];
-          if (q.search?.trim()) {
-            const s = q.search.trim().toLowerCase();
-            filtered = filtered.filter(
-              (item) => item.name.toLowerCase().includes(s) || item.slug.toLowerCase().includes(s),
-            );
-          }
-          if (q.status) {
-            filtered = filtered.filter((item) => item.status === q.status);
-          }
-          setTenants(filtered);
-          setIsFallbackData(true);
-          setOverview((prev) => prev ?? SAMPLE_SYSTEM_OVERVIEW);
-        }
+        const items = Array.isArray(pageData)
+          ? pageData
+          : (pageData as unknown as { items?: TenantSummary[] })?.items ?? [];
+        const pagination = (
+          pageData as unknown as { pagination?: { hasNext?: boolean; nextCursor?: string | null } }
+        )?.pagination;
+        setTenants(items);
+        setHasNextPage(Boolean(pagination?.hasNext));
+        setNextCursor(pagination?.nextCursor ?? null);
       } catch (err) {
         const caughtError = err instanceof Error ? err : new Error(String(err));
         setError(caughtError);
-        let filtered = [...SAMPLE_TENANTS];
-        if (q.search?.trim()) {
-          const s = q.search.trim().toLowerCase();
-          filtered = filtered.filter(
-            (item) => item.name.toLowerCase().includes(s) || item.slug.toLowerCase().includes(s),
-          );
-        }
-        if (q.status) {
-          filtered = filtered.filter((item) => item.status === q.status);
-        }
-        setTenants(filtered);
-        setIsFallbackData(true);
-        setOverview((prev) => prev ?? SAMPLE_SYSTEM_OVERVIEW);
+        setTenants([]);
+        setHasNextPage(false);
+        setNextCursor(null);
       } finally {
         setIsLoading(false);
       }
@@ -101,28 +72,8 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
       const detail = await tenantManagementApi.getDetail(idOrSlug);
       setSelectedTenant(detail);
     } catch {
-      const sampleDetail = SAMPLE_TENANT_DETAILS[idOrSlug];
-      if (sampleDetail) {
-        setSelectedTenant(sampleDetail);
-      } else {
-        const sampleSummary = SAMPLE_TENANTS.find((t) => t.id === idOrSlug || t.slug === idOrSlug);
-        if (sampleSummary) {
-          setSelectedTenant({
-            ...sampleSummary,
-            phone: '+84 28 7300 8888',
-            taxId: '0312345678',
-            suspension: null,
-            restoration: null,
-            aggregates: {
-              activeWarehouseCount: 4,
-              currentMonthOrderCount: sampleSummary.quota.ordersUsed,
-              connectedCarrierCount: 3,
-            },
-          });
-        } else {
-          toast.error('Không tìm thấy thông tin workspace');
-        }
-      }
+      toast.error('Không tìm thấy thông tin workspace');
+      setSelectedTenant(null);
     } finally {
       setIsLoadingDetail(false);
     }
@@ -132,42 +83,7 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
     async (id: string, payload: UpdateTenantStatusPayload) => {
       setIsUpdatingStatus(true);
       try {
-        let updated: TenantDetail;
-        try {
-          updated = await tenantManagementApi.updateStatus(id, payload);
-        } catch {
-          // If API fails, perform local optimistic update on sample data
-          const current = tenants.find((t) => t.id === id);
-          if (!current) throw new Error('Workspace không tồn tại');
-          updated = {
-            ...current,
-            status: payload.status,
-            phone: '+84 28 7300 8888',
-            taxId: '0312345678',
-            suspension:
-              payload.status === 'SUSPENDED'
-                ? {
-                    reason: payload.reason || 'ADMIN_REQUEST',
-                    suspendedAt: new Date().toISOString(),
-                    suspendedBy: 'current-admin',
-                    internalNote: payload.internalNote ?? null,
-                  }
-                : null,
-            restoration:
-              payload.status === 'ACTIVE'
-                ? {
-                    reason: payload.reason || 'Kích hoạt lại bởi Quản trị viên',
-                    unsuspendedAt: new Date().toISOString(),
-                    unsuspendedBy: 'current-admin',
-                  }
-                : null,
-            aggregates: {
-              activeWarehouseCount: 3,
-              currentMonthOrderCount: current.quota.ordersUsed,
-              connectedCarrierCount: 2,
-            },
-          };
-        }
+        const updated = await tenantManagementApi.updateStatus(id, payload);
 
         toast.success(
           payload.status === 'SUSPENDED'
@@ -192,7 +108,7 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
         setIsUpdatingStatus(false);
       }
     },
-    [tenants, selectedTenant, fetchOverview, t],
+    [selectedTenant, fetchOverview, t],
   );
 
   return {
@@ -208,7 +124,6 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
     isLoadingDetail,
     isUpdatingStatus,
     error,
-    isFallbackData,
     hasNextPage,
     nextCursor,
     refetch: () => fetchTenants(query),
