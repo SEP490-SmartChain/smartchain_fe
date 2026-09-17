@@ -1,5 +1,6 @@
-import { UnderConstruction } from '@/components/Common';
+import { PlatformHealthView } from '@/features/tenants';
 
 export default function HealthPage() {
-  return <UnderConstruction />;
+  return <PlatformHealthView />;
 }
+
