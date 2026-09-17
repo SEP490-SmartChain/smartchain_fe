@@ -9,8 +9,10 @@ export { TenantDirectory } from './components/TenantDirectory';
 export { PlatformDashboardOverview } from './components/PlatformDashboardOverview';
 export { PlatformHealthView } from './components/PlatformHealthView';
 export { PlatformMonitoringDashboard } from './components/PlatformMonitoringDashboard';
+export { WebhookManager } from './components/WebhookManager';
 export { useStaffAccounts } from './hooks/useStaffAccounts';
 export { useTenantManagement } from './hooks/useTenantManagement';
+export { useWebhooks } from './hooks/useWebhooks';
 export type {
   StaffAccount,
   StaffAccountFilters,
@@ -24,4 +26,10 @@ export type {
   TenantListQuery,
   SystemDashboardOverview,
 } from './types/tenant.types';
-
+export type {
+  CreateWebhookPayload,
+  UpdateWebhookPayload,
+  WebhookEndpoint,
+  WebhookEventTopic,
+  WebhookTestResult,
+} from './types/webhook.types';

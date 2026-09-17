@@ -10,10 +10,21 @@ interface FetchOptions extends RequestInit {
   silent?: boolean;
 }
 
+export interface ApiPaginationMeta {
+  limit: number;
+  hasNext: boolean;
+  nextCursor: string | null;
+}
+
 export interface ApiResponse<T> {
   success: true;
   data: T;
-  meta: { timestamp: string; path: string; requestId: string };
+  meta: {
+    timestamp: string;
+    path: string;
+    requestId: string;
+    pagination?: ApiPaginationMeta;
+  };
 }
 
 export interface LoginInput {
@@ -112,6 +123,13 @@ class ApiClient {
           parsed.success ? parsed.data.error.code : 'HTTP.ERROR',
           parsed.success ? parsed.data.error.details : undefined,
         );
+      }
+      if (response.status === 204) {
+        return {
+          success: true,
+          data: null,
+          meta: { timestamp: new Date().toISOString(), path: endpoint, requestId: '' },
+        } as T;
       }
       if (!z.object({ success: z.literal(true), data: z.unknown() }).safeParse(body).success) {
         throw new ApiError(

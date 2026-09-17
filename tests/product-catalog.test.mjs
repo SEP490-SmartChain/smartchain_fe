@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
 let server;
-let staffAccountApi;
+let productApi;
 let useAuthStore;
 const originalFetch = globalThis.fetch;
 const admin = {
@@ -16,18 +16,22 @@ const admin = {
   roles: ['TENANT_ADMIN'],
   permissions: [],
 };
-const staff = {
-  userId: '00000000-0000-4000-8000-000000000004',
-  fullName: 'Test Staff',
-  email: 'staff@example.test',
-  roles: ['DISPATCHER'],
-  lastSessionAt: '2026-09-10T02:00:00.000Z',
-  status: 'ACTIVE',
+const product = {
+  id: '00000000-0000-4000-8000-000000000010',
+  sku: 'SKU-001',
+  name: 'Sample Product',
+  weightG: 500,
+  lengthCm: '10.5',
+  widthCm: '5.25',
+  heightCm: '3',
+  declaredValue: '120000',
+  isActive: true,
+  createdAt: '2026-09-01T02:00:00.000Z',
 };
-const ok = (data, pagination) =>
+const ok = (items, pagination) =>
   Response.json({
     success: true,
-    data,
+    data: items,
     meta: {
       timestamp: '2026-09-11T02:00:00.000Z',
       path: '',
@@ -45,9 +49,7 @@ before(async () => {
     resolve: { alias: { '@': fileURLToPath(new URL('../src', import.meta.url)) } },
     server: { middlewareMode: true, watch: null, ws: false },
   });
-  ({ staffAccountApi } = await server.ssrLoadModule(
-    '/src/features/tenants/api/staffAccountApi.ts',
-  ));
+  ({ productApi } = await server.ssrLoadModule('/src/features/catalog/api/productApi.ts'));
   ({ useAuthStore } = await server.ssrLoadModule('/src/stores/authStore.ts'));
 });
 
@@ -61,49 +63,42 @@ beforeEach(() => {
   useAuthStore.getState().setSession({ accessToken: 'admin-token', expiresIn: 900, user: admin });
 });
 
-test('staff directory sends tenant filters through the authenticated API client', async () => {
+test('product catalog sends tenant filters through the authenticated API client', async () => {
   globalThis.fetch = async (url, options) => {
     const requestUrl = new URL(url, 'https://app.example.test');
-    assert.equal(requestUrl.pathname, '/api/v1/iam/users');
+    assert.equal(requestUrl.pathname, '/api/v1/catalog/products');
     assert.equal(requestUrl.searchParams.get('limit'), '100');
-    assert.equal(requestUrl.searchParams.get('search'), 'staff');
-    assert.equal(requestUrl.searchParams.get('role'), 'DISPATCHER');
-    assert.equal(requestUrl.searchParams.get('status'), 'ACTIVE');
+    assert.equal(requestUrl.searchParams.get('search'), 'sku');
+    assert.equal(requestUrl.searchParams.get('isActive'), 'true');
     assert.equal(options.headers.get('Authorization'), 'Bearer admin-token');
-    return ok([staff], { limit: 100, hasNext: false, nextCursor: null });
+    return ok([product], { limit: 100, hasNext: false, nextCursor: null });
   };
 
-  const page = await staffAccountApi.list({
-    search: ' staff ',
-    role: 'DISPATCHER',
-    status: 'ACTIVE',
-  });
+  const page = await productApi.list({ search: ' sku ', isActive: 'true' });
 
-  assert.deepEqual(page.items, [staff]);
+  assert.deepEqual(page.items, [product]);
   assert.deepEqual(page.pagination, { limit: 100, hasNext: false, nextCursor: null });
 });
 
-test('lock action uses PATCH with only the allowed status field', async () => {
-  globalThis.fetch = async (url, options) => {
-    assert.equal(url, `/api/v1/iam/users/${staff.userId}/status`);
-    assert.equal(options.method, 'PATCH');
-    assert.equal(options.headers.get('Authorization'), 'Bearer admin-token');
-    assert.deepEqual(JSON.parse(options.body), { status: 'LOCKED' });
-    return ok({ ...staff, status: 'LOCKED' });
+test('omits isActive from the query when the filter is unset', async () => {
+  globalThis.fetch = async (url) => {
+    const requestUrl = new URL(url, 'https://app.example.test');
+    assert.equal(requestUrl.searchParams.has('isActive'), false);
+    return ok([], { limit: 100, hasNext: false, nextCursor: null });
   };
 
-  await assert.doesNotReject(staffAccountApi.changeStatus(staff.userId, 'LOCKED'));
+  await productApi.list({ search: '', isActive: '' });
 });
 
-test('malformed staff responses are rejected before reaching the UI', async () => {
+test('malformed product responses are rejected before reaching the UI', async () => {
   globalThis.fetch = async () =>
-    ok([{ ...staff, status: 'SUSPENDED' }], {
+    ok([{ ...product, weightG: 'not-a-number' }], {
       limit: 100,
       hasNext: false,
       nextCursor: null,
     });
 
-  await assert.rejects(staffAccountApi.list({ search: '', role: '', status: '' }), {
+  await assert.rejects(productApi.list({ search: '', isActive: '' }), {
     name: 'ZodError',
   });
 });
