@@ -17,3 +17,7 @@ export {
   getForgotPasswordSchema,
   type ForgotPasswordFormData,
 } from './schemas/forgotPassword.schema';
+
+export { ResetPasswordForm } from './components/ResetPasswordForm';
+export { usePasswordResetConfirm } from './hooks/usePasswordResetConfirm';
+export { getResetPasswordSchema, type ResetPasswordFormData } from './schemas/resetPassword.schema';
