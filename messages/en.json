@@ -800,7 +800,7 @@
     "copyFailed": "Could not copy to clipboard. Please copy manually.",
     "secretStorageAdvice": "Usage: Use this key to verify the HMAC signature header (X-SmartChain-Signature) for each webhook payload received from SmartChain.",
     "savedSecretConfirmation": "I have saved my secret key"
-  }
+  },
   "ProductCatalog": {
     "title": "Product catalog",
     "tableLabel": "Product catalog table",

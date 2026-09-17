@@ -800,7 +800,7 @@
     "copyFailed": "Không thể sao chép vào bộ nhớ tạm. Vui lòng chọn và sao chép thủ công.",
     "secretStorageAdvice": "Cách dùng: Sử dụng khóa này để kiểm tra tính hợp lệ của chữ ký trong header X-SmartChain-Signature đối với mỗi webhook request nhận được từ SmartChain.",
     "savedSecretConfirmation": "Tôi đã lưu mã bí mật"
-  }
+  },
   "ProductCatalog": {
     "title": "Danh mục sản phẩm",
     "tableLabel": "Bảng danh mục sản phẩm",
