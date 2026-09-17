@@ -19,6 +19,7 @@ import NotFoundPage from '@/pages/public/NotFoundPage';
 import RegisterPage from '@/pages/public/RegisterPage';
 
 const ForgotPasswordPage = React.lazy(() => import('@/pages/public/ForgotPasswordPage'));
+const ResetPasswordPage = React.lazy(() => import('@/pages/public/ResetPasswordPage'));
 const OtpPage = React.lazy(() => import('@/pages/public/OtpPage'));
 const ForbiddenPage = React.lazy(() => import('@/pages/public/ForbiddenPage'));
 
@@ -88,6 +89,7 @@ function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/otp" element={<OtpPage />} />
             </Route>
 

@@ -10,6 +10,7 @@ let useAuthStore;
 let useTenantStore;
 let getLoginSchema;
 let getForgotPasswordSchema;
+let getResetPasswordSchema;
 let getPostLoginPath;
 const originalFetch = globalThis.fetch;
 const user = {
@@ -54,6 +55,9 @@ before(async () => {
   ({ getLoginSchema } = await server.ssrLoadModule('/src/features/auth/schemas/loginSchema.ts'));
   ({ getForgotPasswordSchema } = await server.ssrLoadModule(
     '/src/features/auth/schemas/forgotPassword.schema.ts',
+  ));
+  ({ getResetPasswordSchema } = await server.ssrLoadModule(
+    '/src/features/auth/schemas/resetPassword.schema.ts',
   ));
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
 });
@@ -398,5 +402,87 @@ test('forgot-password validation normalizes email and rejects malformed input', 
   assert.equal(schema.parse({ email: ' User@Example.COM ' }).email, 'user@example.com');
   for (const invalid of ['not-an-email', '', 'a'.repeat(255) + '@example.com']) {
     assert.equal(schema.safeParse({ email: invalid }).success, false);
+  }
+});
+
+test('password reset confirmation posts anonymously to the reset-password contract endpoint', async () => {
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return ok({ messageKey: 'auth.passwordResetConfirmed' });
+  };
+  const response = await apiClient.post(
+    '/v1/auth/reset-password',
+    {
+      token: 'delivery-id.mac-value',
+      newPassword: 'NewPassw0rd!',
+      confirmNewPassword: 'NewPassw0rd!',
+    },
+    { requiresAuth: false },
+  );
+  assert.equal(captured.url, '/api/v1/auth/reset-password');
+  assert.equal(captured.options.method, 'POST');
+  assert.equal(captured.options.headers.get('Authorization'), null);
+  assert.deepEqual(JSON.parse(captured.options.body), {
+    token: 'delivery-id.mac-value',
+    newPassword: 'NewPassw0rd!',
+    confirmNewPassword: 'NewPassw0rd!',
+  });
+  assert.deepEqual(response, {
+    success: true,
+    data: { messageKey: 'auth.passwordResetConfirmed' },
+    meta: {},
+  });
+});
+
+test('password reset confirmation surfaces the generic invalid-token error', async () => {
+  globalThis.fetch = async () => fail(400, 'AUTH.PASSWORD_RESET_TOKEN_INVALID');
+  await assert.rejects(
+    apiClient.post(
+      '/v1/auth/reset-password',
+      {
+        token: 'delivery-id.mac-value',
+        newPassword: 'NewPassw0rd!',
+        confirmNewPassword: 'NewPassw0rd!',
+      },
+      { requiresAuth: false },
+    ),
+    { status: 400, code: 'AUTH.PASSWORD_RESET_TOKEN_INVALID' },
+  );
+});
+
+test('verify-reset-token GET reads the token as a query param, not in the URL path or body', async () => {
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return ok({ valid: true });
+  };
+  const response = await apiClient.get('/v1/auth/verify-reset-token', {
+    params: { token: 'delivery-id.mac-value' },
+    requiresAuth: false,
+  });
+  assert.equal(
+    captured.url,
+    '/api/v1/auth/verify-reset-token?token=delivery-id.mac-value',
+  );
+  assert.equal(captured.options.method, 'GET');
+  assert.deepEqual(response, { success: true, data: { valid: true }, meta: {} });
+});
+
+test('reset-password validation requires matching passwords meeting complexity rules', () => {
+  const schema = getResetPasswordSchema((key) => key);
+  assert.equal(
+    schema.safeParse({ newPassword: 'NewPassw0rd!', confirmPassword: 'NewPassw0rd!' }).success,
+    true,
+  );
+  assert.equal(
+    schema.safeParse({ newPassword: 'NewPassw0rd!', confirmPassword: 'Different1!' }).success,
+    false,
+  );
+  for (const weak of ['short1!', 'nouppercase1!', 'NOLOWERCASE1!', 'NoDigitsHere!', 'NoSpecial123']) {
+    assert.equal(
+      schema.safeParse({ newPassword: weak, confirmPassword: weak }).success,
+      false,
+    );
   }
 });
