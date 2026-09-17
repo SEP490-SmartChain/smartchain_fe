@@ -140,6 +140,7 @@
     "forgot_sending": "Sending...",
     "forgot_sent_hint": "If {email} matches an eligible account, we've sent a password reset link — it expires in 15 minutes. Don't see it? Check your spam folder.",
     "forgot_try_again": "Try a different email",
+    "reset_checking": "Checking link...",
     "reset_heading": "Reset your password",
     "reset_subheading": "Enter a new password for your account.",
     "new_password_label": "New password",

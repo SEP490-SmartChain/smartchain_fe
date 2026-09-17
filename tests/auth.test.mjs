@@ -405,23 +405,28 @@ test('forgot-password validation normalizes email and rejects malformed input', 
   }
 });
 
-test('password reset confirmation posts anonymously to the confirmation contract endpoint', async () => {
+test('password reset confirmation posts anonymously to the reset-password contract endpoint', async () => {
   let captured;
   globalThis.fetch = async (url, options) => {
     captured = { url, options };
     return ok({ messageKey: 'auth.passwordResetConfirmed' });
   };
   const response = await apiClient.post(
-    '/v1/auth/password-reset-confirmations',
-    { token: 'delivery-id.mac-value', newPassword: 'NewPassw0rd!' },
+    '/v1/auth/reset-password',
+    {
+      token: 'delivery-id.mac-value',
+      newPassword: 'NewPassw0rd!',
+      confirmNewPassword: 'NewPassw0rd!',
+    },
     { requiresAuth: false },
   );
-  assert.equal(captured.url, '/api/v1/auth/password-reset-confirmations');
+  assert.equal(captured.url, '/api/v1/auth/reset-password');
   assert.equal(captured.options.method, 'POST');
   assert.equal(captured.options.headers.get('Authorization'), null);
   assert.deepEqual(JSON.parse(captured.options.body), {
     token: 'delivery-id.mac-value',
     newPassword: 'NewPassw0rd!',
+    confirmNewPassword: 'NewPassw0rd!',
   });
   assert.deepEqual(response, {
     success: true,
@@ -434,12 +439,34 @@ test('password reset confirmation surfaces the generic invalid-token error', asy
   globalThis.fetch = async () => fail(400, 'AUTH.PASSWORD_RESET_TOKEN_INVALID');
   await assert.rejects(
     apiClient.post(
-      '/v1/auth/password-reset-confirmations',
-      { token: 'delivery-id.mac-value', newPassword: 'NewPassw0rd!' },
+      '/v1/auth/reset-password',
+      {
+        token: 'delivery-id.mac-value',
+        newPassword: 'NewPassw0rd!',
+        confirmNewPassword: 'NewPassw0rd!',
+      },
       { requiresAuth: false },
     ),
     { status: 400, code: 'AUTH.PASSWORD_RESET_TOKEN_INVALID' },
   );
+});
+
+test('verify-reset-token GET reads the token as a query param, not in the URL path or body', async () => {
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return ok({ valid: true });
+  };
+  const response = await apiClient.get('/v1/auth/verify-reset-token', {
+    params: { token: 'delivery-id.mac-value' },
+    requiresAuth: false,
+  });
+  assert.equal(
+    captured.url,
+    '/api/v1/auth/verify-reset-token?token=delivery-id.mac-value',
+  );
+  assert.equal(captured.options.method, 'GET');
+  assert.deepEqual(response, { success: true, data: { valid: true }, meta: {} });
 });
 
 test('reset-password validation requires matching passwords meeting complexity rules', () => {

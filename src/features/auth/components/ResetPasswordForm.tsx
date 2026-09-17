@@ -17,7 +17,7 @@ import {
 
 export function ResetPasswordForm() {
   const t = useTranslations();
-  const { tokenInvalid, confirmed, confirmReset } = usePasswordResetConfirm();
+  const { checking, tokenInvalid, confirmed, confirmReset } = usePasswordResetConfirm();
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const {
@@ -30,8 +30,16 @@ export function ResetPasswordForm() {
   });
 
   const onSubmit = async (data: ResetPasswordFormData) => {
-    await confirmReset(data.newPassword);
+    await confirmReset(data.newPassword, data.confirmPassword);
   };
+
+  if (checking) {
+    return (
+      <div className="animate-pulse text-sm text-[var(--sc-text-secondary)]">
+        {t('Auth.reset_checking')}
+      </div>
+    );
+  }
 
   if (tokenInvalid) {
     return (

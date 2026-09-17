@@ -47,13 +47,20 @@ can retry. The email carries a one-time link, not an OTP code — do not route t
 
 ## Password Reset Confirmation
 
-`POST /api/v1/auth/password-reset-confirmations`: `{ token, newPassword }`, anonymous
-(`requiresAuth: false`). `ResetPasswordForm` (`/reset-password`) reads the one-time `token` from
-the URL fragment (`#token=...`, never a query string) via `usePasswordResetConfirm` — a missing
-fragment shows the invalid-link state without ever calling the API. On success it shows a generic
-"password reset" confirmation and links back to `/login`; the API does not return session tokens,
-so the user signs in again with the new password (all of that account's other sessions were
-revoked server-side). Any API error whose code is `AUTH.PASSWORD_RESET_TOKEN_INVALID` — covering
-unknown, expired, already-used, or no-longer-eligible tokens alike — switches the form to the same
-invalid-link state with a link to `/forgot-password`; other errors (rate limit, network) surface
-through apiClient's default toast and leave the form on the input step for retry.
+- `GET /api/v1/auth/verify-reset-token?token=...`: anonymous, read-only pre-flight check.
+  `ResetPasswordForm` (`/reset-password`) calls this on mount with the one-time `token` read from
+  the URL fragment (`#token=...`, never a query string in the address bar) via
+  `usePasswordResetConfirm` — a missing fragment shows the invalid-link state without ever calling
+  the API. While the check is pending the form shows a brief "checking link" state.
+- `POST /api/v1/auth/reset-password`: `{ token, newPassword, confirmNewPassword }`, anonymous
+  (`requiresAuth: false`). The server re-validates `newPassword === confirmNewPassword` and that
+  the new password differs from the current one; the client-side Zod schema already enforces both,
+  so these should not normally fire through the UI.
+
+On success the form shows a generic "password reset" confirmation and links back to `/login`; the
+API does not return session tokens, so the user signs in again with the new password (all of that
+account's other sessions were revoked server-side). Any API error whose code is
+`AUTH.PASSWORD_RESET_TOKEN_INVALID` — covering unknown, expired, already-used, or no-longer-eligible
+tokens alike — switches the form to the same invalid-link state with a link to `/forgot-password`;
+other errors (same-as-current password, rate limit, network) surface through apiClient's default
+toast and leave the form on the input step for retry.
