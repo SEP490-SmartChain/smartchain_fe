@@ -9,6 +9,7 @@ import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Avatar, Button, Card, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { uploadApi } from '@/services/uploadApi';
 import { useAuthStore } from '@/stores';
 
@@ -87,9 +88,10 @@ export default function ProfileSettings() {
   const originalFirstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
   const originalLastName = nameParts.length > 1 ? nameParts.at(-1) || '' : '';
   const email = user?.email || 'admin@smartchain.vn';
+  const persistedPhotoSrc = useAvatarUrl(user?.avatarUrl);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const [photoSrc, setPhotoSrc] = useState(user?.avatarUrl || profileAvatar);
+  const [photoSrc, setPhotoSrc] = useState(profileAvatar);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -116,10 +118,10 @@ export default function ProfileSettings() {
       setSavedFirstName(fName);
       setSavedLastName(lName);
       if (!photoChanged) {
-        setPhotoSrc(user.avatarUrl || profileAvatar);
+        setPhotoSrc(persistedPhotoSrc || profileAvatar);
       }
     }
-  }, [user, photoChanged]);
+  }, [user, photoChanged, persistedPhotoSrc]);
 
   const notifyAction = (action: string) => toast.success(t('actionReady', { action }));
 
@@ -155,13 +157,14 @@ export default function ProfileSettings() {
       });
 
       await uploadApi.uploadDirect(presigned.uploadUrl, selectedPhotoFile, presigned.headers);
-      const cleanAvatarUrl = presigned.uploadUrl.split('?')[0];
+      const { downloadUrl } = await uploadApi.avatarDownloadUrl(presigned.objectKey);
 
-      await staffAccountApi.updateProfile('me', { avatarUrl: cleanAvatarUrl });
+      await staffAccountApi.updateProfile('me', { avatarUrl: presigned.objectKey });
       if (user) {
-        useAuthStore.getState().setUser({ ...user, avatarUrl: cleanAvatarUrl });
+        useAuthStore.getState().setUser({ ...user, avatarUrl: presigned.objectKey });
       }
 
+      setPhotoSrc(downloadUrl);
       setPhotoChanged(false);
       setSelectedPhotoFile(null);
       toast.success(t('photoSaved'));
@@ -199,7 +202,7 @@ export default function ProfileSettings() {
 
   const savePhone = async () => {
     const trimmed = phoneInput.trim();
-    if (trimmed && !/^(0|\+84)[0-9]{9}$/.test(trimmed)) {
+    if (trimmed && !/^0[0-9]{9}$/.test(trimmed)) {
       toast.error('Số điện thoại không đúng định dạng (VD: 0901234567)');
       return;
     }

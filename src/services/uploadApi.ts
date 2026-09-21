@@ -15,6 +15,24 @@ export interface PresignUploadResult {
   headers: Record<string, string>;
 }
 
+export interface AvatarDownloadResult {
+  downloadUrl: string;
+  expiresInSeconds: number;
+}
+
+export function avatarObjectKey(reference?: string | null): string | null {
+  if (!reference) return null;
+  if (reference.startsWith('tenants/')) return reference;
+
+  try {
+    const pathname = new URL(reference).pathname;
+    const tenantPathIndex = pathname.indexOf('/tenants/');
+    return tenantPathIndex >= 0 ? pathname.slice(tenantPathIndex + 1) : null;
+  } catch {
+    return null;
+  }
+}
+
 export const uploadApi = {
   async presign(input: PresignUploadInput): Promise<PresignUploadResult> {
     const { data } = await apiClient.post<ApiResponse<PresignUploadResult>>(
@@ -40,5 +58,14 @@ export const uploadApi = {
     if (!response.ok) {
       throw new Error(`Upload to storage failed with status ${response.status}`);
     }
+  },
+
+  async avatarDownloadUrl(objectKey: string): Promise<AvatarDownloadResult> {
+    const { data } = await apiClient.post<ApiResponse<AvatarDownloadResult>>(
+      '/v1/uploads/avatar-url',
+      { objectKey },
+      { silent: true },
+    );
+    return data;
   },
 };

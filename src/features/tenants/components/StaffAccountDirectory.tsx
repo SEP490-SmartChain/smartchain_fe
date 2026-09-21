@@ -30,6 +30,7 @@ import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -53,6 +54,19 @@ interface ActionMenuState {
   account: StaffAccount;
   top: number;
   left: number;
+}
+
+function StaffAvatar({ account, isSelf }: { account: StaffAccount; isSelf: boolean }) {
+  const avatarUrl = useAvatarUrl(account.avatarUrl);
+
+  return (
+    <Avatar
+      src={avatarUrl || (isSelf ? profileAvatar : undefined)}
+      fallback={account.fullName}
+      size="lg"
+      className="rounded-full border-[var(--sc-border-default)]"
+    />
+  );
 }
 
 function relativeTime(timestamp: string | null, locale: string, fallback: string) {
@@ -463,12 +477,7 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex min-w-0 items-center gap-3">
-                              <Avatar
-                                src={account.avatarUrl || (isSelf ? profileAvatar : undefined)}
-                                fallback={account.fullName}
-                                size="lg"
-                                className="rounded-full border-[var(--sc-border-default)]"
-                              />
+                              <StaffAvatar account={account} isSelf={isSelf} />
                               <span className="min-w-0">
                                 <span className="block truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
                                   {account.fullName}
