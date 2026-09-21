@@ -464,7 +464,7 @@ export function StaffAccountDirectory() {
                           <td className="px-4 py-3.5">
                             <div className="flex min-w-0 items-center gap-3">
                               <Avatar
-                                src={isSelf ? profileAvatar : undefined}
+                                src={account.avatarUrl || (isSelf ? profileAvatar : undefined)}
                                 fallback={account.fullName}
                                 size="lg"
                                 className="rounded-full border-[var(--sc-border-default)]"
@@ -489,7 +489,11 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="block text-sm leading-[18px] text-[var(--sc-text-primary)]">
-                              {account.status === 'ACTIVE' ? t('signedIn') : account.status === 'PENDING' ? t('pending') : t('accountLocked')}
+                              {account.status === 'ACTIVE'
+                                ? t('signedIn')
+                                : account.status === 'PENDING'
+                                  ? t('pending')
+                                  : t('accountLocked')}
                             </span>
                             <span className="mt-0.5 block text-xs text-[var(--sc-text-tertiary)]">
                               {relativeTime(account.lastSessionAt, locale, t('never'))}
@@ -506,8 +510,20 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <Badge
-                              status={account.status === 'ACTIVE' ? 'success' : account.status === 'PENDING' ? 'warning' : 'error'}
-                              label={account.status === 'ACTIVE' ? t('active') : account.status === 'PENDING' ? t('pending') : t('blocked')}
+                              status={
+                                account.status === 'ACTIVE'
+                                  ? 'success'
+                                  : account.status === 'PENDING'
+                                    ? 'warning'
+                                    : 'error'
+                              }
+                              label={
+                                account.status === 'ACTIVE'
+                                  ? t('active')
+                                  : account.status === 'PENDING'
+                                    ? t('pending')
+                                    : t('blocked')
+                              }
                               size="md"
                             />
                           </td>
@@ -530,7 +546,7 @@ export function StaffAccountDirectory() {
                               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.25fr_1fr_1fr_1.2fr_auto] xl:items-center">
                                 {[
                                   [t('emailAddress'), account.email],
-                                  [t('contactNumber'), t('notProvided')],
+                                  [t('contactNumber'), account.phone || t('notProvided')],
                                   [
                                     t('assignedRole'),
                                     account.roles.map(roleLabel).join(', ') || t('notProvided'),
@@ -555,7 +571,11 @@ export function StaffAccountDirectory() {
                                   type="button"
                                   size="sm"
                                   variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
-                                  disabled={isSelf || updatingUserId === account.userId || account.status === 'PENDING'}
+                                  disabled={
+                                    isSelf ||
+                                    updatingUserId === account.userId ||
+                                    account.status === 'PENDING'
+                                  }
                                   isLoading={updatingUserId === account.userId}
                                   title={isSelf ? t('cannotLockSelf') : undefined}
                                   onClick={() => setSelectedAccount(account)}
@@ -612,7 +632,10 @@ export function StaffAccountDirectory() {
               <button
                 type="button"
                 role="menuitem"
-                disabled={actionMenu.account.userId === currentUserId || actionMenu.account.status === 'PENDING'}
+                disabled={
+                  actionMenu.account.userId === currentUserId ||
+                  actionMenu.account.status === 'PENDING'
+                }
                 onClick={() => {
                   setSelectedAccount(actionMenu.account);
                   setActionMenu(null);
@@ -631,7 +654,11 @@ export function StaffAccountDirectory() {
           document.body,
         )}
 
-      <AddStaffAccountModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={() => refetch()} />
+      <AddStaffAccountModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSuccess={() => refetch()}
+      />
 
       <Modal
         isOpen={selectedAccount !== null}

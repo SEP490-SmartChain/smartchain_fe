@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore, useLocaleStore, useUiStore } from '@/stores';
 import type { ThemeMode } from '@/stores/uiStore';
 
+import { Avatar } from '@/components/Common';
 import { NAV_ICONS } from './navIcons';
 import RouteBreadcrumbs from './RouteBreadcrumbs';
 
@@ -349,9 +350,12 @@ export default function Topbar() {
             onClick={() => togglePopover('profile')}
             className="flex items-center gap-2 rounded-lg text-left"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--sc-primary-lighter)] text-[11px] font-semibold text-[var(--sc-primary-dark)]">
-              {initials}
-            </span>
+            <Avatar
+              src={user?.avatarUrl || undefined}
+              fallback={displayName}
+              size="md"
+              className="rounded-full"
+            />
             <span className="hidden min-w-0 sm:block">
               <span className="block max-w-36 truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
                 {displayName}
@@ -368,9 +372,12 @@ export default function Topbar() {
               className="sc-popover-enter absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[220px] rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-2 shadow-[var(--sc-shadow-popover)]"
             >
               <div className="flex flex-col items-center px-3 py-2 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--sc-primary-lighter)] text-sm font-semibold text-[var(--sc-primary-dark)]">
-                  {initials}
-                </span>
+                <Avatar
+                  src={user?.avatarUrl || undefined}
+                  fallback={displayName}
+                  size="xl"
+                  className="rounded-full"
+                />
                 <p className="mb-0 mt-2 max-w-full truncate text-sm font-medium">{displayName}</p>
                 <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{role}</p>
               </div>

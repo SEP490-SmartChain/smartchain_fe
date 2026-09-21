@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Camera, CheckCircle2, ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -7,6 +7,9 @@ import { toast } from 'sonner';
 import googleLogo from '@/assets/images/settings/google.svg';
 import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Avatar, Button, Card, Input, Select } from '@/components/Common';
+import Modal from '@/components/Common/Modal/Modal';
+import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
+import { uploadApi } from '@/services/uploadApi';
 import { useAuthStore } from '@/stores';
 
 interface SettingsMatrixCardProps {
@@ -84,14 +87,39 @@ export default function ProfileSettings() {
   const originalFirstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
   const originalLastName = nameParts.length > 1 ? nameParts.at(-1) || '' : '';
   const email = user?.email || 'admin@smartchain.vn';
+
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const [photoSrc, setPhotoSrc] = useState(profileAvatar);
+  const [photoSrc, setPhotoSrc] = useState(user?.avatarUrl || profileAvatar);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoChanged, setPhotoChanged] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
   const [firstName, setFirstName] = useState(originalFirstName);
   const [lastName, setLastName] = useState(originalLastName);
   const [savedFirstName, setSavedFirstName] = useState(originalFirstName);
   const [savedLastName, setSavedLastName] = useState(originalLastName);
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(user?.phone || '');
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+
   const nameChanged = firstName !== savedFirstName || lastName !== savedLastName;
+
+  useEffect(() => {
+    if (user) {
+      const parts = (user.fullName?.trim() || '').split(/\s+/);
+      const fName = parts.slice(0, -1).join(' ') || parts[0] || '';
+      const lName = parts.length > 1 ? parts.at(-1) || '' : '';
+      setFirstName(fName);
+      setLastName(lName);
+      setSavedFirstName(fName);
+      setSavedLastName(lName);
+      if (!photoChanged) {
+        setPhotoSrc(user.avatarUrl || profileAvatar);
+      }
+    }
+  }, [user, photoChanged]);
 
   const notifyAction = (action: string) => toast.success(t('actionReady', { action }));
 
@@ -99,6 +127,12 @@ export default function ProfileSettings() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Kích thước ảnh tối đa là 5MB');
+      return;
+    }
+
+    setSelectedPhotoFile(file);
     const reader = new FileReader();
     reader.addEventListener('load', () => {
       if (typeof reader.result === 'string') {
@@ -109,15 +143,81 @@ export default function ProfileSettings() {
     reader.readAsDataURL(file);
   };
 
-  const saveName = () => {
-    setSavedFirstName(firstName);
-    setSavedLastName(lastName);
-    toast.success(t('saved'));
+  const savePhoto = async () => {
+    if (!selectedPhotoFile) return;
+    setIsUploadingPhoto(true);
+    try {
+      const presigned = await uploadApi.presign({
+        purpose: 'AVATAR',
+        fileName: selectedPhotoFile.name,
+        contentType: selectedPhotoFile.type,
+        fileSizeBytes: selectedPhotoFile.size,
+      });
+
+      await uploadApi.uploadDirect(presigned.uploadUrl, selectedPhotoFile, presigned.headers);
+      const cleanAvatarUrl = presigned.uploadUrl.split('?')[0];
+
+      await staffAccountApi.updateProfile('me', { avatarUrl: cleanAvatarUrl });
+      if (user) {
+        useAuthStore.getState().setUser({ ...user, avatarUrl: cleanAvatarUrl });
+      }
+
+      setPhotoChanged(false);
+      setSelectedPhotoFile(null);
+      toast.success(t('photoSaved'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Tải ảnh lên thất bại';
+      toast.error(message);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
 
-  const savePhoto = () => {
-    setPhotoChanged(false);
-    toast.success(t('photoSaved'));
+  const saveName = async () => {
+    const combinedName = `${firstName} ${lastName}`.trim();
+    if (combinedName.length < 2) {
+      toast.error(t('nameHint'));
+      return;
+    }
+
+    setIsSavingName(true);
+    try {
+      await staffAccountApi.updateProfile('me', { fullName: combinedName });
+      if (user) {
+        useAuthStore.getState().setUser({ ...user, fullName: combinedName });
+      }
+      setSavedFirstName(firstName);
+      setSavedLastName(lastName);
+      toast.success(t('saved'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Cập nhật họ tên thất bại';
+      toast.error(message);
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const savePhone = async () => {
+    const trimmed = phoneInput.trim();
+    if (trimmed && !/^(0|\+84)[0-9]{9}$/.test(trimmed)) {
+      toast.error('Số điện thoại không đúng định dạng (VD: 0901234567)');
+      return;
+    }
+
+    setIsSavingPhone(true);
+    try {
+      await staffAccountApi.updateProfile('me', { phone: trimmed || null });
+      if (user) {
+        useAuthStore.getState().setUser({ ...user, phone: trimmed || null });
+      }
+      setPhoneModalOpen(false);
+      toast.success(t('saved'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Cập nhật số điện thoại thất bại';
+      toast.error(message);
+    } finally {
+      setIsSavingPhone(false);
+    }
   };
 
   return (
@@ -152,7 +252,8 @@ export default function ProfileSettings() {
             type="button"
             size="sm"
             variant="outline"
-            disabled={!photoChanged}
+            disabled={!photoChanged || isUploadingPhoto}
+            isLoading={isUploadingPhoto}
             onClick={savePhoto}
           >
             {t('savePhoto')}
@@ -180,7 +281,8 @@ export default function ProfileSettings() {
               type="button"
               size="sm"
               variant="outline"
-              disabled={!nameChanged}
+              disabled={!nameChanged || isSavingName}
+              isLoading={isSavingName}
               onClick={saveName}
             >
               {t('submit')}
@@ -205,9 +307,12 @@ export default function ProfileSettings() {
         />
         <ProfileActionRow
           label={t('phoneNumber')}
-          value={t('noPhoneNumber')}
-          action={t('add')}
-          onAction={() => notifyAction(t('add'))}
+          value={user?.phone || t('noPhoneNumber')}
+          action={user?.phone ? t('update') : t('add')}
+          onAction={() => {
+            setPhoneInput(user?.phone || '');
+            setPhoneModalOpen(true);
+          }}
         />
         <ProfileActionRow
           label={t('changePassword')}
@@ -299,6 +404,29 @@ export default function ProfileSettings() {
           </p>
         </div>
       </SettingsMatrixCard>
+
+      <Modal
+        isOpen={phoneModalOpen}
+        onClose={() => setPhoneModalOpen(false)}
+        title={t('phoneNumber')}
+      >
+        <div className="space-y-4 pt-2">
+          <Input
+            label={t('phoneNumber')}
+            value={phoneInput}
+            placeholder="0901234567"
+            onChange={(e) => setPhoneInput(e.target.value)}
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={() => setPhoneModalOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="button" isLoading={isSavingPhone} onClick={savePhone}>
+              {t('submit')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
