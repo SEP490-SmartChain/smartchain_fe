@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import googleLogo from '@/assets/images/settings/google.svg';
 import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Avatar, Button, Card, Input, Select } from '@/components/Common';
-import Modal from '@/components/Common/Modal/Modal';
 import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { uploadApi } from '@/services/uploadApi';
@@ -83,10 +82,6 @@ function ProfileActionRow({
 export default function ProfileSettings() {
   const t = useTranslations('Settings');
   const user = useAuthStore((state) => state.user);
-  const displayName = user?.fullName?.trim() || 'SmartChain Admin';
-  const nameParts = displayName.split(/\s+/);
-  const originalFirstName = nameParts.slice(0, -1).join(' ') || nameParts[0] || '';
-  const originalLastName = nameParts.length > 1 ? nameParts.at(-1) || '' : '';
   const email = user?.email || 'admin@smartchain.vn';
   const persistedPhotoSrc = useAvatarUrl(user?.avatarUrl);
 
@@ -96,27 +91,16 @@ export default function ProfileSettings() {
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  const [firstName, setFirstName] = useState(originalFirstName);
-  const [lastName, setLastName] = useState(originalLastName);
-  const [savedFirstName, setSavedFirstName] = useState(originalFirstName);
-  const [savedLastName, setSavedLastName] = useState(originalLastName);
-  const [isSavingName, setIsSavingName] = useState(false);
-
-  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  // Profile details state (fullName and phone)
+  const [fullNameInput, setFullNameInput] = useState(user?.fullName || '');
   const [phoneInput, setPhoneInput] = useState(user?.phone || '');
-  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  const nameChanged = firstName !== savedFirstName || lastName !== savedLastName;
-
+  // Sync state when user profile changes
   useEffect(() => {
     if (user) {
-      const parts = (user.fullName?.trim() || '').split(/\s+/);
-      const fName = parts.slice(0, -1).join(' ') || parts[0] || '';
-      const lName = parts.length > 1 ? parts.at(-1) || '' : '';
-      setFirstName(fName);
-      setLastName(lName);
-      setSavedFirstName(fName);
-      setSavedLastName(lName);
+      setFullNameInput(user.fullName || '');
+      setPhoneInput(user.phone || '');
       if (!photoChanged) {
         setPhotoSrc(persistedPhotoSrc || profileAvatar);
       }
@@ -148,6 +132,7 @@ export default function ProfileSettings() {
   const savePhoto = async () => {
     if (!selectedPhotoFile) return;
     setIsUploadingPhoto(true);
+
     try {
       const presigned = await uploadApi.presign({
         purpose: 'AVATAR',
@@ -176,62 +161,59 @@ export default function ProfileSettings() {
     }
   };
 
-  const saveName = async () => {
-    const combinedName = `${firstName} ${lastName}`.trim();
-    if (combinedName.length < 2) {
-      toast.error(t('nameHint'));
+  const isProfileChanged =
+    fullNameInput.trim() !== (user?.fullName || '').trim() ||
+    phoneInput.trim() !== (user?.phone || '').trim();
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmedFullName = fullNameInput.trim();
+    if (trimmedFullName.length < 2) {
+      toast.error('Họ và tên phải có tối thiểu 2 ký tự');
       return;
     }
 
-    setIsSavingName(true);
-    try {
-      await staffAccountApi.updateProfile('me', { fullName: combinedName });
-      if (user) {
-        useAuthStore.getState().setUser({ ...user, fullName: combinedName });
-      }
-      setSavedFirstName(firstName);
-      setSavedLastName(lastName);
-      toast.success(t('saved'));
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Cập nhật họ tên thất bại';
-      toast.error(message);
-    } finally {
-      setIsSavingName(false);
-    }
-  };
-
-  const savePhone = async () => {
-    const trimmed = phoneInput.trim();
-    if (trimmed && !/^0[0-9]{9}$/.test(trimmed)) {
-      toast.error('Số điện thoại không đúng định dạng (VD: 0901234567)');
+    const trimmedPhone = phoneInput.trim();
+    if (trimmedPhone && !/^0[0-9]{9}$/.test(trimmedPhone)) {
+      toast.error('Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0 (VD: 0901234567)');
       return;
     }
 
-    setIsSavingPhone(true);
+    setIsSavingProfile(true);
     try {
-      await staffAccountApi.updateProfile('me', { phone: trimmed || null });
+      const updatedUser = await staffAccountApi.updateProfile('me', {
+        fullName: trimmedFullName,
+        phone: trimmedPhone || null,
+      });
+
       if (user) {
-        useAuthStore.getState().setUser({ ...user, phone: trimmed || null });
+        useAuthStore.getState().setUser({
+          ...user,
+          fullName: updatedUser.fullName || user.fullName,
+          phone: updatedUser.phone ?? null,
+        });
       }
-      setPhoneModalOpen(false);
-      toast.success(t('saved'));
+
+      toast.success('Cập nhật thông tin cá nhân thành công');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Cập nhật số điện thoại thất bại';
+      const message = err instanceof Error ? err.message : 'Cập nhật thông tin thất bại';
       toast.error(message);
     } finally {
-      setIsSavingPhone(false);
+      setIsSavingProfile(false);
     }
   };
 
   return (
     <div className="space-y-7">
       <SettingsMatrixCard title={t('details')} description={t('detailsDescription')}>
+        {/* Avatar Upload Area */}
         <div className="flex min-h-[146px] items-center justify-between gap-5 p-5 sm:px-7 sm:py-6">
           <div className="relative">
             <Avatar
               src={photoSrc}
-              alt={displayName}
-              fallback={displayName}
+              alt={fullNameInput || 'User'}
+              fallback={fullNameInput || 'User'}
               size="xl"
               className="h-[84px] w-[84px] rounded-full border-4 border-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)]"
             />
@@ -263,36 +245,41 @@ export default function ProfileSettings() {
           </Button>
         </div>
 
-        <div className="border-t border-[var(--sc-border-default)] p-5 sm:px-7 sm:py-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+        {/* Form Thông tin cá nhân */}
+        <form
+          onSubmit={handleSaveProfile}
+          className="border-t border-[var(--sc-border-default)] p-5 sm:px-7 sm:py-6"
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
             <Input
-              label={t('firstName')}
-              value={firstName}
-              onChange={(event) => setFirstName(event.target.value)}
+              label="Họ và tên"
+              value={fullNameInput}
+              placeholder="Nguyễn Văn A"
+              onChange={(e) => setFullNameInput(e.target.value)}
             />
             <Input
-              label={t('lastName')}
-              value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
+              label="Số điện thoại"
+              value={phoneInput}
+              placeholder="0901234567"
+              onChange={(e) => setPhoneInput(e.target.value)}
             />
           </div>
-          <p className="mb-0 mt-3 text-xs leading-4 text-[var(--sc-text-secondary)]">
-            {t('nameHint')}
+          <p className="mb-0 mt-2 text-xs leading-4 text-[var(--sc-text-secondary)]">
+            Số điện thoại gồm 10 chữ số (bắt đầu bằng số 0) để nhận thông báo hoặc xác thực.
           </p>
-          <div className="mt-5 flex justify-end">
+          <div className="mt-6 flex justify-end">
             <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={!nameChanged || isSavingName}
-              isLoading={isSavingName}
-              onClick={saveName}
+              type="submit"
+              size="md"
+              disabled={!isProfileChanged || isSavingProfile}
+              isLoading={isSavingProfile}
             >
-              {t('submit')}
+              Lưu thông tin cá nhân
             </Button>
           </div>
-        </div>
+        </form>
 
+        {/* Readonly Account rows */}
         <ProfileActionRow
           label={t('emailAddress')}
           value={email}
@@ -307,15 +294,6 @@ export default function ProfileSettings() {
             </span>
           }
           onAction={() => notifyAction(t('update'))}
-        />
-        <ProfileActionRow
-          label={t('phoneNumber')}
-          value={user?.phone || t('noPhoneNumber')}
-          action={user?.phone ? t('update') : t('add')}
-          onAction={() => {
-            setPhoneInput(user?.phone || '');
-            setPhoneModalOpen(true);
-          }}
         />
         <ProfileActionRow
           label={t('changePassword')}
@@ -407,29 +385,6 @@ export default function ProfileSettings() {
           </p>
         </div>
       </SettingsMatrixCard>
-
-      <Modal
-        isOpen={phoneModalOpen}
-        onClose={() => setPhoneModalOpen(false)}
-        title={t('phoneNumber')}
-      >
-        <div className="space-y-4 pt-2">
-          <Input
-            label={t('phoneNumber')}
-            value={phoneInput}
-            placeholder="0901234567"
-            onChange={(e) => setPhoneInput(e.target.value)}
-          />
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setPhoneModalOpen(false)}>
-              Hủy
-            </Button>
-            <Button type="button" isLoading={isSavingPhone} onClick={savePhone}>
-              {t('submit')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -27,6 +27,17 @@ const paginationSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 
+const updateProfileResponseSchema = z
+  .object({
+    userId: z.string().optional(),
+    fullName: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().nullable().optional(),
+    avatarUrl: z.string().nullable().optional(),
+    roles: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
 export const staffAccountApi = {
   async create(data: { email: string; fullName: string; roleCode: string }): Promise<StaffAccount> {
     const { data: responseData } = await apiClient.post<ApiResponse<unknown>>(
@@ -71,11 +82,11 @@ export const staffAccountApi = {
   async updateProfile(
     userId: string,
     data: { fullName?: string; phone?: string | null; avatarUrl?: string | null },
-  ): Promise<StaffAccount> {
+  ) {
     const { data: responseData } = await apiClient.patch<ApiResponse<unknown>>(
       `/v1/iam/users/${encodeURIComponent(userId)}`,
       data,
     );
-    return staffAccountSchema.parse(responseData);
+    return updateProfileResponseSchema.parse(responseData);
   },
 };
