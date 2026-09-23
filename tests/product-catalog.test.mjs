@@ -199,14 +199,23 @@ test('prefills the edit form in kilograms and converts back to grams without dri
 test('edit form accepts the inclusive SRS limits', () => {
   const result = productSchema.productEditFormSchema.safeParse({
     ...validForm,
-    weightKg: 100,
-    lengthCm: 200,
-    widthCm: 200,
-    heightCm: 200,
-    declaredValue: 0,
+    name: 'x'.repeat(productSchema.PRODUCT_MAX_NAME_LENGTH),
+    weightKg: productSchema.PRODUCT_MAX_WEIGHT_KG,
+    lengthCm: productSchema.PRODUCT_MAX_DIMENSION_CM,
+    widthCm: productSchema.PRODUCT_MAX_DIMENSION_CM,
+    heightCm: productSchema.PRODUCT_MAX_DIMENSION_CM,
+    declaredValue: productSchema.PRODUCT_MAX_DECLARED_VALUE,
+    isActive: 'true',
   });
 
   assert.equal(result.success, true);
+});
+
+test('edit form limits match the SRS values documented for SKU editing', () => {
+  assert.equal(productSchema.PRODUCT_MAX_WEIGHT_KG, 100);
+  assert.equal(productSchema.PRODUCT_MAX_DIMENSION_CM, 200);
+  assert.equal(productSchema.PRODUCT_MAX_NAME_LENGTH, 255);
+  assert.equal(productSchema.PRODUCT_MAX_DECLARED_VALUE, 999_999_999_999);
 });
 
 for (const [condition, override, field, message] of [
