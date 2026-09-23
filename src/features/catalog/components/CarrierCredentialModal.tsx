@@ -239,7 +239,7 @@ export function CarrierCredentialModal({
 
         {/* Cảnh báo khi sửa key */}
         {isEditing && apiToken.trim() && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-[var(--sc-warning-border,#fde68a)] bg-[var(--sc-warning-bg,#fef3c7)] p-3.5 text-xs text-[var(--sc-warning-text,#92400e)]">
+          <div className="flex items-start gap-2.5 rounded-xl border border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)] p-3.5 text-xs text-[var(--sc-warning-dark)]">
             <ShieldAlert size={16} className="shrink-0 mt-0.5" />
             <p className="leading-relaxed">
               {t.rich('form.securityNote', { strong: (chunks) => <strong>{chunks}</strong> })}

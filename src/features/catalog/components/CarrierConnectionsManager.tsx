@@ -74,12 +74,12 @@ export function CarrierConnectionsManager() {
       {/* 1. Header & Thao tác chính */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-6 shadow-xs">
         {/* Subtle decorative glow */}
-        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-teal-500/5 blur-3xl" />
+        <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[var(--sc-primary-alpha-08)] blur-3xl" />
 
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-[var(--sc-primary)] ring-1 ring-teal-200/60 shadow-2xs">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)] text-[var(--sc-primary)] ring-1 ring-[var(--sc-primary-alpha-20)] shadow-2xs">
                 <Truck size={20} />
               </div>
               <div>
@@ -129,86 +129,100 @@ export function CarrierConnectionsManager() {
         {/* Tổng kết nối */}
         <div className="group relative overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">{t('stats.total')}</span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 ring-1 ring-slate-200/60">
+            <span className="text-xs font-semibold text-[var(--sc-text-secondary)]">
+              {t('stats.total')}
+            </span>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)] ring-1 ring-[var(--sc-border-default)]">
               <Layers size={14} />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <p className="text-3xl font-extrabold tracking-tight text-slate-900">{totalCount}</p>
-            <span className="text-xs text-slate-500 font-medium">{t('stats.totalUnit')}</span>
+            <p className="text-3xl font-extrabold tracking-tight text-[var(--sc-text-primary)]">
+              {totalCount}
+            </p>
+            <span className="text-xs text-[var(--sc-text-secondary)] font-medium">
+              {t('stats.totalUnit')}
+            </span>
           </div>
           {/* Thanh tỷ lệ sẵn sàng */}
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--sc-bg-secondary)]">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              className="h-full rounded-full bg-[var(--sc-success)] transition-all duration-500"
               style={{ width: `${connectedPercent}%` }}
             />
           </div>
         </div>
 
         {/* Đã kết nối */}
-        <div className="group relative overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/40 to-transparent p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+        <div className="group relative overflow-hidden rounded-2xl border border-[var(--sc-success-border)] bg-gradient-to-br from-[var(--sc-success-bg)]/40 to-transparent p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-semibold text-[var(--sc-success-dark)] flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[var(--sc-success)] animate-pulse" />
               {t('stats.connected')}
             </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100/80 text-emerald-700 ring-1 ring-emerald-300/60">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)] ring-1 ring-[var(--sc-success-border)]">
               <CheckCircle2 size={14} />
             </div>
           </div>
           <div className="mt-3 flex items-baseline justify-between">
-            <p className="text-3xl font-extrabold tracking-tight text-emerald-700">
+            <p className="text-3xl font-extrabold tracking-tight text-[var(--sc-success-dark)]">
               {connectedCount}
             </p>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-xs font-bold text-[var(--sc-success-dark)] bg-[var(--sc-success-bg)] px-2 py-0.5 rounded-full border border-[var(--sc-success-border)]">
               {t('stats.readyPercent', { percent: connectedPercent })}
             </span>
           </div>
-          <p className="mt-3 text-[11px] text-emerald-700/80 font-medium">
+          <p className="mt-3 text-[11px] text-[var(--sc-success-dark)]/80 font-medium">
             {t('stats.connectedHint')}
           </p>
         </div>
 
         {/* Chưa kiểm tra */}
-        <div className="group relative overflow-hidden rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50/40 to-transparent p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+        <div className="group relative overflow-hidden rounded-2xl border border-[var(--sc-warning-border)] bg-gradient-to-br from-[var(--sc-warning-bg)]/40 to-transparent p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-amber-400" />
+            <span className="text-xs font-semibold text-[var(--sc-warning-dark)] flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[var(--sc-warning)]" />
               {t('stats.unverified')}
             </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100/80 text-amber-700 ring-1 ring-amber-300/60">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--sc-warning-bg)] text-[var(--sc-warning-dark)] ring-1 ring-[var(--sc-warning-border)]">
               <Clock size={14} />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <p className="text-3xl font-extrabold tracking-tight text-amber-700">
+            <p className="text-3xl font-extrabold tracking-tight text-[var(--sc-warning-dark)]">
               {unverifiedCount}
             </p>
-            <span className="text-xs text-amber-700 font-medium">{t('stats.unverifiedBadge')}</span>
+            <span className="text-xs text-[var(--sc-warning-dark)] font-medium">
+              {t('stats.unverifiedBadge')}
+            </span>
           </div>
-          <p className="mt-3 text-[11px] text-amber-700/80 font-medium">
+          <p className="mt-3 text-[11px] text-[var(--sc-warning-dark)]/80 font-medium">
             {t('stats.unverifiedHint')}
           </p>
         </div>
 
         {/* Lỗi kết nối */}
-        <div className="group relative overflow-hidden rounded-2xl border border-red-200/70 bg-gradient-to-br from-red-50/40 to-transparent p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
+        <div className="group relative overflow-hidden rounded-2xl border border-[var(--sc-error-border)] bg-gradient-to-br from-[var(--sc-error-bg)]/40 to-transparent p-4 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-red-800 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
+            <span className="text-xs font-semibold text-[var(--sc-error-dark)] flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[var(--sc-error)]" />
               {t('stats.failed')}
             </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100/80 text-red-700 ring-1 ring-red-300/60">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--sc-error-bg)] text-[var(--sc-error-dark)] ring-1 ring-[var(--sc-error-border)]">
               <XCircle size={14} />
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <p className="text-3xl font-extrabold tracking-tight text-red-600">{failedCount}</p>
-            <span className="text-xs text-red-600 font-medium">{t('stats.failedBadge')}</span>
+            <p className="text-3xl font-extrabold tracking-tight text-[var(--sc-error)]">
+              {failedCount}
+            </p>
+            <span className="text-xs text-[var(--sc-error)] font-medium">
+              {t('stats.failedBadge')}
+            </span>
           </div>
-          <p className="mt-3 text-[11px] text-red-700/80 font-medium">{t('stats.failedHint')}</p>
+          <p className="mt-3 text-[11px] text-[var(--sc-error-dark)]/80 font-medium">
+            {t('stats.failedHint')}
+          </p>
         </div>
       </div>
 
@@ -216,10 +230,10 @@ export function CarrierConnectionsManager() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-3 shadow-xs">
         {/* Lọc Trạng thái */}
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-xs font-semibold text-slate-500 pl-1">
+          <span className="flex items-center gap-1 text-xs font-semibold text-[var(--sc-text-secondary)] pl-1">
             <SlidersHorizontal size={13} /> {t('filter.status')}
           </span>
-          <div className="flex items-center rounded-xl bg-slate-100/90 p-1 ring-1 ring-slate-200/60">
+          <div className="flex items-center rounded-xl bg-[var(--sc-bg-secondary)] p-1 ring-1 ring-[var(--sc-border-default)]">
             {(
               [
                 { id: 'ALL', label: t('filter.all') },
@@ -241,8 +255,8 @@ export function CarrierConnectionsManager() {
                   }
                   className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                     isSelected
-                      ? 'bg-white text-[var(--sc-primary)] shadow-xs ring-1 ring-slate-200'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-primary)] shadow-xs ring-1 ring-[var(--sc-border-default)]'
+                      : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
                   }`}
                 >
                   {tab.label}
@@ -272,7 +286,7 @@ export function CarrierConnectionsManager() {
         </div>
       ) : credentials.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-12 text-center shadow-xs">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-50 text-[var(--sc-primary)] ring-1 ring-teal-200/60 shadow-2xs">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--sc-primary-lighter)] text-[var(--sc-primary)] ring-1 ring-[var(--sc-primary-alpha-20)] shadow-2xs">
             <Truck size={30} />
           </div>
           <h3 className="mt-4 text-base font-bold text-[var(--sc-text-primary)]">

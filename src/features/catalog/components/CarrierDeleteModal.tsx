@@ -47,8 +47,8 @@ export function CarrierDeleteModal({
     <Modal isOpen={isOpen} onClose={onClose} title={t('delete.title')} width="500px">
       <div className="space-y-5 p-6">
         {/* Warning callout */}
-        <div className="flex items-start gap-3.5 rounded-xl border border-[var(--sc-error-border,#fecaca)] bg-[var(--sc-error-bg,#fef2f2)] p-4 text-sm text-[var(--sc-error-text,#991b1b)]">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-[var(--sc-error)]">
+        <div className="flex items-start gap-3.5 rounded-xl border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] p-4 text-sm text-[var(--sc-error-dark)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-error-bg)] text-[var(--sc-error)]">
             <AlertTriangle size={20} />
           </div>
           <div className="space-y-1">

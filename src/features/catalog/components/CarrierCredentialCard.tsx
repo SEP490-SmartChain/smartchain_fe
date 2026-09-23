@@ -78,7 +78,11 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
       {/* Top Accent Line theo trạng thái */}
       <div
         className={`absolute top-0 inset-x-0 h-1 transition-colors ${
-          isConnected ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-amber-400'
+          isConnected
+            ? 'bg-[var(--sc-success)]'
+            : isFailed
+              ? 'bg-[var(--sc-error)]'
+              : 'bg-[var(--sc-warning)]'
         }`}
       />
 
@@ -87,7 +91,7 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {/* Khung Logo hãng chuẩn */}
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-slate-50 p-1.5 shadow-2xs">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-1.5 shadow-2xs">
               {credential.carrier.logoUrl && !logoError ? (
                 <img
                   src={credential.carrier.logoUrl}
@@ -102,7 +106,7 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
 
             {/* Code Badge & Auth Type */}
             <div className="flex flex-col">
-              <span className="inline-flex w-fit items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-700 ring-1 ring-slate-200">
+              <span className="inline-flex w-fit items-center rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--sc-text-primary)] ring-1 ring-[var(--sc-border-default)]">
                 {credential.carrier.code}
               </span>
               <span className="mt-0.5 text-[10px] font-medium tracking-wide text-[var(--sc-text-tertiary)] uppercase">
@@ -118,7 +122,7 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
                 <button
                   type="button"
                   onClick={() => onEdit(credential)}
-                  className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  className="cursor-pointer rounded-lg p-1.5 text-[var(--sc-text-tertiary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
                   title={t('card.edit')}
                   aria-label={t('card.edit')}
                 >
@@ -127,7 +131,7 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
                 <button
                   type="button"
                   onClick={() => onDelete(credential)}
-                  className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                  className="cursor-pointer rounded-lg p-1.5 text-[var(--sc-text-tertiary)] transition-colors hover:bg-[var(--sc-error-bg)] hover:text-[var(--sc-error)]"
                   title={t('card.delete')}
                   aria-label={t('card.delete')}
                 >
@@ -139,36 +143,36 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
         </div>
 
         {/* HÀNG 2: Tên Hãng Vận Chuyển Duy Nhất & Toàn Chiều Rộng (Đã bỏ dòng subtext lặp thừa) */}
-        <div className="border-b border-slate-100 pb-3">
+        <div className="border-b border-[var(--sc-border-light)] pb-3">
           <h3 className="text-base font-bold tracking-tight text-[var(--sc-text-primary)] leading-snug">
             {credential.carrier.name}
           </h3>
         </div>
 
         {/* HÀNG 3: Thanh Trạng Thái Kết Nối & Live Latency Indicator */}
-        <div className="flex items-center justify-between rounded-xl bg-slate-50/80 p-2.5 ring-1 ring-slate-100 text-xs">
+        <div className="flex items-center justify-between rounded-xl bg-[var(--sc-bg-secondary)] p-2.5 ring-1 ring-[var(--sc-border-light)] text-xs">
           <div className="flex items-center gap-2 min-w-0">
             {isConnected ? (
               <>
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--sc-success)] opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--sc-success)]" />
                 </span>
-                <span className="font-semibold text-emerald-700 whitespace-nowrap">
+                <span className="font-semibold text-[var(--sc-success-dark)] whitespace-nowrap">
                   {t('status.connected')}
                 </span>
               </>
             ) : isFailed ? (
               <>
-                <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
-                <span className="font-semibold text-red-700 whitespace-nowrap">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--sc-error)] shrink-0" />
+                <span className="font-semibold text-[var(--sc-error-dark)] whitespace-nowrap">
                   {t('status.failed')}
                 </span>
               </>
             ) : (
               <>
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0" />
-                <span className="font-semibold text-amber-700 whitespace-nowrap">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--sc-warning)] shrink-0" />
+                <span className="font-semibold text-[var(--sc-warning-dark)] whitespace-nowrap">
                   {t('status.unverified')}
                 </span>
               </>
@@ -177,11 +181,11 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
 
           {/* Latency badge nếu có */}
           {currentLatency ? (
-            <span className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full whitespace-nowrap border border-emerald-200">
+            <span className="font-mono text-[11px] font-bold text-[var(--sc-success-dark)] bg-[var(--sc-success-bg)] px-2 py-0.5 rounded-full whitespace-nowrap border border-[var(--sc-success-border)]">
               {currentLatency}ms
             </span>
           ) : (
-            <span className="text-[11px] text-slate-400 flex items-center gap-1">
+            <span className="text-[11px] text-[var(--sc-text-tertiary)] flex items-center gap-1">
               <Clock size={11} />
               {formatDateTime(credential.lastPingAt)}
             </span>
@@ -192,20 +196,24 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
         <div className="space-y-2 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 font-medium text-[var(--sc-text-secondary)] text-[11px]">
-              <KeyRound size={12} className="text-slate-400" /> {t('card.apiKey')}
+              <KeyRound size={12} className="text-[var(--sc-text-tertiary)]" /> {t('card.apiKey')}
             </span>
             <div className="flex items-center gap-1.5">
-              <code className="rounded-md bg-white px-2 py-0.5 font-mono text-[12px] font-semibold text-slate-800 border border-slate-200 shadow-2xs">
+              <code className="rounded-md bg-[var(--sc-bg-surface)] px-2 py-0.5 font-mono text-[12px] font-semibold text-[var(--sc-text-primary)] border border-[var(--sc-border-default)] shadow-2xs">
                 {credential.maskedPreview}
               </code>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="cursor-pointer rounded-md p-1.5 text-slate-400 transition-all hover:bg-white hover:text-slate-800 hover:shadow-2xs active:scale-95"
+                className="cursor-pointer rounded-md p-1.5 text-[var(--sc-text-tertiary)] transition-all hover:bg-[var(--sc-bg-surface)] hover:text-[var(--sc-text-primary)] hover:shadow-2xs active:scale-95"
                 title={t('card.copy')}
                 aria-label={t('card.copy')}
               >
-                {hasCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                {hasCopied ? (
+                  <Check size={13} className="text-[var(--sc-success)]" />
+                ) : (
+                  <Copy size={13} />
+                )}
               </button>
             </div>
           </div>
@@ -215,14 +223,14 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
             <div
               className={`flex items-start gap-1.5 rounded-lg p-2 text-[11px] leading-relaxed border ${
                 isConnected
-                  ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800'
-                  : 'border-red-200 bg-red-50/70 text-red-800'
+                  ? 'border-[var(--sc-success-border)] bg-[var(--sc-success-bg)]/70 text-[var(--sc-success-dark)]'
+                  : 'border-[var(--sc-error-border)] bg-[var(--sc-error-bg)]/70 text-[var(--sc-error-dark)]'
               }`}
             >
               {isConnected ? (
-                <CheckCircle2 size={13} className="shrink-0 mt-0.5 text-emerald-600" />
+                <CheckCircle2 size={13} className="shrink-0 mt-0.5 text-[var(--sc-success)]" />
               ) : (
-                <XCircle size={13} className="shrink-0 mt-0.5 text-red-600" />
+                <XCircle size={13} className="shrink-0 mt-0.5 text-[var(--sc-error)]" />
               )}
               <span className="break-words line-clamp-2">{credential.lastPingMessage}</span>
             </div>
