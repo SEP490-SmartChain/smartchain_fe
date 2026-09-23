@@ -6,14 +6,10 @@ import { toast } from 'sonner';
 
 import googleLogo from '@/assets/images/settings/google.svg';
 import profileAvatar from '@/assets/images/settings/profile-avatar.png';
-import { Avatar, Button, Card, Input, Select } from '@/components/Common';
+import { Avatar, Button, Input, Select } from '@/components/Common';
 import { useAuthStore } from '@/stores';
 
-interface SettingsMatrixCardProps {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}
+import { SettingsMatrixCard } from './SettingsMatrixCard';
 
 interface ProfileActionRowProps {
   label: string;
@@ -22,24 +18,6 @@ interface ProfileActionRowProps {
   status?: React.ReactNode;
   tone?: 'default' | 'danger';
   onAction: () => void;
-}
-
-function SettingsMatrixCard({ title, description, children }: SettingsMatrixCardProps) {
-  return (
-    <Card padding="none" className="overflow-hidden">
-      <div className="grid lg:grid-cols-[minmax(240px,1fr)_minmax(0,2fr)]">
-        <header className="border-b border-[var(--sc-border-default)] p-5 sm:p-6 lg:border-b-0 lg:border-r">
-          <h2 className="m-0 text-base font-medium leading-5 text-[var(--sc-text-primary)]">
-            {title}
-          </h2>
-          <p className="mb-0 mt-1 text-sm leading-5 text-[var(--sc-text-secondary)]">
-            {description}
-          </p>
-        </header>
-        <div className="min-w-0">{children}</div>
-      </div>
-    </Card>
-  );
 }
 
 function ProfileActionRow({
