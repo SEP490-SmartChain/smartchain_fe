@@ -1070,5 +1070,35 @@
       "declaredValueTooLarge": "Declared value exceeds the allowed limit.",
       "statusRequired": "Please select a status."
     }
+  },
+  "Inventory": {
+    "tabStock": "Stock levels",
+    "tabCatalog": "SKU catalog",
+    "title": "Multi-warehouse stock levels",
+    "summaryLabel": "Inventory metrics",
+    "totalSkus": "Total catalog SKUs",
+    "totalSkusValue": "{count, plural, one {# SKU} other {# SKUs}}",
+    "availableStock": "Available stock",
+    "availableStockValue": "{count, plural, one {# unit} other {# units}}",
+    "availableStockHint": "Only active SKUs in active warehouses",
+    "summaryLoadError": "Unable to load inventory metrics.",
+    "searchLabel": "Search stock",
+    "searchPlaceholder": "Search by SKU code or product name",
+    "warehouseFilter": "Filter by warehouse",
+    "allWarehouses": "All warehouses",
+    "warehouseLoadError": "Unable to load warehouses",
+    "tableLabel": "Stock levels by warehouse",
+    "columnSku": "SKU code",
+    "columnProductName": "Product name",
+    "columnWarehouse": "Warehouse",
+    "columnAvailable": "Available",
+    "columnReserved": "Reserved",
+    "columnOnHand": "Total on-hand",
+    "columnLastSync": "Last sync",
+    "syncDelayed": "Sync delayed",
+    "emptyState": "No inventory data yet.",
+    "emptyFiltered": "No stock matches the current filters.",
+    "loadError": "Unable to load inventory data.",
+    "retry": "Retry"
   }
 }

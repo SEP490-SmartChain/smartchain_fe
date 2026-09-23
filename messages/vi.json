@@ -1241,5 +1241,35 @@
       "declaredValueTooLarge": "Giá trị khai báo vượt quá giới hạn cho phép.",
       "statusRequired": "Vui lòng chọn trạng thái."
     }
+  },
+  "Inventory": {
+    "tabStock": "Tồn kho",
+    "tabCatalog": "Danh mục SKU",
+    "title": "Tồn kho đa kho",
+    "summaryLabel": "Chỉ số tồn kho",
+    "totalSkus": "Tổng SKU trong danh mục",
+    "totalSkusValue": "{count, number} SKU",
+    "availableStock": "Tồn khả dụng",
+    "availableStockValue": "{count, number} đơn vị",
+    "availableStockHint": "Chỉ tính SKU đang bán tại kho đang hoạt động",
+    "summaryLoadError": "Không thể tải chỉ số tồn kho.",
+    "searchLabel": "Tìm kiếm tồn kho",
+    "searchPlaceholder": "Tìm theo mã SKU hoặc tên sản phẩm",
+    "warehouseFilter": "Lọc theo kho",
+    "allWarehouses": "Tất cả kho",
+    "warehouseLoadError": "Không tải được danh sách kho",
+    "tableLabel": "Bảng tồn kho theo kho",
+    "columnSku": "Mã SKU",
+    "columnProductName": "Tên sản phẩm",
+    "columnWarehouse": "Kho",
+    "columnAvailable": "Khả dụng",
+    "columnReserved": "Đang giữ",
+    "columnOnHand": "Tổng tồn",
+    "columnLastSync": "Đồng bộ lần cuối",
+    "syncDelayed": "Đồng bộ chậm",
+    "emptyState": "Chưa có dữ liệu tồn kho.",
+    "emptyFiltered": "Không có tồn kho khớp bộ lọc.",
+    "loadError": "Không thể tải dữ liệu tồn kho.",
+    "retry": "Thử lại"
   }
 }
