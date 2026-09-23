@@ -1,11 +1,11 @@
 import { useState, type FC } from 'react';
+
 import {
   Check,
   CheckCircle2,
   Clock,
   Copy,
   Edit2,
-  Globe,
   KeyRound,
   Loader2,
   RotateCw,
@@ -13,9 +13,11 @@ import {
   Truck,
   XCircle,
 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/Common';
+
 import type { CarrierCredential, PingTestResult } from '../types/carrierCredential.types';
 
 interface CarrierCredentialCardProps {
@@ -37,6 +39,8 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const t = useTranslations('CarrierCredentials');
+  const locale = useLocale();
   const [hasCopied, setHasCopied] = useState(false);
   const [logoError, setLogoError] = useState(false);
 
@@ -44,22 +48,21 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
     try {
       await navigator.clipboard.writeText(credential.maskedPreview);
       setHasCopied(true);
-      toast.success('Đã sao chép khóa API vào bộ nhớ tạm');
+      toast.success(t('card.copySuccess'));
       setTimeout(() => setHasCopied(false), 2000);
     } catch {
-      toast.error('Không thể sao chép khóa API');
+      toast.error(t('card.copyError'));
     }
   };
 
-  const isProd = credential.environment === 'PRODUCTION';
   const isConnected = credential.status === 'CONNECTED';
   const isFailed = credential.status === 'FAILED';
 
   const formatDateTime = (dateStr: string | null) => {
-    if (!dateStr) return 'Chưa kiểm tra';
+    if (!dateStr) return t('card.neverTested');
     try {
       const date = new Date(dateStr);
-      return new Intl.DateTimeFormat('vi-VN', {
+      return new Intl.DateTimeFormat(locale, {
         dateStyle: 'short',
         timeStyle: 'medium',
       }).format(date);
@@ -108,27 +111,16 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
             </div>
           </div>
 
-          {/* Environment Badge & Edit/Delete Icons */}
+          {/* Edit/Delete Icons */}
           <div className="flex items-center gap-1.5">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase whitespace-nowrap shadow-2xs ${
-                isProd
-                  ? 'border border-teal-200 bg-teal-50/80 text-[var(--sc-primary)] ring-1 ring-teal-300/40'
-                  : 'border border-slate-200 bg-slate-100/90 text-slate-600'
-              }`}
-            >
-              <Globe size={11} className="opacity-75" />
-              {credential.environment}
-            </span>
-
             {canManage && (
               <div className="flex items-center">
                 <button
                   type="button"
                   onClick={() => onEdit(credential)}
                   className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                  title="Chỉnh sửa cấu hình"
-                  aria-label="Chỉnh sửa cấu hình"
+                  title={t('card.edit')}
+                  aria-label={t('card.edit')}
                 >
                   <Edit2 size={14} />
                 </button>
@@ -136,8 +128,8 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
                   type="button"
                   onClick={() => onDelete(credential)}
                   className="cursor-pointer rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                  title="Gỡ kết nối hãng"
-                  aria-label="Gỡ kết nối hãng"
+                  title={t('card.delete')}
+                  aria-label={t('card.delete')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -162,18 +154,22 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
                 </span>
-                <span className="font-semibold text-emerald-700 whitespace-nowrap">Đã kết nối</span>
+                <span className="font-semibold text-emerald-700 whitespace-nowrap">
+                  {t('status.connected')}
+                </span>
               </>
             ) : isFailed ? (
               <>
                 <span className="h-2.5 w-2.5 rounded-full bg-red-500 shrink-0" />
-                <span className="font-semibold text-red-700 whitespace-nowrap">Lỗi kết nối</span>
+                <span className="font-semibold text-red-700 whitespace-nowrap">
+                  {t('status.failed')}
+                </span>
               </>
             ) : (
               <>
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0" />
                 <span className="font-semibold text-amber-700 whitespace-nowrap">
-                  Chưa kiểm tra
+                  {t('status.unverified')}
                 </span>
               </>
             )}
@@ -196,7 +192,7 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
         <div className="space-y-2 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 font-medium text-[var(--sc-text-secondary)] text-[11px]">
-              <KeyRound size={12} className="text-slate-400" /> Khóa API:
+              <KeyRound size={12} className="text-slate-400" /> {t('card.apiKey')}
             </span>
             <div className="flex items-center gap-1.5">
               <code className="rounded-md bg-white px-2 py-0.5 font-mono text-[12px] font-semibold text-slate-800 border border-slate-200 shadow-2xs">
@@ -206,8 +202,8 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
                 type="button"
                 onClick={handleCopy}
                 className="cursor-pointer rounded-md p-1.5 text-slate-400 transition-all hover:bg-white hover:text-slate-800 hover:shadow-2xs active:scale-95"
-                title="Sao chép khóa API"
-                aria-label="Sao chép khóa API"
+                title={t('card.copy')}
+                aria-label={t('card.copy')}
               >
                 {hasCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
               </button>
@@ -247,12 +243,12 @@ export const CarrierCredentialCard: FC<CarrierCredentialCardProps> = ({
           {isPinging ? (
             <>
               <Loader2 size={13} className="animate-spin text-[var(--sc-primary)]" />
-              <span>Đang kiểm tra kết nối...</span>
+              <span>{t('card.testing')}</span>
             </>
           ) : (
             <>
               <RotateCw size={13} />
-              <span>Kiểm tra kết nối</span>
+              <span>{t('card.testConnection')}</span>
             </>
           )}
         </Button>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Eye, EyeOff, Key, ShieldAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button, Input, Select } from '@/components/Common';
@@ -10,7 +11,6 @@ import type {
   CarrierCredential,
   CarrierSummary,
   CreateCarrierCredentialInput,
-  DeploymentEnvironment,
   UpdateCarrierCredentialInput,
 } from '../types/carrierCredential.types';
 
@@ -34,11 +34,11 @@ export function CarrierCredentialModal({
   onCreate,
   onUpdate,
 }: CarrierCredentialModalProps) {
+  const t = useTranslations('CarrierCredentials');
   const isEditing = Boolean(editingCredential);
 
   const [carrierId, setCarrierId] = useState('');
   const [name, setName] = useState('');
-  const [environment, setEnvironment] = useState<DeploymentEnvironment>('SANDBOX');
   const [apiToken, setApiToken] = useState('');
   const [shopId, setShopId] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -50,20 +50,18 @@ export function CarrierCredentialModal({
     if (editingCredential) {
       setCarrierId(editingCredential.carrierId);
       setName(editingCredential.name);
-      setEnvironment(editingCredential.environment);
       setApiToken('');
       setShopId('');
     } else {
       const defaultCarrier = availableCarriers[0];
       setCarrierId(defaultCarrier?.id ?? '');
-      setName(defaultCarrier ? `${defaultCarrier.name} Kho Chính` : '');
-      setEnvironment('PRODUCTION');
+      setName(defaultCarrier ? t('form.defaultName', { carrier: defaultCarrier.name }) : '');
       setApiToken('');
       setShopId('');
     }
     setShowToken(false);
     setErrors({});
-  }, [editingCredential, availableCarriers, isOpen]);
+  }, [editingCredential, availableCarriers, isOpen, t]);
 
   const selectedCarrier = availableCarriers.find((c) => c.id === carrierId);
   const isGhn = selectedCarrier?.code === 'GHN' || editingCredential?.carrier.code === 'GHN';
@@ -72,23 +70,23 @@ export function CarrierCredentialModal({
     const nextErrors: Record<string, string> = {};
 
     if (!isEditing && !carrierId) {
-      nextErrors.carrierId = 'Vui lòng chọn hãng vận chuyển.';
+      nextErrors.carrierId = t('form.errors.carrierRequired');
     }
 
     if (!name.trim() || name.trim().length < 2) {
-      nextErrors.name = 'Tên cấu hình tối thiểu 2 ký tự.';
+      nextErrors.name = t('form.errors.nameMinLength');
     }
 
     if (!isEditing) {
       if (!apiToken.trim() || apiToken.trim().length < 4) {
-        nextErrors.apiToken = 'API Token tối thiểu 4 ký tự.';
+        nextErrors.apiToken = t('form.errors.tokenMinLength');
       }
     } else if (apiToken && apiToken.trim().length < 4) {
-      nextErrors.apiToken = 'API Token mới tối thiểu 4 ký tự.';
+      nextErrors.apiToken = t('form.errors.newTokenMinLength');
     }
 
     if (isGhn && !isEditing && !shopId.trim()) {
-      nextErrors.shopId = 'Mã Shop ID là bắt buộc đối với GHN.';
+      nextErrors.shopId = t('form.errors.shopIdRequired');
     }
 
     setErrors(nextErrors);
@@ -104,7 +102,6 @@ export function CarrierCredentialModal({
       if (isEditing && editingCredential) {
         const updatePayload: UpdateCarrierCredentialInput = {
           name: name.trim(),
-          environment,
           ...(apiToken.trim()
             ? {
                 credentials: {
@@ -115,16 +112,13 @@ export function CarrierCredentialModal({
             : {}),
         };
         await onUpdate(editingCredential.id, updatePayload);
-        toast.success(
-          apiToken.trim()
-            ? 'Cập nhật API Key thành công! Trạng thái đã reset về Chưa kiểm tra (UNVERIFIED).'
-            : 'Cập nhật thông tin cấu hình thành công!',
-        );
+        toast.success(apiToken.trim() ? t('form.toast.updatedWithKey') : t('form.toast.updated'));
       } else {
         const createPayload: CreateCarrierCredentialInput = {
           carrierId,
           name: name.trim(),
-          environment,
+          // Người dùng chỉ kết nối môi trường thực tế; SANDBOX được cấu hình trực tiếp trong DB khi test.
+          environment: 'PRODUCTION',
           authType: 'API_TOKEN',
           credentials: {
             apiToken: apiToken.trim(),
@@ -132,11 +126,11 @@ export function CarrierCredentialModal({
           },
         };
         await onCreate(createPayload);
-        toast.success('Kết nối hãng vận chuyển thành công! Key đã được mã hóa an toàn.');
+        toast.success(t('form.toast.created'));
       }
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Có lỗi xảy ra khi lưu cấu hình.';
+      const message = err instanceof Error ? err.message : t('form.toast.saveError');
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -148,19 +142,14 @@ export function CarrierCredentialModal({
     label: `${c.name} (${c.code})`,
   }));
 
-  const environmentOptions = [
-    { value: 'SANDBOX', label: 'SANDBOX (Môi trường thử nghiệm / Test Key)' },
-    { value: 'PRODUCTION', label: 'PRODUCTION (Môi trường thực tế / Live Key)' },
-  ];
-
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={
         isEditing
-          ? `Cập nhật cấu hình: ${editingCredential?.carrier.name}`
-          : 'Thêm mới kết nối Hãng Vận Chuyển (3PL)'
+          ? t('form.editTitle', { carrier: editingCredential?.carrier.name ?? '' })
+          : t('form.createTitle')
       }
       width="540px"
     >
@@ -168,13 +157,13 @@ export function CarrierCredentialModal({
         {/* Chọn Hãng */}
         <div>
           <Select
-            label="Hãng vận chuyển"
+            label={t('form.carrier')}
             value={carrierId}
             onChange={(e) => {
               setCarrierId(e.target.value);
               const found = availableCarriers.find((c) => c.id === e.target.value);
               if (found) {
-                setName(`${found.name} Kho Chính`);
+                setName(t('form.defaultName', { carrier: found.name }));
               }
             }}
             options={carrierOptions}
@@ -187,60 +176,34 @@ export function CarrierCredentialModal({
         {/* Tên cấu hình */}
         <div className="space-y-1.5">
           <Input
-            label="Tên cấu hình phân biệt"
-            placeholder="Ví dụ: GHN Kho Chính, GHN Chi nhánh HCM..."
+            label={t('form.name')}
+            placeholder={t('form.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             error={errors.name}
             required
           />
-          <p className="text-[11px] text-[var(--sc-text-secondary)]">
-            Tên gọi gợi nhớ giúp bạn phân biệt các tài khoản hoặc kho hàng khác nhau.
-          </p>
-        </div>
-
-        {/* Môi trường */}
-        <div className="space-y-1.5">
-          <Select
-            label="Môi trường hoạt động"
-            value={environment}
-            onChange={(e) => setEnvironment(e.target.value as DeploymentEnvironment)}
-            options={environmentOptions}
-            required
-          />
-          <p className="text-[11px] text-[var(--sc-text-secondary)]">
-            {environment === 'PRODUCTION' ? (
-              <span className="text-[var(--sc-success-dark)]">
-                ● <strong>PRODUCTION (Thực tế):</strong> Dùng cho tài khoản thật đang kinh doanh
-                trên cổng chính thức của hãng.
-              </span>
-            ) : (
-              <span className="text-[var(--sc-warning-dark)]">
-                ● <strong>SANDBOX (Thử nghiệm):</strong> Chỉ dùng với API Token cấp riêng từ môi
-                trường test dev của hãng.
-              </span>
-            )}
-          </p>
+          <p className="text-[11px] text-[var(--sc-text-secondary)]">{t('form.nameHint')}</p>
         </div>
 
         {/* Thông tin API Token */}
         <div className="space-y-2">
           {isEditing && (
             <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3.5 text-xs text-[var(--sc-text-secondary)]">
-              <span className="font-semibold text-[var(--sc-text-primary)]">Key hiện tại: </span>
+              <span className="font-semibold text-[var(--sc-text-primary)]">
+                {t('form.currentKey')}{' '}
+              </span>
               <code className="rounded bg-[var(--sc-bg-surface)] px-1.5 py-0.5 font-mono text-[var(--sc-primary)] border border-[var(--sc-border-default)]">
                 {editingCredential?.maskedPreview}
               </code>
-              <p className="mt-1">Để trống ô bên dưới nếu bạn chỉ muốn đổi tên hoặc môi trường.</p>
+              <p className="mt-1">{t('form.keepTokenHint')}</p>
             </div>
           )}
 
           <Input
-            label={isEditing ? 'Nhập API Token mới (tùy chọn)' : 'API Token / Secret'}
+            label={isEditing ? t('form.newToken') : t('form.token')}
             type={showToken ? 'text' : 'password'}
-            placeholder={
-              isEditing ? 'Nhập Token mới nếu muốn đổi Key...' : 'Dán Token/Key được cấp từ hãng...'
-            }
+            placeholder={isEditing ? t('form.newTokenPlaceholder') : t('form.tokenPlaceholder')}
             value={apiToken}
             onChange={(e) => setApiToken(e.target.value)}
             error={errors.apiToken}
@@ -251,7 +214,7 @@ export function CarrierCredentialModal({
                 type="button"
                 onClick={() => setShowToken(!showToken)}
                 className="cursor-pointer p-1 text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]"
-                aria-label={showToken ? 'Ẩn token' : 'Hiện token'}
+                aria-label={showToken ? t('form.hideToken') : t('form.showToken')}
               >
                 {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -263,16 +226,14 @@ export function CarrierCredentialModal({
         {isGhn && (
           <div className="space-y-1.5">
             <Input
-              label="Shop ID (Bắt buộc với Giao Hàng Nhanh)"
-              placeholder="Ví dụ: 5355714"
+              label={t('form.shopId')}
+              placeholder={t('form.shopIdPlaceholder')}
               value={shopId}
               onChange={(e) => setShopId(e.target.value)}
               error={errors.shopId}
               required={!isEditing}
             />
-            <p className="text-[11px] text-[var(--sc-text-secondary)]">
-              Mã Shop ID hiển thị cạnh số điện thoại tại góc trên bên trái trang quản lý GHN.
-            </p>
+            <p className="text-[11px] text-[var(--sc-text-secondary)]">{t('form.shopIdHint')}</p>
           </div>
         )}
 
@@ -281,9 +242,7 @@ export function CarrierCredentialModal({
           <div className="flex items-start gap-2.5 rounded-xl border border-[var(--sc-warning-border,#fde68a)] bg-[var(--sc-warning-bg,#fef3c7)] p-3.5 text-xs text-[var(--sc-warning-text,#92400e)]">
             <ShieldAlert size={16} className="shrink-0 mt-0.5" />
             <p className="leading-relaxed">
-              <strong>Lưu ý bảo mật:</strong> Khi thay đổi API Token mới, trạng thái kết nối sẽ được
-              chuyển về <strong>Chưa kiểm tra</strong> để đảm bảo an toàn. Bạn vui lòng bấm nút
-              "Kiểm tra kết nối" sau khi lưu để kích hoạt lại vào thuật toán điều phối.
+              {t.rich('form.securityNote', { strong: (chunks) => <strong>{chunks}</strong> })}
             </p>
           </div>
         )}
@@ -291,10 +250,14 @@ export function CarrierCredentialModal({
         {/* Buttons */}
         <div className="mt-6 flex justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Hủy
+            {t('form.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Đang lưu...' : isEditing ? 'Lưu thay đổi' : 'Lưu kết nối'}
+            {isSubmitting
+              ? t('form.saving')
+              : isEditing
+                ? t('form.saveChanges')
+                : t('form.saveConnection')}
           </Button>
         </div>
       </form>
