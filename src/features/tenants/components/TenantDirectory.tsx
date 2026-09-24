@@ -111,7 +111,7 @@ export function TenantDirectory() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Đã tải xuống danh sách khách thuê (CSV)');
+    toast.success('Đã tải xuống danh sách doanh nghiệp (CSV)');
   };
 
   const displayedTenants = tenants.filter((tn) => {
@@ -411,7 +411,7 @@ export function TenantDirectory() {
         {displayedTenants.length === 0 && !isLoading ? (
           <div className="p-12 text-center">
             <p className="text-sm font-medium text-[var(--sc-text-primary)]">
-              Không tìm thấy khách thuê phù hợp
+              Không tìm thấy doanh nghiệp phù hợp
             </p>
             <p className="mt-1 text-xs text-[var(--sc-text-tertiary)]">
               Hãy thử tìm kiếm với từ khóa khác hoặc bỏ các bộ lọc đang chọn.

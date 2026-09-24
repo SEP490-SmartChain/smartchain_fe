@@ -39,6 +39,8 @@ const profileSchema = z.object({
   tenantId: z.string().nullable(),
   email: z.string(),
   fullName: z.string(),
+  phone: z.string().nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
 });

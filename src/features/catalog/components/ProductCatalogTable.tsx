@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { Search } from 'lucide-react';
+import { Pencil, Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
@@ -9,7 +9,9 @@ import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+import { useAccess } from '@/hooks/useAccess';
 
+import { EditProductModal } from './EditProductModal';
 import { useProducts } from '../hooks/useProducts';
 
 import type { Product, ProductFilters } from '../types/product.types';
@@ -22,6 +24,9 @@ export function ProductCatalogTable() {
   const locale = useLocale();
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const { can } = useAccess();
+  const canManageProducts = can('catalog.products.manage');
   const { products, error, isLoading, hasNextPage, refetch, loadMore } = useProducts(filters);
 
   const currencyFormatter = useMemo(
@@ -46,6 +51,11 @@ export function ProductCatalogTable() {
   const handlePageChange = async (page: number) => {
     if (page > loadedPageCount && hasNextPage) await loadMore();
     setCurrentPage(page);
+  };
+
+  const handleProductChanged = () => {
+    setCurrentPage(1);
+    void refetch();
   };
 
   const columns: ColumnDef<Product>[] = [
@@ -77,6 +87,25 @@ export function ProductCatalogTable() {
         />
       ),
     },
+    ...(canManageProducts
+      ? [
+          {
+            key: 'actions',
+            label: <span className="sr-only">{t('columnActions')}</span>,
+            render: (row: Product) => (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label={t('editAction', { sku: row.sku })}
+                onClick={() => setEditingProduct(row)}
+              >
+                <Pencil size={16} aria-hidden="true" />
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -130,6 +159,14 @@ export function ProductCatalogTable() {
             }}
           />
         </section>
+      )}
+
+      {canManageProducts && (
+        <EditProductModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onChanged={handleProductChanged}
+        />
       )}
     </div>
   );

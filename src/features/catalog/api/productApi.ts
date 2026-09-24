@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
-import type { ProductFilters, ProductPage } from '../types/product.types';
+import type {
+  Product,
+  ProductFilters,
+  ProductPage,
+  UpdateProductInput,
+} from '../types/product.types';
 
 const productSchema = z.object({
   id: z.string().uuid(),
@@ -15,6 +20,7 @@ const productSchema = z.object({
   declaredValue: z.string(),
   isActive: z.boolean(),
   createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 });
 const productListSchema = z.array(productSchema);
 const paginationSchema = z.object({
@@ -37,5 +43,14 @@ export const productApi = {
       items: productListSchema.parse(data),
       pagination: paginationSchema.parse(meta.pagination),
     };
+  },
+
+  async update(id: string, input: UpdateProductInput): Promise<Product> {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
+      `/v1/catalog/products/${encodeURIComponent(id)}`,
+      input,
+      { silent: true },
+    );
+    return productSchema.parse(data);
   },
 };

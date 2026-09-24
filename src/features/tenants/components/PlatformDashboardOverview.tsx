@@ -189,7 +189,7 @@ export function PlatformDashboardOverview({
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-medium text-[var(--sc-text-secondary)]">
               <Sparkles size={14} className="text-[var(--sc-primary)]" />
-              <span>Khách thuê mới gia nhập</span>
+              <span>Doanh nghiệp mới gia nhập</span>
             </div>
             <span className="text-xs text-[var(--sc-text-tertiary)]">
               Tự động cập nhật

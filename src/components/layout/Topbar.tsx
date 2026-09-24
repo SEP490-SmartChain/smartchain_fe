@@ -16,8 +16,10 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Avatar } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { getSearchLinks } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 import { useAuthStore, useLocaleStore, useUiStore } from '@/stores';
@@ -48,15 +50,10 @@ export default function Topbar() {
   const { setLocale } = useLocaleStore();
   const { logout, isLoggingOut } = useAuth();
   const user = useAuthStore((state) => state.user);
+  const avatarUrl = useAvatarUrl(user?.avatarUrl);
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
 
   const displayName = user?.fullName ?? user?.email ?? t('member');
-  const initials = displayName
-    .split(' ')
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
   const roleLabels: Record<string, string> = {
     SUPER_ADMIN: t('role_super_admin'),
     TENANT_ADMIN: t('role_tenant_admin'),
@@ -349,9 +346,7 @@ export default function Topbar() {
             onClick={() => togglePopover('profile')}
             className="flex items-center gap-2 rounded-lg text-left"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--sc-primary-lighter)] text-[11px] font-semibold text-[var(--sc-primary-dark)]">
-              {initials}
-            </span>
+            <Avatar src={avatarUrl} fallback={displayName} size="md" className="rounded-full" />
             <span className="hidden min-w-0 sm:block">
               <span className="block max-w-36 truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
                 {displayName}
@@ -368,9 +363,7 @@ export default function Topbar() {
               className="sc-popover-enter absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[220px] rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-2 shadow-[var(--sc-shadow-popover)]"
             >
               <div className="flex flex-col items-center px-3 py-2 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--sc-primary-lighter)] text-sm font-semibold text-[var(--sc-primary-dark)]">
-                  {initials}
-                </span>
+                <Avatar src={avatarUrl} fallback={displayName} size="xl" className="rounded-full" />
                 <p className="mb-0 mt-2 max-w-full truncate text-sm font-medium">{displayName}</p>
                 <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{role}</p>
               </div>

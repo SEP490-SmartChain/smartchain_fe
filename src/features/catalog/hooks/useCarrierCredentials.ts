@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { carrierCredentialApi } from '../api/carrierCredentialApi';
+
 import type {
   CarrierCredential,
   CarrierCredentialFilters,
@@ -12,23 +14,15 @@ import type {
   UpdateCarrierCredentialInput,
 } from '../types/carrierCredential.types';
 
-export function useCarrierCredentials(
-  initialFilters: CarrierCredentialFilters = {},
-) {
-  const [credentials, setCredentials] = useState<readonly CarrierCredential[]>(
-    [],
-  );
-  const [availableCarriers, setAvailableCarriers] = useState<
-    readonly CarrierSummary[]
-  >([]);
+export function useCarrierCredentials(initialFilters: CarrierCredentialFilters = {}) {
+  const t = useTranslations('CarrierCredentials');
+  const [credentials, setCredentials] = useState<readonly CarrierCredential[]>([]);
+  const [availableCarriers, setAvailableCarriers] = useState<readonly CarrierSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [filters, setFilters] =
-    useState<CarrierCredentialFilters>(initialFilters);
+  const [filters, setFilters] = useState<CarrierCredentialFilters>(initialFilters);
   const [pingingId, setPingingId] = useState<string | null>(null);
-  const [pingResults, setPingResults] = useState<
-    Record<string, PingTestResult>
-  >({});
+  const [pingResults, setPingResults] = useState<Record<string, PingTestResult>>({});
   const requestRevision = useRef(0);
 
   // Tải danh mục các hãng vận chuyển có sẵn
@@ -53,9 +47,7 @@ export function useCarrierCredentials(
       setCredentials(items);
     } catch (failure) {
       if (revision === requestRevision.current) {
-        setError(
-          failure instanceof Error ? failure : new Error(String(failure)),
-        );
+        setError(failure instanceof Error ? failure : new Error(String(failure)));
       }
     } finally {
       if (revision === requestRevision.current) {
@@ -70,9 +62,7 @@ export function useCarrierCredentials(
 
   // Tạo mới cấu hình kết nối hãng
   const createCredential = useCallback(
-    async (
-      payload: CreateCarrierCredentialInput,
-    ): Promise<CarrierCredential> => {
+    async (payload: CreateCarrierCredentialInput): Promise<CarrierCredential> => {
       const created = await carrierCredentialApi.create(payload);
       setCredentials((prev) => [created, ...prev]);
       return created;
@@ -82,28 +72,20 @@ export function useCarrierCredentials(
 
   // Cập nhật cấu hình kết nối hãng
   const updateCredential = useCallback(
-    async (
-      id: string,
-      payload: UpdateCarrierCredentialInput,
-    ): Promise<CarrierCredential> => {
+    async (id: string, payload: UpdateCarrierCredentialInput): Promise<CarrierCredential> => {
       const updated = await carrierCredentialApi.update(id, payload);
-      setCredentials((prev) =>
-        prev.map((item) => (item.id === id ? updated : item)),
-      );
+      setCredentials((prev) => prev.map((item) => (item.id === id ? updated : item)));
       return updated;
     },
     [],
   );
 
   // Gỡ kết nối hãng (Soft Delete)
-  const deleteCredential = useCallback(
-    async (id: string): Promise<boolean> => {
-      await carrierCredentialApi.delete(id);
-      setCredentials((prev) => prev.filter((item) => item.id !== id));
-      return true;
-    },
-    [],
-  );
+  const deleteCredential = useCallback(async (id: string): Promise<boolean> => {
+    await carrierCredentialApi.delete(id);
+    setCredentials((prev) => prev.filter((item) => item.id !== id));
+    return true;
+  }, []);
 
   // Kiểm tra kết nối hãng (Ping Test)
   const testPing = useCallback(
@@ -132,17 +114,14 @@ export function useCarrierCredentials(
         }
         return result;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Kiểm tra kết nối thất bại. Vui lòng thử lại.';
+        const message = err instanceof Error ? err.message : t('card.pingError');
         toast.error(message);
         return null;
       } finally {
         setPingingId(null);
       }
     },
-    [],
+    [t],
   );
 
   return {

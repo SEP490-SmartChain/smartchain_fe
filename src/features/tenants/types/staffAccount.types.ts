@@ -5,6 +5,8 @@ export interface StaffAccount {
   userId: string;
   fullName: string;
   email: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
   roles: StaffRole[];
   lastSessionAt: string | null;
   status: StaffAccountStatus;

@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   data: T[];
   isLoading?: boolean;
   getRowKey?: (row: T) => React.Key;
+  emptyMessage?: React.ReactNode;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -30,6 +31,7 @@ export default function DataTable<T extends object>({
   data,
   isLoading,
   getRowKey,
+  emptyMessage,
   pagination,
 }: DataTableProps<T>) {
   const t = useTranslations('Common');
@@ -69,7 +71,7 @@ export default function DataTable<T extends object>({
                   colSpan={columns.length}
                   className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
                 >
-                  {t('no_data')}
+                  {emptyMessage ?? t('no_data')}
                 </td>
               </tr>
             ) : (
