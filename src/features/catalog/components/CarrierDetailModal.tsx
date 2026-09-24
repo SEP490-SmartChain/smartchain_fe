@@ -12,11 +12,7 @@ interface CarrierDetailModalProps {
   carrier: CarrierDetail | null;
 }
 
-export function CarrierDetailModal({
-  isOpen,
-  onClose,
-  carrier,
-}: CarrierDetailModalProps) {
+export function CarrierDetailModal({ isOpen, onClose, carrier }: CarrierDetailModalProps) {
   const t = useTranslations('AdminCarriers');
 
   if (!carrier) return null;

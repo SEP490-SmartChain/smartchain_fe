@@ -45,11 +45,11 @@ export const warehouseApi = {
     if (filters.search.trim()) params.search = filters.search.trim();
     if (filters.status) params.status = filters.status;
     if (cursor) params.cursor = cursor;
-    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/warehouses', {
+    const { data, meta } = await apiClient.get<ApiResponse<unknown>>('/v1/warehouses', {
       params,
       silent: true,
     });
-    return warehousePageSchema.parse(data);
+    return warehousePageSchema.parse({ items: data, pagination: meta.pagination });
   },
 
   async create(payload: CreateWarehousePayload): Promise<Warehouse> {
