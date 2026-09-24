@@ -8,12 +8,12 @@ import { Tabs, UnderConstruction } from '@/components/Common';
 import { CarrierConnectionsManager } from '@/features/catalog';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
 import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
-import { WebhookManager } from '@/features/tenants';
+import { ApiKeyManager, WebhookManager } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
 
-const ALL_SETTING_TABS = ['profile', 'general', 'integrations', 'webhooks'] as const;
+const ALL_SETTING_TABS = ['profile', 'general', 'integrations', 'api-keys', 'webhooks'] as const;
 type SettingTab = (typeof ALL_SETTING_TABS)[number];
-const WORKSPACE_TABS: readonly SettingTab[] = ['general', 'integrations', 'webhooks'];
+const WORKSPACE_TABS: readonly SettingTab[] = ['general', 'integrations', 'api-keys', 'webhooks'];
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
@@ -55,6 +55,8 @@ export default function SettingsPage() {
       {activeTab === 'general' && <WorkspaceGeneralSettings />}
 
       {activeTab === 'integrations' && <CarrierConnectionsManager />}
+
+      {activeTab === 'api-keys' && <ApiKeyManager />}
 
       {activeTab === 'webhooks' && <WebhookManager />}
     </div>

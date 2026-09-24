@@ -88,6 +88,7 @@ Không hiển thị Orders, Inventory, Routing Rules, Shipments, Reconciliation,
 | Finance | Reconciliation | `/reconciliation` | Xem dashboard đối soát, chi tiết sai lệch và báo cáo; không mặc định có quyền tải file hoặc tạo dispute. |
 | Reports | Analytics | `/analytics` | Xem order volume, carrier distribution, delivery performance và fee discrepancy. |
 | Integrations | Carrier Connections | `/settings/integrations` | Xem carrier, nhập API key, test connection, map pickup point và quản lý tenant rate card. |
+| Integrations | API Keys | `/settings/api-keys` | Tạo, xem và thu hồi API key để ERP/POS/website gọi API vào SmartChain (SS-473); key đầy đủ chỉ hiện một lần. |
 | Manage Accounts | User | `/iam/users` | Xem, mời, cập nhật và khóa/mở khóa nhân viên. |
 | Manage Accounts | Roles & Permissions | `/roles-permissions/roles` | Xem role hệ thống, gán role/quyền cho thành viên; không tạo hoặc xóa role nền tảng. |
 | Workspace Settings | General | `/settings/general` | Cấu hình workspace, timezone, allocation default và notification. |
@@ -142,6 +143,7 @@ Ký hiệu: `X` là được truy cập, `R` là chỉ đọc, `-` là không đ
 | `/settings/profile` | X | X | X | X |
 | `/settings/general` | - | X | - | - |
 | `/settings/integrations` | - | X | - | - |
+| `/settings/api-keys` | - | X | - | - |
 | `/settings/webhooks` | - | X | - | - |
 | `/audit` | - | R | - | - |
 | `/integration-errors` | - | R | R | - |

@@ -33,6 +33,11 @@ export type { DropzoneProps } from './Dropzone/Dropzone';
 export { Alert } from './Alert/Alert';
 export type { AlertProps } from './Alert/Alert';
 export { Badge } from './Badge/Badge';
+export { SecretRevealModal } from './SecretRevealModal/SecretRevealModal';
+export type {
+  SecretRevealModalLabels,
+  SecretRevealModalProps,
+} from './SecretRevealModal/SecretRevealModal';
 
 // Navigation
 export { Breadcrumb } from './Breadcrumb';
