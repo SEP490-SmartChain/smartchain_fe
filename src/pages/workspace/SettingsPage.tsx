@@ -41,7 +41,7 @@ export default function SettingsPage() {
   const tabs = visibleTabs.map((id) => ({ id, label: t(id) }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-3.5">
       <h1 className="sr-only">{t('title')}</h1>
       <Tabs
         tabs={tabs}
