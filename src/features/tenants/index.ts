@@ -9,6 +9,7 @@ export { TenantDirectory } from './components/TenantDirectory';
 export { PlatformDashboardOverview } from './components/PlatformDashboardOverview';
 export { PlatformHealthView } from './components/PlatformHealthView';
 export { PlatformMonitoringDashboard } from './components/PlatformMonitoringDashboard';
+export { ApiKeyManager } from './components/ApiKeyManager';
 export { WebhookManager } from './components/WebhookManager';
 export { useStaffAccounts } from './hooks/useStaffAccounts';
 export { useTenantManagement } from './hooks/useTenantManagement';
