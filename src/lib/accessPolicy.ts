@@ -71,6 +71,11 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   { code: 'catalog.products.view', domain: 'catalog', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
   { code: 'catalog.products.manage', domain: 'catalog', roles: ['TENANT_ADMIN'] },
   { code: 'inventory.view', domain: 'inventory', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
+  {
+    code: 'inventory.reservations.release',
+    domain: 'inventory',
+    roles: ['TENANT_ADMIN', 'DISPATCHER'],
+  },
   { code: 'rules.view', domain: 'rules', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
   { code: 'rules.create_delete', domain: 'rules', roles: ['TENANT_ADMIN'] },
   { code: 'rules.operate', domain: 'rules', roles: ['DISPATCHER'] },

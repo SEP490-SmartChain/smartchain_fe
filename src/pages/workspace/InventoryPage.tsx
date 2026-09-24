@@ -4,10 +4,16 @@ import { useTranslations } from 'next-intl';
 
 import { Tabs, type TabItem } from '@/components/Common/Tabs/Tabs';
 import { ProductCatalogTable } from '@/features/catalog';
-import { StockLevelsPanel } from '@/features/inventory';
+import { ActiveReservationsPanel, StockLevelsPanel } from '@/features/inventory';
 import { useAccess } from '@/hooks/useAccess';
 
-type InventoryTabId = 'stock' | 'catalog';
+type InventoryTabId = 'stock' | 'reservations' | 'catalog';
+
+const TAB_IDS: readonly InventoryTabId[] = ['stock', 'reservations', 'catalog'];
+
+function toTabId(id: string): InventoryTabId {
+  return TAB_IDS.find((tabId) => tabId === id) ?? 'stock';
+}
 
 export default function InventoryPage() {
   const t = useTranslations('Inventory');
@@ -15,20 +21,22 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<InventoryTabId>('stock');
 
   const tabs: TabItem[] = [
-    ...(can('inventory.view') ? [{ id: 'stock', label: t('tabStock') }] : []),
+    ...(can('inventory.view')
+      ? [
+          { id: 'stock', label: t('tabStock') },
+          { id: 'reservations', label: t('tabReservations') },
+        ]
+      : []),
     ...(can('catalog.products.view') ? [{ id: 'catalog', label: t('tabCatalog') }] : []),
   ];
   const visibleTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : tabs[0]?.id;
 
   return (
     <div className="space-y-5">
-      <Tabs
-        tabs={tabs}
-        activeId={visibleTab ?? ''}
-        onChange={(id) => setActiveTab(id === 'catalog' ? 'catalog' : 'stock')}
-      />
+      <Tabs tabs={tabs} activeId={visibleTab ?? ''} onChange={(id) => setActiveTab(toTabId(id))} />
       <div role="tabpanel">
         {visibleTab === 'stock' && <StockLevelsPanel />}
+        {visibleTab === 'reservations' && <ActiveReservationsPanel />}
         {visibleTab === 'catalog' && <ProductCatalogTable />}
       </div>
     </div>

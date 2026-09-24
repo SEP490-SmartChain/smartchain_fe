@@ -75,6 +75,12 @@ test('action visibility follows the section 7 action matrix', () => {
   assert.equal(policy.can(DISPATCHER, 'warehouses.manage'), false);
   assert.equal(policy.can(DISPATCHER, 'warehouses.view'), true);
   assert.equal(policy.can(ACCOUNTANT, 'warehouses.view'), false);
+  // Nhả reservation thủ công (SRS §3.10.2)
+  assert.equal(policy.can(TA, 'inventory.reservations.release'), true);
+  assert.equal(policy.can(DISPATCHER, 'inventory.reservations.release'), true);
+  assert.equal(policy.can(ACCOUNTANT, 'inventory.reservations.release'), false);
+  assert.equal(policy.can(SA, 'inventory.reservations.release'), false);
+  assert.equal(policy.can(['ACCOUNTANT', 'DISPATCHER'], 'inventory.reservations.release'), true);
   // Routing rules
   assert.equal(policy.can(TA, 'rules.create_delete'), true);
   assert.equal(policy.can(DISPATCHER, 'rules.create_delete'), false);
