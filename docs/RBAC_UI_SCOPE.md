@@ -172,6 +172,10 @@ Ký hiệu: `X` là được truy cập, `R` là chỉ đọc, `-` là không đ
 | Tạo/sửa/bật tắt warehouse | X | - | - |
 | Tạo/sửa SKU | X | - | - |
 | Xem tồn kho toàn cục và reservation | X | X | - |
+| Nhả reservation thủ công (Release, SRS §3.10.2) | X | X | - |
+
+Chữ `R` của Dispatcher ở `/inventory` (mục 6) nói về tạo/sửa kho và SKU; không chặn thao tác
+Release vì SRS §3.10.2 ghi Dispatcher là actor chính của màn Active Reservations.
 
 ### 7.3 Routing Rules
 
@@ -241,6 +245,7 @@ Các mã dưới đây là tên policy UI đề xuất. Đây chưa phải hợp
 | `catalog.products.view` | Tenant Admin, Dispatcher |
 | `catalog.products.manage` | Tenant Admin |
 | `inventory.view` | Tenant Admin, Dispatcher |
+| `inventory.reservations.release` | Tenant Admin, Dispatcher |
 | `rules.view` | Tenant Admin, Dispatcher |
 | `rules.create_delete` | Tenant Admin |
 | `rules.operate` | Dispatcher |
