@@ -131,6 +131,16 @@ test('route matrix authorizes each role per section 6', () => {
   }
 });
 
+test('API key settings are reachable and listed only for Tenant Admin', () => {
+  assert.equal(policy.isRouteAllowed(TA, '/settings/api-keys'), true);
+  assert.equal(hrefs(TA).includes('/settings/api-keys'), true);
+
+  for (const roles of [SA, DISPATCHER, ACCOUNTANT]) {
+    assert.equal(policy.isRouteAllowed(roles, '/settings/api-keys'), false);
+    assert.equal(hrefs(roles).includes('/settings/api-keys'), false);
+  }
+});
+
 test('default path points each role to its home route', () => {
   assert.equal(policy.getDefaultPath(SA), '/admin/tenants');
   assert.equal(policy.getDefaultPath(TA), '/dashboard');
