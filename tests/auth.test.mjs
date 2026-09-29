@@ -321,7 +321,8 @@ test('login validation normalizes email but preserves password and remember choi
 });
 
 test('post-login redirects preserve internal destinations and enforce admin access', () => {
-  assert.equal(getPostLoginPath(user, { from: '/orders?page=2#items' }), '/orders?page=2#items');
+  const owner = { ...user, actorScope: 'TENANT', roles: ['SELLER_OWNER'] };
+  assert.equal(getPostLoginPath(owner, { from: '/orders?page=2#items' }), '/orders?page=2#items');
   for (const from of [
     '//evil.test',
     'https://evil.test',
@@ -329,9 +330,9 @@ test('post-login redirects preserve internal destinations and enforce admin acce
     '/login',
     '/admin/tenants',
   ]) {
-    assert.equal(getPostLoginPath(user, { from }), '/dashboard');
+    assert.equal(getPostLoginPath(owner, { from }), '/dashboard');
   }
-  const admin = { ...user, tenantId: null, roles: ['SUPER_ADMIN'] };
+  const admin = { ...user, tenantId: null, actorScope: 'PLATFORM', roles: ['ORCA_ADMIN'] };
   assert.equal(getPostLoginPath(admin, null), '/admin/tenants');
   assert.equal(getPostLoginPath(admin, { from: '/admin/carriers' }), '/admin/carriers');
 });

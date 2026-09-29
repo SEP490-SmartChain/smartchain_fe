@@ -6,7 +6,7 @@ import type { AuthUser } from '@/stores/authStore';
  * và nằm trong route mà vai trò được truy cập; ngoài ra trả về route mặc định.
  */
 export function getPostLoginPath(user: AuthUser, state: unknown): string {
-  const roles = getEffectiveRoles(user.roles);
+  const roles = getEffectiveRoles(user.roles, user.actorScope);
   const fallback = getDefaultPath(roles);
   if (!state || typeof state !== 'object' || !('from' in state)) return fallback;
 

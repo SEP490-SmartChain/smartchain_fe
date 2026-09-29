@@ -1,14 +1,14 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
-import { can, getEffectiveRoles, isRouteAllowed, type AuthRole } from '@/lib/accessPolicy';
+import { can, getEffectiveRoles, isRouteAllowed, type OrcaRole } from '@/lib/accessPolicy';
 import { useAuthStore } from '@/stores/authStore';
 
 export interface ProtectedRouteProps {
-  /** Yêu cầu role cụ thể (ngoài route matrix). */
-  requiredRole?: AuthRole;
+  /** Yêu cầu role ORCA cụ thể (ngoài route matrix). */
+  requiredRole?: OrcaRole;
   /** Yêu cầu capability cụ thể (ngoài route matrix). */
   requiredCapability?: string;
-  /** Bật kiểm tra route matrix cho URL hiện tại (mục 6). */
+  /** Bật kiểm tra route matrix cho URL hiện tại. */
   enforceRoutePolicy?: boolean;
 }
 
@@ -37,11 +37,11 @@ export default function ProtectedRoute({
     );
   }
 
-  const roles = getEffectiveRoles(user.roles);
+  const roles = getEffectiveRoles(user.roles, user.actorScope);
   const denied =
     (requiredRole !== undefined && !roles.includes(requiredRole)) ||
     (requiredCapability !== undefined && !can(roles, requiredCapability)) ||
-    (enforceRoutePolicy === true && !isRouteAllowed(roles, location.pathname));
+    (enforceRoutePolicy === true && !isRouteAllowed(roles, location.pathname, import.meta.env.DEV));
 
   if (denied) {
     return <Navigate to="/403" replace state={{ from: location.pathname }} />;

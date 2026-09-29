@@ -14,13 +14,13 @@ import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import Modal from '@/components/Common/Modal/Modal';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
 import { useStaffAccounts, type StaffAccount, type StaffRole } from '@/features/tenants';
+import { type CapabilityDomain } from '@/lib/accessPolicy';
 import {
-  CAPABILITIES,
-  WORKSPACE_ROLES,
-  type AuthRole,
-  type CapabilityDef,
-  type CapabilityDomain,
-} from '@/lib/accessPolicy';
+  LEGACY_CAPABILITIES as CAPABILITIES,
+  LEGACY_WORKSPACE_ROLES as WORKSPACE_ROLES,
+  type LegacyCapabilityDef as CapabilityDef,
+  type LegacyRole as AuthRole,
+} from '@/lib/legacyAccessPolicy';
 
 type PageTab = 'roles' | 'permissions' | 'members';
 
