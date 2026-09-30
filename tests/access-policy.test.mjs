@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { createServer } from 'vite';
 
+const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
+
 let server;
 let policy;
+let legacyPolicy;
 let getPostLoginPath;
 
 const PLATFORM = 'PLATFORM';
@@ -54,6 +59,35 @@ function groupKeys(roles, actorScope) {
   return policy.getVisibleNavGroups(effective(roles, actorScope), false).map((group) => group.key);
 }
 
+/** Danh sách file nguồn `.ts`/`.tsx` dưới `src/`, đường dẫn tương đối repo. */
+function listSourceFiles(dir = join(REPO_ROOT, 'src')) {
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...listSourceFiles(full));
+    else if (/\.(ts|tsx)$/.test(entry.name))
+      files.push(relative(REPO_ROOT, full).split(sep).join('/'));
+  }
+  return files;
+}
+
+/** Các file nguồn có câu lệnh import module `needle` (bỏ qua comment). */
+function filesImporting(needle) {
+  const pattern = new RegExp(
+    `from\\s+['"][^'"]*${needle}['"]|import\\s*\\(\\s*['"][^'"]*${needle}['"]\\s*\\)`,
+  );
+  return listSourceFiles().filter((file) =>
+    pattern.test(readFileSync(join(REPO_ROOT, file), 'utf8')),
+  );
+}
+
+/** Các file nguồn có chứa chuỗi `needle` (mọi ngữ cảnh). */
+function filesContaining(needle) {
+  return listSourceFiles().filter((file) =>
+    readFileSync(join(REPO_ROOT, file), 'utf8').includes(needle),
+  );
+}
+
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -64,6 +98,7 @@ before(async () => {
     server: { middlewareMode: true, watch: null, ws: false },
   });
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
+  legacyPolicy = await server.ssrLoadModule('/src/lib/legacyAccessPolicy.ts');
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
 });
 
@@ -72,18 +107,15 @@ after(async () => {
 });
 
 test('the seven ORCA roles each map to exactly one actor scope', () => {
-  assert.deepEqual(
-    [...policy.ORCA_ROLES].sort(),
-    [
-      'OPS_DISPATCHER',
-      'ORCA_ACCOUNTANT',
-      'ORCA_ADMIN',
-      'SELLER_OWNER',
-      'SELLER_STAFF',
-      'WAREHOUSE_MANAGER',
-      'WAREHOUSE_STAFF',
-    ],
-  );
+  assert.deepEqual([...policy.ORCA_ROLES].sort(), [
+    'OPS_DISPATCHER',
+    'ORCA_ACCOUNTANT',
+    'ORCA_ADMIN',
+    'SELLER_OWNER',
+    'SELLER_STAFF',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
+  ]);
   for (const [role, scope] of ALL_ROLES) {
     assert.equal(policy.ROLE_ACTOR_SCOPE[role], scope, `${role} scope`);
     assert.deepEqual(effective([role], scope), [role]);
@@ -93,7 +125,10 @@ test('the seven ORCA roles each map to exactly one actor scope', () => {
 test('getEffectiveRoles is fail-closed for missing scope, unknown/legacy roles and mixed scopes', () => {
   assert.deepEqual(effective([], TENANT), []);
   assert.deepEqual(effective(['UNKNOWN_ROLE'], PLATFORM), []);
-  assert.deepEqual(effective(['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'], PLATFORM), []);
+  assert.deepEqual(
+    effective(['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'], PLATFORM),
+    [],
+  );
   assert.deepEqual(effective(['SUPER_ADMIN'], TENANT), []);
   assert.deepEqual(effective(OWNER, undefined), []);
   assert.deepEqual(effective(OWNER, null), []);
@@ -103,6 +138,27 @@ test('getEffectiveRoles is fail-closed for missing scope, unknown/legacy roles a
   assert.deepEqual(effective(ADMIN, TENANT), []);
   assert.deepEqual(effective(['SELLER_OWNER', 'ORCA_ADMIN'], PLATFORM), []);
   assert.deepEqual(effective(['OPS_DISPATCHER', 'OPS_DISPATCHER'], PLATFORM), ['OPS_DISPATCHER']);
+});
+
+test('any non-ORCA role code denies the whole principal (no skip-and-continue)', () => {
+  // Happy path hợp lệ vẫn nguyên vẹn.
+  assert.deepEqual(effective(OWNER, TENANT), ['SELLER_OWNER']);
+
+  // Tenant scope có kèm code legacy ⇒ deny toàn bộ, không giữ role hợp lệ.
+  assert.deepEqual(effective(['SELLER_OWNER', 'TENANT_ADMIN'], TENANT), []);
+  assert.deepEqual(effective(['TENANT_ADMIN', 'SELLER_OWNER'], TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'ACCOUNTANT'], TENANT), []);
+  assert.deepEqual(effective(['ORCA_ADMIN', 'SUPER_ADMIN'], PLATFORM), []);
+
+  // Code lạ (kể cả rỗng/khác hoa thường) trộn với role hợp lệ ⇒ deny toàn bộ.
+  assert.deepEqual(effective(['ORCA_ADMIN', 'UNKNOWN_ROLE'], PLATFORM), []);
+  assert.deepEqual(effective(['SELLER_OWNER', ''], TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'seller_owner'], TENANT), []);
+
+  // Trộn scope vẫn deny toàn bộ; rỗng vẫn deny; trùng lặp hợp lệ vẫn dedupe.
+  assert.deepEqual(effective(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), []);
+  assert.deepEqual(effective([], TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'SELLER_OWNER'], TENANT), ['SELLER_OWNER']);
 });
 
 test('multi-role union applies only within one actor scope', () => {
@@ -181,9 +237,16 @@ test('WAREHOUSE_STAFF is denied financial, COD, invoice and API-key capabilities
     'carriers.credentials.manage',
     'audit.platform.view',
   ]) {
-    assert.equal(policy.can(whStaff, capability), false, `WAREHOUSE_STAFF must not have ${capability}`);
+    assert.equal(
+      policy.can(whStaff, capability),
+      false,
+      `WAREHOUSE_STAFF must not have ${capability}`,
+    );
   }
-  assert.equal(policy.canAny(whStaff, ['finance.view', 'cod.view', 'invoice.view', 'apikey.manage']), false);
+  assert.equal(
+    policy.canAny(whStaff, ['finance.view', 'cod.view', 'invoice.view', 'apikey.manage']),
+    false,
+  );
   assert.equal(policy.canAll(whStaff, ['inventory.view', 'finance.view']), false);
 });
 
@@ -272,7 +335,13 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/analytics',
           '/integration-errors',
         ],
-        deny: ['/warehouses', '/settings/general', '/settings/integrations', '/iam/users', '/admin/tenants'],
+        deny: [
+          '/warehouses',
+          '/settings/general',
+          '/settings/integrations',
+          '/iam/users',
+          '/admin/tenants',
+        ],
       },
     ],
     [
@@ -445,8 +514,14 @@ test('every visible nav/search href is route-allowed for that role (single sourc
 
 test('component catalog is dev-only and never grants production access', () => {
   const admin = effective(ADMIN, PLATFORM);
-  assert.equal(policy.getVisibleNavGroups(admin, false).some((group) => group.key === 'ui_heading'), false);
-  assert.equal(policy.getVisibleNavGroups(admin, true).some((group) => group.key === 'ui_heading'), true);
+  assert.equal(
+    policy.getVisibleNavGroups(admin, false).some((group) => group.key === 'ui_heading'),
+    false,
+  );
+  assert.equal(
+    policy.getVisibleNavGroups(admin, true).some((group) => group.key === 'ui_heading'),
+    true,
+  );
   assert.equal(policy.isRouteAllowed(admin, '/components/buttons', true), true);
   assert.equal(policy.isRouteAllowed(admin, '/components/buttons', false), false);
 });
@@ -479,4 +554,57 @@ test('post-login redirect honors ORCA scope, route matrix and open-redirect guar
   }
 
   assert.equal(getPostLoginPath(user(['TENANT_ADMIN'], null), null), '/403');
+  // Trộn role hợp lệ với code legacy/khác scope ⇒ deny ⇒ `/403`, không nâng quyền.
+  assert.equal(getPostLoginPath(user(['SELLER_OWNER', 'TENANT_ADMIN'], TENANT), null), '/403');
+  assert.equal(getPostLoginPath(user(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), null), '/403');
+});
+
+test('authorization code never reads the display-only legacy policy module', () => {
+  // Runtime: module legacy chỉ chứa dữ liệu hiển thị, không export hàm quyết định quyền.
+  for (const fn of [
+    'can',
+    'canAny',
+    'canAll',
+    'isRouteAllowed',
+    'getEffectiveRoles',
+    'getDefaultPath',
+    'getVisibleNavGroups',
+    'getSearchLinks',
+    'resolveActorScope',
+  ]) {
+    assert.equal(
+      typeof legacyPolicy[fn],
+      'undefined',
+      `legacyAccessPolicy must not expose ${fn}()`,
+    );
+  }
+
+  // Static: chỉ tầng page (hiển thị) được import legacyAccessPolicy. Mọi tầng ra
+  // quyết định quyền — lib/hooks/stores/services/components/layout — đều bị cấm.
+  const allowedImportPrefixes = ['src/pages/'];
+  const importers = filesImporting('legacyAccessPolicy');
+  for (const file of importers) {
+    assert.ok(
+      allowedImportPrefixes.some((prefix) => file.startsWith(prefix)),
+      `authorization module ${file} must not import the legacy display catalog`,
+    );
+  }
+});
+
+test('the roles/permissions page has no legacy role-grant write path', () => {
+  const pagePath = 'src/pages/workspace/RolesPermissionsPage.tsx';
+  const pageSource = readFileSync(join(REPO_ROOT, pagePath), 'utf8');
+  assert.equal(
+    pageSource.includes('updateRoles'),
+    false,
+    `${pagePath} must not call the legacy role update API`,
+  );
+
+  // Không page/component nào gọi API gán role legacy; chỉ còn định nghĩa trong feature.
+  for (const file of filesContaining('updateRoles')) {
+    assert.ok(
+      file.startsWith('src/features/tenants/'),
+      `${file} must not call the legacy role update API`,
+    );
+  }
 });

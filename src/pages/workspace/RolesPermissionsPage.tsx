@@ -1,19 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { LoaderCircle, Pencil, ShieldCheck } from 'lucide-react';
+import { LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
-import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
-import Modal from '@/components/Common/Modal/Modal';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
-import { useStaffAccounts, type StaffAccount, type StaffRole } from '@/features/tenants';
+import { useStaffAccounts } from '@/features/tenants';
 import { type CapabilityDomain } from '@/lib/accessPolicy';
 import {
   LEGACY_CAPABILITIES as CAPABILITIES,
@@ -67,14 +64,16 @@ export default function RolesPermissionsPage() {
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: PageTab = PAGE_TABS.includes(tab as PageTab) ? (tab as PageTab) : 'roles';
-  const { accounts, error, isLoading, savingRolesUserId, refetch, updateRoles } = useStaffAccounts({
+  const { accounts, error, isLoading, refetch } = useStaffAccounts({
     search: '',
     role: '',
     status: '',
   });
-  const [editingMember, setEditingMember] = useState<StaffAccount | null>(null);
-  const [draftRoles, setDraftRoles] = useState<StaffRole[]>([]);
-  const [roleSaveError, setRoleSaveError] = useState('');
+
+  // Gán role cho thành viên đã bị gỡ khỏi trang này: API gán role hiện tại chỉ
+  // nhận mã role legacy (ngoài 7 role ORCA), nên nếu giữ lại thì một phiên ORCA
+  // hợp lệ có thể dùng đường legacy để cấp quyền ngoài policy ORCA. Trang giữ
+  // chế độ chỉ xem cho tới khi có API/permission gán role ORCA chính thức.
 
   const roleLabel = (role: AuthRole) => t(ROLE_NAME_KEYS[role]);
 
@@ -101,30 +100,6 @@ export default function RolesPermissionsPage() {
       })).filter((group) => group.capabilities.length > 0),
     [workspaceCapabilities],
   );
-
-  const openRoleEditor = (member: StaffAccount) => {
-    setEditingMember(member);
-    setDraftRoles([...member.roles]);
-    setRoleSaveError('');
-  };
-
-  const toggleDraftRole = (role: StaffRole) => {
-    setDraftRoles((current) =>
-      current.includes(role) ? current.filter((item) => item !== role) : [...current, role],
-    );
-  };
-
-  const saveRoles = async () => {
-    if (!editingMember) return;
-    setRoleSaveError('');
-    const changed = await updateRoles(editingMember.userId, draftRoles);
-    if (!changed) {
-      setRoleSaveError(t('roleSaveError'));
-      return;
-    }
-    toast.success(t('roleSaveSuccess'));
-    setEditingMember(null);
-  };
 
   const tabs = PAGE_TABS.map((id) => ({ id, label: t(id) }));
 
@@ -239,14 +214,13 @@ export default function RolesPermissionsPage() {
                       <th className="border-b border-[var(--sc-border-default)] px-4 py-3 text-xs font-normal leading-4 text-[var(--sc-text-primary)]">
                         {t('assignedRoles')}
                       </th>
-                      <th className="w-16 border-b border-[var(--sc-border-default)] px-3 py-3" />
                     </tr>
                   </thead>
                   <tbody className="bg-[var(--sc-bg-surface)]">
                     {isLoading ? (
                       <tr>
                         <td
-                          colSpan={3}
+                          colSpan={2}
                           className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
                         >
                           <span className="inline-flex items-center gap-2">
@@ -258,7 +232,7 @@ export default function RolesPermissionsPage() {
                     ) : accounts.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={3}
+                          colSpan={2}
                           className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
                         >
                           {t('noResults')}
@@ -289,16 +263,6 @@ export default function RolesPermissionsPage() {
                               ))}
                             </span>
                           </td>
-                          <td className="px-3 py-3.5 text-right">
-                            <button
-                              type="button"
-                              aria-label={t('editMemberRoles', { name: account.fullName })}
-                              onClick={() => openRoleEditor(account)}
-                              className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-[background-color,color,transform] hover:bg-[var(--sc-primary-alpha-08)] hover:text-[var(--sc-primary-dark)] active:scale-95"
-                            >
-                              <Pencil size={16} />
-                            </button>
-                          </td>
                         </tr>
                       ))
                     )}
@@ -309,54 +273,6 @@ export default function RolesPermissionsPage() {
           )}
         </section>
       )}
-
-      <Modal
-        isOpen={editingMember !== null}
-        onClose={() => setEditingMember(null)}
-        title={t('editRolesTitle')}
-      >
-        {editingMember && (
-          <div className="space-y-5">
-            <p className="mb-0 mt-0 text-sm leading-6 text-[var(--sc-text-secondary)]">
-              <span className="font-medium text-[var(--sc-text-primary)]">
-                {editingMember.fullName}
-              </span>
-              {' — '}
-              {editingMember.email}
-            </p>
-            <p className="mb-0 text-sm leading-5 text-[var(--sc-text-secondary)]">
-              {t('rolesHint')}
-            </p>
-            <div className="grid gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">
-              {WORKSPACE_ROLES.map((role) => (
-                <Checkbox
-                  key={role}
-                  label={roleLabel(role)}
-                  checked={draftRoles.includes(role)}
-                  onChange={() => toggleDraftRole(role)}
-                />
-              ))}
-            </div>
-            {roleSaveError && (
-              <Alert variant="error" title={t('roleSaveError')}>
-                {roleSaveError}
-              </Alert>
-            )}
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="secondary" onClick={() => setEditingMember(null)}>
-                {t('cancel')}
-              </Button>
-              <Button
-                type="button"
-                isLoading={savingRolesUserId === editingMember.userId}
-                onClick={() => void saveRoles()}
-              >
-                {t('saveRoles')}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

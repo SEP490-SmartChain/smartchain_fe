@@ -607,8 +607,9 @@ export function resolveActorScope(roles: readonly string[]): ActorScope | null {
 
 /**
  * Chuẩn hóa role từ server về tập role ORCA hợp lệ **trong đúng một scope**.
- * Fail-closed: thiếu scope, role lạ/legacy, hoặc trộn scope ⇒ mảng rỗng (deny).
- * Không bao giờ union với role fallback cũ.
+ * Fail-closed: thiếu scope, hoặc bất kỳ code nào không thuộc bảy role ORCA
+ * (legacy/khoảng trắng/lạ) ⇒ mảng rỗng (deny **toàn bộ** principal), kể cả khi
+ * các code còn lại hợp lệ. Không bao giờ union với role fallback cũ.
  */
 export function getEffectiveRoles(
   roles: readonly string[],
@@ -618,8 +619,9 @@ export function getEffectiveRoles(
 
   const effective: OrcaRole[] = [];
   for (const role of roles) {
-    // Role legacy được nhận diện nhưng không cấp quyền; role lạ bị bỏ qua.
-    if (isLegacyRole(role) || !isOrcaRole(role)) continue;
+    // Một code ngoài bảy role ORCA (legacy hoặc lạ) ⇒ deny toàn bộ principal,
+    // không bỏ qua rồi tiếp tục với các role hợp lệ còn lại.
+    if (!isOrcaRole(role)) return [];
     // Một role thuộc scope khác ⇒ toàn bộ principal bị deny (không trộn scope).
     if (ROLE_ACTOR_SCOPE[role] !== actorScope) return [];
     if (!effective.includes(role)) effective.push(role);
