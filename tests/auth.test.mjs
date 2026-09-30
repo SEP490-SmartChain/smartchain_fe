@@ -12,6 +12,7 @@ let getLoginSchema;
 let getForgotPasswordSchema;
 let getResetPasswordSchema;
 let getPostLoginPath;
+let getHomePath;
 let getEffectiveRoles;
 let getDefaultPath;
 const originalFetch = globalThis.fetch;
@@ -66,7 +67,7 @@ before(async () => {
   ({ getResetPasswordSchema } = await server.ssrLoadModule(
     '/src/features/auth/schemas/resetPassword.schema.ts',
   ));
-  ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
+  ({ getPostLoginPath, getHomePath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
   ({ getEffectiveRoles, getDefaultPath } = await server.ssrLoadModule('/src/lib/accessPolicy.ts'));
 });
 after(async () => {
@@ -411,6 +412,16 @@ test('post-login redirects preserve internal destinations and enforce admin acce
   const admin = { ...user, tenantId: null, actorScope: 'PLATFORM', roles: ['ORCA_ADMIN'] };
   assert.equal(getPostLoginPath(admin, null), '/admin/tenants');
   assert.equal(getPostLoginPath(admin, { from: '/admin/carriers' }), '/admin/carriers');
+});
+
+test('root route sends each authenticated scope to its own default path', () => {
+  assert.equal(getHomePath(null), '/login');
+  assert.equal(getHomePath({ ...user, roles: ['SELLER_OWNER'] }), '/dashboard');
+  assert.equal(
+    getHomePath({ ...user, tenantId: null, actorScope: 'PLATFORM', roles: ['ORCA_ADMIN'] }),
+    '/admin/tenants',
+  );
+  assert.equal(getHomePath({ ...user, roles: ['TENANT_ADMIN'] }), '/403');
 });
 
 test('new refresh attempts wait for logout and cannot rotate a revoked cookie', async () => {

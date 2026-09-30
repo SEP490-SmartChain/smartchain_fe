@@ -159,6 +159,9 @@ test('any non-ORCA role code denies the whole principal (no skip-and-continue)',
   assert.deepEqual(effective(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), []);
   assert.deepEqual(effective([], TENANT), []);
   assert.deepEqual(effective(['SELLER_OWNER', 'SELLER_OWNER'], TENANT), ['SELLER_OWNER']);
+  assert.equal(policy.resolveActorScope(['ORCA_ADMIN', 'SUPER_ADMIN']), null);
+  assert.equal(policy.can(['ORCA_ADMIN', 'SUPER_ADMIN'], 'platform.tenants.manage'), false);
+  assert.equal(policy.getDefaultPath(['ORCA_ADMIN', 'SUPER_ADMIN']), '/403');
 });
 
 test('multi-role union applies only within one actor scope', () => {
@@ -357,13 +360,12 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/billing',
           '/settings/general',
           '/settings/webhooks',
-          '/settings/integrations',
           '/roles-permissions/roles',
           '/iam/users',
           '/audit',
           '/integration-errors',
         ],
-        deny: ['/rules', '/reconciliation', '/admin/tenants'],
+        deny: ['/rules', '/reconciliation', '/admin/tenants', '/settings/integrations'],
       },
     ],
     [
@@ -451,7 +453,6 @@ test('sidebar derives from the same capability source for every role', () => {
       'operations_heading',
       'finance_heading',
       'reports_heading',
-      'integrations_heading',
       'manage_accounts_heading',
       'workspace_settings_heading',
       'account_heading',
@@ -460,7 +461,6 @@ test('sidebar derives from the same capability source for every role', () => {
       'workspace_heading',
       'operations_heading',
       'reports_heading',
-      'integrations_heading',
       'monitoring_heading',
       'account_heading',
     ],
@@ -485,7 +485,6 @@ test('sidebar derives from the same capability source for every role', () => {
       'workspace_heading',
       'operations_heading',
       'reports_heading',
-      'integrations_heading',
       'manage_accounts_heading',
       'workspace_settings_heading',
       'monitoring_heading',
@@ -534,6 +533,17 @@ test('unknown capabilities are denied by default', () => {
   assert.equal(policy.canAny(admin, ['orders.view', 'not.a.capability']), true);
   assert.equal(policy.canAll(admin, ['orders.view', 'not.a.capability']), false);
   assert.equal(policy.can(admin, 'orders.view'), true);
+});
+
+test('PROPOSED capabilities never grant routes or actions', () => {
+  const admin = effective(ADMIN, PLATFORM);
+  const owner = effective(OWNER, TENANT);
+
+  assert.equal(policy.can(admin, 'finance.view'), false);
+  assert.equal(policy.can(admin, 'carriers.credentials.manage'), false);
+  assert.equal(policy.can(owner, 'carriers.credentials.manage'), false);
+  assert.equal(policy.isRouteAllowed(owner, '/settings/integrations'), false);
+  assert.equal(policy.isRouteAllowed(admin, '/admin/tenants'), true);
 });
 
 test('post-login redirect honors ORCA scope, route matrix and open-redirect guard', () => {

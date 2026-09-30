@@ -11,8 +11,8 @@
  * - Thiếu scope, role rỗng, role lạ hoặc role legacy ⇒ DENY (fail-closed).
  *   Không union với bất kỳ fallback role cũ nào.
  * - Capability catalog bám ma trận màn hình `R3 line 407–424` (D2 baseline).
- *   Các capability hành động chi tiết chưa được duyệt (D8 còn PROPOSED) được
- *   đánh dấu `provenance: 'PROPOSED'`; module không tự cấp quyền cho ô không nguồn.
+ *   Capability chưa có nguồn được duyệt mang `provenance: 'PROPOSED'` và không
+ *   cấp quyền, kể cả khi đã có role dự kiến trong catalog.
  *
  * Danh mục legacy chỉ để hiển thị (trang Roles & Permissions cũ) nằm ở
  * `src/lib/legacyAccessPolicy.ts` và KHÔNG được dùng để cấp quyền.
@@ -97,7 +97,8 @@ export interface CapabilityDef {
 }
 
 const R3_MATRIX = 'R3 line 407–424 (screen authorization matrix, D2 baseline)';
-const D8_PROPOSED = 'proposed-permission-matrix.md §2 (D8 chưa duyệt)';
+const D8_PROPOSED = 'FE aggregate capability chưa có action tương ứng trong D8 v3';
+const D8_APPROVED = 'proposed-permission-matrix.md v3 §2 (đã duyệt)';
 const CONTRACT_SECURITY = 'contract v0.2 §11 (security DoD)';
 
 function capability(
@@ -168,10 +169,10 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   capability(
     'carriers.credentials.manage',
     'carriers',
-    'ANY',
-    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'SELLER_OWNER'],
+    'PLATFORM',
+    ['ORCA_ADMIN'],
     'PROPOSED',
-    D8_PROPOSED,
+    'R3 UC-92: ORCA Admin; UI integrations hiện vẫn dùng API tenant legacy',
   ),
   capability(
     'warehouses.view',
@@ -309,32 +310,32 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'platform',
     'PLATFORM',
     ['ORCA_ADMIN'],
-    'PROPOSED',
-    D8_PROPOSED,
+    'APPROVED',
+    R3_MATRIX,
   ),
   capability(
     'platform.carriers.manage',
     'platform',
     'PLATFORM',
     ['ORCA_ADMIN'],
-    'PROPOSED',
-    D8_PROPOSED,
+    'APPROVED',
+    'R3 UC-91: ORCA Admin quản lý carrier catalog',
   ),
   capability(
     'platform.plans.manage',
     'platform',
     'PLATFORM',
     ['ORCA_ADMIN'],
-    'PROPOSED',
-    D8_PROPOSED,
+    'APPROVED',
+    R3_MATRIX,
   ),
   capability(
     'platform.observability.view',
     'platform',
     'PLATFORM',
     ['ORCA_ADMIN'],
-    'PROPOSED',
-    D8_PROPOSED,
+    'APPROVED',
+    R3_MATRIX,
   ),
   // Hành động nhạy cảm: warehouse staff bị DENY (contract §11; R3 line 407 note).
   capability(
@@ -350,24 +351,24 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'finance',
     'ANY',
     ['ORCA_ACCOUNTANT', 'SELLER_OWNER'],
-    'PROPOSED',
-    D8_PROPOSED,
+    'APPROVED',
+    D8_APPROVED,
   ),
   capability(
     'invoice.view',
     'finance',
     'ANY',
     ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
-    'PROPOSED',
-    D8_PROPOSED,
+    'APPROVED',
+    D8_APPROVED,
   ),
   capability(
     'apikey.manage',
     'apikey',
     'TENANT',
     ['SELLER_OWNER'],
-    'PROPOSED',
-    `${D8_PROPOSED}; SRS line 213`,
+    'APPROVED',
+    `${D8_APPROVED}; SRS line 213`,
   ),
 ];
 
@@ -588,13 +589,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 ];
 
 /**
- * Scope hiệu lực của một tập role. Trả `null` (deny) khi rỗng, chỉ có role lạ,
- * hoặc trộn role từ hai scope — cấm trộn TENANT/PLATFORM trong một principal.
+ * Scope hiệu lực của một tập role. Bất kỳ role lạ/legacy hoặc role khác scope
+ * đều làm principal không hợp lệ, kể cả khi có role ORCA hợp lệ đi kèm.
  */
 export function resolveActorScope(roles: readonly string[]): ActorScope | null {
   let scope: ActorScope | null = null;
   for (const role of roles) {
-    if (!isOrcaRole(role)) continue;
+    if (!isOrcaRole(role)) return null;
     const roleScope = ROLE_ACTOR_SCOPE[role];
     if (scope === null) {
       scope = roleScope;
@@ -631,7 +632,7 @@ export function getEffectiveRoles(
 
 export function can(roles: readonly string[], capability: string): boolean {
   const def = CAPABILITY_BY_CODE[capability];
-  if (!def) return false;
+  if (!def || def.provenance !== 'APPROVED') return false;
 
   const roleScope = resolveActorScope(roles);
   if (roleScope === null) return false;
@@ -687,6 +688,7 @@ const DEFAULT_PATHS: Readonly<Record<OrcaRole, string>> = Object.freeze({
 
 /** Route mặc định sau đăng nhập; không có role hợp lệ ⇒ `/403` (fail-closed). */
 export function getDefaultPath(roles: readonly string[]): string {
+  if (resolveActorScope(roles) === null) return '/403';
   for (const role of ORCA_ROLES) {
     if ((roles as readonly string[]).includes(role)) return DEFAULT_PATHS[role];
   }
