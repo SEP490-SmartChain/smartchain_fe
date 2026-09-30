@@ -65,6 +65,10 @@ const sessionSchema = z.object({
 const errorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string(), details: z.unknown().optional() }),
 });
+const businessLookupSchema = z.object({
+  code: z.string(),
+  data: z.object({ name: z.string(), address: z.string().nullish() }).nullish(),
+});
 
 export class ApiError extends Error {
   constructor(
@@ -86,6 +90,39 @@ class ApiClient {
 
   private message(vi: string, en: string) {
     return useLocaleStore.getState().locale === 'en' ? en : vi;
+  }
+
+  /** Public VietQR lookup: never send the SmartChain session or cookies to a third party. */
+  async lookupBusinessTaxId(
+    taxId: string,
+  ): Promise<{ name: string; address: string | null } | null> {
+    const response = await fetch(`https://api.vietqr.io/v2/business/${encodeURIComponent(taxId)}`, {
+      method: 'GET',
+      credentials: 'omit',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Business lookup is unavailable',
+        response.status,
+        'TAX_LOOKUP.UNAVAILABLE',
+      );
+    }
+    const payload: unknown = await response.json();
+    const parsed = businessLookupSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new ApiError(
+        'Invalid business lookup response',
+        response.status,
+        'TAX_LOOKUP.INVALID_RESPONSE',
+      );
+    }
+    if (parsed.data.code !== '00' || !parsed.data.data?.name.trim()) return null;
+    return {
+      name: parsed.data.data.name.trim(),
+      address: parsed.data.data.address?.trim() || null,
+    };
   }
 
   private async send(endpoint: string, options: FetchOptions, token: string | null) {

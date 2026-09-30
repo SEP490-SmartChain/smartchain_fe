@@ -35,6 +35,16 @@ Production requires HTTPS, a same-site API, and preferably a reverse proxy retai
 The refresh cookie is SameSite=Strict and scoped to /api/v1/auth; unrelated-site API URLs will
 not support refresh.
 
+## Business tax ID lookup during registration
+
+The optional lookup button calls VietQR's public `/v2/business/:taxCode` endpoint directly from
+the browser through `apiClient.lookupBusinessTaxId`. This request uses `credentials: omit` and
+never includes a SmartChain Bearer token. It fills only the company name; the returned address
+is shown for reference because the registration API does not currently persist an address.
+Lookup failure never blocks manual registration. Do not automatically call on every keystroke:
+the provider rate-limits requests. VietQR states this endpoint will stop on 2027-03-01, so
+replace the provider before then; Xinvoice's successor API requires server-held credentials.
+
 ## Password Reset Request (SS-346)
 
 `POST /api/v1/auth/password-reset-requests`: `{ email }`, anonymous (`requiresAuth: false`).
