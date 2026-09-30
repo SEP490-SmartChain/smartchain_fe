@@ -1,12 +1,17 @@
 import { getDefaultPath, getEffectiveRoles, isRouteAllowed } from '@/lib/accessPolicy';
 import type { AuthUser } from '@/stores/authStore';
 
+/** Điểm vào `/` dùng cùng policy với redirect sau đăng nhập. */
+export function getHomePath(user: AuthUser | null): string {
+  return user ? getPostLoginPath(user, null) : '/login';
+}
+
 /**
  * Xác định đường dẫn sau đăng nhập (mục 4.8). Chỉ chấp nhận đích nội bộ an toàn
  * và nằm trong route mà vai trò được truy cập; ngoài ra trả về route mặc định.
  */
 export function getPostLoginPath(user: AuthUser, state: unknown): string {
-  const roles = getEffectiveRoles(user.roles);
+  const roles = getEffectiveRoles(user.roles, user.actorScope);
   const fallback = getDefaultPath(roles);
   if (!state || typeof state !== 'object' || !('from' in state)) return fallback;
 

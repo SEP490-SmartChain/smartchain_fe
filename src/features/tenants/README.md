@@ -4,7 +4,7 @@ Quản lý tenant, người dùng, vai trò và quyền RBAC, workspace config, 
 
 ## API Keys cho ERP (SS-473)
 
-`ApiKeyManager` là tab `/settings/api-keys` (chỉ Tenant Admin): tạo, xem và thu hồi API key để
+`ApiKeyManager` là tab `/settings/api-keys` (ORCA `SELLER_OWNER` theo D8 v3): tạo, xem và thu hồi API key để
 ERP/POS/website gọi `POST /api/v1/ingest/products`. Key đầy đủ chỉ hiện một lần trong
 `SecretRevealModal` (component dùng chung ở `components/Common`) và không lưu vào store hay
 localStorage. API: `api/apiKeyApi.ts` gọi `/api/v1/iam/api-keys`; form dùng `schemas/apiKey.schemas.ts`.

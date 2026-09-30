@@ -1,35 +1,91 @@
 import assert from 'node:assert/strict';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { createServer } from 'vite';
 
+const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
+
 let server;
 let policy;
+let legacyPolicy;
 let getPostLoginPath;
 
-const SA = ['SUPER_ADMIN'];
-const TA = ['TENANT_ADMIN'];
-const DISPATCHER = ['DISPATCHER'];
-const ACCOUNTANT = ['ACCOUNTANT'];
+const PLATFORM = 'PLATFORM';
+const TENANT = 'TENANT';
 
-function user(roles, tenantId = 'tenant-1') {
+const ADMIN = ['ORCA_ADMIN'];
+const OPS = ['OPS_DISPATCHER'];
+const WH_MANAGER = ['WAREHOUSE_MANAGER'];
+const WH_STAFF = ['WAREHOUSE_STAFF'];
+const ACCOUNTANT = ['ORCA_ACCOUNTANT'];
+const OWNER = ['SELLER_OWNER'];
+const SELLER_STAFF = ['SELLER_STAFF'];
+
+/** [role, actorScope] cho cả 7 role ORCA. */
+const ALL_ROLES = [
+  ['ORCA_ADMIN', PLATFORM],
+  ['OPS_DISPATCHER', PLATFORM],
+  ['WAREHOUSE_MANAGER', PLATFORM],
+  ['WAREHOUSE_STAFF', PLATFORM],
+  ['ORCA_ACCOUNTANT', PLATFORM],
+  ['SELLER_OWNER', TENANT],
+  ['SELLER_STAFF', TENANT],
+];
+
+function effective(roles, actorScope) {
+  return policy.getEffectiveRoles(roles, actorScope);
+}
+
+function user(roles, actorScope, tenantId = actorScope === TENANT ? 'tenant-1' : null) {
   return {
     userId: 'user-1',
     tenantId,
     email: 'user@example.test',
     fullName: 'Test User',
+    actorScope,
     roles,
     permissions: [],
   };
 }
 
-function groupKeys(roles) {
-  return policy.getVisibleNavGroups(roles, false).map((group) => group.key);
+function hrefs(roles, actorScope) {
+  return policy.getSearchLinks(effective(roles, actorScope), false).map((link) => link.href);
 }
 
-function hrefs(roles) {
-  return policy.getSearchLinks(roles, false).map((link) => link.href);
+function groupKeys(roles, actorScope) {
+  return policy.getVisibleNavGroups(effective(roles, actorScope), false).map((group) => group.key);
+}
+
+/** Danh sách file nguồn `.ts`/`.tsx` dưới `src/`, đường dẫn tương đối repo. */
+function listSourceFiles(dir = join(REPO_ROOT, 'src')) {
+  const files = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...listSourceFiles(full));
+    else if (/\.(ts|tsx)$/.test(entry.name))
+      files.push(relative(REPO_ROOT, full).split(sep).join('/'));
+  }
+  return files;
+}
+
+/** Các file nguồn có câu lệnh import module `needle` (bỏ qua comment). */
+function filesImporting(needle) {
+  const pattern = new RegExp(
+    `from\\s+['"][^'"]*${needle}['"]|import\\s*\\(\\s*['"][^'"]*${needle}['"]\\s*\\)`,
+  );
+  return listSourceFiles().filter((file) =>
+    pattern.test(readFileSync(join(REPO_ROOT, file), 'utf8')),
+  );
+}
+
+/** Các file nguồn có chứa chuỗi `needle` (mọi ngữ cảnh). */
+function filesContaining(needle) {
+  return listSourceFiles().filter((file) =>
+    readFileSync(join(REPO_ROOT, file), 'utf8').includes(needle),
+  );
 }
 
 before(async () => {
@@ -42,6 +98,7 @@ before(async () => {
     server: { middlewareMode: true, watch: null, ws: false },
   });
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
+  legacyPolicy = await server.ssrLoadModule('/src/lib/legacyAccessPolicy.ts');
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
 });
 
@@ -49,178 +106,586 @@ after(async () => {
   await server?.close();
 });
 
-test('effective roles keep SUPER_ADMIN separate from workspace roles', () => {
-  assert.deepEqual(policy.getEffectiveRoles(['SUPER_ADMIN', 'TENANT_ADMIN']), SA);
-  assert.deepEqual(policy.getEffectiveRoles(['DISPATCHER', 'ACCOUNTANT']), [
-    'DISPATCHER',
-    'ACCOUNTANT',
+test('the seven ORCA roles each map to exactly one actor scope', () => {
+  assert.deepEqual([...policy.ORCA_ROLES].sort(), [
+    'OPS_DISPATCHER',
+    'ORCA_ACCOUNTANT',
+    'ORCA_ADMIN',
+    'SELLER_OWNER',
+    'SELLER_STAFF',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
   ]);
-  assert.deepEqual(policy.getEffectiveRoles(['UNKNOWN_ROLE']), []);
-});
-
-test('capabilities are the union of a user workspace roles', () => {
-  assert.equal(policy.can(TA, 'orders.view'), true);
-  assert.equal(policy.can(DISPATCHER, 'orders.operate'), true);
-  assert.equal(policy.can(DISPATCHER, 'reconciliation.operate'), false);
-  assert.equal(policy.can(['DISPATCHER', 'ACCOUNTANT'], 'reconciliation.operate'), true);
-  assert.equal(policy.can(['DISPATCHER', 'ACCOUNTANT'], 'orders.operate'), true);
-  // SUPER_ADMIN does not inherit workspace capabilities.
-  assert.equal(policy.can(SA, 'orders.view'), false);
-  assert.equal(policy.can(SA, 'platform.tenants.manage'), true);
-});
-
-test('action visibility follows the section 7 action matrix', () => {
-  // Kho / SKU / tồn kho
-  assert.equal(policy.can(TA, 'warehouses.manage'), true);
-  assert.equal(policy.can(DISPATCHER, 'warehouses.manage'), false);
-  assert.equal(policy.can(DISPATCHER, 'warehouses.view'), true);
-  assert.equal(policy.can(ACCOUNTANT, 'warehouses.view'), false);
-  // Nhả reservation thủ công (SRS §3.10.2)
-  assert.equal(policy.can(TA, 'inventory.reservations.release'), true);
-  assert.equal(policy.can(DISPATCHER, 'inventory.reservations.release'), true);
-  assert.equal(policy.can(ACCOUNTANT, 'inventory.reservations.release'), false);
-  assert.equal(policy.can(SA, 'inventory.reservations.release'), false);
-  assert.equal(policy.can(['ACCOUNTANT', 'DISPATCHER'], 'inventory.reservations.release'), true);
-  // Routing rules
-  assert.equal(policy.can(TA, 'rules.create_delete'), true);
-  assert.equal(policy.can(DISPATCHER, 'rules.create_delete'), false);
-  assert.equal(policy.can(DISPATCHER, 'rules.operate'), true);
-  assert.equal(policy.can(TA, 'rules.operate'), false);
-  // Orders / shipments
-  assert.equal(policy.can(DISPATCHER, 'orders.operate'), true);
-  assert.equal(policy.can(TA, 'orders.operate'), false);
-  assert.equal(policy.can(DISPATCHER, 'shipments.operate'), true);
-  // Reconciliation
-  assert.equal(policy.can(ACCOUNTANT, 'reconciliation.operate'), true);
-  assert.equal(policy.can(TA, 'reconciliation.operate'), false);
-  assert.equal(policy.can(TA, 'reconciliation.view'), true);
-  assert.equal(policy.can(DISPATCHER, 'reconciliation.view'), false);
-  // Platform admin (Super Admin only)
-  assert.equal(policy.can(SA, 'platform.tenants.manage'), true);
-  assert.equal(policy.can(TA, 'platform.tenants.manage'), false);
-  // Audit split
-  assert.equal(policy.can(TA, 'audit.tenant.view'), true);
-  assert.equal(policy.can(SA, 'audit.platform.view'), true);
-  assert.equal(policy.can(DISPATCHER, 'audit.tenant.view'), false);
-});
-
-test('route policy normalizes a trailing slash', () => {
-  assert.equal(policy.isRouteAllowed(TA, '/dashboard/'), true);
-  assert.equal(policy.isRouteAllowed(TA, '/billing/'), true);
-  assert.equal(policy.isRouteAllowed(TA, '/settings/profile/'), true);
-  assert.equal(policy.isRouteAllowed(DISPATCHER, '/orders/'), true);
-  assert.equal(policy.isRouteAllowed(DISPATCHER, '/reconciliation/'), false);
-  assert.equal(getPostLoginPath(user(TA), { from: '/orders/' }), '/orders/');
-});
-
-test('route matrix authorizes each role per section 6', () => {
-  assert.equal(policy.isRouteAllowed(SA, '/admin/tenants'), true);
-  assert.equal(policy.isRouteAllowed(SA, '/dashboard'), false);
-  assert.equal(policy.isRouteAllowed(TA, '/dashboard'), true);
-  assert.equal(policy.isRouteAllowed(TA, '/reconciliation'), true);
-  assert.equal(policy.isRouteAllowed(TA, '/billing'), true);
-  assert.equal(policy.isRouteAllowed(DISPATCHER, '/reconciliation'), false);
-  assert.equal(policy.isRouteAllowed(ACCOUNTANT, '/reconciliation'), true);
-  assert.equal(policy.isRouteAllowed(ACCOUNTANT, '/orders'), false);
-  assert.equal(policy.isRouteAllowed(TA, '/roles-permissions/roles'), true);
-  assert.equal(policy.isRouteAllowed(DISPATCHER, '/roles-permissions/roles'), false);
-  // Profile is shared by all four roles.
-  for (const roles of [SA, TA, DISPATCHER, ACCOUNTANT]) {
-    assert.equal(policy.isRouteAllowed(roles, '/settings/profile'), true);
-    assert.equal(policy.isRouteAllowed(roles, '/settings/general'), roles.includes('TENANT_ADMIN'));
+  for (const [role, scope] of ALL_ROLES) {
+    assert.equal(policy.ROLE_ACTOR_SCOPE[role], scope, `${role} scope`);
+    assert.deepEqual(effective([role], scope), [role]);
   }
 });
 
-test('API key settings are reachable and listed only for Tenant Admin', () => {
-  assert.equal(policy.isRouteAllowed(TA, '/settings/api-keys'), true);
-  assert.equal(hrefs(TA).includes('/settings/api-keys'), true);
-
-  for (const roles of [SA, DISPATCHER, ACCOUNTANT]) {
-    assert.equal(policy.isRouteAllowed(roles, '/settings/api-keys'), false);
-    assert.equal(hrefs(roles).includes('/settings/api-keys'), false);
-  }
-});
-
-test('default path points each role to its home route', () => {
-  assert.equal(policy.getDefaultPath(SA), '/admin/tenants');
-  assert.equal(policy.getDefaultPath(TA), '/dashboard');
-  assert.equal(policy.getDefaultPath(DISPATCHER), '/dashboard');
-  assert.equal(policy.getDefaultPath(ACCOUNTANT), '/dashboard');
-});
-
-test('sidebar shows the correct groups per role', () => {
-  assert.deepEqual(groupKeys(SA), ['platform_heading', 'monitoring_heading', 'account_heading']);
-
-  assert.deepEqual(groupKeys(TA), [
-    'workspace_heading',
-    'operations_heading',
-    'finance_heading',
-    'reports_heading',
-    'integrations_heading',
-    'manage_accounts_heading',
-    'workspace_settings_heading',
-    'monitoring_heading',
-    'account_heading',
-  ]);
-
-  assert.deepEqual(groupKeys(DISPATCHER), [
-    'workspace_heading',
-    'operations_heading',
-    'reports_heading',
-    'monitoring_heading',
-    'account_heading',
-  ]);
-
-  assert.deepEqual(groupKeys(ACCOUNTANT), [
-    'workspace_heading',
-    'finance_heading',
-    'reports_heading',
-    'account_heading',
-  ]);
-});
-
-test('SUPER_ADMIN never receives workspace menu items', () => {
-  const links = hrefs(SA);
-  assert.equal(links.includes('/dashboard'), false);
-  assert.equal(links.includes('/orders'), false);
-  assert.equal(links.includes('/settings/profile'), true);
-  assert.equal(links.includes('/admin/tenants'), true);
-  assert.equal(links.includes('/admin/plans'), true);
-});
-
-test('global search never exposes unauthorized routes', () => {
-  const dispatcherLinks = hrefs(DISPATCHER);
-  assert.equal(dispatcherLinks.includes('/orders'), true);
-  assert.equal(dispatcherLinks.includes('/reconciliation'), false);
-  assert.equal(dispatcherLinks.includes('/iam/users'), false);
-  assert.equal(dispatcherLinks.includes('/admin/tenants'), false);
-
-  const accountantLinks = hrefs(ACCOUNTANT);
-  assert.equal(accountantLinks.includes('/reconciliation'), true);
-  assert.equal(accountantLinks.includes('/orders'), false);
-  assert.equal(accountantLinks.includes('/integration-errors'), false);
-});
-
-test('component catalog is dev-only', () => {
-  assert.equal(
-    policy.getVisibleNavGroups(TA, true).some((group) => group.key === 'ui_heading'),
-    true,
+test('getEffectiveRoles is fail-closed for missing scope, unknown/legacy roles and mixed scopes', () => {
+  assert.deepEqual(effective([], TENANT), []);
+  assert.deepEqual(effective(['UNKNOWN_ROLE'], PLATFORM), []);
+  assert.deepEqual(
+    effective(['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'], PLATFORM),
+    [],
   );
+  assert.deepEqual(effective(['SUPER_ADMIN'], TENANT), []);
+  assert.deepEqual(effective(OWNER, undefined), []);
+  assert.deepEqual(effective(OWNER, null), []);
+  assert.deepEqual(effective(OWNER, 'GUEST'), []);
+  // Role thuộc scope khác ⇒ deny toàn bộ principal, không tự chọn scope.
+  assert.deepEqual(effective(OWNER, PLATFORM), []);
+  assert.deepEqual(effective(ADMIN, TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'ORCA_ADMIN'], PLATFORM), []);
+  assert.deepEqual(effective(['OPS_DISPATCHER', 'OPS_DISPATCHER'], PLATFORM), ['OPS_DISPATCHER']);
+});
+
+test('any non-ORCA role code denies the whole principal (no skip-and-continue)', () => {
+  // Happy path hợp lệ vẫn nguyên vẹn.
+  assert.deepEqual(effective(OWNER, TENANT), ['SELLER_OWNER']);
+
+  // Tenant scope có kèm code legacy ⇒ deny toàn bộ, không giữ role hợp lệ.
+  assert.deepEqual(effective(['SELLER_OWNER', 'TENANT_ADMIN'], TENANT), []);
+  assert.deepEqual(effective(['TENANT_ADMIN', 'SELLER_OWNER'], TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'ACCOUNTANT'], TENANT), []);
+  assert.deepEqual(effective(['ORCA_ADMIN', 'SUPER_ADMIN'], PLATFORM), []);
+
+  // Code lạ (kể cả rỗng/khác hoa thường) trộn với role hợp lệ ⇒ deny toàn bộ.
+  assert.deepEqual(effective(['ORCA_ADMIN', 'UNKNOWN_ROLE'], PLATFORM), []);
+  assert.deepEqual(effective(['SELLER_OWNER', ''], TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'seller_owner'], TENANT), []);
+
+  // Trộn scope vẫn deny toàn bộ; rỗng vẫn deny; trùng lặp hợp lệ vẫn dedupe.
+  assert.deepEqual(effective(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), []);
+  assert.deepEqual(effective([], TENANT), []);
+  assert.deepEqual(effective(['SELLER_OWNER', 'SELLER_OWNER'], TENANT), ['SELLER_OWNER']);
+  assert.equal(policy.resolveActorScope(['ORCA_ADMIN', 'SUPER_ADMIN']), null);
+  assert.equal(policy.can(['ORCA_ADMIN', 'SUPER_ADMIN'], 'platform.tenants.manage'), false);
+  assert.equal(policy.getDefaultPath(['ORCA_ADMIN', 'SUPER_ADMIN']), '/403');
+});
+
+test('multi-role union applies only within one actor scope', () => {
+  const opsAccountant = effective(['OPS_DISPATCHER', 'ORCA_ACCOUNTANT'], PLATFORM);
+  assert.deepEqual(opsAccountant, ['OPS_DISPATCHER', 'ORCA_ACCOUNTANT']);
+  assert.equal(policy.can(opsAccountant, 'rules.operate'), true);
+  assert.equal(policy.can(opsAccountant, 'reconciliation.operate'), true);
+  assert.equal(policy.can(opsAccountant, 'platform.tenants.manage'), false);
+
+  const seller = effective(['SELLER_OWNER', 'SELLER_STAFF'], TENANT);
+  assert.equal(policy.can(seller, 'apikey.manage'), true);
+  assert.equal(policy.can(seller, 'catalog.products.manage'), true);
+
+  const mixed = effective(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM);
+  assert.deepEqual(mixed, []);
+  assert.equal(policy.can(mixed, 'platform.tenants.manage'), false);
+  assert.equal(policy.can(mixed, 'apikey.manage'), false);
+});
+
+test('each ORCA role has the expected action visibility', () => {
+  const allowed = [
+    ['ORCA_ADMIN', PLATFORM, 'platform.tenants.manage'],
+    ['ORCA_ADMIN', PLATFORM, 'warehouses.manage'],
+    ['OPS_DISPATCHER', PLATFORM, 'rules.operate'],
+    ['OPS_DISPATCHER', PLATFORM, 'orders.operate'],
+    ['WAREHOUSE_MANAGER', PLATFORM, 'shipments.operate'],
+    ['WAREHOUSE_MANAGER', PLATFORM, 'orders.operate'],
+    ['WAREHOUSE_STAFF', PLATFORM, 'inventory.view'],
+    ['WAREHOUSE_STAFF', PLATFORM, 'shipments.operate'],
+    ['ORCA_ACCOUNTANT', PLATFORM, 'reconciliation.operate'],
+    ['ORCA_ACCOUNTANT', PLATFORM, 'invoice.view'],
+    ['SELLER_OWNER', TENANT, 'apikey.manage'],
+    ['SELLER_OWNER', TENANT, 'catalog.products.manage'],
+    ['SELLER_STAFF', TENANT, 'orders.operate'],
+    ['SELLER_STAFF', TENANT, 'inventory.view'],
+  ];
+  for (const [role, scope, capability] of allowed) {
+    assert.equal(policy.can(effective([role], scope), capability), true, `${role} → ${capability}`);
+  }
+
+  const denied = [
+    ['ORCA_ADMIN', PLATFORM, 'apikey.manage'],
+    ['ORCA_ADMIN', PLATFORM, 'workspace.settings.manage'],
+    ['OPS_DISPATCHER', PLATFORM, 'rules.create_delete'],
+    ['OPS_DISPATCHER', PLATFORM, 'warehouses.manage'],
+    ['OPS_DISPATCHER', PLATFORM, 'platform.tenants.manage'],
+    ['WAREHOUSE_MANAGER', PLATFORM, 'warehouses.manage'],
+    ['WAREHOUSE_MANAGER', PLATFORM, 'reconciliation.view'],
+    ['WAREHOUSE_STAFF', PLATFORM, 'workspace.dashboard.view'],
+    ['ORCA_ACCOUNTANT', PLATFORM, 'warehouses.view'],
+    ['ORCA_ACCOUNTANT', PLATFORM, 'rules.operate'],
+    ['SELLER_OWNER', TENANT, 'platform.tenants.manage'],
+    ['SELLER_OWNER', TENANT, 'audit.platform.view'],
+    ['SELLER_STAFF', TENANT, 'apikey.manage'],
+    ['SELLER_STAFF', TENANT, 'iam.users.manage'],
+  ];
+  for (const [role, scope, capability] of denied) {
+    assert.equal(
+      policy.can(effective([role], scope), capability),
+      false,
+      `${role} must not have ${capability}`,
+    );
+  }
+});
+
+test('WAREHOUSE_STAFF is denied financial, COD, invoice and API-key capabilities', () => {
+  const whStaff = effective(WH_STAFF, PLATFORM);
+  for (const capability of [
+    'finance.view',
+    'cod.view',
+    'invoice.view',
+    'apikey.manage',
+    'reconciliation.view',
+    'reconciliation.operate',
+    'workspace.billing.view',
+    'carriers.credentials.manage',
+    'audit.platform.view',
+  ]) {
+    assert.equal(
+      policy.can(whStaff, capability),
+      false,
+      `WAREHOUSE_STAFF must not have ${capability}`,
+    );
+  }
   assert.equal(
-    policy.getVisibleNavGroups(TA, false).some((group) => group.key === 'ui_heading'),
+    policy.canAny(whStaff, ['finance.view', 'cod.view', 'invoice.view', 'apikey.manage']),
     false,
   );
+  assert.equal(policy.canAll(whStaff, ['inventory.view', 'finance.view']), false);
 });
 
-test('post-login redirect honors the route matrix for every role', () => {
-  assert.equal(getPostLoginPath(user(SA, null), null), '/admin/tenants');
-  assert.equal(getPostLoginPath(user(DISPATCHER), null), '/dashboard');
-  assert.equal(getPostLoginPath(user(ACCOUNTANT), null), '/dashboard');
-  assert.equal(getPostLoginPath(user(TA), { from: '/reconciliation' }), '/reconciliation');
-  // Dispatcher cannot be redirected into a route they may not access.
-  assert.equal(getPostLoginPath(user(DISPATCHER), { from: '/reconciliation' }), '/dashboard');
-  // Accountant cannot be redirected into the admin console.
-  assert.equal(getPostLoginPath(user(ACCOUNTANT), { from: '/admin/tenants' }), '/dashboard');
-  // Internal destinations that are allowed are preserved with their query string.
-  assert.equal(getPostLoginPath(user(DISPATCHER), { from: '/orders?page=2#items' }), '/orders?page=2#items');
+test('unknown, empty and legacy roles get no route, nav, search or action access', () => {
+  for (const roles of [[], ['UNKNOWN_ROLE'], ['TENANT_ADMIN'], ['SUPER_ADMIN']]) {
+    const resolved = effective(roles, PLATFORM);
+    assert.deepEqual(resolved, []);
+    assert.equal(policy.isRouteAllowed(resolved, '/dashboard'), false);
+    assert.equal(policy.isRouteAllowed(resolved, '/settings/profile'), false);
+    assert.equal(policy.getVisibleNavGroups(resolved, true).length, 0);
+    assert.equal(policy.getSearchLinks(resolved, true).length, 0);
+    assert.equal(policy.can(resolved, 'orders.view'), false);
+    assert.equal(policy.getDefaultPath(resolved), '/403');
+  }
+});
+
+test('each ORCA role only reaches routes granted by the capability catalog', () => {
+  const cases = [
+    [
+      'ORCA_ADMIN',
+      PLATFORM,
+      {
+        allow: ['/admin/tenants', '/dashboard', '/orders', '/reconciliation', '/analytics'],
+        deny: ['/settings/general', '/settings/webhooks', '/audit'],
+      },
+    ],
+    [
+      'OPS_DISPATCHER',
+      PLATFORM,
+      {
+        allow: [
+          '/orders',
+          '/inventory',
+          '/warehouses',
+          '/rules',
+          '/shipments',
+          '/analytics',
+          '/dashboard',
+          '/integration-errors',
+        ],
+        deny: [
+          '/reconciliation',
+          '/billing',
+          '/iam/users',
+          '/roles-permissions/roles',
+          '/settings/general',
+          '/admin/tenants',
+        ],
+      },
+    ],
+    [
+      'WAREHOUSE_MANAGER',
+      PLATFORM,
+      {
+        allow: ['/warehouses', '/inventory', '/orders', '/shipments', '/analytics'],
+        deny: ['/reconciliation', '/rules', '/billing', '/iam/users', '/admin/tenants'],
+      },
+    ],
+    [
+      'WAREHOUSE_STAFF',
+      PLATFORM,
+      {
+        allow: ['/warehouses', '/inventory', '/orders', '/shipments'],
+        deny: [
+          '/dashboard',
+          '/reconciliation',
+          '/billing',
+          '/rules',
+          '/settings/integrations',
+          '/settings/general',
+          '/admin/tenants',
+          '/iam/users',
+        ],
+      },
+    ],
+    [
+      'ORCA_ACCOUNTANT',
+      PLATFORM,
+      {
+        allow: [
+          '/reconciliation',
+          '/billing',
+          '/rules',
+          '/orders',
+          '/dashboard',
+          '/analytics',
+          '/integration-errors',
+        ],
+        deny: [
+          '/warehouses',
+          '/settings/general',
+          '/settings/integrations',
+          '/iam/users',
+          '/admin/tenants',
+        ],
+      },
+    ],
+    [
+      'SELLER_OWNER',
+      TENANT,
+      {
+        allow: [
+          '/dashboard',
+          '/orders',
+          '/inventory',
+          '/warehouses',
+          '/shipments',
+          '/billing',
+          '/settings/general',
+          '/settings/api-keys',
+          '/settings/webhooks',
+          '/roles-permissions/roles',
+          '/iam/users',
+          '/audit',
+          '/integration-errors',
+        ],
+        deny: ['/rules', '/reconciliation', '/admin/tenants', '/settings/integrations'],
+      },
+    ],
+    [
+      'SELLER_STAFF',
+      TENANT,
+      {
+        allow: ['/dashboard', '/orders', '/inventory', '/warehouses', '/shipments', '/analytics'],
+        deny: [
+          '/reconciliation',
+          '/billing',
+          '/rules',
+          '/settings/general',
+          '/settings/webhooks',
+          '/iam/users',
+          '/roles-permissions/roles',
+          '/audit',
+          '/admin/tenants',
+        ],
+      },
+    ],
+  ];
+
+  for (const [role, scope, matrix] of cases) {
+    const resolved = effective([role], scope);
+    for (const path of matrix.allow) {
+      assert.equal(policy.isRouteAllowed(resolved, path), true, `${role} may reach ${path}`);
+    }
+    for (const path of matrix.deny) {
+      assert.equal(policy.isRouteAllowed(resolved, path), false, `${role} must not reach ${path}`);
+    }
+  }
+});
+
+test('direct URL across portals and scopes is denied in both directions', () => {
+  const owner = effective(OWNER, TENANT);
+  const ops = effective(OPS, PLATFORM);
+
+  assert.equal(policy.isRouteAllowed(owner, '/admin/tenants'), false);
+  assert.equal(policy.isRouteAllowed(owner, '/reconciliation'), false);
+  assert.equal(policy.isRouteAllowed(ops, '/settings/general'), false);
+  assert.equal(policy.isRouteAllowed(ops, '/settings/webhooks'), false);
+
+  assert.equal(hrefs(OWNER, TENANT).includes('/admin/tenants'), false);
+  assert.equal(hrefs(OWNER, TENANT).includes('/reconciliation'), false);
+  assert.equal(hrefs(OPS, PLATFORM).includes('/settings/general'), false);
+  assert.equal(hrefs(OPS, PLATFORM).includes('/audit'), false);
+});
+
+test('trailing slash is normalized before matching a route', () => {
+  assert.equal(policy.isRouteAllowed(effective(OWNER, TENANT), '/dashboard/'), true);
+  assert.equal(policy.isRouteAllowed(effective(OWNER, TENANT), '/billing/'), true);
+  assert.equal(policy.isRouteAllowed(effective(OWNER, TENANT), '/settings/profile/'), true);
+  assert.equal(policy.isRouteAllowed(effective(OPS, PLATFORM), '/orders/'), true);
+  assert.equal(policy.isRouteAllowed(effective(OPS, PLATFORM), '/reconciliation/'), false);
+  assert.equal(policy.isRouteAllowed(effective(OWNER, TENANT), '/does-not-exist'), false);
+});
+
+test('default path for every role is a route that role may access', () => {
+  const expected = {
+    ORCA_ADMIN: '/admin/tenants',
+    OPS_DISPATCHER: '/orders',
+    WAREHOUSE_MANAGER: '/warehouses',
+    WAREHOUSE_STAFF: '/inventory',
+    ORCA_ACCOUNTANT: '/reconciliation',
+    SELLER_OWNER: '/dashboard',
+    SELLER_STAFF: '/dashboard',
+  };
+  for (const [role, scope] of ALL_ROLES) {
+    const resolved = effective([role], scope);
+    assert.equal(policy.getDefaultPath(resolved), expected[role], `${role} default path`);
+    assert.equal(
+      policy.isRouteAllowed(resolved, expected[role]),
+      true,
+      `${role} default route must be allowed`,
+    );
+  }
+});
+
+test('sidebar derives from the same capability source for every role', () => {
+  const expected = {
+    ORCA_ADMIN: [
+      'platform_heading',
+      'monitoring_heading',
+      'workspace_heading',
+      'operations_heading',
+      'finance_heading',
+      'reports_heading',
+      'manage_accounts_heading',
+      'workspace_settings_heading',
+      'account_heading',
+    ],
+    OPS_DISPATCHER: [
+      'workspace_heading',
+      'operations_heading',
+      'reports_heading',
+      'monitoring_heading',
+      'account_heading',
+    ],
+    WAREHOUSE_MANAGER: [
+      'workspace_heading',
+      'operations_heading',
+      'reports_heading',
+      'monitoring_heading',
+      'account_heading',
+    ],
+    WAREHOUSE_STAFF: ['operations_heading', 'account_heading'],
+    ORCA_ACCOUNTANT: [
+      'workspace_heading',
+      'operations_heading',
+      'finance_heading',
+      'reports_heading',
+      'workspace_settings_heading',
+      'monitoring_heading',
+      'account_heading',
+    ],
+    SELLER_OWNER: [
+      'workspace_heading',
+      'operations_heading',
+      'reports_heading',
+      'integrations_heading',
+      'manage_accounts_heading',
+      'workspace_settings_heading',
+      'monitoring_heading',
+      'account_heading',
+    ],
+    SELLER_STAFF: ['workspace_heading', 'operations_heading', 'reports_heading', 'account_heading'],
+  };
+
+  for (const [role, scope] of ALL_ROLES) {
+    assert.deepEqual(groupKeys([role], scope), expected[role], `${role} sidebar groups`);
+  }
+});
+
+test('every visible nav/search href is route-allowed for that role (single source)', () => {
+  for (const [role, scope] of ALL_ROLES) {
+    const resolved = effective([role], scope);
+    for (const link of policy.getSearchLinks(resolved, true)) {
+      assert.equal(
+        policy.isRouteAllowed(resolved, link.href, true),
+        true,
+        `${role} nav/search link ${link.href} must be route-allowed`,
+      );
+    }
+  }
+});
+
+test('component catalog is dev-only and never grants production access', () => {
+  const admin = effective(ADMIN, PLATFORM);
+  assert.equal(
+    policy.getVisibleNavGroups(admin, false).some((group) => group.key === 'ui_heading'),
+    false,
+  );
+  assert.equal(
+    policy.getVisibleNavGroups(admin, true).some((group) => group.key === 'ui_heading'),
+    true,
+  );
+  assert.equal(policy.isRouteAllowed(admin, '/components/buttons', true), true);
+  assert.equal(policy.isRouteAllowed(admin, '/components/buttons', false), false);
+});
+
+test('unknown capabilities are denied by default', () => {
+  const admin = effective(ADMIN, PLATFORM);
+  assert.equal(policy.can(admin, 'orders.superuser'), false);
+  assert.equal(policy.can(admin, ''), false);
+  assert.equal(policy.can(admin, 'invoice.issue'), false);
+  assert.equal(policy.canAny(admin, ['orders.view', 'not.a.capability']), true);
+  assert.equal(policy.canAll(admin, ['orders.view', 'not.a.capability']), false);
+  assert.equal(policy.can(admin, 'orders.view'), true);
+});
+
+test('PROPOSED capabilities never grant routes or actions', () => {
+  const admin = effective(ADMIN, PLATFORM);
+  const owner = effective(OWNER, TENANT);
+
+  assert.equal(policy.can(admin, 'finance.view'), false);
+  assert.equal(policy.can(admin, 'carriers.credentials.manage'), false);
+  assert.equal(policy.can(owner, 'carriers.credentials.manage'), false);
+  assert.equal(policy.isRouteAllowed(owner, '/settings/integrations'), false);
+  assert.equal(policy.isRouteAllowed(admin, '/admin/tenants'), true);
+});
+
+test('seller API key settings use approved ORCA action while reservation controls remain closed', () => {
+  const owner = effective(OWNER, TENANT);
+  const sellerStaff = effective(['SELLER_STAFF'], TENANT);
+  const platformAdmin = effective(ADMIN, PLATFORM);
+
+  assert.equal(policy.can(owner, 'apikey.manage'), true);
+  assert.equal(policy.isRouteAllowed(owner, '/settings/api-keys'), true);
+  assert.equal(hrefs(OWNER, TENANT).includes('/settings/api-keys'), true);
+  assert.equal(policy.isRouteAllowed(sellerStaff, '/settings/api-keys'), false);
+  assert.equal(policy.isRouteAllowed(platformAdmin, '/settings/api-keys'), false);
+
+  for (const roles of [owner, sellerStaff, platformAdmin]) {
+    assert.equal(policy.can(roles, 'inventory.reservations.view'), false);
+    assert.equal(policy.can(roles, 'inventory.reservations.release'), false);
+  }
+});
+
+test('post-login redirect honors ORCA scope, route matrix and open-redirect guard', () => {
+  assert.equal(getPostLoginPath(user(OWNER, TENANT), null), '/dashboard');
+  assert.equal(getPostLoginPath(user(OPS, PLATFORM), null), '/orders');
+  assert.equal(getPostLoginPath(user(ADMIN, PLATFORM), null), '/admin/tenants');
+  assert.equal(getPostLoginPath(user(WH_STAFF, PLATFORM), null), '/inventory');
+
+  assert.equal(
+    getPostLoginPath(user(OWNER, TENANT), { from: '/orders?page=2#items' }),
+    '/orders?page=2#items',
+  );
+  assert.equal(getPostLoginPath(user(OPS, PLATFORM), { from: '/reconciliation' }), '/orders');
+  assert.equal(getPostLoginPath(user(OWNER, TENANT), { from: '/admin/tenants' }), '/dashboard');
+
+  for (const from of ['//evil.test', 'https://evil.test', '/\\evil.test', '/login']) {
+    assert.equal(getPostLoginPath(user(OWNER, TENANT), { from }), '/dashboard');
+  }
+
+  assert.equal(getPostLoginPath(user(['TENANT_ADMIN'], null), null), '/403');
+  // Trộn role hợp lệ với code legacy/khác scope ⇒ deny ⇒ `/403`, không nâng quyền.
+  assert.equal(getPostLoginPath(user(['SELLER_OWNER', 'TENANT_ADMIN'], TENANT), null), '/403');
+  assert.equal(getPostLoginPath(user(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), null), '/403');
+});
+
+test('authorization code never reads the display-only legacy policy module', () => {
+  // Runtime: module legacy chỉ chứa dữ liệu hiển thị, không export hàm quyết định quyền.
+  for (const fn of [
+    'can',
+    'canAny',
+    'canAll',
+    'isRouteAllowed',
+    'getEffectiveRoles',
+    'getDefaultPath',
+    'getVisibleNavGroups',
+    'getSearchLinks',
+    'resolveActorScope',
+  ]) {
+    assert.equal(
+      typeof legacyPolicy[fn],
+      'undefined',
+      `legacyAccessPolicy must not expose ${fn}()`,
+    );
+  }
+
+  // Static: chỉ tầng page (hiển thị) được import legacyAccessPolicy. Mọi tầng ra
+  // quyết định quyền — lib/hooks/stores/services/components/layout — đều bị cấm.
+  const allowedImportPrefixes = ['src/pages/'];
+  const importers = filesImporting('legacyAccessPolicy');
+  for (const file of importers) {
+    assert.ok(
+      allowedImportPrefixes.some((prefix) => file.startsWith(prefix)),
+      `authorization module ${file} must not import the legacy display catalog`,
+    );
+  }
+});
+
+test('the roles/permissions page has no legacy role-grant write path', () => {
+  const pagePath = 'src/pages/workspace/RolesPermissionsPage.tsx';
+  const pageSource = readFileSync(join(REPO_ROOT, pagePath), 'utf8');
+  assert.equal(
+    pageSource.includes('updateRoles'),
+    false,
+    `${pagePath} must not call the legacy role update API`,
+  );
+
+  // Không page/component nào gọi API gán role legacy; chỉ còn định nghĩa trong feature.
+  for (const file of filesContaining('updateRoles')) {
+    assert.ok(
+      file.startsWith('src/features/tenants/'),
+      `${file} must not call the legacy role update API`,
+    );
+  }
+});
+
+test('a direct URL outside permission routes to /403 without touching the session', () => {
+  const guard = readFileSync(join(REPO_ROOT, 'src/components/layout/ProtectedRoute.tsx'), 'utf8');
+  assert.match(guard, /Navigate[\s\S]*to="\/403"/, 'denied access must render /403');
+  assert.match(guard, /to="\/login"/, 'anonymous access must go to /login');
+  assert.equal(
+    /useAuthStore\.getState\(\)\.clear|\.clear\(\)/.test(guard),
+    false,
+    'the route guard must never clear the session',
+  );
+
+  // Tầng policy: route ngoài quyền bị deny nhưng tập role hiệu lực không đổi.
+  const seller = effective(OWNER, TENANT);
+  assert.equal(policy.isRouteAllowed(seller, '/admin/tenants'), false);
+  assert.deepEqual(effective(OWNER, TENANT), ['SELLER_OWNER']);
+  assert.equal(policy.isRouteAllowed(seller, '/settings/profile'), true);
+});
+
+test('role display shows every effective ORCA role and never a legacy label', () => {
+  const files = {
+    Topbar: 'src/components/layout/Topbar.tsx',
+    ProfileSettings: 'src/features/settings/components/ProfileSettings.tsx',
+  };
+  const orcaRoleCodes = [
+    'ORCA_ADMIN',
+    'OPS_DISPATCHER',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
+    'ORCA_ACCOUNTANT',
+    'SELLER_OWNER',
+    'SELLER_STAFF',
+  ];
+  for (const [name, path] of Object.entries(files)) {
+    const source = readFileSync(join(REPO_ROOT, path), 'utf8');
+    assert.equal(source.includes('roles[0]'), false, `${name} must not render roles[0]`);
+    assert.ok(source.includes('useAccess'), `${name} must read effective roles from policy`);
+    for (const role of orcaRoleCodes) {
+      assert.ok(source.includes(role), `${name} must handle ORCA role ${role}`);
+    }
+    for (const legacy of ['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT']) {
+      assert.equal(
+        new RegExp(`\\b${legacy}\\b`).test(source),
+        false,
+        `${name} must not label legacy role ${legacy}`,
+      );
+    }
+  }
+
+  // Multi-role: hiển thị dùng union hiệu lực trong cùng scope, không lấy phần tử đầu.
+  const multi = effective(['SELLER_OWNER', 'SELLER_STAFF'], TENANT);
+  assert.deepEqual(multi, ['SELLER_OWNER', 'SELLER_STAFF']);
 });

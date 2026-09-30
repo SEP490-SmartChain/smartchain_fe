@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { ActorScope } from '@/lib/accessPolicy';
+
 import { useTenantStore } from './tenantStore';
 
 export interface AuthUser {
@@ -9,6 +11,11 @@ export interface AuthUser {
   fullName: string;
   phone?: string | null;
   avatarUrl?: string | null;
+  /**
+   * Phạm vi actor ORCA do server trả (bắt buộc theo contract §1/§5). Thiếu giá
+   * trị này ⇒ policy fail-closed (không role hiệu lực). Do client KHÔNG tự suy.
+   */
+  actorScope?: ActorScope | null;
   roles: string[];
   permissions: string[];
 }

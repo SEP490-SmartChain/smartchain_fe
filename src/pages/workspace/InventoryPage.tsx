@@ -21,11 +21,9 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<InventoryTabId>('stock');
 
   const tabs: TabItem[] = [
-    ...(can('inventory.view')
-      ? [
-          { id: 'stock', label: t('tabStock') },
-          { id: 'reservations', label: t('tabReservations') },
-        ]
+    ...(can('inventory.view') ? [{ id: 'stock', label: t('tabStock') }] : []),
+    ...(can('inventory.reservations.view')
+      ? [{ id: 'reservations', label: t('tabReservations') }]
       : []),
     ...(can('catalog.products.view') ? [{ id: 'catalog', label: t('tabCatalog') }] : []),
   ];

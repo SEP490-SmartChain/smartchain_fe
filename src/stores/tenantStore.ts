@@ -5,17 +5,21 @@ interface TenantState {
   activeTenantId: string | null;
   setActiveTenantId: (tenantId: string | null) => void;
 
-  /** Quyền RBAC từ profile do API xác thực. */
+  /**
+   * Quyền RBAC thô từ profile do API xác thực. CHỈ là dữ liệu phiên.
+   *
+   * KHÔNG dùng để cấp quyền UI: nguồn quyết định duy nhất là
+   * `src/lib/accessPolicy.ts` (`can`/`isRouteAllowed`/`getVisibleNavGroups`).
+   * Hàm `can(permission)` trước đây đã bị xoá để không thể union ngầm hai nguồn.
+   */
   permissions: string[];
   setPermissions: (permissions: string[]) => void;
-  can: (permission: string) => boolean;
 }
 
-export const useTenantStore = create<TenantState>((set, get) => ({
+export const useTenantStore = create<TenantState>((set) => ({
   activeTenantId: null,
   setActiveTenantId: (activeTenantId) => set({ activeTenantId }),
 
   permissions: [],
   setPermissions: (permissions) => set({ permissions }),
-  can: (permission) => get().permissions.includes(permission),
 }));

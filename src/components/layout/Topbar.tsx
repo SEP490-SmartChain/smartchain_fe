@@ -54,21 +54,27 @@ export default function Topbar() {
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
 
   const displayName = user?.fullName ?? user?.email ?? t('member');
+  const { roles } = useAccess();
+
   const roleLabels: Record<string, string> = {
-    SUPER_ADMIN: t('role_super_admin'),
-    TENANT_ADMIN: t('role_tenant_admin'),
-    DISPATCHER: t('role_dispatcher'),
-    ACCOUNTANT: t('role_accountant'),
+    ORCA_ADMIN: t('role_orca_admin'),
+    OPS_DISPATCHER: t('role_ops_dispatcher'),
+    WAREHOUSE_MANAGER: t('role_warehouse_manager'),
+    WAREHOUSE_STAFF: t('role_warehouse_staff'),
+    ORCA_ACCOUNTANT: t('role_orca_accountant'),
+    SELLER_OWNER: t('role_seller_owner'),
+    SELLER_STAFF: t('role_seller_staff'),
   };
-  const role = roleLabels[user?.roles[0] ?? ''] ?? t('member');
+  // Hiển thị TOÀN BỘ role ORCA hiệu lực (contract §8). Phiên thiếu `actorScope`
+  // hoặc role lạ ⇒ `roles` rỗng, không rơi về nhãn legacy.
+  const roleSummary =
+    roles.length > 0 ? roles.map((roleCode) => roleLabels[roleCode]).join(', ') : t('member');
 
   const themeOptions: Array<{ id: ThemeMode; label: string; icon: typeof Sun }> = [
     { id: 'light', label: t('theme_light'), icon: Sun },
     { id: 'dark', label: t('theme_dark'), icon: Moon },
     { id: 'system', label: t('theme_system'), icon: Monitor },
   ];
-
-  const { roles } = useAccess();
 
   const searchItems = useMemo<SearchItem[]>(
     () =>
@@ -352,7 +358,7 @@ export default function Topbar() {
                 {displayName}
               </span>
               <span className="mt-0.5 block max-w-36 truncate text-xs leading-4 text-[var(--sc-text-tertiary)]">
-                {role}
+                {roleSummary}
               </span>
             </span>
           </button>
@@ -365,7 +371,7 @@ export default function Topbar() {
               <div className="flex flex-col items-center px-3 py-2 text-center">
                 <Avatar src={avatarUrl} fallback={displayName} size="xl" className="rounded-full" />
                 <p className="mb-0 mt-2 max-w-full truncate text-sm font-medium">{displayName}</p>
-                <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{role}</p>
+                <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{roleSummary}</p>
               </div>
               <div className="my-2 h-px bg-[var(--sc-border-default)]" />
               <button
