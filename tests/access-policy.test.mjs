@@ -359,6 +359,7 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/shipments',
           '/billing',
           '/settings/general',
+          '/settings/api-keys',
           '/settings/webhooks',
           '/roles-permissions/roles',
           '/iam/users',
@@ -485,6 +486,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'workspace_heading',
       'operations_heading',
       'reports_heading',
+      'integrations_heading',
       'manage_accounts_heading',
       'workspace_settings_heading',
       'monitoring_heading',
@@ -544,6 +546,23 @@ test('PROPOSED capabilities never grant routes or actions', () => {
   assert.equal(policy.can(owner, 'carriers.credentials.manage'), false);
   assert.equal(policy.isRouteAllowed(owner, '/settings/integrations'), false);
   assert.equal(policy.isRouteAllowed(admin, '/admin/tenants'), true);
+});
+
+test('seller API key settings use approved ORCA action while reservation controls remain closed', () => {
+  const owner = effective(OWNER, TENANT);
+  const sellerStaff = effective(['SELLER_STAFF'], TENANT);
+  const platformAdmin = effective(ADMIN, PLATFORM);
+
+  assert.equal(policy.can(owner, 'apikey.manage'), true);
+  assert.equal(policy.isRouteAllowed(owner, '/settings/api-keys'), true);
+  assert.equal(hrefs(OWNER, TENANT).includes('/settings/api-keys'), true);
+  assert.equal(policy.isRouteAllowed(sellerStaff, '/settings/api-keys'), false);
+  assert.equal(policy.isRouteAllowed(platformAdmin, '/settings/api-keys'), false);
+
+  for (const roles of [owner, sellerStaff, platformAdmin]) {
+    assert.equal(policy.can(roles, 'inventory.reservations.view'), false);
+    assert.equal(policy.can(roles, 'inventory.reservations.release'), false);
+  }
 });
 
 test('post-login redirect honors ORCA scope, route matrix and open-redirect guard', () => {
