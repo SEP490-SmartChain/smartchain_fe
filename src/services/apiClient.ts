@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import type { ActorScope } from '@/lib/accessPolicy';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -34,6 +35,17 @@ export interface LoginInput {
   workspaceSlug?: string;
 }
 
+/**
+ * `actorScope` là trường server-owned (contract v0.2 §1/§5). Mọi giá trị không
+ * phải `TENANT`/`PLATFORM` (thiếu, `null`, sai kiểu, giá trị lạ) được chuẩn hóa
+ * về `null` ⇒ policy fail-closed, KHÔNG tự suy ra portal mặc định.
+ */
+const actorScopeSchema = z
+  .unknown()
+  .transform((value): ActorScope | null =>
+    value === 'TENANT' || value === 'PLATFORM' ? value : null,
+  );
+
 const profileSchema = z.object({
   userId: z.string(),
   tenantId: z.string().nullable(),
@@ -41,6 +53,7 @@ const profileSchema = z.object({
   fullName: z.string(),
   phone: z.string().nullable().optional(),
   avatarUrl: z.string().nullable().optional(),
+  actorScope: actorScopeSchema,
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
 });
@@ -100,6 +113,9 @@ class ApiClient {
       const token = requiresAuth ? useAuthStore.getState().accessToken : null;
       const revision = useAuthStore.getState().revision;
       let response = await this.send(endpoint, options, token);
+      // 401 = phiên không hợp lệ/hết hạn ⇒ refresh rồi replay tối đa một lần.
+      // 403 = đã xác thực nhưng thiếu quyền ⇒ KHÔNG refresh, KHÔNG clear phiên
+      // (contract v0.2 §5/§8; docs/RBAC_UI_SCOPE.md mục 10).
       if (requiresAuth && response.status === 401) {
         if (revision !== useAuthStore.getState().revision) {
           throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
@@ -114,15 +130,22 @@ class ApiClient {
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         const parsed = errorSchema.safeParse(body);
+        // 403 phải hiển thị là "thiếu quyền", không phải lỗi phiên/mạng.
+        const forbidden = response.status === 403;
         throw new ApiError(
           parsed.success
             ? parsed.data.error.message
-            : this.message(
-                'Không thể gọi API. Vui lòng thử lại.',
-                'Unable to reach the API. Please retry.',
-              ),
+            : forbidden
+              ? this.message(
+                  'Bạn không có quyền thực hiện thao tác này.',
+                  'You do not have permission to perform this action.',
+                )
+              : this.message(
+                  'Không thể gọi API. Vui lòng thử lại.',
+                  'Unable to reach the API. Please retry.',
+                ),
           response.status,
-          parsed.success ? parsed.data.error.code : 'HTTP.ERROR',
+          parsed.success ? parsed.data.error.code : forbidden ? 'AUTH.FORBIDDEN' : 'HTTP.ERROR',
           parsed.success ? parsed.data.error.details : undefined,
         );
       }
@@ -178,10 +201,13 @@ class ApiClient {
         useAuthStore.getState().setSession(sessionSchema.parse(data));
       })
       .catch((error: unknown) => {
+        // Contract v0.2 §5: CHỈ `401` nghĩa là refresh hết hạn/không hợp lệ ⇒
+        // clear phiên để guard đưa về login. `403` là thiếu quyền ⇒ giữ phiên,
+        // không được coi là logout (sửa P1 `apiClient.ts:180-189`).
         if (
           revision === useAuthStore.getState().revision &&
           error instanceof ApiError &&
-          [401, 403].includes(error.status)
+          error.status === 401
         ) {
           useAuthStore.getState().clear();
         }

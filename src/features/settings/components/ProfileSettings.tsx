@@ -19,7 +19,9 @@ import googleLogo from '@/assets/images/settings/google.svg';
 import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Avatar, Button, Card, Input, Select } from '@/components/Common';
 import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
+import { useAccess } from '@/hooks/useAccess';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import type { OrcaRole } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 import { uploadApi } from '@/services/uploadApi';
 import { useAuthStore } from '@/stores';
@@ -54,47 +56,57 @@ export default function ProfileSettings() {
   const t = useTranslations('Settings');
   const user = useAuthStore((state) => state.user);
   const email = user?.email || 'admin@smartchain.vn';
-  const roleCode = user?.roles[0] || 'TENANT_ADMIN';
   const displayName = user?.fullName?.trim() || 'SmartChain Admin';
   const persistedPhotoSrc = useAvatarUrl(user?.avatarUrl);
+  const { roles } = useAccess();
 
   const roleConfig: Record<
-    string,
+    OrcaRole,
     { label: string; icon: typeof ShieldCheck; colorClass: string }
   > = {
-    TENANT_ADMIN: {
-      label: t('roleTenantAdmin'),
-      icon: ShieldCheck,
-      colorClass:
-        'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300',
-    },
-    SUPER_ADMIN: {
-      label: t('roleSuperAdmin'),
+    ORCA_ADMIN: {
+      label: t('roleOrcaAdmin'),
       icon: Shield,
       colorClass:
         'border-purple-500/25 bg-purple-500/10 text-purple-700 dark:border-purple-400/30 dark:bg-purple-400/15 dark:text-purple-300',
     },
-    DISPATCHER: {
-      label: t('roleDispatcher'),
+    OPS_DISPATCHER: {
+      label: t('roleOpsDispatcher'),
       icon: ShieldCheck,
       colorClass:
         'border-blue-500/25 bg-blue-500/10 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/15 dark:text-blue-300',
     },
-    ACCOUNTANT: {
-      label: t('roleAccountant'),
+    WAREHOUSE_MANAGER: {
+      label: t('roleWarehouseManager'),
+      icon: ShieldCheck,
+      colorClass:
+        'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300',
+    },
+    WAREHOUSE_STAFF: {
+      label: t('roleWarehouseStaff'),
+      icon: ShieldCheck,
+      colorClass:
+        'border-blue-500/25 bg-blue-500/10 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/15 dark:text-blue-300',
+    },
+    ORCA_ACCOUNTANT: {
+      label: t('roleOrcaAccountant'),
       icon: ShieldCheck,
       colorClass:
         'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-300',
     },
+    SELLER_OWNER: {
+      label: t('roleSellerOwner'),
+      icon: ShieldCheck,
+      colorClass:
+        'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/15 dark:text-emerald-300',
+    },
+    SELLER_STAFF: {
+      label: t('roleSellerStaff'),
+      icon: ShieldCheck,
+      colorClass:
+        'border-blue-500/25 bg-blue-500/10 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/15 dark:text-blue-300',
+    },
   };
-
-  const currentRole = roleConfig[roleCode] || {
-    label: roleCode,
-    icon: ShieldCheck,
-    colorClass:
-      'border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]',
-  };
-  const RoleIcon = currentRole.icon;
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoSrc, setPhotoSrc] = useState(profileAvatar);
@@ -257,15 +269,24 @@ export default function ProfileSettings() {
                   <h1 className="m-0 text-base font-bold leading-5 text-[var(--sc-text-primary)] sm:text-lg sm:leading-6">
                     {fullNameInput || displayName}
                   </h1>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold shadow-xs transition-colors',
-                      currentRole.colorClass,
-                    )}
-                  >
-                    <RoleIcon size={12} className="shrink-0" aria-hidden="true" />
-                    <span>{currentRole.label}</span>
-                  </span>
+                  {/* Hiển thị TOÀN BỘ role ORCA hiệu lực (contract §8); phiên
+                      thiếu actorScope/role lạ ⇒ không badge, không nhãn legacy. */}
+                  {roles.map((roleCode) => {
+                    const config = roleConfig[roleCode];
+                    const RoleIcon = config.icon;
+                    return (
+                      <span
+                        key={roleCode}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold shadow-xs transition-colors',
+                          config.colorClass,
+                        )}
+                      >
+                        <RoleIcon size={12} className="shrink-0" aria-hidden="true" />
+                        <span>{config.label}</span>
+                      </span>
+                    );
+                  })}
                 </div>
                 <p className="m-0 text-xs text-[var(--sc-text-secondary)]">{email}</p>
               </div>

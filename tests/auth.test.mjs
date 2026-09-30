@@ -12,16 +12,23 @@ let getLoginSchema;
 let getForgotPasswordSchema;
 let getResetPasswordSchema;
 let getPostLoginPath;
+let getEffectiveRoles;
+let getDefaultPath;
 const originalFetch = globalThis.fetch;
 const user = {
   userId: 'test-user',
   tenantId: 'test-tenant',
   email: 'test@example.com',
   fullName: 'Test User',
-  roles: ['TENANT_ADMIN'],
+  actorScope: 'TENANT',
+  roles: ['SELLER_OWNER'],
   permissions: ['orders:read'],
 };
-const session = (accessToken = 'test-access') => ({ accessToken, expiresIn: 900, user });
+const session = (accessToken = 'test-access', overrides = {}) => ({
+  accessToken,
+  expiresIn: 900,
+  user: { ...user, ...overrides },
+});
 const ok = (data) => Response.json({ success: true, data, meta: {} });
 const fail = (status, code = 'AUTH.UNAUTHENTICATED') =>
   Response.json(
@@ -60,6 +67,7 @@ before(async () => {
     '/src/features/auth/schemas/resetPassword.schema.ts',
   ));
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
+  ({ getEffectiveRoles, getDefaultPath } = await server.ssrLoadModule('/src/lib/accessPolicy.ts'));
 });
 after(async () => {
   globalThis.fetch = originalFetch;
@@ -141,7 +149,7 @@ test('a temporary network failure falls back to anonymous without expiring the c
   };
   await apiClient.get('/orders', { silent: true });
   assert.equal(useAuthStore.getState().status, 'authenticated');
-  assert.equal(useAuthStore.getState().user.roles[0], 'TENANT_ADMIN');
+  assert.equal(useAuthStore.getState().user.roles[0], 'SELLER_OWNER');
 });
 
 test('parallel 401s share one refresh and replay with the new bearer token', async () => {
@@ -238,15 +246,83 @@ test('permission denial keeps the session and never refreshes', async () => {
   assert.equal(useAuthStore.getState().accessToken, 'test-access');
 });
 
+test('a 403 without an error envelope is surfaced as AUTH.FORBIDDEN, not an auth failure', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async () => new Response('forbidden', { status: 403 });
+  await assert.rejects(apiClient.get('/admin/tenants', { silent: true }), {
+    status: 403,
+    code: 'AUTH.FORBIDDEN',
+  });
+  assert.equal(useAuthStore.getState().user.actorScope, 'TENANT');
+  assert.equal(useAuthStore.getState().status, 'authenticated');
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+});
+
+test('a rejected refresh with 403 keeps the session (403 is never a logout)', async () => {
+  useAuthStore.getState().setSession(session());
+  useAuthStore.setState({ expiresAt: 0 });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return fail(403, 'AUTH.FORBIDDEN');
+  };
+  await assert.rejects(apiClient.get('/orders', { silent: true }), { status: 403 });
+  assert.equal(calls, 1);
+  assert.equal(useAuthStore.getState().status, 'authenticated');
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+  assert.equal(useAuthStore.getState().user.actorScope, 'TENANT');
+});
+
+test('a rejected refresh with 401 clears the session so the guard returns to login', async () => {
+  useAuthStore.getState().setSession(session());
+  useAuthStore.setState({ expiresAt: 0 });
+  globalThis.fetch = async () => fail(401, 'AUTH.UNAUTHENTICATED');
+  await assert.rejects(apiClient.get('/orders', { silent: true }), { status: 401 });
+  assert.equal(useAuthStore.getState().status, 'anonymous');
+  assert.equal(useAuthStore.getState().user, null);
+  assert.equal(useAuthStore.getState().accessToken, null);
+});
+
+test('actorScope from the server reaches AuthUser; missing or invalid scope denies by default', async () => {
+  const login = () =>
+    apiClient.login({ email: user.email, password: 'Test-password-1', rememberSession: false });
+
+  globalThis.fetch = async () =>
+    ok(session('scoped', { actorScope: 'PLATFORM', tenantId: null, roles: ['ORCA_ADMIN'] }));
+  const scoped = await login();
+  assert.equal(scoped.actorScope, 'PLATFORM');
+  assert.equal(useAuthStore.getState().user.actorScope, 'PLATFORM');
+  assert.deepEqual(getEffectiveRoles(scoped.roles, scoped.actorScope), ['ORCA_ADMIN']);
+
+  for (const invalid of [undefined, null, 'GUEST', 'tenant']) {
+    useAuthStore.getState().clear();
+    globalThis.fetch = async () =>
+      ok(session('denied', { actorScope: invalid, roles: ['ORCA_ADMIN'] }));
+    const denied = await login();
+    assert.equal(denied.actorScope, null, `actorScope ${String(invalid)} must normalize to null`);
+    assert.equal(useAuthStore.getState().user.actorScope, null);
+    assert.deepEqual(getEffectiveRoles(denied.roles, denied.actorScope), []);
+    assert.equal(getDefaultPath(getEffectiveRoles(denied.roles, denied.actorScope)), '/403');
+  }
+});
+
+test('current identity parses actorScope from /me', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async () =>
+    ok({ ...user, actorScope: 'PLATFORM', tenantId: null, roles: ['ORCA_ADMIN'] });
+  await apiClient.currentUser();
+  assert.equal(useAuthStore.getState().user.actorScope, 'PLATFORM');
+});
+
 test('current identity updates role and permission state from /me', async () => {
   useAuthStore.getState().setSession(session());
   globalThis.fetch = async (url, options) => {
     assert.equal(url, '/api/v1/auth/me');
     assert.equal(options.headers.get('Authorization'), 'Bearer test-access');
-    return ok({ ...user, roles: ['DISPATCHER'], permissions: ['shipments:read'] });
+    return ok({ ...user, roles: ['SELLER_STAFF'], permissions: ['shipments:read'] });
   };
   await apiClient.currentUser();
-  assert.deepEqual(useAuthStore.getState().user.roles, ['DISPATCHER']);
+  assert.deepEqual(useAuthStore.getState().user.roles, ['SELLER_STAFF']);
   assert.deepEqual(useTenantStore.getState().permissions, ['shipments:read']);
 });
 
@@ -462,10 +538,7 @@ test('verify-reset-token GET reads the token as a query param, not in the URL pa
     params: { token: 'delivery-id.mac-value' },
     requiresAuth: false,
   });
-  assert.equal(
-    captured.url,
-    '/api/v1/auth/verify-reset-token?token=delivery-id.mac-value',
-  );
+  assert.equal(captured.url, '/api/v1/auth/verify-reset-token?token=delivery-id.mac-value');
   assert.equal(captured.options.method, 'GET');
   assert.deepEqual(response, { success: true, data: { valid: true }, meta: {} });
 });
@@ -480,10 +553,13 @@ test('reset-password validation requires matching passwords meeting complexity r
     schema.safeParse({ newPassword: 'NewPassw0rd!', confirmPassword: 'Different1!' }).success,
     false,
   );
-  for (const weak of ['short1!', 'nouppercase1!', 'NOLOWERCASE1!', 'NoDigitsHere!', 'NoSpecial123']) {
-    assert.equal(
-      schema.safeParse({ newPassword: weak, confirmPassword: weak }).success,
-      false,
-    );
+  for (const weak of [
+    'short1!',
+    'nouppercase1!',
+    'NOLOWERCASE1!',
+    'NoDigitsHere!',
+    'NoSpecial123',
+  ]) {
+    assert.equal(schema.safeParse({ newPassword: weak, confirmPassword: weak }).success, false);
   }
 });

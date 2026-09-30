@@ -608,3 +608,55 @@ test('the roles/permissions page has no legacy role-grant write path', () => {
     );
   }
 });
+
+test('a direct URL outside permission routes to /403 without touching the session', () => {
+  const guard = readFileSync(join(REPO_ROOT, 'src/components/layout/ProtectedRoute.tsx'), 'utf8');
+  assert.match(guard, /Navigate[\s\S]*to="\/403"/, 'denied access must render /403');
+  assert.match(guard, /to="\/login"/, 'anonymous access must go to /login');
+  assert.equal(
+    /useAuthStore\.getState\(\)\.clear|\.clear\(\)/.test(guard),
+    false,
+    'the route guard must never clear the session',
+  );
+
+  // Tầng policy: route ngoài quyền bị deny nhưng tập role hiệu lực không đổi.
+  const seller = effective(OWNER, TENANT);
+  assert.equal(policy.isRouteAllowed(seller, '/admin/tenants'), false);
+  assert.deepEqual(effective(OWNER, TENANT), ['SELLER_OWNER']);
+  assert.equal(policy.isRouteAllowed(seller, '/settings/profile'), true);
+});
+
+test('role display shows every effective ORCA role and never a legacy label', () => {
+  const files = {
+    Topbar: 'src/components/layout/Topbar.tsx',
+    ProfileSettings: 'src/features/settings/components/ProfileSettings.tsx',
+  };
+  const orcaRoleCodes = [
+    'ORCA_ADMIN',
+    'OPS_DISPATCHER',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
+    'ORCA_ACCOUNTANT',
+    'SELLER_OWNER',
+    'SELLER_STAFF',
+  ];
+  for (const [name, path] of Object.entries(files)) {
+    const source = readFileSync(join(REPO_ROOT, path), 'utf8');
+    assert.equal(source.includes('roles[0]'), false, `${name} must not render roles[0]`);
+    assert.ok(source.includes('useAccess'), `${name} must read effective roles from policy`);
+    for (const role of orcaRoleCodes) {
+      assert.ok(source.includes(role), `${name} must handle ORCA role ${role}`);
+    }
+    for (const legacy of ['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT']) {
+      assert.equal(
+        new RegExp(`\\b${legacy}\\b`).test(source),
+        false,
+        `${name} must not label legacy role ${legacy}`,
+      );
+    }
+  }
+
+  // Multi-role: hiển thị dùng union hiệu lực trong cùng scope, không lấy phần tử đầu.
+  const multi = effective(['SELLER_OWNER', 'SELLER_STAFF'], TENANT);
+  assert.deepEqual(multi, ['SELLER_OWNER', 'SELLER_STAFF']);
+});
