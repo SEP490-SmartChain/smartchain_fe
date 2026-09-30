@@ -99,6 +99,36 @@ test('login sends the BE contract with cookies and stores the safe profile', asy
   assert.deepEqual(useTenantStore.getState().permissions, user.permissions);
 });
 
+test('public tax lookup uses VietQR without leaking the SmartChain session', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, 'https://api.vietqr.io/v2/business/0316794479');
+    assert.equal(options.method, 'GET');
+    assert.equal(options.credentials, 'omit');
+    assert.equal(options.headers.Authorization, undefined);
+    return Response.json({
+      code: '00',
+      data: { name: ' CÔNG TY TNHH CASSO ', address: ' Hồ Chí Minh ' },
+    });
+  };
+  assert.deepEqual(await apiClient.lookupBusinessTaxId('0316794479'), {
+    name: 'CÔNG TY TNHH CASSO',
+    address: 'Hồ Chí Minh',
+  });
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+});
+
+test('public tax lookup handles not-found and provider rate limits', async () => {
+  globalThis.fetch = async () => Response.json({ code: '01', data: null });
+  assert.equal(await apiClient.lookupBusinessTaxId('0123456789'), null);
+
+  globalThis.fetch = async () => new Response(null, { status: 429 });
+  await assert.rejects(apiClient.lookupBusinessTaxId('0123456789'), {
+    code: 'TAX_LOOKUP.UNAVAILABLE',
+    status: 429,
+  });
+});
+
 test('invalid credentials keep the API error and never refresh or clear another session', async () => {
   useAuthStore.getState().setSession(session());
   const calls = [];
