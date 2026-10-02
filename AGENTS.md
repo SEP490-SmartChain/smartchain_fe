@@ -40,16 +40,20 @@ Riêng typography, `docs/DESIGN_SYSTEM.md` là nguồn chính thức: toàn ứn
 - String hiển thị cho người dùng phải đi qua hệ thống i18n trong `messages/`.
 - Không dùng `any`, `@ts-ignore`, hardcode brand color hoặc tạo dependency ngược từ shared layer vào page/feature.
 
-## Quyết định RBAC đã chốt
+## Quy tắc RBAC theo baseline ORCA
 
-1. Giai đoạn hiện tại dùng role làm nguồn policy UI và ánh xạ role sang capability nội bộ theo `docs/RBAC_UI_SCOPE.md`.
+Baseline làm việc cho tài liệu ngày 02/10/2026 là ORCA SRS cập nhật. Implementation hiện có đã có
+policy bảy role; doc không được bắt quay về mô hình SmartChain bốn role. Permission/action mới
+chưa có contract phải ghi đề xuất và deny mặc định, không tự sửa source để coi như đã phê duyệt.
+
+1. Giai đoạn hiện tại dùng role và actor scope làm nguồn policy UI, ánh xạ capability tại `src/lib/accessPolicy.ts` theo `docs/RBAC_UI_SCOPE.md`.
 2. Không hợp nhất permission server với role fallback theo kiểu ngầm định. Khi backend có seed và contract permission chính thức, chuyển nguồn policy qua một feature flag hoặc contract version rõ ràng rồi dùng permission server làm nguồn duy nhất.
 3. API/backend luôn là nơi quyết định authorization cuối cùng. UI guard chỉ quyết định menu, route và action được hiển thị.
-4. Trang Roles & Permissions của tenant chỉ hiển thị ba role workspace: `TENANT_ADMIN`, `DISPATCHER`, `ACCOUNTANT`. Không cho gán `SUPER_ADMIN`.
-5. Tenant chỉ được xem role/permission hệ thống và gán role cho thành viên. Bỏ Add/Delete Role và CRUD permission/custom role khỏi phạm vi.
+4. Role ORCA: PLATFORM có `ORCA_ADMIN`, `OPS_DISPATCHER`, `WAREHOUSE_MANAGER`, `WAREHOUSE_STAFF`, `ORCA_ACCOUNTANT`; TENANT có `SELLER_OWNER`, `SELLER_STAFF`. Không union hai scope hoặc fallback legacy để cấp quyền.
+5. Seller Owner chỉ quản lý staff trong seller và gán/thu hồi role Seller Staff cố định; không custom permission, không platform role. Staff không quản lý staff, tài chính, API key, SKU edit hoặc sales order create. ORCA role/warehouse assignment thuộc Admin; screen quyền đọc của Manager không mặc định cấp assignment write.
 6. Các route nghiệp vụ chưa có trang được phép dùng `UnderConstruction` để sidebar và guard hoạt động, nhưng không được giả lập nghiệp vụ hoặc API chưa có.
 7. `/components/*` là catalog phát triển: sidebar và route chỉ tồn tại khi `import.meta.env.DEV` là `true`.
-8. Policy và redirect phải là hàm thuần để có thể test bằng Node. Bắt buộc có test cho bốn role, redirect, route visibility, sidebar/global search và action visibility.
+8. Policy và redirect phải là hàm thuần để có thể test bằng Node. Bắt buộc có test bảy role, actor scope, legacy/mixed scope deny, redirect, route/sidebar/search/action và field privacy. Ma trận screen không grant mọi action trong screen.
 
 ## Quality gate
 
