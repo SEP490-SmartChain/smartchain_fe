@@ -1,7 +1,28 @@
-# SmartChain Frontend Agent Rules
+# ORCA Frontend Agent Rules
 
 Các quy tắc này áp dụng cho toàn bộ repository `smartchain_fe`. File
 `src/AGENTS.md` bổ sung quy tắc chặt hơn cho mọi thay đổi bên trong `src/`.
+
+Tên repository, import aliases, route và token `--sc-*` giữ nguyên trừ khi task yêu cầu đổi.
+Baseline sản phẩm ORCA không tự đổi public contract hoặc cấu trúc source.
+
+## Baseline và trạng thái triển khai
+
+Baseline làm việc từ 02/10/2026 là `Report3_Software Requirement Specification.docx`, đối chiếu
+Report 1/2; chưa xác minh độc lập trạng thái phê duyệt. Nguồn/hash, phân tích xung đột và mapping
+UC/BR/NFR nằm trong repo `smartchain_be`: `docs/SRS-SOURCE-MANIFEST.json`,
+`docs/ORCA-SRS-CHANGE-ANALYSIS.md`, `docs/ORCA-SRS-TRACEABILITY.md`.
+
+- Policy/contract UI hiện hành theo [`docs/RBAC_UI_SCOPE.md`](docs/RBAC_UI_SCOPE.md) và source
+  `src/lib/accessPolicy.ts`; đọc UC/BR liên quan khi triển khai feature, không dùng role/UC cũ.
+- Bản thiết kế DB đã có schema/migration ORCA trong BE từ 03/10/2026, mới kiểm thử disposable DB.
+  Đọc `smartchain_be/docs/ORCA-DB-IMPLEMENTATION-HANDOFF.md` khi thay API/data contract;
+  không suy bảng mới đồng nghĩa API hoặc workflow đã có. Nếu BE ở checkout khác, xác định vị trí
+  nguồn trước khi làm phần phụ thuộc vào nó.
+- Tài liệu và policy bảy role không chứng minh mọi grant/API/screen đã đáp ứng SRS mới. Capability
+  chưa có contract phải giữ đề xuất và deny; không dựng mock success hoặc tự grant để hoàn tất UI.
+- Nguồn SRS trên Drive là tài liệu đối chiếu. Không sửa/upload tài liệu nguồn như side effect
+  của task trong codebase.
 
 ## Cổng bắt buộc trước khi làm việc
 
@@ -40,16 +61,20 @@ Riêng typography, `docs/DESIGN_SYSTEM.md` là nguồn chính thức: toàn ứn
 - String hiển thị cho người dùng phải đi qua hệ thống i18n trong `messages/`.
 - Không dùng `any`, `@ts-ignore`, hardcode brand color hoặc tạo dependency ngược từ shared layer vào page/feature.
 
-## Quyết định RBAC đã chốt
+## Quy tắc RBAC theo baseline ORCA
 
-1. Giai đoạn hiện tại dùng role làm nguồn policy UI và ánh xạ role sang capability nội bộ theo `docs/RBAC_UI_SCOPE.md`.
+Baseline làm việc cho tài liệu ngày 02/10/2026 là ORCA SRS cập nhật. Implementation hiện có đã có
+policy bảy role; doc không được bắt quay về mô hình SmartChain bốn role. Permission/action mới
+chưa có contract phải ghi đề xuất và deny mặc định, không tự sửa source để coi như đã phê duyệt.
+
+1. Giai đoạn hiện tại dùng role và actor scope làm nguồn policy UI, ánh xạ capability tại `src/lib/accessPolicy.ts` theo `docs/RBAC_UI_SCOPE.md`.
 2. Không hợp nhất permission server với role fallback theo kiểu ngầm định. Khi backend có seed và contract permission chính thức, chuyển nguồn policy qua một feature flag hoặc contract version rõ ràng rồi dùng permission server làm nguồn duy nhất.
 3. API/backend luôn là nơi quyết định authorization cuối cùng. UI guard chỉ quyết định menu, route và action được hiển thị.
-4. Trang Roles & Permissions của tenant chỉ hiển thị ba role workspace: `TENANT_ADMIN`, `DISPATCHER`, `ACCOUNTANT`. Không cho gán `SUPER_ADMIN`.
-5. Tenant chỉ được xem role/permission hệ thống và gán role cho thành viên. Bỏ Add/Delete Role và CRUD permission/custom role khỏi phạm vi.
+4. Role ORCA: PLATFORM có `ORCA_ADMIN`, `OPS_DISPATCHER`, `WAREHOUSE_MANAGER`, `WAREHOUSE_STAFF`, `ORCA_ACCOUNTANT`; TENANT có `SELLER_OWNER`, `SELLER_STAFF`. Không union hai scope hoặc fallback legacy để cấp quyền.
+5. Seller Owner chỉ quản lý staff trong seller và gán/thu hồi role Seller Staff cố định; không custom permission, không platform role. Staff không quản lý staff, tài chính, API key, SKU edit hoặc sales order create. ORCA role/warehouse assignment thuộc Admin; screen quyền đọc của Manager không mặc định cấp assignment write.
 6. Các route nghiệp vụ chưa có trang được phép dùng `UnderConstruction` để sidebar và guard hoạt động, nhưng không được giả lập nghiệp vụ hoặc API chưa có.
 7. `/components/*` là catalog phát triển: sidebar và route chỉ tồn tại khi `import.meta.env.DEV` là `true`.
-8. Policy và redirect phải là hàm thuần để có thể test bằng Node. Bắt buộc có test cho bốn role, redirect, route visibility, sidebar/global search và action visibility.
+8. Policy và redirect phải là hàm thuần để có thể test bằng Node. Bắt buộc có test bảy role, actor scope, legacy/mixed scope deny, redirect, route/sidebar/search/action và field privacy. Ma trận screen không grant mọi action trong screen.
 
 ## Quality gate
 
@@ -63,17 +88,23 @@ npm test
 npm run build
 ```
 
-Không tắt rule, bỏ test hoặc dùng `--no-verify` để né lỗi. Với thay đổi chỉ gồm Markdown, tối thiểu phải chạy `git diff --check` cho các file đã sửa.
+Không tắt rule, bỏ test hoặc dùng `--no-verify` để né lỗi. Với thay đổi chỉ gồm Markdown, chạy
+Prettier `--check` trên các file đã sửa, kiểm tra local links và `git diff --check`; không tuyên
+bố đã chạy runtime tests từ kết quả kiểm tra văn bản.
 
 ## Hiệu quả ngữ cảnh (token)
 
 Để giảm chi phí mà không giảm chất lượng:
 
-1. Khoanh vùng bằng `grep`/`glob` trước; chỉ đọc đúng dải dòng cần thiết, không đọc trọn file lớn.
-2. File sắp viết lại/ghi đè thì không cần đọc toàn bộ — chỉ đọc phần cần giữ.
+1. Khoanh vùng bằng `rg`/`rg --files` trước; đọc phần implementation liên quan. Các nguồn bắt buộc
+   ở cổng đầu tài liệu vẫn phải đọc đầy đủ, không áp dụng giới hạn ngữ cảnh để bỏ qua.
+2. Đọc nội dung và quy tắc áp dụng trước khi sửa/ghi đè file; không xóa phần chưa đọc hoặc thay đổi
+   của người khác để giảm ngữ cảnh.
 3. Gộp các tool call độc lập vào cùng một lượt; không lặp lại lệnh kiểm tra đã chạy.
 4. Chạy quality gate một lần cho mỗi cụm thay đổi đã hoàn tất; không chạy lại vô ích.
-5. Thay đổi nhỏ (CSS, một file) chỉ chạy kiểm tra tương ứng, không chạy full pipeline.
+5. Chạy kiểm tra phạm vi nhỏ trước, rồi quality gate bắt buộc cho thay đổi code sau khi chốt;
+   thay đổi Markdown theo quy tắc riêng ở trên.
 6. Không mở rộng scope ngoài yêu cầu; điểm chưa chắc thì hỏi một câu thay vì tự đoán.
 7. Kết thúc ngắn gọn: file đã đổi, kết quả gate, điểm cần xác nhận — không dán lại nội dung đã có.
-8. Task lớn tách subagent hoặc PR nhỏ để context không phình; tránh nhồi mọi thứ vào một session dài.
+8. Task lớn chia thành cụm thay đổi/PR nhỏ có scope và acceptance rõ; không thêm nghiệp vụ ngoài
+   yêu cầu để giải quyết giới hạn ngữ cảnh.

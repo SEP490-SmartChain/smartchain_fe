@@ -1,387 +1,126 @@
-# Phạm vi giao diện theo vai trò SmartChain
-
-## 1. Trạng thái tài liệu
-
-- Trạng thái: Đã chốt các quyết định kỹ thuật ở mục 15; các câu hỏi nghiệp vụ còn lại ở mục 13 cần Product Owner xác nhận.
-- Phạm vi: Giao diện sau đăng nhập, sidebar, route, trang và hành động được hiển thị theo vai trò.
-- Chưa bao gồm: Thay đổi mã nguồn, API, cơ sở dữ liệu hoặc dữ liệu seed.
-- Ngày đối chiếu: 12/09/2026.
-
-## 2. Nguồn nghiệp vụ
-
-Tài liệu này tổng hợp yêu cầu từ các nguồn sau:
-
-1. `Report3_Software Requirement Specification.docx`
-   - Mục 2.1 Actors.
-   - Bảng Use Case FE-01 đến FE-67.
-   - Bảng Screen Access Matrix.
-   - Mục 3, các mô tả màn hình, hành động và đường dẫn điều hướng.
-2. `Report1_Project Introduction.docx`
-   - Mục 6.1 Major Features, đặc biệt FE-02 đến FE-07 về IAM và RBAC.
-3. `smartchain_be/docs/AUTH-SCOPE.md`
-   - Danh tính, role và permission phải được xác thực ở server.
-   - Thay đổi role/permission có hiệu lực ở request bảo vệ kế tiếp.
-   - Workspace không được cấp vai trò `SUPER_ADMIN`.
-4. `smartchain_be/packages/iam/src/lib/domain/auth.types.ts`
-   - Backend hiện hỗ trợ bốn role đăng nhập: `SUPER_ADMIN`, `TENANT_ADMIN`, `DISPATCHER`, `ACCOUNTANT`.
-
-Nội dung báo cáo được dùng làm dữ liệu nghiệp vụ. Yêu cầu trực tiếp của người dùng vẫn là nguồn ưu tiên cao nhất.
-
-## 3. Mô hình vai trò chính thức
-
-| Role kỹ thuật | Tên hiển thị | Trách nhiệm chính |
-| --- | --- | --- |
-| `SUPER_ADMIN` | Quản trị hệ thống | Quản lý toàn nền tảng, tenant, danh mục 3PL, gói dịch vụ, sức khỏe hệ thống và giám sát liên tenant. |
-| `TENANT_ADMIN` | Quản trị workspace | Thiết lập workspace, kho, kết nối 3PL, người dùng, vai trò, quy tắc và báo cáo trong tenant của mình. |
-| `DISPATCHER` | Điều phối logistics | Theo dõi luồng đơn, tồn kho, định tuyến, vận đơn, ngoại lệ và can thiệp khi tự động hóa thất bại. |
-| `ACCOUNTANT` | Kế toán tài chính | Tải tệp đối soát, theo dõi xử lý, kiểm tra sai lệch, tạo khiếu nại và xuất báo cáo tài chính. |
-
-Các actor sau không tạo template sidebar cho người dùng đăng nhập:
-
-- `Guest` là người chưa đăng nhập, chỉ dùng landing page, liên hệ bán hàng, đăng ký và kích hoạt tài khoản.
-- `Sales Channel System`, `3PL Provider System`, `Webhook Subscriber` và `System Worker` là actor hệ thống hoặc tích hợp, không có app shell dành cho người dùng.
-
-Tenant chỉ được gán `TENANT_ADMIN`, `DISPATCHER` và `ACCOUNTANT`. `SUPER_ADMIN` là tài khoản nền tảng, không thuộc tenant và không xuất hiện trong danh sách role có thể gán cho nhân viên.
-
-## 4. Nguyên tắc áp dụng quyền lên giao diện
-
-1. Profile trả về sau đăng nhập là nguồn dữ liệu cho UI, gồm `roles` và `permissions` do server xác thực.
-2. Nếu một người dùng có nhiều role trong cùng tenant, UI lấy hợp của các quyền thuộc các role đó.
-3. `SUPER_ADMIN` dùng template nền tảng riêng; không trộn menu workspace vào tài khoản nền tảng không có `tenantId`.
-4. Sidebar, tìm kiếm toàn cục, breadcrumb, route và nút thao tác phải dùng cùng một policy trung tâm.
-5. Ẩn menu hoặc nút chỉ là kiểm soát trải nghiệm. API vẫn phải kiểm tra role/permission và trả `403` khi thiếu quyền.
-6. Khi quyền thay đổi, UI phải cập nhật từ `/auth/me` hoặc lần refresh session kế tiếp; không tin role do client tự lưu.
-7. Truy cập trực tiếp URL không có quyền phải hiển thị trang `403 Không có quyền truy cập`, không dùng trang `404` và không tạo vòng lặp redirect.
-8. Sau đăng nhập:
-   - `SUPER_ADMIN` vào `/admin/tenants` cho đến khi có Admin Dashboard riêng.
-   - Ba role workspace vào `/dashboard`.
-9. Sau khi quyền bị thu hồi trong lúc đang dùng trang, request nhận `403` phải giữ phiên đăng nhập và chuyển sang trang còn được phép truy cập.
-
-## 5. Template sidebar theo từng role
-
-### 5.1 Super Admin
-
-| Nhóm | Mục sidebar | Route dự kiến | Trạng thái hiện tại |
-| --- | --- | --- | --- |
-| Platform | Tenant Management | `/admin/tenants` | Đã có route cơ bản |
-| Platform | Global Carrier Catalog | `/admin/carriers` | Đã có route cơ bản |
-| Platform | Subscription Plans | `/admin/plans` | Cần dựng |
-| Monitoring | Platform Health | `/admin/health` | Cần dựng |
-| Monitoring | Audit Trail | `/admin/audit` | Cần dựng |
-| Monitoring | API Traffic Logs | `/admin/api-traffic` | Cần dựng |
-| Monitoring | System Observability | `/admin/observability` | Cần dựng |
-| Monitoring | Webhook Delivery Logs | `/admin/webhooks` | Cần dựng |
-| Monitoring | Quota Management | `/admin/quotas` | Cần dựng |
-| Account | Profile và bảo mật cá nhân | `/settings/profile` | Đã có UI cơ bản |
-
-Không hiển thị Orders, Inventory, Routing Rules, Shipments, Reconciliation, quản lý nhân viên hoặc Roles & Permissions của tenant khi `tenantId` là `null`.
-
-### 5.2 Tenant Admin
-
-| Nhóm | Mục sidebar | Route đề xuất | Quyền giao diện |
-| --- | --- | --- | --- |
-| Workspace | Dashboard | `/dashboard` | Xem dashboard vận hành và dashboard đối soát. |
-| Operations | Orders / Control Tower | `/orders` | Xem đơn, chi tiết, timeline, nguyên nhân chọn carrier và xử lý ngoại lệ. |
-| Operations | Inventory | `/inventory` | Xem tồn kho, reservation, danh sách kho và SKU; được tạo/sửa kho và SKU. |
-| Operations | Routing Rules | `/rules` | Xem, tạo, xóa, rollback và cấu hình quy tắc/split/fallback/blackout zone. |
-| Operations | Shipments | `/shipments` | Xem trạng thái vận đơn và dữ liệu liên quan trong tenant. |
-| Finance | Reconciliation | `/reconciliation` | Xem dashboard đối soát, chi tiết sai lệch và báo cáo; không mặc định có quyền tải file hoặc tạo dispute. |
-| Reports | Analytics | `/analytics` | Xem order volume, carrier distribution, delivery performance và fee discrepancy. |
-| Integrations | Carrier Connections | `/settings/integrations` | Xem carrier, nhập API key, test connection, map pickup point và quản lý tenant rate card. |
-| Integrations | API Keys | `/settings/api-keys` | Tạo, xem và thu hồi API key để ERP/POS/website gọi API vào SmartChain (SS-473); key đầy đủ chỉ hiện một lần. |
-| Manage Accounts | User | `/iam/users` | Xem, mời, cập nhật và khóa/mở khóa nhân viên. |
-| Manage Accounts | Roles & Permissions | `/roles-permissions/roles` | Xem role hệ thống, gán role/quyền cho thành viên; không tạo hoặc xóa role nền tảng. |
-| Workspace Settings | General | `/settings/general` | Cấu hình workspace, timezone, allocation default và notification. |
-| Workspace Settings | Webhooks | `/settings/webhooks` | Cấu hình webhook và xem delivery log. |
-| Workspace Settings | Usage | `/billing` | Chỉ xem gói hiện tại và quota; không có thanh toán thật trong phạm vi hiện tại. |
-| Monitoring | Audit Trail | `/audit` | Chỉ xem log của tenant hiện tại và xuất báo cáo. |
-| Monitoring | Integration Errors | `/integration-errors` | Xem lỗi tích hợp 3PL/ERP của tenant. |
-| Account | Profile và bảo mật cá nhân | `/settings/profile` | Quản lý hồ sơ và bảo mật của chính mình. |
-
-### 5.3 Logistics Dispatcher
-
-| Nhóm | Mục sidebar | Route đề xuất | Quyền giao diện |
-| --- | --- | --- | --- |
-| Workspace | Dashboard | `/dashboard` | Xem chỉ số vận hành, order volume, carrier distribution và delivery performance. |
-| Operations | Orders / Control Tower | `/orders` | Xem đơn, chi tiết, timeline, lý do chọn carrier; nhập Excel, xử lý lỗi địa chỉ và re-dispatch. |
-| Operations | Inventory | `/inventory` | Xem kho, SKU, tồn kho toàn cục và reservation; không thấy nút tạo/sửa kho hoặc SKU. |
-| Operations | Routing Rules | `/rules` | Xem, sắp thứ tự, chỉnh condition/action, bật/tắt, rollback và simulate; không thấy nút tạo mới hoặc xóa rule. |
-| Operations | Shipments | `/shipments` | Xem hành trình/SLA, hủy vận đơn hợp lệ và xử lý các lần booking lỗi theo use case. |
-| Reports | Analytics | `/analytics` | Xem báo cáo vận hành và dùng bộ lọc ngày/carrier/kho. |
-| Monitoring | Integration Errors | `/integration-errors` | Xem lỗi tích hợp phục vụ chẩn đoán vận hành. |
-| Account | Profile và bảo mật cá nhân | `/settings/profile` | Quản lý hồ sơ và bảo mật của chính mình. |
-
-Không hiển thị Billing, Reconciliation, Staff Accounts, Roles & Permissions, Workspace Settings và toàn bộ Platform Admin.
-
-### 5.4 Finance Accountant
-
-| Nhóm | Mục sidebar | Route đề xuất | Quyền giao diện |
-| --- | --- | --- | --- |
-| Workspace | Dashboard | `/dashboard` | Xem dashboard tenant, ưu tiên KPI phí, COD và batch đối soát. |
-| Finance | Reconciliation | `/reconciliation` | Tải CSV/XLSX, xem tiến độ stream, xem sai lệch, tạo dispute và xuất Excel. |
-| Reports | Analytics | `/analytics` | Xem fee discrepancy report và dùng bộ lọc ngày/carrier/workspace hợp lệ. |
-| Account | Profile và bảo mật cá nhân | `/settings/profile` | Quản lý hồ sơ và bảo mật của chính mình. |
-
-Không hiển thị Orders, Inventory, Routing Rules, Shipments, Staff Accounts, Roles & Permissions, Workspace Settings và Platform Admin.
-
-## 6. Ma trận route cấp cao
-
-Ký hiệu: `X` là được truy cập, `R` là chỉ đọc, `-` là không được truy cập.
-
-| Route/module | Super Admin | Tenant Admin | Dispatcher | Accountant |
-| --- | :---: | :---: | :---: | :---: |
-| `/dashboard` | - | X | X | X |
-| `/orders` | - | X | X | - |
-| `/inventory` | - | X | R | - |
-| `/rules` | - | X | X | - |
-| `/shipments` | - | R | X | - |
-| `/reconciliation` | - | R | - | X |
-| `/analytics` | - | X | X | X |
-| `/billing` | - | R | - | - |
-| `/iam/users` | - | X | - | - |
-| `/roles-permissions/*` | - | X | - | - |
-| `/settings/profile` | X | X | X | X |
-| `/settings/general` | - | X | - | - |
-| `/settings/integrations` | - | X | - | - |
-| `/settings/api-keys` | - | X | - | - |
-| `/settings/webhooks` | - | X | - | - |
-| `/audit` | - | R | - | - |
-| `/integration-errors` | - | R | R | - |
-| `/admin/*` | X | - | - | - |
-| `/components/*` | - | - | - | - |
-
-`/components/*` là catalog phát triển UI, không phải chức năng nghiệp vụ trong SRS. Nó chỉ nên bật ở môi trường development hoặc qua feature flag nội bộ, không xuất hiện theo role production.
-
-## 7. Ma trận hành động chi tiết
-
-### 7.1 User và RBAC
-
-| Hành động | Super Admin | Tenant Admin | Dispatcher | Accountant |
-| --- | :---: | :---: | :---: | :---: |
-| Xem nhân viên trong workspace | - | X | - | - |
-| Mời hoặc tạo nhân viên | - | X | - | - |
-| Cập nhật nhân viên | - | X | - | - |
-| Khóa hoặc mở khóa nhân viên | - | X | - | - |
-| Gán role workspace | - | X | - | - |
-| Gán `SUPER_ADMIN` cho nhân viên | - | - | - | - |
-| Tạo, đổi tên hoặc xóa role nền tảng | - | - | - | - |
-
-### 7.2 Kho, SKU và tồn kho
-
-| Hành động | Tenant Admin | Dispatcher | Accountant |
-| --- | :---: | :---: | :---: |
-| Xem warehouse và SKU | X | X | - |
-| Tạo/sửa/bật tắt warehouse | X | - | - |
-| Tạo/sửa SKU | X | - | - |
-| Xem tồn kho toàn cục và reservation | X | X | - |
-| Nhả reservation thủ công (Release, SRS §3.10.2) | X | X | - |
-
-Chữ `R` của Dispatcher ở `/inventory` (mục 6) nói về tạo/sửa kho và SKU; không chặn thao tác
-Release vì SRS §3.10.2 ghi Dispatcher là actor chính của màn Active Reservations.
-
-### 7.3 Routing Rules
-
-| Hành động | Tenant Admin | Dispatcher | Accountant |
-| --- | :---: | :---: | :---: |
-| Xem rule và lịch sử | X | X | - |
-| Tạo rule | X | - | - |
-| Xóa rule | X | - | - |
-| Sắp thứ tự ưu tiên | - | X | - |
-| Chỉnh condition/action | - | X | - |
-| Bật/tắt rule | - | X | - |
-| Rollback version | X | X | - |
-| Simulate / dry-run | - | X | - |
-| Cấu hình split, restricted zone và fallback | X | - | - |
-
-### 7.4 Orders và Shipments
-
-| Hành động | Tenant Admin | Dispatcher | Accountant |
-| --- | :---: | :---: | :---: |
-| Xem Control Tower và chi tiết đơn | X | X | - |
-| Xem timeline và lý do chọn carrier | X | X | - |
-| Nhập đơn hàng hàng loạt bằng Excel | - | X | - |
-| Xử lý lỗi địa chỉ và exception | X | X | - |
-| Re-dispatch thủ công | X | X | - |
-| Hủy vận đơn trên 3PL | - | X | - |
-| Xem cảnh báo SLA và hành trình | X | X | - |
-
-### 7.5 Reconciliation và báo cáo
-
-| Hành động | Tenant Admin | Dispatcher | Accountant |
-| --- | :---: | :---: | :---: |
-| Xem dashboard đối soát | X | - | X |
-| Tải tệp đối soát CSV/XLSX | - | - | X |
-| Theo dõi tiến độ batch | - | - | X |
-| Xem danh sách và chi tiết sai lệch | X | - | X |
-| Tạo dispute ticket | - | - | X |
-| Xem và xuất reconciliation report | X | - | X |
-| Xem fee discrepancy analytics | X | - | X |
-
-### 7.6 Platform Admin
-
-| Hành động | Super Admin |
-| --- | :---: |
-| Xem, lọc, suspend và unsuspend tenant | X |
-| Xem chi tiết tenant và usage | X |
-| Quản lý global 3PL catalog | X |
-| Quản lý platform default rate card | X |
-| Chạy carrier connectivity health check | X |
-| Quản lý subscription plan và quota | X |
-| Xem platform health, API traffic và DLQ | X |
-| Retry hoặc purge DLQ job | X |
-| Xem audit trail toàn nền tảng | X |
-
-## 8. Capability đề xuất cho frontend
-
-Các mã dưới đây là tên policy UI đề xuất. Đây chưa phải hợp đồng API chính thức và phải được đối chiếu với permission seed của backend trước khi code.
-
-| Capability UI | Role mặc định |
-| --- | --- |
-| `workspace.dashboard.view` | Tenant Admin, Dispatcher, Accountant |
-| `workspace.settings.manage` | Tenant Admin |
-| `iam.users.manage` | Tenant Admin |
-| `iam.roles.assign` | Tenant Admin |
-| `carriers.credentials.manage` | Tenant Admin |
-| `warehouses.view` | Tenant Admin, Dispatcher |
-| `warehouses.manage` | Tenant Admin |
-| `catalog.products.view` | Tenant Admin, Dispatcher |
-| `catalog.products.manage` | Tenant Admin |
-| `inventory.view` | Tenant Admin, Dispatcher |
-| `inventory.reservations.release` | Tenant Admin, Dispatcher |
-| `rules.view` | Tenant Admin, Dispatcher |
-| `rules.create_delete` | Tenant Admin |
-| `rules.operate` | Dispatcher |
-| `orders.view` | Tenant Admin, Dispatcher |
-| `orders.operate` | Dispatcher |
-| `shipments.view` | Tenant Admin, Dispatcher |
-| `shipments.operate` | Dispatcher |
-| `reconciliation.view` | Tenant Admin, Accountant |
-| `reconciliation.operate` | Accountant |
-| `analytics.operations.view` | Tenant Admin, Dispatcher |
-| `analytics.finance.view` | Tenant Admin, Accountant |
-| `platform.tenants.manage` | Super Admin |
-| `platform.carriers.manage` | Super Admin |
-| `platform.plans.manage` | Super Admin |
-| `platform.observability.view` | Super Admin |
-| `audit.tenant.view` | Tenant Admin |
-| `audit.platform.view` | Super Admin |
-
-## 9. Template component cần có khi triển khai
-
-Phần này chỉ mô tả cấu trúc dự kiến, chưa yêu cầu tạo file trong giai đoạn đặc tả.
-
-| Thành phần | Trách nhiệm |
-| --- | --- |
-| Access policy trung tâm | Khai báo role, capability, route và menu tại một nguồn duy nhất. |
-| `ProtectedRoute` mở rộng | Kiểm tra role/capability, xử lý `403` và redirect mặc định. |
-| `Can` component | Ẩn hoặc hiển thị nút, tab, cột và thao tác theo capability. |
-| `useAccess` hook | Trả `can`, `canAny`, `canAll` từ profile hiện tại. |
-| Sidebar builder | Chỉ tạo group/menu có ít nhất một route được phép. |
-| Global search policy | Không trả về route mà người dùng không được truy cập. |
-| Settings tab policy | Profile cho mọi role; workspace settings chỉ cho Tenant Admin. |
-| Role-aware dashboard | Dùng cùng app shell nhưng thay KPI và quick action theo role. |
-| Access Denied page | Hiển thị `403`, giải thích ngắn và nút về trang mặc định của role. |
-
-## 10. Trạng thái UI bắt buộc
-
-Mỗi template role phải xử lý các trạng thái sau:
-
-- Đang khôi phục session: chưa render menu có quyền.
-- Đã xác thực và có quyền: render trang bình thường.
-- Đã xác thực nhưng thiếu quyền: trang `403`.
-- Role hoặc permission vừa thay đổi: làm mới profile và cập nhật menu mà không cần đăng nhập lại.
-- API trả `403`: giữ session, báo không đủ quyền và không retry refresh token.
-- API trả `401`: dùng flow refresh session hiện có.
-- Không có dữ liệu: empty state đúng với module, không dùng trang lỗi.
-- Route bị ẩn khỏi sidebar vẫn phải được guard khi nhập URL trực tiếp.
-
-## 11. Điểm cần sửa so với UI mẫu hiện tại khi bắt đầu code
-
-1. UI Roles & Permissions mẫu SaaSable đang dùng 11 role giả lập. Phạm vi SmartChain chỉ có bốn role backend; màn hình tenant chỉ được gán ba role workspace.
-2. Tenant không được tạo, đổi tên hoặc xóa role nền tảng. Các nút Add Role, Delete Role và chỉnh mã role phải được bỏ hoặc chỉ dành cho luồng quản trị nền tảng nếu có yêu cầu mới.
-3. Permission mẫu như `account.*`, `invoice.*` và `pricing.*` chưa phản ánh domain SmartChain. Cần thay bằng permission cho IAM, warehouse, catalog, inventory, rules, orders, shipments, reconciliation, analytics và platform.
-4. Sidebar hiện mới phân biệt `SUPER_ADMIN` và `TENANT_ADMIN`; cần thêm template rõ cho `DISPATCHER` và `ACCOUNTANT`.
-5. Các route workspace hiện nằm dưới guard đăng nhập chung; cần guard theo capability ở cả route và action.
-6. Global search hiện có thể hiển thị route ngoài quyền; cần dùng cùng access policy với sidebar.
-7. `/components/*` chỉ là UI catalog phát triển và phải tách khỏi menu production.
-8. Billing hiện là UI mẫu. Theo SRS, thanh toán thật nằm ngoài phạm vi; Tenant Admin chỉ xem plan/quota, còn quản lý plan thuộc Super Admin.
-
-## 12. Ngoài phạm vi của đợt triển khai UI RBAC
-
-- Tạo endpoint CRUD role/permission mới.
-- Cho tenant tự tạo custom role.
-- Cho tenant cấp hoặc thu hồi `SUPER_ADMIN`.
-- Tích hợp cổng thanh toán Stripe, VNPay hoặc thanh toán subscription thực tế.
-- Thay đổi Prisma schema, migration hoặc seed permission backend.
-- Xây UI cho actor hệ thống, worker hoặc đối tác 3PL.
-- Quyết định mã permission backend khi chưa có contract được nhóm chốt.
-- Hoàn thiện nghiệp vụ/API của các module đang chỉ là placeholder; đợt RBAC chỉ quyết định khả năng nhìn thấy và thao tác UI.
-
-## 13. Tiêu chí nghiệm thu trước khi bắt đầu code
-
-- [x] Bốn role backend là role đăng nhập chính thức; Guest là actor public, không phải role gán cho nhân viên.
-- [ ] Backend xác nhận danh sách permission code và mapping role-permission seed.
-- [x] Tenant Admin chỉ được gán ba role workspace; không thể gán `SUPER_ADMIN`.
-- [ ] Xác nhận quyền Tenant Admin đối với Reconciliation là chỉ đọc và xuất báo cáo.
-- [ ] Xác nhận Tenant Admin có được re-dispatch/resolve exception hay chỉ Dispatcher thực hiện.
-- [ ] Xác nhận `/billing` chỉ hiển thị plan/quota cho Tenant Admin.
-- [x] `/components/*` chỉ xuất hiện trong development.
-- [x] Người dùng nhiều role workspace nhận hợp capability của các role đó.
-- [x] URL ngoài quyền dùng trang `403`; route mặc định theo mục 4.
-
-## 14. Tiêu chí nghiệm thu sau khi triển khai
-
-- [ ] Mỗi role chỉ thấy đúng group/sidebar theo ma trận này.
-- [ ] Global search không hiển thị route ngoài quyền.
-- [ ] Nhập trực tiếp URL ngoài quyền luôn vào trang `403`.
-- [ ] Nút create/edit/delete/import/export/simulate chỉ xuất hiện đúng role.
-- [ ] Người dùng nhiều role nhận hợp quyền và không nhận quyền ngoài tenant.
-- [ ] `SUPER_ADMIN` không nhìn thấy dữ liệu workspace khi không có tenant context.
-- [ ] Thay đổi quyền được phản ánh sau khi làm mới profile.
-- [ ] `403` không đăng xuất; `401` vẫn theo flow refresh hiện tại.
-- [ ] Sidebar thu gọn, mobile drawer, breadcrumb và topbar giữ đúng design system hiện có.
-- [ ] Có test cho redirect sau login, route guard, menu visibility, global search và action visibility của cả bốn role.
-- [ ] TypeScript, ESLint, format, unit test và production build đều đạt.
-
-## 15. Quyết định kỹ thuật đã chốt trước khi triển khai
-
-### 15.1 Nguồn policy UI
-
-Chọn phương án **role kết hợp lớp capability nội bộ**.
-
-- Trong giai đoạn backend chưa seed permission, role là dữ liệu đầu vào cho policy UI và được ánh xạ sang capability theo mục 5–8.
-- Không tự động coi mảng `permissions` rỗng là lỗi, cũng không union permission server với capability fallback.
-- Khi backend có permission seed và contract chính thức, việc chuyển nguồn phải qua feature flag hoặc contract version rõ ràng. Sau khi chuyển, permission server là nguồn policy duy nhất.
-- Backend/API tiếp tục là nơi kiểm tra authorization cuối cùng ở mọi giai đoạn.
-
-### 15.2 Trang Roles & Permissions
-
-Chọn phương án **chỉ xem role/permission hệ thống và gán role**.
-
-- Bỏ Add/Delete Role và CRUD Permission.
-- Hiển thị ba role có thể gán trong workspace: Tenant Admin, Logistics Dispatcher và Finance Accountant.
-- Không hiển thị hoặc cho phép gán Super Admin.
-- Permission theo domain SmartChain được hiển thị chỉ đọc.
-- Tab System Users cho phép Tenant Admin cập nhật role của thành viên trong phạm vi workspace.
-
-### 15.3 Route chưa có nghiệp vụ
-
-Chọn phương án **tạo placeholder dùng component `UnderConstruction`**.
-
-- Tạo đủ route cần thiết để kiểm thử sidebar, breadcrumb, global search và route guard.
-- Placeholder chỉ trình bày tên và trạng thái chưa triển khai; không giả lập API, dữ liệu hay nghiệp vụ.
-
-### 15.4 UI component catalog
-
-Chọn phương án **chỉ bật trong development**.
-
-- Sidebar và route `/components/*` chỉ được đăng ký khi `import.meta.env.DEV` là `true`.
-- Production build không hiển thị và không cho truy cập catalog này.
-
-### 15.5 Kiểm thử
-
-Chọn phương án **viết test hàm thuần cho policy và redirect trong cùng đợt triển khai**.
-
-- Tách access policy khỏi React để Node test runner hiện tại có thể kiểm thử trực tiếp.
-- Bao phủ bốn role, người dùng nhiều role, redirect sau login, route, menu, global search và action visibility.
-- UI guard không thay thế test authorization ở backend.
+# Phạm vi giao diện và phân quyền ORCA
+
+Ngày 02/10/2026. Baseline làm việc: `Report3_Software Requirement Specification.docx` §2.1, §3.1.3, các UC và BR. Tài liệu thay mô tả SmartChain bốn role. Đây là đặc tả UI theo yêu cầu mới, **không phải tuyên bố các grant/API/screen đã triển khai hoặc được duyệt đầy đủ**.
+
+Policy hiện có ở `src/lib/accessPolicy.ts`; backend có core-auth action catalog riêng. Mọi gap được giữ rõ ở mục 8. Không viết policy code trong đợt tài liệu này. Ma trận screen không được dùng thay action-level API authorization.
+
+## 1. Bảy role và hai actor scope
+
+| Role              | Actor scope | Mục đích và giới hạn                                                                                                                                        |
+| ----------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ORCA_ADMIN        | PLATFORM    | Kho, carrier account, staff/assignment, commercial configuration, seller suspension và audit. Không tự suy Admin phải thao tác thay Accountant mọi posting. |
+| OPS_DISPATCHER    | PLATFORM    | Allocation/carrier rules, exception/timeout recovery, trace/recall và claim investigation; current warehouse assignment.                                    |
+| WAREHOUSE_MANAGER | PLATFORM    | Warehouse task assignment và approvals receiving discrepancy, lot substitution, count/return QC; current assigned warehouses.                               |
+| WAREHOUSE_STAFF   | PLATFORM    | Receive/inspect/putaway/pick/pack/handover/count result trong assigned task/kho. Không COD/order values/invoices/API secrets.                               |
+| ORCA_ACCOUNTANT   | PLATFORM    | Verified receipts, purchase/sell tariffs, invoices, carrier reconciliation, claim approval, seller ledger/statements/manual payouts.                        |
+| SELLER_OWNER      | TENANT      | Một seller; profile/agreement/SKU/ASN/sales orders/API keys/staff/finance; không vận hành kho, carrier account hoặc routing rules.                          |
+| SELLER_STAFF      | TENANT      | Role cố định; order/stock read và tạo/sửa/theo dõi ASN. Không SKU edit, sales order create, risky-COD confirm, finance/API key hoặc staff management.       |
+
+Guest chỉ registration/email verification. Sales Channel, 3PL, SePay, n8n và AI là integration actors, không role nhân viên được gán. Internal worker là cơ chế bên trong ORCA.
+
+`TENANT` yêu cầu tenantId có giá trị và mọi effective seller operation trong cùng tenant. `PLATFORM` yêu cầu tenantId null trên principal; seller/warehouse filter là resource context được server kiểm tra. Mixed-scope roles, unknown scope, role không hợp lệ và legacy-only principal đều deny. Không mặc định cấp SUPER_ADMIN nếu không tìm thấy platform grants.
+
+ORCA_ADMIN và ORCA_ACCOUNTANT có all-warehouse scope theo policy hiện có; action permission và RLS vẫn bắt buộc. Các PLATFORM role còn lại phải có active warehouse assignment. UI selected warehouse là filter trong tập server cho phép; không grant quyền. Sau revoke, request kế tiếp và menu/profile refresh phải phản ánh scope mới.
+
+## 2. Nguồn policy và khả năng tương thích
+
+- `src/lib/accessPolicy.ts` là nguồn UI duy nhất cho route, sidebar, search, breadcrumb, settings và action visibility. Không union `tenantStore.can` hoặc legacy fallback thành nguồn thứ hai.
+- Role/capability UI không thay server authorization. Khi chuyển sang server permissions, có contract version/feature flag rõ và một nguồn duy nhất; không hiểu permissions rỗng thành “cấp tất cả” hoặc tự fallback rộng.
+- Capability/action mới phải có nguồn UC + resource scope + role grant cụ thể. Thiếu source hoặc contract giữ PROPOSED và deny. Không lấy chữ A trong một screen làm quyền approve mọi object.
+- Không đổi tên route/API/cookie/issuer hoặc code lỗi public như side effect của sửa convention. Existing compatibility routes có thể giữ URL, nhưng menu/guard/action phải theo policy ORCA khi triển khai.
+- Guest không có session vào portal; user thiếu granted role vào Access Denied có next action hợp lệ, không tự chọn portal rộng nhất.
+
+## 3. Ba portal và định hướng route
+
+| Portal     | Role                                       | Screen groups                                                                                                             | Giới hạn                                                                                                                 |
+| ---------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Seller     | Owner, Staff                               | Order/stock dashboard, SKU theo Owner, ASN, invoices/payment/statement theo Owner, channel keys/staff theo Owner          | Staff không nhận financial payload. Seller không có routing/carrier admin/warehouse execution.                           |
+| Warehouse  | Manager, Staff                             | Assigned warehouse tasks, receiving/QC/putaway, pick/pack/label/handover, return inspection, count                        | Approval actions của Manager tách Staff; blind count không tải expected qty. Recipient dữ liệu chỉ task/label cần thiết. |
+| Operations | Admin, Ops, Manager, Accountant theo quyền | Seller contracts, warehouse master, rule/exception, carrier configuration, reconciliation, finance, scoped analytics/logs | Một shell không có nghĩa mọi role thấy mọi module; manager/ops theo assignment.                                          |
+
+Các prefix `/seller/*`, `/warehouse/*`, `/ops/*` chỉ là đề xuất tổ chức route nếu nhóm muốn chuyển URL; không phải contract đã tạo. Existing `/orders`, `/inventory`, `/admin/*`, `/settings/*` có thể map portal-compatible khi review từng route. Tránh bật một route rộng rồi chỉ ẩn menu. Post-login destination dựa scope + granted capabilities; multi-role cùng scope chọn default hợp lệ qua function thuần, không chỉ `roles[0]`.
+
+## 4. Ma trận screen SRS
+
+R = scoped read; W = operational write; A = approval/configuration; — = denied. **Đây là matrix screen**, mỗi action vẫn cần UC, owner/assignment và lifecycle. Manager được đọc staff không đồng nghĩa được gán warehouse. Staff count write không có approval. ASN receiving result cho seller không phải warehouse execution. Own-profile write không staff administration.
+
+| Screen group                   | Admin | Ops | WH Manager | WH Staff | Accountant | Owner | Seller Staff      |
+| ------------------------------ | ----- | --- | ---------- | -------- | ---------- | ----- | ----------------- |
+| Identity và own profile        | A     | W   | W          | W        | W          | W     | W                 |
+| Staff và warehouse assignments | A     | —   | R          | —        | —          | A     | —                 |
+| Seller contracts và plans      | A     | R   | —          | —        | A          | W     | —                 |
+| Warehouse zones và bins        | A     | R   | R          | R        | —          | R     | —                 |
+| SKU và ASN                     | R     | R   | R          | R        | —          | W     | ASN only          |
+| Receiving QC và putaway        | R     | R   | A          | W        | —          | R     | ASN results only  |
+| Inventory và expiry            | R     | W   | A          | R/count  | R          | R     | R                 |
+| Picking packing handover       | R     | R   | A          | W        | —          | R     | Order status only |
+| Routing và carrier accounts    | A     | A   | —          | —        | R          | —     | —                 |
+| Orders và exceptions           | R     | A   | W          | R        | R          | W     | Order view only   |
+| Returns và recalls             | R     | A   | A          | W        | R          | W     | —                 |
+| Claims và compensation         | R     | W   | R          | —        | A          | W     | —                 |
+| Invoices ledger payouts        | R     | —   | —          | —        | A          | W     | —                 |
+| Carrier reconciliation         | R     | —   | —          | —        | A          | —     | —                 |
+| Demand và seller reports       | R     | R   | R          | —        | R          | W     | Order/stock only  |
+| Audit và integration logs      | A     | R   | R          | —        | —          | —     | —                 |
+
+Log group phải tách tiếp: UC-152 audit = Admin only; UC-153 API/scan = Admin và Manager; UC-154 integration health = Admin và Ops. Accountant và Owner dùng evidence trong business screen được phép, không vì có ledger mà được technical log browser.
+
+## 5. Action boundaries dễ nhầm
+
+| Hành động                                | Actor theo SRS                                       | Scope và điều kiện                                                                                      |
+| ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Gán platform role và warehouse           | Admin, UC-06/07                                      | Platform authority; Manager staff read không assignment write.                                          |
+| Seller staff role assignment             | Owner, UC-06/15                                      | Chỉ SELLER_STAFF trong own seller; không custom grants, không tự đổi Owner.                             |
+| Cập nhật own user profile                | Authenticated roles, UC-16                           | Own display name/contact phone; không thay role/owner/status/assignment.                                |
+| Standard agreement acceptance            | Owner, UC-08                                         | Version/evidence; không individual Admin approval; không tự activate.                                   |
+| Custom contract confirmation             | Admin, UC-08                                         | Signed offline evidence; Accountant xác minh tiền là action khác.                                       |
+| SKU create/edit/import                   | Owner, UC-26–UC-30                                   | Own SKU; history dimensions/cost snapshots không overwritten.                                           |
+| ASN draft/edit/submit/track              | Owner và Staff, UC-31–UC-35                          | Seller-selected eligible warehouse; không warehouse receive/QC execution.                               |
+| Receiving/QC/pick/pack/return inspection | Staff theo từng UC                                   | Assigned warehouse/task; Manager discrepancy/substitution/count/QC review; không finance.               |
+| Normal sales order create/import         | Owner hoặc scoped Sales Channel, UC-65–UC-69         | Không Staff; no seller warehouse/carrier selector; durable async acceptance.                            |
+| Risky COD confirmation                   | Owner, UC-71/72                                      | Own held order; không Staff hoặc warehouse actor.                                                       |
+| Withdrawal request                       | Owner, UC-79                                         | Seller chọn warehouse/lot; registered address; debt and service gate; no sales quota.                   |
+| Allocation/carrier rule activation       | Admin và Ops, UC-76/96/97                            | Platform-owned, assigned scope, versioned contract exceptions; no seller edits.                         |
+| Carrier credential management/test       | Admin, UC-92/93                                      | Encrypted/masked, per warehouse/account; không Ops manage secret do routing A.                          |
+| Return QC và restock                     | Staff/Manager theo UC-108/109                        | Manager confirms classification; staff physical restock only reviewed quantity/current lot eligibility. |
+| Disposal                                 | Manager/Staff, UC-56                                 | Consent hoặc authorized lot policy; no auto-dispose vì owner không trả lời.                             |
+| Claim investigation                      | Ops, UC-115                                          | Evidence và responsibility; không financial approval.                                                   |
+| Claim compensation approval              | Accountant, UC-116                                   | Contract cap/cost snapshot; unique posting.                                                             |
+| Carrier reconciliation                   | Accountant, UC-137–UC-143                            | Platform carrier batch có nhiều seller; Seller Owner không upload/match raw carrier file.               |
+| Invoice/ledger read                      | Owner own, Accountant; Admin scoped read theo screen | Staff và warehouse roles denied; cost/margins chỉ permitted ORCA roles.                                 |
+| Statement review/dispute                 | Owner, UC-131/132                                    | Own line/review window; eligible remainder vẫn được trả.                                                |
+| Payout approve/record transfer           | Accountant, UC-133/134                               | Positive confirmed eligible amount; actual transfer evidence mới PAID.                                  |
+| Optional assistant                       | Admin, Ops, Manager, Accountant, Owner, UC-165       | Read-only và existing field/data scope; Guest/Staff/WH Staff denied.                                    |
+
+Đây là intended behavior theo SRS, chưa phải code permission names mới. Dùng exact API contract khi implement; capability chưa có seed không tự phát minh rồi grant.
+
+## 6. Privacy và state handling
+
+- API projections loại field không được phép; frontend không cache payload thừa rồi chỉ hide cột. Search/export/print/file download và AI sources dùng cùng scope/field privacy.
+- Warehouse Staff không order money/COD/invoice/API key. Seller Staff không bất kỳ financial metrics/exports, API keys, staff config hoặc contract detail.
+- Draft ASN, receiving actual, quarantine và sellable hiển thị riêng; unavailable stock không ngầm treat as allocatable. Blind count expected qty không được tải xuống browser của counter.
+- Async state `202`, BACKORDER, ON_HOLD, LABEL_VERIFYING, CANCEL_UNKNOWN, return awaiting QC và payout APPROVED có explanation/next allowed action. Không hiển thị unknown là success.
+- 401 refresh/session lifecycle; 403 giữ session và show denied; 409 stale version giữ draft và reload. Debt/payment-required không xử lý như logout.
+- User/role/warehouse switch invalidates cached queries và pending responses để tránh data scope cũ xuất hiện. Refresh grants không tự widen authority.
+- ReturnUrl chỉ đọc payment status từ API. Standard acceptance/custom confirmation chưa đủ initial payments không ACTIVE. Deposit không wallet UI.
+- Invoice ISSUED, signed manifest và posted ledger chỉ view; adjustment/reversal/dispute dùng flow riêng có evidence.
+- `/components/*` chỉ development theo `import.meta.env.DEV`, không grant production cho bất kỳ role.
+
+## 7. Kiểm thử khi sửa policy hoặc screen code
+
+- Bảy roles + multi-role cùng scope; mixed scope, missing scope, unknown role và legacy roles deny.
+- Route/sidebar/global search/action visibility cùng policy; URL trực tiếp denied vẫn 403.
+- Seller foreign ID; platform warehouse ngoài assignment; assignment revoke có hiệu lực request sau.
+- Manager approval và Staff operation tách; own profile không staff administration; Seller Staff ASN write vẫn không SKU/order/finance write.
+- DTO/export/label/cache/AI privacy; count expected quantity không ở response; recipient chỉ permitted task.
+- Async 202/unknown booking/cancel/QC/payment/payout display; replay và stale form không auto grant/complete.
+- 403 không logout, 401 refresh unavailable mới login; no role fallback/permission union.
+- Chạy quality gate theo AGENTS khi sửa code. Đợt Markdown này chỉ format/diff/link/source verification.
+
+## 8. Gap implementation phải giải quyết ở đợt sau
+
+Source hiện có đã có `actorScope` và ORCA role policy. Các grant được triển khai từ auth contract trước đây không hoàn toàn đồng bộ SRS cập nhật 02/10: backend core-auth audit grant còn rộng, contract read còn Seller Staff, contract approval còn Accountant; compatibility upload/reconciliation còn legacy groups. Frontend capabilities dựa screen matrix cũ cũng cần review action-level theo UC mới.
+
+Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.
+
+Source/audit toàn bộ 165 UC/61 BR/20 NFR và target DB ở repo backend: `docs/ORCA-SRS-CHANGE-ANALYSIS.md`, `docs/ORCA-SRS-TRACEABILITY.md`, `db.md`. Các grant hoặc route đề xuất chưa có acceptance evidence vẫn PROPOSED.
