@@ -60,7 +60,7 @@ const sampleUsers: User[] = [
 
 /**
  * Component Showcase Page
- * Demo tất cả common components với SmartChain theme dựa trên SaaSable Hosting.
+ * Demo tất cả common components với ORCA theme dựa trên SaaSable Hosting.
  */
 export default function ComponentShowcasePage() {
   const [alertVisible, setAlertVisible] = useState(true);
@@ -103,7 +103,7 @@ export default function ComponentShowcasePage() {
               <h1 className="text-xl font-medium text-[var(--sc-text-primary)]">
                 Component Showcase
               </h1>
-              <p className="text-xs text-[var(--sc-text-secondary)]">SmartChain Design System</p>
+              <p className="text-xs text-[var(--sc-text-secondary)]">ORCA Design System</p>
             </div>
           </div>
           <a
@@ -121,7 +121,7 @@ export default function ComponentShowcasePage() {
         <div className="mb-8">
           <Breadcrumb items={['Design System', 'Components', 'Showcase']} />
           <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
-            Preview các component dùng theme Hosting, typography Archivo và motion của SmartChain.
+            Preview các component dùng theme Hosting, typography Archivo và motion của ORCA.
           </p>
         </div>
 
@@ -345,7 +345,7 @@ export default function ComponentShowcasePage() {
           <Card>
             <CardHeader
               title="Logistics Icons (Lucide React)"
-              description="Các icon chuẩn thường dùng trong hệ thống SmartChain"
+              description="Các icon chuẩn thường dùng trong hệ thống ORCA"
             />
             <CardContent>
               {/* Hướng dẫn import */}
@@ -515,7 +515,7 @@ export default function ComponentShowcasePage() {
 
           {/* Color Palette Reference */}
           <Card>
-            <CardHeader title="Color Palette" description="SmartChain design tokens reference" />
+            <CardHeader title="Color Palette" description="ORCA design tokens reference" />
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -732,7 +732,7 @@ export default function ComponentShowcasePage() {
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-[#E5E7EB] text-center">
           <p className="text-sm text-[#6A6E76]">
-            SmartChain Design System v1.0 • Built with React 19 + Tailwind CSS 4
+            ORCA Design System v1.0 • Built with React 19 + Tailwind CSS 4
           </p>
           <p className="text-xs text-[#9CA3AF] mt-2">
             <a href="/login" className="hover:text-[#00E599] transition-colors">

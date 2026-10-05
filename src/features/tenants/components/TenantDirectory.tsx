@@ -104,10 +104,7 @@ export function TenantDirectory() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `smartchain-tenants-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
+    link.setAttribute('download', `orca-tenants-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -166,7 +163,10 @@ export function TenantDirectory() {
       key: 'adminEmail',
       label: t('col_admin_email'),
       render: (tenant) => (
-        <span className="truncate text-xs text-[var(--sc-text-secondary)]" title={tenant.adminEmail || ''}>
+        <span
+          className="truncate text-xs text-[var(--sc-text-secondary)]"
+          title={tenant.adminEmail || ''}
+        >
           {tenant.adminEmail || '—'}
         </span>
       ),
@@ -203,7 +203,13 @@ export function TenantDirectory() {
               <span>
                 <strong>{used.toLocaleString()}</strong> / {total.toLocaleString()}
               </span>
-              <span className={isCritical ? 'font-medium text-[var(--sc-error-dark)]' : 'font-medium text-[var(--sc-text-primary)]'}>
+              <span
+                className={
+                  isCritical
+                    ? 'font-medium text-[var(--sc-error-dark)]'
+                    : 'font-medium text-[var(--sc-text-primary)]'
+                }
+              >
                 {percent}%
               </span>
             </div>
@@ -297,12 +303,7 @@ export function TenantDirectory() {
             <Download size={14} className="mr-1.5" />
             Xuất CSV
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            isLoading={isLoading}
-          >
+          <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
             <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
             {t('refresh')}
           </Button>

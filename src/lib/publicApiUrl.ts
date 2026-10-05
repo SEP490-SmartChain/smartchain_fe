@@ -22,7 +22,7 @@ function isNonPublicHost(hostname: string): boolean {
 }
 
 /**
- * Địa chỉ đầy đủ mà hệ thống bên ngoài (ERP/POS/website) gọi tới SmartChain API,
+ * Địa chỉ đầy đủ mà hệ thống bên ngoài (ERP/POS/website) gọi tới ORCA API,
  * lấy từ `VITE_PUBLIC_API_URL` (URL tuyệt đối, gồm cả `/api`).
  *
  * Chỉ chấp nhận HTTPS tới tên miền/địa chỉ công khai: ERP chạy trên máy chủ của

@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  CheckCircle2,
-  Database,
-  RefreshCw,
-  Server,
-  Zap,
-} from 'lucide-react';
+import { CheckCircle2, Database, RefreshCw, Server, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -40,9 +34,7 @@ export function PlatformHealthView() {
   const uptimeHours = overview
     ? Math.round((overview.health.uptimeSeconds / 3600) * 10) / 10
     : 1008;
-  const uptimeDays = overview
-    ? Math.round((overview.health.uptimeSeconds / 86400) * 10) / 10
-    : 42;
+  const uptimeDays = overview ? Math.round((overview.health.uptimeSeconds / 86400) * 10) / 10 : 42;
 
   const services = [
     {
@@ -113,18 +105,13 @@ export function PlatformHealthView() {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchHealth}
-          isLoading={isLoading}
-        >
+        <Button variant="outline" size="sm" onClick={fetchHealth} isLoading={isLoading}>
           <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
           {t('refresh')}
         </Button>
       </div>
 
-      {/* Hero Health Banner with SmartChain tokens */}
+      {/* Hero Health Banner with ORCA tokens */}
       <Card className="p-6">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-4">
@@ -138,10 +125,7 @@ export function PlatformHealthView() {
                     ? t('all_systems_operational')
                     : t('system_degraded')}
                 </h2>
-                <Badge
-                  status="success"
-                  label={overview?.health.overallStatus || 'HEALTHY'}
-                />
+                <Badge status="success" label={overview?.health.overallStatus || 'HEALTHY'} />
               </div>
               <p className="mb-0 mt-1 text-xs text-[var(--sc-text-tertiary)]">
                 {t('last_checked')}:{' '}
@@ -181,9 +165,7 @@ export function PlatformHealthView() {
             <span className="font-medium text-[var(--sc-text-secondary)]">
               Lịch sử hoạt động 45 ngày qua
             </span>
-            <span className="font-medium text-[var(--sc-success-dark)]">
-              99.98% Uptime SLA
-            </span>
+            <span className="font-medium text-[var(--sc-success-dark)]">99.98% Uptime SLA</span>
           </div>
           <div className="mt-2.5 flex items-center justify-between gap-1">
             {uptimeTicks.map((tick, idx) => (
@@ -207,9 +189,7 @@ export function PlatformHealthView() {
           <h3 className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
             {t('subsystems_status')} ({services.length + 1} thành phần)
           </h3>
-          <span className="text-xs text-[var(--sc-text-tertiary)]">
-            SLA cam kết: 99.9%
-          </span>
+          <span className="text-xs text-[var(--sc-text-tertiary)]">SLA cam kết: 99.9%</span>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -230,13 +210,11 @@ export function PlatformHealthView() {
                     </span>
                   </div>
                 </div>
-                <Badge
-                  status="success"
-                  label={overview?.health.database?.status || 'UP'}
-                />
+                <Badge status="success" label={overview?.health.database?.status || 'UP'} />
               </div>
               <p className="mt-3 text-xs leading-relaxed text-[var(--sc-text-secondary)]">
-                Cơ sở dữ liệu giao dịch cốt lõi, lưu trữ tài khoản, không gian làm việc và partition log.
+                Cơ sở dữ liệu giao dịch cốt lõi, lưu trữ tài khoản, không gian làm việc và partition
+                log.
               </p>
             </div>
 
@@ -255,10 +233,7 @@ export function PlatformHealthView() {
           </Card>
 
           {services.map((svc) => (
-            <Card
-              key={svc.name}
-              className="sc-card-enter flex flex-col justify-between p-5"
-            >
+            <Card key={svc.name} className="sc-card-enter flex flex-col justify-between p-5">
               <div>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -284,9 +259,7 @@ export function PlatformHealthView() {
               <div className="mt-4 flex items-center justify-between border-t border-[var(--sc-border-default)] pt-3 text-xs text-[var(--sc-text-secondary)]">
                 <span>
                   Độ trễ:{' '}
-                  <strong className="font-mono text-[var(--sc-text-primary)]">
-                    {svc.latency}
-                  </strong>
+                  <strong className="font-mono text-[var(--sc-text-primary)]">{svc.latency}</strong>
                 </span>
                 <span className="inline-flex items-center gap-1 font-medium text-[var(--sc-success-dark)]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[var(--sc-success)]" />

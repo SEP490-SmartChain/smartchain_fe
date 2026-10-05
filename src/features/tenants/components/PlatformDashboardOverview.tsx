@@ -43,7 +43,7 @@ export function PlatformDashboardOverview({
 
   return (
     <div className="space-y-5">
-      {/* 4 Connected Metric Cards adhering strictly to SmartChain Design System */}
+      {/* 4 Connected Metric Cards adhering strictly to ORCA Design System */}
       <section
         aria-label={t('page_title')}
         className="grid grid-cols-2 overflow-hidden rounded-2xl border-l border-t border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)] md:grid-cols-4"
@@ -67,8 +67,7 @@ export function PlatformDashboardOverview({
                 {overview.tenants.total}
               </strong>
               <span className="inline-flex items-center gap-0.5 text-xs font-medium text-[var(--sc-success-dark)]">
-                <ArrowUp size={13} />
-                +{overview.tenants.newLast7Days} {t('this_week')}
+                <ArrowUp size={13} />+{overview.tenants.newLast7Days} {t('this_week')}
               </span>
             </div>
 
@@ -191,9 +190,7 @@ export function PlatformDashboardOverview({
               <Sparkles size={14} className="text-[var(--sc-primary)]" />
               <span>Doanh nghiệp mới gia nhập</span>
             </div>
-            <span className="text-xs text-[var(--sc-text-tertiary)]">
-              Tự động cập nhật
-            </span>
+            <span className="text-xs text-[var(--sc-text-tertiary)]">Tự động cập nhật</span>
           </div>
 
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">

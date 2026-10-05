@@ -14,7 +14,7 @@ export default function AuthBrandPanel() {
             <span className="rounded-[2px] bg-white/70" />
             <span className="rounded-[2px] bg-white" />
           </span>
-          <span className="text-xl font-semibold">SmartChain</span>
+          <span className="text-xl font-semibold">ORCA</span>
         </div>
         <p className="m-0 max-w-[400px] text-sm leading-5 text-[var(--sc-text-tertiary)]">
           {t('brand_tagline')}

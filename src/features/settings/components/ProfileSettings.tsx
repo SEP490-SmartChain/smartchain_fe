@@ -55,8 +55,8 @@ function SettingsSectionHeader({ title, description, icon }: SettingsSectionHead
 export default function ProfileSettings() {
   const t = useTranslations('Settings');
   const user = useAuthStore((state) => state.user);
-  const email = user?.email || 'admin@smartchain.vn';
-  const displayName = user?.fullName?.trim() || 'SmartChain Admin';
+  const email = user?.email || 'admin@orca.vn';
+  const displayName = user?.fullName?.trim() || 'ORCA Admin';
   const persistedPhotoSrc = useAvatarUrl(user?.avatarUrl);
   const { roles } = useAccess();
 
