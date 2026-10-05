@@ -35,7 +35,6 @@ const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
 const BillingPage = React.lazy(() => import('@/pages/workspace/BillingPage'));
 const StaffAccountsPage = React.lazy(() => import('@/pages/workspace/StaffAccountsPage'));
 const WarehousesPage = React.lazy(() => import('@/pages/workspace/WarehousesPage'));
-const RolesPermissionsPage = React.lazy(() => import('@/pages/workspace/RolesPermissionsPage'));
 const WorkspaceAuditPage = React.lazy(() => import('@/pages/workspace/AuditPage'));
 const IntegrationErrorsPage = React.lazy(() => import('@/pages/workspace/IntegrationErrorsPage'));
 const ButtonsPage = React.lazy(() => import('@/pages/components/ButtonsPage'));
@@ -105,10 +104,6 @@ function App() {
                 {/* Trang 403 + redirect helper nằm ngoài route matrix. */}
                 <Route path="/403" element={<ForbiddenPage />} />
                 <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
-                <Route
-                  path="/roles-permissions"
-                  element={<Navigate to="/roles-permissions/roles" replace />}
-                />
                 {import.meta.env.DEV && (
                   <Route
                     path="/components"
@@ -129,7 +124,6 @@ function App() {
                   <Route path="/settings/:tab" element={<SettingsPage />} />
                   <Route path="/iam/users" element={<StaffAccountsPage />} />
                   <Route path="/warehouses" element={<WarehousesPage />} />
-                  <Route path="/roles-permissions/:tab" element={<RolesPermissionsPage />} />
                   <Route path="/audit" element={<WorkspaceAuditPage />} />
                   <Route path="/integration-errors" element={<IntegrationErrorsPage />} />
 

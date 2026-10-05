@@ -53,7 +53,6 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   carrier_connections: Plug,
   api_keys: KeyRound,
   staff_accounts: Users,
-  roles_permissions: ShieldCheck,
   general: Settings,
   webhooks: Webhook,
   usage: CreditCard,

@@ -13,7 +13,6 @@ import { useUiStore } from '@/stores';
 import { NAV_ICONS } from './navIcons';
 
 function isMenuPathActive(pathname: string, href: string) {
-  if (href.startsWith('/roles-permissions/')) return pathname.startsWith('/roles-permissions/');
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

@@ -13,9 +13,6 @@
  * - Capability catalog bám ma trận màn hình `R3 line 407–424` (D2 baseline).
  *   Capability chưa có nguồn được duyệt mang `provenance: 'PROPOSED'` và không
  *   cấp quyền, kể cả khi đã có role dự kiến trong catalog.
- *
- * Danh mục legacy chỉ để hiển thị (trang Roles & Permissions cũ) nằm ở
- * `src/lib/legacyAccessPolicy.ts` và KHÔNG được dùng để cấp quyền.
  */
 
 /** Hai phạm vi actor của ORCA. Thiếu/không hợp lệ ⇒ deny. */
@@ -426,7 +423,6 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   },
   { path: '/billing', capability: 'workspace.billing.view' },
   { path: '/iam/users', capability: 'iam.users.manage' },
-  { path: '/roles-permissions', prefix: true, capability: 'iam.roles.assign' },
   // Profile chỉ cần đăng nhập + scope/role hợp lệ, mọi role ORCA đều xem được.
   { path: '/settings/profile' },
   { path: '/settings/general', capability: 'workspace.settings.manage' },
@@ -556,14 +552,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     key: 'manage_accounts_heading',
     scope: 'workspace',
-    items: [
-      { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
-      {
-        key: 'roles_permissions',
-        href: '/roles-permissions/roles',
-        capability: 'iam.roles.assign',
-      },
-    ],
+    items: [{ key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' }],
   },
   {
     key: 'workspace_settings_heading',

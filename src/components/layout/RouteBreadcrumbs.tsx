@@ -30,7 +30,6 @@ export default function RouteBreadcrumbs() {
   const topbar = useTranslations('Topbar');
   const sidebar = useTranslations('Sidebar');
   const settings = useTranslations('Settings');
-  const rolesPermissions = useTranslations('RolesPermissions');
 
   const primaryPath = '/' + pathname.split('/').filter(Boolean)[0];
   const pageLabels: Record<string, string> = {
@@ -43,7 +42,6 @@ export default function RouteBreadcrumbs() {
     '/reconciliation': sidebar('reconciliation'),
     '/analytics': sidebar('analytics'),
     '/iam': sidebar('staff_accounts'),
-    '/roles-permissions': sidebar('roles_permissions'),
     '/audit': sidebar('audit_trail'),
     '/integration-errors': sidebar('integration_errors'),
     '/settings': sidebar('profile'),
@@ -75,18 +73,6 @@ export default function RouteBreadcrumbs() {
   } else if (primaryPath === '/iam') {
     items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('staff_accounts') });
-  } else if (primaryPath === '/roles-permissions') {
-    const roleTab = pathname.split('/').filter(Boolean)[1] ?? 'roles';
-    items.push({ label: sidebar('manage_accounts_heading') });
-    items.push({ label: sidebar('roles_permissions'), href: '/roles-permissions/roles' });
-    items.push({
-      label:
-        roleTab === 'permissions'
-          ? rolesPermissions('permissions')
-          : roleTab === 'members'
-            ? rolesPermissions('members')
-            : rolesPermissions('roles'),
-    });
   } else if (primaryPath === '/billing') {
     items.push({ label: sidebar('workspace_settings_heading') });
     items.push({ label: sidebar('usage') });

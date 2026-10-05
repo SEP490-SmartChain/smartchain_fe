@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,6 @@ const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 let server;
 let policy;
-let legacyPolicy;
 let getPostLoginPath;
 
 const PLATFORM = 'PLATFORM';
@@ -98,7 +97,6 @@ before(async () => {
     server: { middlewareMode: true, watch: null, ws: false },
   });
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
-  legacyPolicy = await server.ssrLoadModule('/src/lib/legacyAccessPolicy.ts');
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
 });
 
@@ -290,14 +288,7 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/dashboard',
           '/integration-errors',
         ],
-        deny: [
-          '/reconciliation',
-          '/billing',
-          '/iam/users',
-          '/roles-permissions/roles',
-          '/settings/general',
-          '/admin/tenants',
-        ],
+        deny: ['/reconciliation', '/billing', '/iam/users', '/settings/general', '/admin/tenants'],
       },
     ],
     [
@@ -361,7 +352,6 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/settings/general',
           '/settings/api-keys',
           '/settings/webhooks',
-          '/roles-permissions/roles',
           '/iam/users',
           '/audit',
           '/integration-errors',
@@ -381,7 +371,6 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/settings/general',
           '/settings/webhooks',
           '/iam/users',
-          '/roles-permissions/roles',
           '/audit',
           '/admin/tenants',
         ],
@@ -588,46 +577,19 @@ test('post-login redirect honors ORCA scope, route matrix and open-redirect guar
   assert.equal(getPostLoginPath(user(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), null), '/403');
 });
 
-test('authorization code never reads the display-only legacy policy module', () => {
-  // Runtime: module legacy chỉ chứa dữ liệu hiển thị, không export hàm quyết định quyền.
-  for (const fn of [
-    'can',
-    'canAny',
-    'canAll',
-    'isRouteAllowed',
-    'getEffectiveRoles',
-    'getDefaultPath',
-    'getVisibleNavGroups',
-    'getSearchLinks',
-    'resolveActorScope',
-  ]) {
-    assert.equal(
-      typeof legacyPolicy[fn],
-      'undefined',
-      `legacyAccessPolicy must not expose ${fn}()`,
-    );
-  }
+test('legacy roles/permissions page and legacy access policy are completely removed', () => {
+  const legacyPolicyPath = join(REPO_ROOT, 'src/lib/legacyAccessPolicy.ts');
+  const rolesPermissionsPagePath = join(REPO_ROOT, 'src/pages/workspace/RolesPermissionsPage.tsx');
 
-  // Static: chỉ tầng page (hiển thị) được import legacyAccessPolicy. Mọi tầng ra
-  // quyết định quyền — lib/hooks/stores/services/components/layout — đều bị cấm.
-  const allowedImportPrefixes = ['src/pages/'];
-  const importers = filesImporting('legacyAccessPolicy');
-  for (const file of importers) {
-    assert.ok(
-      allowedImportPrefixes.some((prefix) => file.startsWith(prefix)),
-      `authorization module ${file} must not import the legacy display catalog`,
-    );
-  }
-});
-
-test('the roles/permissions page has no legacy role-grant write path', () => {
-  const pagePath = 'src/pages/workspace/RolesPermissionsPage.tsx';
-  const pageSource = readFileSync(join(REPO_ROOT, pagePath), 'utf8');
+  assert.equal(existsSync(legacyPolicyPath), false, 'legacyAccessPolicy.ts must be deleted');
   assert.equal(
-    pageSource.includes('updateRoles'),
+    existsSync(rolesPermissionsPagePath),
     false,
-    `${pagePath} must not call the legacy role update API`,
+    'RolesPermissionsPage.tsx must be deleted',
   );
+
+  const importers = filesImporting('legacyAccessPolicy');
+  assert.deepEqual(importers, [], 'no source file should import legacyAccessPolicy');
 
   // Không page/component nào gọi API gán role legacy; chỉ còn định nghĩa trong feature.
   for (const file of filesContaining('updateRoles')) {
