@@ -40,7 +40,7 @@ export interface CreateWarehousePayload {
   name: string;
   address: string;
   provinceCode: string;
-  districtCode: string;
+  districtCode?: string;
   wardCode: string;
   latitude: number;
   longitude: number;

@@ -35,19 +35,16 @@ export const pingTestResultSchema = z.object({
   testedAt: z.string(),
 });
 
-export const createCarrierCredentialFormSchema = z
-  .object({
-    carrierId: z.string().uuid({ message: 'carrierRequired' }),
-    name: z.string().min(2, { message: 'nameMinLength' }).max(100),
-    environment: z.enum(['SANDBOX', 'PRODUCTION']),
-    authType: z.enum(['API_TOKEN', 'BASIC', 'OAUTH2']).default('API_TOKEN'),
-    apiToken: z.string().min(4, { message: 'tokenMinLength' }),
-    shopId: z.string().optional(),
-  });
+export const createCarrierCredentialFormSchema = z.object({
+  carrierId: z.string().uuid({ message: 'carrierRequired' }),
+  name: z.string().min(2, { message: 'nameMinLength' }).max(100),
+  environment: z.enum(['SANDBOX', 'PRODUCTION']),
+  authType: z.enum(['API_TOKEN', 'BASIC', 'OAUTH2']).default('API_TOKEN'),
+  apiToken: z.string().min(4, { message: 'tokenMinLength' }),
+  shopId: z.string().optional(),
+});
 
-export type CreateCarrierCredentialFormValues = z.infer<
-  typeof createCarrierCredentialFormSchema
->;
+export type CreateCarrierCredentialFormValues = z.infer<typeof createCarrierCredentialFormSchema>;
 
 export const updateCarrierCredentialFormSchema = z.object({
   name: z.string().min(2, { message: 'nameMinLength' }).max(100).optional(),
@@ -56,6 +53,4 @@ export const updateCarrierCredentialFormSchema = z.object({
   shopId: z.string().optional(),
 });
 
-export type UpdateCarrierCredentialFormValues = z.infer<
-  typeof updateCarrierCredentialFormSchema
->;
+export type UpdateCarrierCredentialFormValues = z.infer<typeof updateCarrierCredentialFormSchema>;

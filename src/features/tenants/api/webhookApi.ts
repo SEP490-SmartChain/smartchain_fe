@@ -2,10 +2,7 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
-import {
-  webhookEndpointSchema,
-  webhookTestResultSchema,
-} from '../schemas/webhook.schemas';
+import { webhookEndpointSchema, webhookTestResultSchema } from '../schemas/webhook.schemas';
 import type {
   CreateWebhookPayload,
   UpdateWebhookPayload,

@@ -13,7 +13,6 @@ import {
   Receipt,
   ShieldAlert,
   ShieldCheck,
-  Truck,
   Warehouse,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -61,16 +60,10 @@ export function TenantDetailModal({
       ? Math.min(Math.round((tenant.quota.ordersUsed / tenant.quota.ordersTotal) * 100), 100)
       : 0;
 
-  const apiCallsPercentage =
-    tenant.quota.apiCallsTotal > 0
-      ? Math.min(Math.round((tenant.quota.apiCallsUsed / tenant.quota.apiCallsTotal) * 100), 100)
-      : 0;
-
   const isSuspended = tenant.status === 'SUSPENDED';
 
   const warehouseCount = tenant.aggregates?.activeWarehouseCount ?? 0;
   const orderCount = tenant.aggregates?.currentMonthOrderCount ?? tenant.quota.ordersUsed;
-  const carrierCount = tenant.aggregates?.connectedCarrierCount ?? 0;
 
   const domainUrl = `${tenant.slug}.orca.vn`;
 
@@ -277,7 +270,7 @@ export function TenantDetailModal({
           {activeTab === 'metrics' && (
             <div className="space-y-4">
               {/* Aggregates row */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 text-center">
                   <Warehouse className="mx-auto mb-1.5 text-[var(--sc-primary)]" size={20} />
                   <div className="text-2xl font-semibold text-[var(--sc-text-primary)]">
@@ -295,16 +288,6 @@ export function TenantDetailModal({
                   </div>
                   <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">
                     {t('monthly_orders')}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 text-center">
-                  <Truck className="mx-auto mb-1.5 text-[var(--sc-primary)]" size={20} />
-                  <div className="text-2xl font-semibold text-[var(--sc-text-primary)]">
-                    {carrierCount}
-                  </div>
-                  <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">
-                    {t('connected_carriers')}
                   </div>
                 </div>
               </div>
@@ -335,27 +318,6 @@ export function TenantDetailModal({
                           ordersPercentage > 90 ? 'bg-[var(--sc-error)]' : 'bg-[var(--sc-primary)]'
                         }`}
                         style={{ width: `${ordersPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* API Calls bar */}
-                  <div>
-                    <div className="flex justify-between text-xs">
-                      <span className="font-medium text-[var(--sc-text-primary)]">
-                        {t('api_calls_quota')}
-                      </span>
-                      <span className="text-[var(--sc-text-tertiary)]">
-                        <strong className="text-[var(--sc-text-primary)]">
-                          {tenant.quota.apiCallsUsed.toLocaleString()}
-                        </strong>{' '}
-                        / {tenant.quota.apiCallsTotal.toLocaleString()} ({apiCallsPercentage}%)
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--sc-bg-muted)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--sc-primary)] transition-all duration-500"
-                        style={{ width: `${apiCallsPercentage}%` }}
                       />
                     </div>
                   </div>

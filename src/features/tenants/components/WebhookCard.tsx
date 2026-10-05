@@ -1,15 +1,6 @@
 import { useState } from 'react';
 
-import {
-  AlertCircle,
-  CheckCircle2,
-  Edit2,
-  Globe,
-  Key,
-  Loader2,
-  Send,
-  Trash2,
-} from 'lucide-react';
+import { AlertCircle, CheckCircle2, Edit2, Globe, Key, Loader2, Send, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge, Button, Card, Switch } from '@/components/Common';
@@ -217,9 +208,7 @@ export function WebhookCard({
                 </>
               )}
             </Button>
-            <span className="text-xs text-[var(--sc-text-tertiary)]">
-              {t('sendTestPingHint')}
-            </span>
+            <span className="text-xs text-[var(--sc-text-tertiary)]">{t('sendTestPingHint')}</span>
           </div>
 
           {/* Test Ping Status Badge / Result Message */}

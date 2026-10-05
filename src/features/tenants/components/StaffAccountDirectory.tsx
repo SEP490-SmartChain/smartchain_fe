@@ -46,6 +46,12 @@ import type {
 
 const INITIAL_FILTERS: StaffAccountFilters = { search: '', role: '', status: '' };
 const PAGE_SIZE = 10;
+/**
+ * UI-04: Seller Owner thêm nhân viên với role cố định SELLER_STAFF. BE `CreateStaffAccountDto`
+ * hiện chỉ nhận DISPATCHER/ACCOUNTANT nên gọi sẽ lỗi 400 → ẩn nút thêm cho tới khi BE hỗ trợ.
+ * Bật lại (`true`) sau khi BE chấp nhận SELLER_STAFF.
+ */
+const STAFF_CREATE_SUPPORTED: boolean = false;
 
 type SortKey = 'profile' | 'lastSessionAt' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -253,12 +259,14 @@ export function StaffAccountDirectory() {
         <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
           {t('title')}
         </h1>
-        <Can capability="iam.users.manage">
-          <Button type="button" onClick={() => setAddModalOpen(true)}>
-            <Plus size={17} aria-hidden="true" />
-            {t('addNew')}
-          </Button>
-        </Can>
+        {STAFF_CREATE_SUPPORTED && (
+          <Can capability="iam.users.manage">
+            <Button type="button" onClick={() => setAddModalOpen(true)}>
+              <Plus size={17} aria-hidden="true" />
+              {t('addNew')}
+            </Button>
+          </Can>
+        )}
       </header>
 
       {error ? (
@@ -663,11 +671,13 @@ export function StaffAccountDirectory() {
           document.body,
         )}
 
-      <AddStaffAccountModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onSuccess={() => refetch()}
-      />
+      {STAFF_CREATE_SUPPORTED && (
+        <AddStaffAccountModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSuccess={() => refetch()}
+        />
+      )}
 
       <Modal
         isOpen={selectedAccount !== null}

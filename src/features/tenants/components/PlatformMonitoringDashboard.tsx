@@ -67,9 +67,7 @@ export function PlatformMonitoringDashboard({
               className="sc-card-enter border-b border-r border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5 md:p-6"
               style={{ '--sc-delay': idx + 1 } as CSSProperties}
             >
-              <p className="m-0 text-sm font-medium text-[var(--sc-text-secondary)]">
-                {m.label}
-              </p>
+              <p className="m-0 text-sm font-medium text-[var(--sc-text-secondary)]">{m.label}</p>
               <div className="mt-4 flex items-baseline justify-between">
                 <strong className="text-2xl font-semibold text-[var(--sc-text-primary)]">
                   {m.value}
@@ -105,12 +103,8 @@ export function PlatformMonitoringDashboard({
                     <Activity size={16} />
                   </span>
                   <div>
-                    <div className="font-medium text-[var(--sc-text-primary)]">
-                      {item.title}
-                    </div>
-                    <div className="text-xs text-[var(--sc-text-tertiary)]">
-                      {item.subtitle}
-                    </div>
+                    <div className="font-medium text-[var(--sc-text-primary)]">{item.title}</div>
+                    <div className="text-xs text-[var(--sc-text-tertiary)]">{item.subtitle}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

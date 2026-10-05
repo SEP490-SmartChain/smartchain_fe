@@ -49,10 +49,10 @@ export const carrierCredentialApi = {
     if (filters?.environment) params.environment = filters.environment;
     if (filters?.status) params.status = filters.status;
 
-    const { data } = await apiClient.get<ApiResponse<unknown>>(
-      '/v1/carrier-credentials',
-      { params, silent: true },
-    );
+    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/carrier-credentials', {
+      params,
+      silent: true,
+    });
     return carrierCredentialListSchema.parse(data);
   },
 
@@ -63,20 +63,12 @@ export const carrierCredentialApi = {
     return carrierCredentialSchema.parse(data);
   },
 
-  async create(
-    payload: CreateCarrierCredentialInput,
-  ): Promise<CarrierCredential> {
-    const { data } = await apiClient.post<ApiResponse<unknown>>(
-      '/v1/carrier-credentials',
-      payload,
-    );
+  async create(payload: CreateCarrierCredentialInput): Promise<CarrierCredential> {
+    const { data } = await apiClient.post<ApiResponse<unknown>>('/v1/carrier-credentials', payload);
     return carrierCredentialSchema.parse(data);
   },
 
-  async update(
-    id: string,
-    payload: UpdateCarrierCredentialInput,
-  ): Promise<CarrierCredential> {
+  async update(id: string, payload: UpdateCarrierCredentialInput): Promise<CarrierCredential> {
     const { data } = await apiClient.patch<ApiResponse<unknown>>(
       `/v1/carrier-credentials/${encodeURIComponent(id)}`,
       payload,
