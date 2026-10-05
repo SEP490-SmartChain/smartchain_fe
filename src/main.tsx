@@ -42,6 +42,14 @@ const DataDisplayPage = React.lazy(() => import('@/pages/components/DataDisplayP
 const DataTablePage = React.lazy(() => import('@/pages/components/DataTablePage'));
 const DropzonePage = React.lazy(() => import('@/pages/components/DropzonePage'));
 
+const SkuCatalogPage = React.lazy(() => import('@/pages/workspace/SkuCatalogPage'));
+const AsnsPage = React.lazy(() => import('@/pages/workspace/AsnsPage'));
+const ReturnsPage = React.lazy(() => import('@/pages/workspace/ReturnsPage'));
+const StatementsPage = React.lazy(() => import('@/pages/workspace/StatementsPage'));
+const ExceptionsPage = React.lazy(() => import('@/pages/workspace/ExceptionsPage'));
+const AdminWarehousesPage = React.lazy(() => import('@/pages/admin/AdminWarehousesPage'));
+const WarehouseOpsPage = React.lazy(() => import('@/pages/warehouse/WarehouseOpsPage'));
+
 // Super Admin console
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
 const CarrierCatalogPage = React.lazy(() => import('@/pages/admin/CarrierCatalogPage'));
@@ -114,16 +122,30 @@ function App() {
                 {/* Route matrix guard (mục 6). */}
                 <Route element={<ProtectedRoute enforceRoutePolicy />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/catalog/skus" element={<SkuCatalogPage />} />
+                  <Route path="/asns" element={<AsnsPage />} />
                   <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/returns" element={<ReturnsPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/statements" element={<StatementsPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
+                  <Route path="/warehouses" element={<WarehousesPage />} />
+                  <Route path="/warehouse" element={<Navigate to="/warehouse/inbound" replace />} />
+                  <Route path="/warehouse/inbound" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/receiving" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/putaway" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/picking" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/packing" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/handover" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/returns" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/counts" element={<WarehouseOpsPage />} />
                   <Route path="/rules" element={<RulesPage />} />
                   <Route path="/shipments" element={<ShipmentsPage />} />
+                  <Route path="/exceptions" element={<ExceptionsPage />} />
                   <Route path="/reconciliation" element={<ReconciliationPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings/:tab" element={<SettingsPage />} />
                   <Route path="/iam/users" element={<StaffAccountsPage />} />
-                  <Route path="/warehouses" element={<WarehousesPage />} />
                   <Route path="/audit" element={<WorkspaceAuditPage />} />
                   <Route path="/integration-errors" element={<IntegrationErrorsPage />} />
 
@@ -136,6 +158,7 @@ function App() {
                     </>
                   )}
 
+                  <Route path="/admin/warehouses" element={<AdminWarehousesPage />} />
                   <Route path="/admin/tenants" element={<TenantsPage />} />
                   <Route path="/admin/carriers" element={<CarrierCatalogPage />} />
                   <Route path="/admin/plans" element={<PlansPage />} />
