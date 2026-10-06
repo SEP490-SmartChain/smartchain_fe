@@ -40,6 +40,7 @@ import {
 
 /** Ánh xạ key điều hướng (access policy) sang icon; dùng chung cho Sidebar + Topbar search. */
 export const NAV_ICONS: Record<string, LucideIcon> = {
+  platform_staff: Users,
   admin_tenants: Building2,
   admin_carriers: Network,
   subscription_plans: CreditCard,

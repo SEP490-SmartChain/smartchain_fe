@@ -117,7 +117,20 @@ Log group phải tách tiếp: UC-152 audit = Admin only; UC-153 API/scan = Admi
 - 403 không logout, 401 refresh unavailable mới login; no role fallback/permission union.
 - Chạy quality gate theo AGENTS khi sửa code. Đợt Markdown này chỉ format/diff/link/source verification.
 
-## 8. Gap implementation phải giải quyết ở đợt sau
+## 8. SS-982: gán kho cho ORCA staff
+
+Route `/admin/staff`, menu/search `platform_staff` và capability `iam.warehouses.assign`
+dùng cùng policy: chỉ PLATFORM `ORCA_ADMIN`. Contract SS-980/SS-982 là
+`GET /v1/admin/staff`, `GET /v1/admin/staff/warehouse-options` và
+`PUT /v1/admin/staff/:id/warehouses` với `warehouseIds` (UUID, tối đa 100, không trùng).
+Mảng rỗng thu hồi toàn bộ assignment; quyền action vẫn do role quyết định. Backend xác
+thực session và reload assignment hiện hành trên mỗi request.
+
+UI dùng API client, React Hook Form/Zod, Common components và i18n hiện có; chỉ báo lưu
+thành công sau server confirmation. Đổi identity/scope/role sẽ unmount, hủy request và
+xóa dữ liệu staff đang hiển thị. Các grant còn thiếu được liệt kê bên dưới thuộc đợt riêng.
+
+## 9. Gap implementation phải giải quyết ở đợt sau
 
 Source hiện có đã có `actorScope` và ORCA role policy. Các grant được triển khai từ auth contract trước đây không hoàn toàn đồng bộ SRS cập nhật 02/10: backend core-auth audit grant còn rộng, contract read còn Seller Staff, contract approval còn Accountant; compatibility upload/reconciliation còn legacy groups. Frontend capabilities dựa screen matrix cũ cũng cần review action-level theo UC mới.
 

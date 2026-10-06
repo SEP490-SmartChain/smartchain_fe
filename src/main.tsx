@@ -50,6 +50,8 @@ const ExceptionsPage = React.lazy(() => import('@/pages/workspace/ExceptionsPage
 const AdminWarehousesPage = React.lazy(() => import('@/pages/admin/AdminWarehousesPage'));
 const WarehouseOpsPage = React.lazy(() => import('@/pages/warehouse/WarehouseOpsPage'));
 
+const PlatformStaffPage = React.lazy(() => import('@/pages/admin/PlatformStaffPage'));
+
 // Super Admin console
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
 const CarrierCatalogPage = React.lazy(() => import('@/pages/admin/CarrierCatalogPage'));
@@ -158,6 +160,7 @@ function App() {
                     </>
                   )}
 
+                  <Route path="/admin/staff" element={<PlatformStaffPage />} />
                   <Route path="/admin/warehouses" element={<AdminWarehousesPage />} />
                   <Route path="/admin/tenants" element={<TenantsPage />} />
                   <Route path="/admin/carriers" element={<CarrierCatalogPage />} />
