@@ -729,3 +729,24 @@ test('role display shows every effective ORCA role and never a legacy label', ()
   const multi = effective(['SELLER_OWNER', 'SELLER_STAFF'], TENANT);
   assert.deepEqual(multi, ['SELLER_OWNER', 'SELLER_STAFF']);
 });
+
+test('SS-976: login and portal selection agree for all seven roles', () => {
+  const destinations = {
+    ORCA_ADMIN: ['/admin/tenants', 'operations'],
+    OPS_DISPATCHER: ['/shipments', 'operations'],
+    WAREHOUSE_MANAGER: ['/warehouse/inbound', 'warehouse'],
+    WAREHOUSE_STAFF: ['/warehouse/inbound', 'warehouse'],
+    ORCA_ACCOUNTANT: ['/reconciliation', 'operations'],
+    SELLER_OWNER: ['/dashboard', 'seller'],
+    SELLER_STAFF: ['/dashboard', 'seller'],
+  };
+  for (const [role, scope] of ALL_ROLES) {
+    const [path, portal] = destinations[role];
+    assert.equal(getPostLoginPath(user([role], scope), null), path);
+    assert.equal(policy.getPortal([role], path), portal);
+    assert.equal(policy.isRouteAllowed([role], path), true);
+  }
+  assert.equal(policy.getPortal(['ORCA_ADMIN', 'SELLER_OWNER'], '/admin/tenants'), null);
+  assert.equal(policy.getPortal(['SUPER_ADMIN'], '/admin/tenants'), null);
+  assert.equal(policy.getPortal(['OPS_DISPATCHER'], '/warehouse/inbound'), null);
+});
