@@ -1118,5 +1118,10 @@
     "revokeConfirm": "Revoke key",
     "revokeSuccess": "API key \"{name}\" was revoked.",
     "revokeError": "Could not revoke the API key. Please try again."
+  },
+  "Portals": {
+    "seller": "Seller Portal",
+    "warehouse": "Warehouse Portal",
+    "operations": "ORCA Operations"
   }
 }

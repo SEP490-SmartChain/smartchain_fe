@@ -810,6 +810,23 @@ export function getDefaultPath(roles: readonly string[]): string {
   return '/403';
 }
 
+/** URL chooses an accessible platform portal; profile keeps the role's home portal. */
+export function getPortal(
+  roles: readonly string[],
+  pathname: string,
+): 'seller' | 'warehouse' | 'operations' | null {
+  const scope = resolveActorScope(roles);
+  if (scope === null) return null;
+  if (scope === 'TENANT') return 'seller';
+  if (pathname === '/warehouse' || pathname.startsWith('/warehouse/')) {
+    return can(roles, 'warehouse.operations.view') ? 'warehouse' : null;
+  }
+  if (pathname === '/settings/profile' && getDefaultPath(roles).startsWith('/warehouse/')) {
+    return 'warehouse';
+  }
+  return 'operations';
+}
+
 function isLinkAllowed(roles: readonly string[], link: NavLink): boolean {
   if (link.capability !== undefined && !can(roles, link.capability)) return false;
   if (link.anyCapability !== undefined && !canAny(roles, link.anyCapability)) return false;

@@ -1118,5 +1118,10 @@
     "revokeConfirm": "Thu hồi key",
     "revokeSuccess": "Đã thu hồi API key \"{name}\".",
     "revokeError": "Không thu hồi được API key. Vui lòng thử lại."
+  },
+  "Portals": {
+    "seller": "Cổng người bán",
+    "warehouse": "Cổng nhân viên kho",
+    "operations": "Cổng vận hành ORCA"
   }
 }
