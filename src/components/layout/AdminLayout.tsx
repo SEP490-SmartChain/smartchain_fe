@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import RouteBreadcrumbs from '@/components/layout/RouteBreadcrumbs';
 import Topbar from '@/components/layout/Topbar';
-import WarehouseNavigation from '@/components/layout/WarehouseNavigation';
+import { WarehouseNavigation } from '@/components/layout/WarehouseNavigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();

@@ -10,7 +10,7 @@ import '@fontsource/archivo/600.css';
 import '@fontsource/archivo/700.css';
 
 import LoginLayout from '@/components/layout/LoginLayout';
-import PortalLayout from '@/components/layout/PortalLayout';
+import { PortalLayout } from '@/components/layout/PortalLayout';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import RootLayout from '@/components/layout/RootLayout';
 import HomePage from '@/pages/public/HomePage';

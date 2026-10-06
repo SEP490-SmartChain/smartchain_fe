@@ -7,7 +7,7 @@ import { getVisibleNavGroups } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 
 /** Large touch targets keep warehouse tasks one tap away on tablets. */
-export default function WarehouseNavigation() {
+export function WarehouseNavigation() {
   const { roles } = useAccess();
   const t = useTranslations('Sidebar');
   const items =

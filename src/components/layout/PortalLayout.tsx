@@ -14,7 +14,7 @@ interface PortalLayoutProps {
 }
 
 /** Shared shell keeps the same guard while identifying each ORCA portal. */
-export default function PortalLayout({ children }: PortalLayoutProps) {
+export function PortalLayout({ children }: PortalLayoutProps) {
   const { roles } = useAccess();
   const { pathname } = useLocation();
   const t = useTranslations('Portals');
