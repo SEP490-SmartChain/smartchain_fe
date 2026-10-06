@@ -1,4 +1,25 @@
 {
+  "PlatformStaff": {
+    "title": "Phân quyền kho cho nhân viên ORCA",
+    "description": "Gán hoặc thu hồi quyền truy cập kho cho nhân viên ORCA đang hoạt động.",
+    "editTitle": "Quyền truy cập kho — {name}",
+    "hint": "Chọn các kho nhân viên được truy cập. Bỏ chọn tất cả để thu hồi toàn bộ kho đã gán. Quyền thao tác vẫn phụ thuộc vai trò.",
+    "warehouses": "Kho",
+    "unlisted": "Kho đã gán chưa có trên trang này ({id})",
+    "noWarehouses": "Chưa có kho ORCA đang hoạt động.",
+    "invalidSelection": "Chọn tối đa 100 kho khác nhau.",
+    "loading": "Đang tải…",
+    "loadMore": "Tải thêm",
+    "retry": "Tải lại",
+    "cancel": "Hủy",
+    "save": "Lưu kho được gán",
+    "saved": "Đã lưu phân quyền kho.",
+    "loadError": "Không tải được nhân viên hoặc kho. Vui lòng thử lại.",
+    "saveError": "Không lưu được phân quyền kho. Vui lòng thử lại.",
+    "empty": "Chưa có tài khoản nhân viên ORCA đang hoạt động.",
+    "assignedCount": "Số kho được gán: {count}",
+    "assign": "Gán kho"
+  },
   "Sidebar": {
     "workspace_heading": "Không gian làm việc",
     "dashboard": "Tổng quan",
@@ -1120,26 +1141,5 @@
     "revokeConfirm": "Thu hồi key",
     "revokeSuccess": "Đã thu hồi API key \"{name}\".",
     "revokeError": "Không thu hồi được API key. Vui lòng thử lại."
-  },
-  "PlatformStaff": {
-    "title": "Phân quyền kho cho nhân viên ORCA",
-    "description": "Gán hoặc thu hồi quyền truy cập kho cho nhân viên ORCA đang hoạt động.",
-    "editTitle": "Quyền truy cập kho — {name}",
-    "hint": "Chọn các kho nhân viên được truy cập. Bỏ chọn tất cả để thu hồi toàn bộ kho đã gán. Quyền thao tác vẫn phụ thuộc vai trò.",
-    "warehouses": "Kho",
-    "unlisted": "Kho đã gán chưa có trên trang này ({id})",
-    "noWarehouses": "Chưa có kho ORCA đang hoạt động.",
-    "invalidSelection": "Chọn tối đa 100 kho khác nhau.",
-    "loading": "Đang tải…",
-    "loadMore": "Tải thêm",
-    "retry": "Tải lại",
-    "cancel": "Hủy",
-    "save": "Lưu kho được gán",
-    "saved": "Đã lưu phân quyền kho.",
-    "loadError": "Không tải được nhân viên hoặc kho. Vui lòng thử lại.",
-    "saveError": "Không lưu được phân quyền kho. Vui lòng thử lại.",
-    "empty": "Chưa có tài khoản nhân viên ORCA đang hoạt động.",
-    "assignedCount": "Số kho được gán: {count}",
-    "assign": "Gán kho"
   }
 }

@@ -50,8 +50,6 @@ const ExceptionsPage = React.lazy(() => import('@/pages/workspace/ExceptionsPage
 const AdminWarehousesPage = React.lazy(() => import('@/pages/admin/AdminWarehousesPage'));
 const WarehouseOpsPage = React.lazy(() => import('@/pages/warehouse/WarehouseOpsPage'));
 
-const PlatformStaffPage = React.lazy(() => import('@/pages/admin/PlatformStaffPage'));
-
 // Super Admin console
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
 const CarrierCatalogPage = React.lazy(() => import('@/pages/admin/CarrierCatalogPage'));
@@ -62,6 +60,7 @@ const ApiTrafficPage = React.lazy(() => import('@/pages/admin/ApiTrafficPage'));
 const ObservabilityPage = React.lazy(() => import('@/pages/admin/ObservabilityPage'));
 const AdminWebhooksPage = React.lazy(() => import('@/pages/admin/WebhooksPage'));
 const QuotasPage = React.lazy(() => import('@/pages/admin/QuotasPage'));
+const PlatformStaffPage = React.lazy(() => import('@/pages/admin/PlatformStaffPage'));
 
 function PageLoader() {
   return (
