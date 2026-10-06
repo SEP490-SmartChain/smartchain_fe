@@ -42,7 +42,7 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
         const [pageData] = await Promise.all([tenantManagementApi.list(q), fetchOverview()]);
         const items = Array.isArray(pageData)
           ? pageData
-          : (pageData as unknown as { items?: TenantSummary[] })?.items ?? [];
+          : ((pageData as unknown as { items?: TenantSummary[] })?.items ?? []);
         const pagination = (
           pageData as unknown as { pagination?: { hasNext?: boolean; nextCursor?: string | null } }
         )?.pagination;
@@ -91,18 +91,14 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
             : t('activate_success', { name: updated.name }),
         );
 
-        setTenants((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, status: updated.status } : t)),
-        );
+        setTenants((prev) => prev.map((t) => (t.id === id ? { ...t, status: updated.status } : t)));
         if (selectedTenant?.id === id) {
           setSelectedTenant(updated);
         }
         await fetchOverview();
         return updated;
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : 'Không thể thay đổi trạng thái workspace',
-        );
+        toast.error(err instanceof Error ? err.message : 'Không thể thay đổi trạng thái workspace');
         throw err;
       } finally {
         setIsUpdatingStatus(false);

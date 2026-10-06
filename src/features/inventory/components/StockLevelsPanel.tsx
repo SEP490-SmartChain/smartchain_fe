@@ -10,7 +10,6 @@ import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTab
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useDebounce } from '@/hooks/useDebounce';
-import { isSyncDelayed } from '@/lib/syncDelay';
 
 import { StockSummaryCards } from './StockSummaryCards';
 import { useInventoryStocks } from '../hooks/useInventoryStocks';
@@ -40,10 +39,6 @@ export function StockLevelsPanel() {
   const { warehouses, error: warehouseError } = useWarehouseOptions();
 
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const dateTimeFormatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }),
-    [locale],
-  );
   const warehouseOptions = useMemo(
     () =>
       warehouses.map((warehouse) => ({
@@ -103,18 +98,6 @@ export function StockLevelsPanel() {
       key: 'onHandQty',
       label: t('columnOnHand'),
       render: (row) => numberFormatter.format(row.onHandQty),
-    },
-    {
-      key: 'lastSyncedAt',
-      label: t('columnLastSync'),
-      render: (row) => (
-        <span className="flex flex-wrap items-center gap-2">
-          <time dateTime={row.lastSyncedAt}>
-            {dateTimeFormatter.format(new Date(row.lastSyncedAt))}
-          </time>
-          {isSyncDelayed(row.lastSyncedAt) && <Badge status="warning" label={t('syncDelayed')} />}
-        </span>
-      ),
     },
   ];
 

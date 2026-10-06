@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, Fragment } from 'react';
+import { useCallback, useEffect, useRef, useState, Fragment, type ReactNode } from 'react';
 
 import {} from 'react-dom';
 
@@ -8,7 +8,6 @@ import {
   Filter,
   LoaderCircle,
   MapPin,
-  Plus,
   Search,
   Warehouse as WarehouseIcon,
   ToggleLeft,
@@ -23,12 +22,19 @@ import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
 import { toast } from 'sonner';
 
-import AddWarehouseModal from './AddWarehouseModal';
+import { useAccess } from '@/hooks/useAccess';
 import { warehouseApi } from '../api/warehouseApi';
 
 import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
 
-export default function WarehouseDirectory() {
+interface WarehouseDirectoryProps {
+  /** Hành động ở đầu trang (vd. nút thêm kho) — chỉ trang ORCA Admin truyền vào. */
+  headerAction?: ReactNode;
+}
+
+export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps) {
+  const { can } = useAccess();
+  const canManage = can('warehouses.manage');
   const [filters, setFilters] = useState<WarehouseFilters>({ search: '', status: '' });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -39,7 +45,6 @@ export default function WarehouseDirectory() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
@@ -72,7 +77,7 @@ export default function WarehouseDirectory() {
         setIsLoading(false);
       }
     },
-    [debouncedSearch, filters.status, toast],
+    [debouncedSearch, filters.status],
   );
 
   useEffect(() => {
@@ -123,12 +128,7 @@ export default function WarehouseDirectory() {
             Quản lý các kho, điểm tập kết hàng và sức chứa.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <Button variant="primary" onClick={() => setAddModalOpen(true)}>
-            <Plus size={16} />
-            Thêm kho mới
-          </Button>
-        </div>
+        {headerAction && <div className="flex shrink-0 items-center gap-3">{headerAction}</div>}
       </header>
 
       <div className="flex flex-col gap-4 p-4 sm:px-6 lg:px-8">
@@ -194,7 +194,7 @@ export default function WarehouseDirectory() {
                   <th className="px-4 py-3.5">Địa chỉ</th>
                   <th className="px-4 py-3.5">Công suất (đơn/ngày)</th>
                   <th className="px-4 py-3.5">Trạng thái</th>
-                  <th className="w-16 px-4 py-3.5 text-right" />
+                  {canManage && <th className="w-16 px-4 py-3.5 text-right" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--sc-border-default)]">
@@ -238,19 +238,21 @@ export default function WarehouseDirectory() {
                             size="md"
                           />
                         </td>
-                        <td className="px-3 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedWarehouse(warehouse)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
-                          >
-                            {warehouse.status === 'ACTIVE' ? (
-                              <ToggleRight size={17} />
-                            ) : (
-                              <ToggleLeft size={17} />
-                            )}
-                          </button>
-                        </td>
+                        {canManage && (
+                          <td className="px-3 py-3.5 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedWarehouse(warehouse)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
+                            >
+                              {warehouse.status === 'ACTIVE' ? (
+                                <ToggleRight size={17} />
+                              ) : (
+                                <ToggleLeft size={17} />
+                              )}
+                            </button>
+                          </td>
+                        )}
                       </tr>
                       {isExpanded && (
                         <tr className="bg-[var(--sc-bg-secondary)]/50">
@@ -300,16 +302,6 @@ export default function WarehouseDirectory() {
           </div>
         </section>
       )}
-
-      <AddWarehouseModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onSuccess={() => {
-          setAddModalOpen(false);
-          cache.current = {};
-          void fetchWarehouses();
-        }}
-      />
 
       <Modal
         isOpen={selectedWarehouse !== null}

@@ -22,7 +22,7 @@ export default function AuthPageShell({ heading, subheading, children }: AuthPag
                 <span className="rounded-[2px] bg-white/70" />
                 <span className="rounded-[2px] bg-white" />
               </span>
-              <span className="text-xl font-semibold">SmartChain</span>
+              <span className="text-xl font-semibold">ORCA</span>
             </div>
             <h1 className="m-0 text-[40px] font-medium leading-[44px] text-[var(--sc-text-primary)]">
               {heading}

@@ -190,12 +190,7 @@ export function WebhookManager() {
                 <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
                 {t('refresh')}
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleOpenCreate}
-                className="gap-1.5"
-              >
+              <Button type="button" size="sm" onClick={handleOpenCreate} className="gap-1.5">
                 <Plus size={16} />
                 {t('addWebhook')}
               </Button>

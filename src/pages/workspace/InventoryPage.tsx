@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Tabs, type TabItem } from '@/components/Common/Tabs/Tabs';
-import { ProductCatalogTable } from '@/features/catalog';
 import { ActiveReservationsPanel, StockLevelsPanel } from '@/features/inventory';
 import { useAccess } from '@/hooks/useAccess';
 
-type InventoryTabId = 'stock' | 'reservations' | 'catalog';
+type InventoryTabId = 'stock' | 'reservations';
 
-const TAB_IDS: readonly InventoryTabId[] = ['stock', 'reservations', 'catalog'];
+const TAB_IDS: readonly InventoryTabId[] = ['stock', 'reservations'];
 
 function toTabId(id: string): InventoryTabId {
   return TAB_IDS.find((tabId) => tabId === id) ?? 'stock';
@@ -25,7 +24,6 @@ export default function InventoryPage() {
     ...(can('inventory.reservations.view')
       ? [{ id: 'reservations', label: t('tabReservations') }]
       : []),
-    ...(can('catalog.products.view') ? [{ id: 'catalog', label: t('tabCatalog') }] : []),
   ];
   const visibleTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : tabs[0]?.id;
 
@@ -35,7 +33,6 @@ export default function InventoryPage() {
       <div role="tabpanel">
         {visibleTab === 'stock' && <StockLevelsPanel />}
         {visibleTab === 'reservations' && <ActiveReservationsPanel />}
-        {visibleTab === 'catalog' && <ProductCatalogTable />}
       </div>
     </div>
   );

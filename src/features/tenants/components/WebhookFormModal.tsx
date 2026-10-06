@@ -8,14 +8,8 @@ import { useForm } from 'react-hook-form';
 import { Button, Checkbox, Input, Switch } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 
-import {
-  createWebhookFormSchema,
-  type CreateWebhookFormData,
-} from '../schemas/webhook.schemas';
-import {
-  WEBHOOK_EVENT_TOPICS,
-  type WebhookEndpoint,
-} from '../types/webhook.types';
+import { createWebhookFormSchema, type CreateWebhookFormData } from '../schemas/webhook.schemas';
+import { WEBHOOK_EVENT_TOPICS, type WebhookEndpoint } from '../types/webhook.types';
 
 export interface WebhookFormModalProps {
   isOpen: boolean;
@@ -229,7 +223,10 @@ export function WebhookFormModal({
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold leading-tight text-[var(--sc-text-primary)]" title={t(topic.descKey as any)}>
+                              <span
+                                className="text-xs font-semibold leading-tight text-[var(--sc-text-primary)]"
+                                title={t(topic.descKey as any)}
+                              >
                                 {t(topic.nameKey as any)}
                               </span>
                               <span className="shrink-0 rounded bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--sc-text-tertiary)]">
@@ -255,9 +252,7 @@ export function WebhookFormModal({
                 {isEditing ? t('rotateSecretKey') : t('signingSecret')}
               </p>
               <p className="mt-0.5 text-[11px] text-[var(--sc-text-secondary)]">
-                {isEditing
-                  ? t('rotateSecretKeyHelper')
-                  : t('signingSecretAutoHelper')}
+                {isEditing ? t('rotateSecretKeyHelper') : t('signingSecretAutoHelper')}
               </p>
             </div>
             <Button
@@ -295,10 +290,7 @@ export function WebhookFormModal({
               {t('activeStatusHelper')}
             </span>
           </div>
-          <Switch
-            checked={isActive}
-            onChange={(e) => setValue('isActive', e.target.checked)}
-          />
+          <Switch checked={isActive} onChange={(e) => setValue('isActive', e.target.checked)} />
         </div>
 
         {/* Modal Actions */}
@@ -307,15 +299,10 @@ export function WebhookFormModal({
             {t('cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting
-              ? t('saving')
-              : isEditing
-                ? t('saveChanges')
-                : t('createWebhookBtn')}
+            {isSubmitting ? t('saving') : isEditing ? t('saveChanges') : t('createWebhookBtn')}
           </Button>
         </div>
       </form>
     </Modal>
   );
 }
-

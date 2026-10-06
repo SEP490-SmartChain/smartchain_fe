@@ -4,7 +4,7 @@ import { Camera, Mail, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Button, Checkbox, Input, Radio } from '@/components/Common';
+import { Button, Input, Radio } from '@/components/Common';
 import { staffAccountApi } from '../api/staffAccountApi';
 import Modal from '@/components/Common/Modal/Modal';
 
@@ -16,42 +16,19 @@ export interface AddStaffAccountModalProps {
 
 type DraftAccountStatus = 'ACTIVE' | 'PENDING' | 'REPORTED' | 'BLOCKED';
 
-/** Tenant chỉ được gán ba role workspace; SUPER_ADMIN là role nền tảng (mục 3). */
-const ROLE_OPTIONS = ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] as const;
-
 export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAccountModalProps) {
   const t = useTranslations('StaffAccounts');
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<DraftAccountStatus>('PENDING');
-  const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setPhotoPreview(null);
       setStatus('PENDING');
-      setSelectedRoles(new Set());
     }
   }, [isOpen]);
-
-  const toggleRole = (role: string) => {
-    setSelectedRoles((current) => {
-      const next = new Set(current);
-      if (next.has(role)) next.delete(role);
-      else next.add(role);
-      return next;
-    });
-  };
-
-  const roleLabel = (role: (typeof ROLE_OPTIONS)[number]): string => {
-    const labels: Record<(typeof ROLE_OPTIONS)[number], string> = {
-      TENANT_ADMIN: t('roleTenantAdmin'),
-      DISPATCHER: t('roleDispatcher'),
-      ACCOUNTANT: t('roleAccountant'),
-    };
-    return labels[role];
-  };
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -64,36 +41,31 @@ export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAcc
     reader.readAsDataURL(file);
   };
 
-  
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (selectedRoles.size === 0) {
-      toast.error(t('rolesOptional') + ' is required'); // Need at least one role
-      return;
-    }
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
-    const roleCode = Array.from(selectedRoles)[0]; // pick first selected role
+    const roleCode = 'SELLER_STAFF';
 
     try {
       setIsSubmitting(true);
       await staffAccountApi.create({
         email,
         fullName: `${firstName} ${lastName}`.trim(),
-        roleCode
+        roleCode,
       });
-      toast.success("Staff account created and invitation sent successfully"); // Hacky message, fallback
+      toast.success(t('addUserSuccess', { fallback: 'Staff account created successfully' }));
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create staff account');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || 'Failed to create staff account');
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('addNewUser')} width="720px">
@@ -219,31 +191,15 @@ export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAcc
               ))}
             </div>
           </fieldset>
-
-          <fieldset className="mt-5 border-0 p-0">
-            <legend className="mb-3 text-sm font-medium text-[var(--sc-text-primary)]">
-              {t('rolesOptional')}
-            </legend>
-            <div className="grid gap-x-5 gap-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4 sm:grid-cols-2">
-              {ROLE_OPTIONS.map((role) => (
-                <Checkbox
-                  key={role}
-                  name="roles"
-                  value={role}
-                  label={roleLabel(role)}
-                  checked={selectedRoles.has(role)}
-                  onChange={() => toggleRole(role)}
-                />
-              ))}
-            </div>
-          </fieldset>
         </div>
 
         <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-5 py-4 sm:px-6">
           <Button type="button" variant="secondary" onClick={onClose}>
             {t('cancel')}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : t('createUser')}</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : t('createUser')}
+          </Button>
         </div>
       </form>
     </Modal>

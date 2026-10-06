@@ -1,6 +1,6 @@
 /**
- * SmartChain Common Components
- * SmartChain design system adapted from the SaaSable Hosting theme.
+ * ORCA Common Components
+ * ORCA design system adapted from the SaaSable Hosting theme.
  */
 
 // Layout

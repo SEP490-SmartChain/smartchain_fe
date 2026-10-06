@@ -13,9 +13,6 @@
  * - Capability catalog bám ma trận màn hình `R3 line 407–424` (D2 baseline).
  *   Capability chưa có nguồn được duyệt mang `provenance: 'PROPOSED'` và không
  *   cấp quyền, kể cả khi đã có role dự kiến trong catalog.
- *
- * Danh mục legacy chỉ để hiển thị (trang Roles & Permissions cũ) nằm ở
- * `src/lib/legacyAccessPolicy.ts` và KHÔNG được dùng để cấp quyền.
  */
 
 /** Hai phạm vi actor của ORCA. Thiếu/không hợp lệ ⇒ deny. */
@@ -253,14 +250,7 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'shipments.view',
     'shipments',
     'ANY',
-    [
-      'ORCA_ADMIN',
-      'OPS_DISPATCHER',
-      'WAREHOUSE_MANAGER',
-      'WAREHOUSE_STAFF',
-      'SELLER_OWNER',
-      'SELLER_STAFF',
-    ],
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER', 'SELLER_STAFF'],
     'APPROVED',
     R3_MATRIX,
   ),
@@ -386,6 +376,54 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'APPROVED',
     `${D8_APPROVED}; SRS line 213`,
   ),
+  capability(
+    'asns.view',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'returns.view',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'statements.view',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'warehouse.operations.view',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'platform.warehouses.view',
+    'warehouses',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'exceptions.view',
+    'orders',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
 ];
 
 export const CAPABILITY_ROLES: Readonly<Record<string, readonly OrcaRole[]>> = Object.freeze(
@@ -414,19 +452,24 @@ export interface RoutePolicy {
 
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/dashboard', capability: 'workspace.dashboard.view' },
+  { path: '/catalog/skus', capability: 'catalog.products.view' },
+  { path: '/asns', capability: 'asns.view' },
   { path: '/orders', capability: 'orders.view' },
+  { path: '/returns', capability: 'returns.view' },
+  { path: '/billing', capability: 'workspace.billing.view' },
+  { path: '/statements', capability: 'statements.view' },
   { path: '/warehouses', capability: 'warehouses.view' },
   { path: '/inventory', capability: 'inventory.view' },
+  { path: '/warehouse', prefix: true, capability: 'warehouse.operations.view' },
   { path: '/rules', capability: 'rules.view' },
   { path: '/shipments', capability: 'shipments.view' },
+  { path: '/exceptions', capability: 'exceptions.view' },
   { path: '/reconciliation', capability: 'reconciliation.view' },
   {
     path: '/analytics',
     anyCapability: ['analytics.operations.view', 'analytics.finance.view'],
   },
-  { path: '/billing', capability: 'workspace.billing.view' },
   { path: '/iam/users', capability: 'iam.users.manage' },
-  { path: '/roles-permissions', prefix: true, capability: 'iam.roles.assign' },
   // Profile chỉ cần đăng nhập + scope/role hợp lệ, mọi role ORCA đều xem được.
   { path: '/settings/profile' },
   { path: '/settings/general', capability: 'workspace.settings.manage' },
@@ -437,6 +480,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/integration-errors', capability: 'integration.errors.view' },
   // Catalog phát triển: chỉ tồn tại khi DEV.
   { path: '/components', prefix: true, devOnly: true },
+  { path: '/admin/warehouses', capability: 'platform.warehouses.view' },
   {
     path: '/admin',
     prefix: true,
@@ -470,14 +514,143 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** Template sidebar (mục 5) dùng chung; lọc theo capability để ra template từng role. */
+/** Template sidebar dùng chung lọc theo 3 cổng; lọc theo capability để ra template từng role. */
 export const NAV_GROUPS: readonly NavGroup[] = [
+  // 1. CỔNG NGƯỜI BÁN (TENANT)
   {
-    key: 'platform_heading',
+    key: 'overview_heading',
+    scope: 'workspace',
+    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
+  },
+  {
+    key: 'goods_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'skus', href: '/catalog/skus', capability: 'catalog.products.view' },
+      { key: 'asns', href: '/asns', capability: 'asns.view' },
+      { key: 'inventory', href: '/inventory', capability: 'inventory.view' },
+      { key: 'warehouses', href: '/warehouses', capability: 'warehouses.view' },
+    ],
+  },
+  {
+    key: 'orders_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'orders', href: '/orders', capability: 'orders.view' },
+      { key: 'returns', href: '/returns', capability: 'returns.view' },
+    ],
+  },
+  {
+    key: 'finance_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
+      { key: 'statements', href: '/statements', capability: 'statements.view' },
+    ],
+  },
+  {
+    key: 'integrations_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'api_keys', href: '/settings/api-keys', capability: 'apikey.manage' },
+      { key: 'webhooks', href: '/settings/webhooks', capability: 'workspace.settings.manage' },
+    ],
+  },
+  {
+    key: 'workspace_settings_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
+      { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
+    ],
+  },
+
+  // 2. CỔNG NHÂN VIÊN KHO (PLATFORM / WAREHOUSE)
+  {
+    key: 'warehouse_ops_heading',
+    scope: 'platform',
+    items: [
+      {
+        key: 'warehouse_inbound',
+        href: '/warehouse/inbound',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_receiving',
+        href: '/warehouse/receiving',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_putaway',
+        href: '/warehouse/putaway',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_picking',
+        href: '/warehouse/picking',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_packing',
+        href: '/warehouse/packing',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_handover',
+        href: '/warehouse/handover',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_returns',
+        href: '/warehouse/returns',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_counts',
+        href: '/warehouse/counts',
+        capability: 'warehouse.operations.view',
+      },
+    ],
+  },
+
+  // 3. CỔNG VẬN HÀNH ORCA (PLATFORM)
+  {
+    key: 'platform_tenants_heading',
     scope: 'platform',
     items: [
       { key: 'admin_tenants', href: '/admin/tenants', capability: 'platform.tenants.manage' },
+    ],
+  },
+  {
+    key: 'network_warehouses_heading',
+    scope: 'platform',
+    items: [
+      {
+        key: 'admin_warehouses',
+        href: '/admin/warehouses',
+        capability: 'platform.warehouses.view',
+      },
+    ],
+  },
+  {
+    key: 'shipping_heading',
+    scope: 'platform',
+    items: [
       { key: 'admin_carriers', href: '/admin/carriers', capability: 'platform.carriers.manage' },
+      { key: 'rules', href: '/rules', capability: 'rules.view' },
+      { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
+    ],
+  },
+  {
+    key: 'operations_queue_heading',
+    scope: 'platform',
+    items: [{ key: 'exceptions', href: '/exceptions', capability: 'exceptions.view' }],
+  },
+  {
+    key: 'finance_heading',
+    scope: 'platform',
+    items: [
+      { key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' },
       { key: 'subscription_plans', href: '/admin/plans', capability: 'platform.plans.manage' },
     ],
   },
@@ -493,43 +666,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         capability: 'platform.observability.view',
       },
       {
-        key: 'system_observability',
-        href: '/admin/observability',
-        capability: 'platform.observability.view',
+        key: 'integration_errors',
+        href: '/integration-errors',
+        capability: 'integration.errors.view',
       },
-      {
-        key: 'webhook_delivery_logs',
-        href: '/admin/webhooks',
-        capability: 'platform.observability.view',
-      },
-      { key: 'quota_management', href: '/admin/quotas', capability: 'platform.observability.view' },
-    ],
-  },
-  {
-    key: 'workspace_heading',
-    scope: 'workspace',
-    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
-  },
-  {
-    key: 'operations_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'orders', href: '/orders', capability: 'orders.view' },
-      { key: 'warehouses', href: '/warehouses', capability: 'warehouses.view' },
-      { key: 'inventory', href: '/inventory', capability: 'inventory.view' },
-      { key: 'rules', href: '/rules', capability: 'rules.view' },
-      { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
-    ],
-  },
-  {
-    key: 'finance_heading',
-    scope: 'workspace',
-    items: [{ key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' }],
-  },
-  {
-    key: 'reports_heading',
-    scope: 'workspace',
-    items: [
       {
         key: 'analytics',
         href: '/analytics',
@@ -537,55 +677,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       },
     ],
   },
-  {
-    key: 'integrations_heading',
-    scope: 'workspace',
-    items: [
-      {
-        key: 'carrier_connections',
-        href: '/settings/integrations',
-        capability: 'carriers.credentials.manage',
-      },
-      {
-        key: 'api_keys',
-        href: '/settings/api-keys',
-        capability: 'apikey.manage',
-      },
-    ],
-  },
-  {
-    key: 'manage_accounts_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
-      {
-        key: 'roles_permissions',
-        href: '/roles-permissions/roles',
-        capability: 'iam.roles.assign',
-      },
-    ],
-  },
-  {
-    key: 'workspace_settings_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
-      { key: 'webhooks', href: '/settings/webhooks', capability: 'workspace.settings.manage' },
-      { key: 'usage', href: '/billing', capability: 'workspace.billing.view' },
-    ],
-  },
-  {
-    key: 'monitoring_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'audit_trail', href: '/audit', capability: 'audit.tenant.view' },
-      {
-        key: 'integration_errors',
-        href: '/integration-errors',
-        capability: 'integration.errors.view',
-      },
-    ],
-  },
+
+  // 4. CHUNG (MỌI ROLE)
   {
     key: 'account_heading',
     scope: 'shared',
@@ -700,9 +793,9 @@ export function isRouteAllowed(roles: readonly string[], pathname: string, isDev
 
 const DEFAULT_PATHS: Readonly<Record<OrcaRole, string>> = Object.freeze({
   ORCA_ADMIN: '/admin/tenants',
-  OPS_DISPATCHER: '/orders',
-  WAREHOUSE_MANAGER: '/warehouses',
-  WAREHOUSE_STAFF: '/inventory',
+  OPS_DISPATCHER: '/shipments',
+  WAREHOUSE_MANAGER: '/warehouse/inbound',
+  WAREHOUSE_STAFF: '/warehouse/inbound',
   ORCA_ACCOUNTANT: '/reconciliation',
   SELLER_OWNER: '/dashboard',
   SELLER_STAFF: '/dashboard',
@@ -734,11 +827,18 @@ export interface VisibleNavGroup {
  * (vd "Giám sát" của platform và workspace) được gộp để không trùng React key.
  */
 export function getVisibleNavGroups(roles: readonly string[], isDev: boolean): VisibleNavGroup[] {
-  if (resolveActorScope(roles) === null) return [];
+  const actorScope = resolveActorScope(roles);
+  if (actorScope === null) return [];
 
   const visible: VisibleNavGroup[] = [];
   for (const group of NAV_GROUPS) {
     if (group.devOnly === true && !isDev) continue;
+    if (
+      group.scope !== 'shared' &&
+      group.scope !== (actorScope === 'TENANT' ? 'workspace' : 'platform')
+    ) {
+      continue;
+    }
 
     const items = group.items
       .map((item) => ({

@@ -18,7 +18,6 @@ const createWarehouseSchema = z.object({
   name: z.string().min(3, 'Tên kho từ 3-150 kí tự').max(150),
   address: z.string().min(5, 'Địa chỉ từ 5-255 kí tự').max(255),
   provinceCode: z.string().min(1, 'Vui lòng chọn Tỉnh/Thành'),
-  districtCode: z.string().min(1, 'Vui lòng chọn Quận/Huyện'),
   wardCode: z.string().min(1, 'Vui lòng chọn Phường/Xã'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -141,7 +140,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
           )}
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
               Mã tỉnh/thành <span className="text-red-500">*</span>
@@ -153,19 +152,6 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
             />
             {errors.provinceCode && (
               <p className="mt-1.5 text-xs text-red-500">{errors.provinceCode.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
-              Mã quận/huyện <span className="text-red-500">*</span>
-            </label>
-            <Input
-              {...register('districtCode')}
-              placeholder="VD: 760"
-              error={errors.districtCode?.message}
-            />
-            {errors.districtCode && (
-              <p className="mt-1.5 text-xs text-red-500">{errors.districtCode.message}</p>
             )}
           </div>
           <div>

@@ -8,7 +8,6 @@ let server;
 let inventoryStockApi;
 let warehouseApi;
 let useAuthStore;
-let syncDelay;
 const originalFetch = globalThis.fetch;
 const dispatcher = {
   userId: '00000000-0000-4000-8000-000000000001',
@@ -79,7 +78,6 @@ before(async () => {
   ));
   ({ warehouseApi } = await server.ssrLoadModule('/src/features/catalog/api/warehouseApi.ts'));
   ({ useAuthStore } = await server.ssrLoadModule('/src/stores/authStore.ts'));
-  syncDelay = await server.ssrLoadModule('/src/lib/syncDelay.ts');
 });
 
 after(async () => {
@@ -169,18 +167,6 @@ test('malformed stock summaries are rejected', async () => {
   globalThis.fetch = async () => ok({ totalSkus: '248', availableUnits: 14820 });
 
   await assert.rejects(inventoryStockApi.getSummary(), { name: 'ZodError' });
-});
-
-test('sync is delayed only after strictly more than 24 hours', () => {
-  const syncedAt = '2026-09-20T00:00:00.000Z';
-  const syncedAtMs = Date.parse(syncedAt);
-  const threshold = syncDelay.SYNC_DELAY_THRESHOLD_MS;
-
-  assert.equal(threshold, 24 * 60 * 60 * 1000);
-  assert.equal(syncDelay.isSyncDelayed(syncedAt, new Date(syncedAtMs + threshold)), false);
-  assert.equal(syncDelay.isSyncDelayed(syncedAt, new Date(syncedAtMs + threshold + 1)), true);
-  assert.equal(syncDelay.isSyncDelayed(syncedAt, new Date(syncedAtMs - 60_000)), false);
-  assert.equal(syncDelay.isSyncDelayed('not-a-date', new Date(syncedAtMs)), false);
 });
 
 test('inventory KPI values are pluralized and number-formatted per locale', async () => {

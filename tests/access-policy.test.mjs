@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,6 @@ const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 let server;
 let policy;
-let legacyPolicy;
 let getPostLoginPath;
 
 const PLATFORM = 'PLATFORM';
@@ -98,7 +97,6 @@ before(async () => {
     server: { middlewareMode: true, watch: null, ws: false },
   });
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
-  legacyPolicy = await server.ssrLoadModule('/src/lib/legacyAccessPolicy.ts');
   ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
 });
 
@@ -272,8 +270,23 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
       'ORCA_ADMIN',
       PLATFORM,
       {
-        allow: ['/admin/tenants', '/dashboard', '/orders', '/reconciliation', '/analytics'],
-        deny: ['/settings/general', '/settings/webhooks', '/audit'],
+        allow: [
+          '/admin/tenants',
+          '/dashboard',
+          '/orders',
+          '/reconciliation',
+          '/analytics',
+          '/admin/warehouses',
+          '/exceptions',
+        ],
+        deny: [
+          '/settings/general',
+          '/settings/webhooks',
+          '/audit',
+          '/asns',
+          '/returns',
+          '/statements',
+        ],
       },
     ],
     [
@@ -289,14 +302,19 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/analytics',
           '/dashboard',
           '/integration-errors',
+          '/admin/warehouses',
+          '/exceptions',
         ],
         deny: [
           '/reconciliation',
           '/billing',
           '/iam/users',
-          '/roles-permissions/roles',
           '/settings/general',
           '/admin/tenants',
+          '/asns',
+          '/returns',
+          '/statements',
+          '/warehouse/inbound',
         ],
       },
     ],
@@ -304,24 +322,48 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
       'WAREHOUSE_MANAGER',
       PLATFORM,
       {
-        allow: ['/warehouses', '/inventory', '/orders', '/shipments', '/analytics'],
-        deny: ['/reconciliation', '/rules', '/billing', '/iam/users', '/admin/tenants'],
+        allow: [
+          '/warehouses',
+          '/inventory',
+          '/orders',
+          '/shipments',
+          '/analytics',
+          '/warehouse/inbound',
+          '/admin/warehouses',
+          '/exceptions',
+        ],
+        deny: [
+          '/reconciliation',
+          '/rules',
+          '/billing',
+          '/iam/users',
+          '/admin/tenants',
+          '/asns',
+          '/returns',
+          '/statements',
+        ],
       },
     ],
     [
       'WAREHOUSE_STAFF',
       PLATFORM,
       {
-        allow: ['/warehouses', '/inventory', '/orders', '/shipments'],
+        allow: ['/warehouses', '/inventory', '/orders', '/warehouse/inbound'],
         deny: [
           '/dashboard',
           '/reconciliation',
           '/billing',
           '/rules',
+          '/shipments',
           '/settings/integrations',
           '/settings/general',
           '/admin/tenants',
           '/iam/users',
+          '/admin/warehouses',
+          '/exceptions',
+          '/asns',
+          '/returns',
+          '/statements',
         ],
       },
     ],
@@ -344,6 +386,12 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/settings/integrations',
           '/iam/users',
           '/admin/tenants',
+          '/admin/warehouses',
+          '/exceptions',
+          '/asns',
+          '/returns',
+          '/statements',
+          '/warehouse/inbound',
         ],
       },
     ],
@@ -353,37 +401,61 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
       {
         allow: [
           '/dashboard',
+          '/catalog/skus',
+          '/asns',
           '/orders',
+          '/returns',
           '/inventory',
           '/warehouses',
           '/shipments',
           '/billing',
+          '/statements',
           '/settings/general',
           '/settings/api-keys',
           '/settings/webhooks',
-          '/roles-permissions/roles',
           '/iam/users',
           '/audit',
           '/integration-errors',
         ],
-        deny: ['/rules', '/reconciliation', '/admin/tenants', '/settings/integrations'],
+        deny: [
+          '/rules',
+          '/reconciliation',
+          '/admin/tenants',
+          '/settings/integrations',
+          '/admin/warehouses',
+          '/exceptions',
+          '/warehouse/inbound',
+        ],
       },
     ],
     [
       'SELLER_STAFF',
       TENANT,
       {
-        allow: ['/dashboard', '/orders', '/inventory', '/warehouses', '/shipments', '/analytics'],
+        allow: [
+          '/dashboard',
+          '/catalog/skus',
+          '/asns',
+          '/orders',
+          '/inventory',
+          '/warehouses',
+          '/shipments',
+          '/analytics',
+        ],
         deny: [
+          '/returns',
+          '/statements',
           '/reconciliation',
           '/billing',
           '/rules',
           '/settings/general',
           '/settings/webhooks',
           '/iam/users',
-          '/roles-permissions/roles',
           '/audit',
           '/admin/tenants',
+          '/admin/warehouses',
+          '/exceptions',
+          '/warehouse/inbound',
         ],
       },
     ],
@@ -427,9 +499,9 @@ test('trailing slash is normalized before matching a route', () => {
 test('default path for every role is a route that role may access', () => {
   const expected = {
     ORCA_ADMIN: '/admin/tenants',
-    OPS_DISPATCHER: '/orders',
-    WAREHOUSE_MANAGER: '/warehouses',
-    WAREHOUSE_STAFF: '/inventory',
+    OPS_DISPATCHER: '/shipments',
+    WAREHOUSE_MANAGER: '/warehouse/inbound',
+    WAREHOUSE_STAFF: '/warehouse/inbound',
     ORCA_ACCOUNTANT: '/reconciliation',
     SELLER_OWNER: '/dashboard',
     SELLER_STAFF: '/dashboard',
@@ -448,51 +520,46 @@ test('default path for every role is a route that role may access', () => {
 test('sidebar derives from the same capability source for every role', () => {
   const expected = {
     ORCA_ADMIN: [
-      'platform_heading',
-      'monitoring_heading',
-      'workspace_heading',
-      'operations_heading',
+      'platform_tenants_heading',
+      'network_warehouses_heading',
+      'shipping_heading',
+      'operations_queue_heading',
       'finance_heading',
-      'reports_heading',
-      'manage_accounts_heading',
-      'workspace_settings_heading',
+      'monitoring_heading',
       'account_heading',
     ],
     OPS_DISPATCHER: [
-      'workspace_heading',
-      'operations_heading',
-      'reports_heading',
+      'network_warehouses_heading',
+      'shipping_heading',
+      'operations_queue_heading',
       'monitoring_heading',
       'account_heading',
     ],
     WAREHOUSE_MANAGER: [
-      'workspace_heading',
-      'operations_heading',
-      'reports_heading',
+      'warehouse_ops_heading',
+      'network_warehouses_heading',
+      'shipping_heading',
+      'operations_queue_heading',
       'monitoring_heading',
       'account_heading',
     ],
-    WAREHOUSE_STAFF: ['operations_heading', 'account_heading'],
+    WAREHOUSE_STAFF: ['warehouse_ops_heading', 'account_heading'],
     ORCA_ACCOUNTANT: [
-      'workspace_heading',
-      'operations_heading',
+      'shipping_heading',
       'finance_heading',
-      'reports_heading',
-      'workspace_settings_heading',
       'monitoring_heading',
       'account_heading',
     ],
     SELLER_OWNER: [
-      'workspace_heading',
-      'operations_heading',
-      'reports_heading',
+      'overview_heading',
+      'goods_heading',
+      'orders_heading',
+      'finance_heading',
       'integrations_heading',
-      'manage_accounts_heading',
       'workspace_settings_heading',
-      'monitoring_heading',
       'account_heading',
     ],
-    SELLER_STAFF: ['workspace_heading', 'operations_heading', 'reports_heading', 'account_heading'],
+    SELLER_STAFF: ['overview_heading', 'goods_heading', 'orders_heading', 'account_heading'],
   };
 
   for (const [role, scope] of ALL_ROLES) {
@@ -567,15 +634,15 @@ test('seller API key settings use approved ORCA action while reservation control
 
 test('post-login redirect honors ORCA scope, route matrix and open-redirect guard', () => {
   assert.equal(getPostLoginPath(user(OWNER, TENANT), null), '/dashboard');
-  assert.equal(getPostLoginPath(user(OPS, PLATFORM), null), '/orders');
+  assert.equal(getPostLoginPath(user(OPS, PLATFORM), null), '/shipments');
   assert.equal(getPostLoginPath(user(ADMIN, PLATFORM), null), '/admin/tenants');
-  assert.equal(getPostLoginPath(user(WH_STAFF, PLATFORM), null), '/inventory');
+  assert.equal(getPostLoginPath(user(WH_STAFF, PLATFORM), null), '/warehouse/inbound');
 
   assert.equal(
     getPostLoginPath(user(OWNER, TENANT), { from: '/orders?page=2#items' }),
     '/orders?page=2#items',
   );
-  assert.equal(getPostLoginPath(user(OPS, PLATFORM), { from: '/reconciliation' }), '/orders');
+  assert.equal(getPostLoginPath(user(OPS, PLATFORM), { from: '/reconciliation' }), '/shipments');
   assert.equal(getPostLoginPath(user(OWNER, TENANT), { from: '/admin/tenants' }), '/dashboard');
 
   for (const from of ['//evil.test', 'https://evil.test', '/\\evil.test', '/login']) {
@@ -588,46 +655,19 @@ test('post-login redirect honors ORCA scope, route matrix and open-redirect guar
   assert.equal(getPostLoginPath(user(['ORCA_ADMIN', 'SELLER_OWNER'], PLATFORM), null), '/403');
 });
 
-test('authorization code never reads the display-only legacy policy module', () => {
-  // Runtime: module legacy chỉ chứa dữ liệu hiển thị, không export hàm quyết định quyền.
-  for (const fn of [
-    'can',
-    'canAny',
-    'canAll',
-    'isRouteAllowed',
-    'getEffectiveRoles',
-    'getDefaultPath',
-    'getVisibleNavGroups',
-    'getSearchLinks',
-    'resolveActorScope',
-  ]) {
-    assert.equal(
-      typeof legacyPolicy[fn],
-      'undefined',
-      `legacyAccessPolicy must not expose ${fn}()`,
-    );
-  }
+test('legacy roles/permissions page and legacy access policy are completely removed', () => {
+  const legacyPolicyPath = join(REPO_ROOT, 'src/lib/legacyAccessPolicy.ts');
+  const rolesPermissionsPagePath = join(REPO_ROOT, 'src/pages/workspace/RolesPermissionsPage.tsx');
 
-  // Static: chỉ tầng page (hiển thị) được import legacyAccessPolicy. Mọi tầng ra
-  // quyết định quyền — lib/hooks/stores/services/components/layout — đều bị cấm.
-  const allowedImportPrefixes = ['src/pages/'];
-  const importers = filesImporting('legacyAccessPolicy');
-  for (const file of importers) {
-    assert.ok(
-      allowedImportPrefixes.some((prefix) => file.startsWith(prefix)),
-      `authorization module ${file} must not import the legacy display catalog`,
-    );
-  }
-});
-
-test('the roles/permissions page has no legacy role-grant write path', () => {
-  const pagePath = 'src/pages/workspace/RolesPermissionsPage.tsx';
-  const pageSource = readFileSync(join(REPO_ROOT, pagePath), 'utf8');
+  assert.equal(existsSync(legacyPolicyPath), false, 'legacyAccessPolicy.ts must be deleted');
   assert.equal(
-    pageSource.includes('updateRoles'),
+    existsSync(rolesPermissionsPagePath),
     false,
-    `${pagePath} must not call the legacy role update API`,
+    'RolesPermissionsPage.tsx must be deleted',
   );
+
+  const importers = filesImporting('legacyAccessPolicy');
+  assert.deepEqual(importers, [], 'no source file should import legacyAccessPolicy');
 
   // Không page/component nào gọi API gán role legacy; chỉ còn định nghĩa trong feature.
   for (const file of filesContaining('updateRoles')) {

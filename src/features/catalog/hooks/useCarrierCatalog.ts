@@ -27,7 +27,7 @@ export function useCarrierCatalog(initialQuery: CarrierListQuery = {}) {
         const pageData = await carrierCatalogApi.list(q);
         const items = Array.isArray(pageData)
           ? pageData
-          : (pageData as unknown as { items?: CarrierSummary[] })?.items ?? [];
+          : ((pageData as unknown as { items?: CarrierSummary[] })?.items ?? []);
         const pagination = (
           pageData as unknown as { pagination?: { hasNext?: boolean; nextCursor?: string | null } }
         )?.pagination;

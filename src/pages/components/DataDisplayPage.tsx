@@ -13,7 +13,7 @@ export default function DataDisplayPage() {
     { label: t('openAlerts'), value: '12', icon: AlertTriangle, tone: 'warning' },
   ];
   const team = [
-    { name: 'SmartChain Demo Admin', role: t('workspaceAdmin'), status: 'online' },
+    { name: 'ORCA Demo Admin', role: t('workspaceAdmin'), status: 'online' },
     { name: 'Nguyễn Minh Anh', role: t('dispatcher'), status: 'busy' },
     { name: 'Trần Hoài Nam', role: t('accountant'), status: 'offline' },
   ] as const;

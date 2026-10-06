@@ -17,7 +17,7 @@ export default function NotFoundPage() {
       >
         <Link
           to="/dashboard"
-          aria-label="SmartChain"
+          aria-label="ORCA"
           className="absolute left-6 top-6 z-10 flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-[var(--sc-text-primary)] transition-colors hover:bg-[var(--sc-primary-alpha-08)] sm:left-9 sm:top-8"
         >
           <span className="grid h-9 w-9 grid-cols-2 gap-[3px] rounded-[10px] bg-[var(--sc-primary)] p-2 shadow-[0_6px_14px_rgb(15_118_110/20%)]">
@@ -26,7 +26,7 @@ export default function NotFoundPage() {
             <span className="rounded-[2px] bg-white/70" />
             <span className="rounded-[2px] bg-white" />
           </span>
-          <span className="text-lg font-semibold">SmartChain</span>
+          <span className="text-lg font-semibold">ORCA</span>
         </Link>
 
         <div className="relative z-[1] flex w-full max-w-2xl flex-col items-center text-center">

@@ -13,7 +13,6 @@ import { useUiStore } from '@/stores';
 import { NAV_ICONS } from './navIcons';
 
 function isMenuPathActive(pathname: string, href: string) {
-  if (href.startsWith('/roles-permissions/')) return pathname.startsWith('/roles-permissions/');
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -104,7 +103,7 @@ export default function Sidebar() {
               <span className="rounded-[2px] bg-white" />
             </span>
             <span className={cn('truncate text-[17px] font-semibold', !isSidebarOpen && 'hidden')}>
-              SmartChain
+              ORCA
             </span>
           </Link>
 
@@ -253,7 +252,7 @@ export default function Sidebar() {
                   <span className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-primary)]">
                     <Sparkles size={17} strokeWidth={1.6} />
                   </span>
-                  <span>SmartChain v0.1.0</span>
+                  <span>ORCA v0.1.0</span>
                 </div>
                 <h2 className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
                   {t('connected_title')}

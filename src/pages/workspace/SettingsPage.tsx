@@ -5,17 +5,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslations } from 'next-intl';
 
 import { Tabs } from '@/components/Common';
-import { CarrierConnectionsManager } from '@/features/catalog';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
 import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
 import { ApiKeyManager, WebhookManager } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
 
-const ALL_SETTING_TABS = ['profile', 'general', 'integrations', 'api-keys', 'webhooks'] as const;
+const ALL_SETTING_TABS = ['profile', 'general', 'api-keys', 'webhooks'] as const;
 type SettingTab = (typeof ALL_SETTING_TABS)[number];
 const WORKSPACE_TABS: readonly { id: SettingTab; capability: string }[] = [
   { id: 'general', capability: 'workspace.settings.manage' },
-  { id: 'integrations', capability: 'carriers.credentials.manage' },
   { id: 'api-keys', capability: 'apikey.manage' },
   { id: 'webhooks', capability: 'workspace.settings.manage' },
 ];
@@ -56,8 +54,6 @@ export default function SettingsPage() {
       {activeTab === 'profile' && <ProfileSettings />}
 
       {activeTab === 'general' && <WorkspaceGeneralSettings />}
-
-      {activeTab === 'integrations' && <CarrierConnectionsManager />}
 
       {activeTab === 'api-keys' && <ApiKeyManager />}
 

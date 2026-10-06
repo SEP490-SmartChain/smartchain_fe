@@ -14,6 +14,7 @@ interface BreadcrumbItem {
 
 const ADMIN_LABEL_KEYS: Record<string, string> = {
   '/admin/tenants': 'admin_tenants',
+  '/admin/warehouses': 'admin_warehouses',
   '/admin/carriers': 'admin_carriers',
   '/admin/plans': 'subscription_plans',
   '/admin/health': 'platform_health',
@@ -30,20 +31,24 @@ export default function RouteBreadcrumbs() {
   const topbar = useTranslations('Topbar');
   const sidebar = useTranslations('Sidebar');
   const settings = useTranslations('Settings');
-  const rolesPermissions = useTranslations('RolesPermissions');
 
   const primaryPath = '/' + pathname.split('/').filter(Boolean)[0];
   const pageLabels: Record<string, string> = {
     '/dashboard': sidebar('dashboard'),
-    '/billing': sidebar('usage'),
+    '/billing': sidebar('billing'),
     '/orders': sidebar('orders'),
     '/inventory': sidebar('inventory'),
+    '/catalog': sidebar('skus'),
+    '/asns': sidebar('asns'),
+    '/returns': sidebar('returns'),
+    '/statements': sidebar('statements'),
+    '/exceptions': sidebar('exceptions'),
     '/rules': sidebar('rules'),
     '/shipments': sidebar('shipments'),
+    '/warehouses': sidebar('warehouses'),
     '/reconciliation': sidebar('reconciliation'),
     '/analytics': sidebar('analytics'),
     '/iam': sidebar('staff_accounts'),
-    '/roles-permissions': sidebar('roles_permissions'),
     '/audit': sidebar('audit_trail'),
     '/integration-errors': sidebar('integration_errors'),
     '/settings': sidebar('profile'),
@@ -64,6 +69,10 @@ export default function RouteBreadcrumbs() {
   } else if (primaryPath === '/admin') {
     items.push({ label: sidebar('platform_heading') });
     items.push({ label: sidebar(ADMIN_LABEL_KEYS[pathname] ?? 'admin_tenants') });
+  } else if (primaryPath === '/warehouse') {
+    const sub = pathname.split('/').filter(Boolean)[1] ?? 'inbound';
+    items.push({ label: sidebar('warehouse_ops_heading') });
+    items.push({ label: sidebar(`warehouse_${sub}` as any) });
   } else if (primaryPath === '/settings') {
     const settingTab = pathname.split('/').filter(Boolean)[1] ?? 'profile';
     items.push({
@@ -75,18 +84,6 @@ export default function RouteBreadcrumbs() {
   } else if (primaryPath === '/iam') {
     items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('staff_accounts') });
-  } else if (primaryPath === '/roles-permissions') {
-    const roleTab = pathname.split('/').filter(Boolean)[1] ?? 'roles';
-    items.push({ label: sidebar('manage_accounts_heading') });
-    items.push({ label: sidebar('roles_permissions'), href: '/roles-permissions/roles' });
-    items.push({
-      label:
-        roleTab === 'permissions'
-          ? rolesPermissions('permissions')
-          : roleTab === 'members'
-            ? rolesPermissions('members')
-            : rolesPermissions('roles'),
-    });
   } else if (primaryPath === '/billing') {
     items.push({ label: sidebar('workspace_settings_heading') });
     items.push({ label: sidebar('usage') });
