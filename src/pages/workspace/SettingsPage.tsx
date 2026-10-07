@@ -9,6 +9,7 @@ import ProfileSettings from '@/features/settings/components/ProfileSettings';
 import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
 import { ApiKeyManager, WebhookManager } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
+import { useAuthStore } from '@/stores/authStore';
 
 const ALL_SETTING_TABS = ['profile', 'general', 'api-keys', 'webhooks'] as const;
 type SettingTab = (typeof ALL_SETTING_TABS)[number];
@@ -21,6 +22,15 @@ export default function SettingsPage() {
   const t = useTranslations('Settings');
   const navigate = useNavigate();
   const { can } = useAccess();
+  const keyContext = useAuthStore((state) =>
+    [
+      state.revision,
+      state.user?.userId,
+      state.user?.tenantId,
+      state.user?.actorScope,
+      state.user?.roles.join(','),
+    ].join(':'),
+  );
   const { tab } = useParams<{ tab?: string }>();
   const requestedTab: SettingTab = ALL_SETTING_TABS.includes(tab as SettingTab)
     ? (tab as SettingTab)
@@ -55,7 +65,7 @@ export default function SettingsPage() {
 
       {activeTab === 'general' && <WorkspaceGeneralSettings />}
 
-      {activeTab === 'api-keys' && <ApiKeyManager />}
+      {activeTab === 'api-keys' && <ApiKeyManager key={keyContext} />}
 
       {activeTab === 'webhooks' && <WebhookManager />}
     </div>
