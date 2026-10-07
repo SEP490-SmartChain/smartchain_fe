@@ -30,6 +30,12 @@ const dimensionCmSchema = z
   });
 
 export const productEditFormSchema = z.object({
+  barcode: z.string().trim().max(128, 'barcodeTooLong').optional(),
+  declaredCostVnd: z
+    .string()
+    .trim()
+    .refine((value) => value === '' || /^[0-9]{1,20}$/.test(value), 'costInvalid')
+    .optional(),
   name: z
     .string()
     .trim()
@@ -55,8 +61,39 @@ export const productEditFormSchema = z.object({
 
 export type ProductEditFormValues = z.infer<typeof productEditFormSchema>;
 
+export const productCreateFormSchema = productEditFormSchema.extend({
+  sku: z
+    .string()
+    .trim()
+    .min(1, 'skuRequired')
+    .max(100, 'skuTooLong')
+    .regex(/^\S+$/, 'skuWhitespace'),
+});
+export type ProductCreateFormValues = z.infer<typeof productCreateFormSchema>;
+
+export const productConfigurationSchema = z
+  .object({
+    trackLot: z.boolean(),
+    trackExpiry: z.boolean(),
+    shelfLifeDays: z.number().int().positive().max(36500).nullable(),
+    minInboundShelfLifePct: z.number().min(0).max(100).multipleOf(0.01),
+    minOutboundDays: z.number().int().min(0).max(36500),
+    nearExpiryDays: z.number().int().min(0).max(36500),
+  })
+  .refine((value) => !value.trackExpiry || value.trackLot, {
+    path: ['trackLot'],
+    message: 'expiryRequiresLot',
+  });
+export type ProductConfigurationValues = z.infer<typeof productConfigurationSchema>;
+
 export function toProductEditFormValues(product: Product): ProductEditFormValues {
   return {
+    ...(product.barcode === null || product.barcode === undefined
+      ? {}
+      : { barcode: product.barcode }),
+    ...(product.declaredCostVnd === null || product.declaredCostVnd === undefined
+      ? {}
+      : { declaredCostVnd: product.declaredCostVnd }),
     name: product.name,
     weightKg: product.weightG / GRAMS_PER_KG,
     lengthCm: Number(product.lengthCm),
@@ -73,6 +110,10 @@ export function toUpdateProductInput(
   expectedUpdatedAt: string,
 ): UpdateProductInput {
   return {
+    ...(values.barcode === undefined ? {} : { barcode: values.barcode.trim() || null }),
+    ...(values.declaredCostVnd === undefined
+      ? {}
+      : { declaredCostVnd: values.declaredCostVnd.trim() || null }),
     name: values.name,
     weightG: Math.round(values.weightKg * GRAMS_PER_KG),
     lengthCm: values.lengthCm,

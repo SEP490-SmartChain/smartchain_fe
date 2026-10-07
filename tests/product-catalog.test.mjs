@@ -247,10 +247,12 @@ test('volumetric weight follows (L x W x H) / 5000 and ignores incomplete dimens
   assert.equal(volumetric.calculateVolumetricWeightKg(50, Number.NaN, 30), null);
 });
 
-test('only Seller Owner may manage products while Ops can still view them', () => {
+test('priced catalog is restricted to Seller Owner until scoped platform projections exist', () => {
   assert.equal(policy.can(['SELLER_OWNER'], 'catalog.products.manage'), true);
   assert.equal(policy.can(['OPS_DISPATCHER'], 'catalog.products.manage'), false);
-  assert.equal(policy.can(['OPS_DISPATCHER'], 'catalog.products.view'), true);
+  assert.equal(policy.can(['OPS_DISPATCHER'], 'catalog.products.view'), false);
+  assert.equal(policy.can(['SELLER_STAFF'], 'catalog.products.view'), false);
+  assert.equal(policy.can(['WAREHOUSE_STAFF'], 'catalog.products.view'), false);
   assert.equal(policy.can(['ORCA_ACCOUNTANT'], 'catalog.products.manage'), false);
   assert.equal(policy.can(['ORCA_ADMIN'], 'catalog.products.manage'), false);
 });
