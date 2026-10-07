@@ -2,12 +2,19 @@ export type WarehouseStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface Warehouse {
   id: string;
-  tenantId: string;
+  version: number;
+  region: 'NORTH' | 'CENTRAL' | 'SOUTH';
+  timeZone: string;
+  cutoffMinute: number;
+  operatingStartMinute: number;
+  operatingEndMinute: number;
+
+  tenantId: string | null;
   code: string;
   name: string;
   address: string;
   provinceCode: string;
-  districtCode: string;
+  districtCode: string | null;
   wardCode: string;
   latitude: number;
   longitude: number;
@@ -36,6 +43,12 @@ export interface WarehousePage {
 }
 
 export interface CreateWarehousePayload {
+  region: 'NORTH' | 'CENTRAL' | 'SOUTH';
+  timeZone: string;
+  cutoffMinute: number;
+  operatingStartMinute: number;
+  operatingEndMinute: number;
+
   code: string;
   name: string;
   address: string;
