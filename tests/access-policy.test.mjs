@@ -434,7 +434,6 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
       {
         allow: [
           '/dashboard',
-          '/catalog/skus',
           '/asns',
           '/orders',
           '/inventory',
@@ -443,6 +442,7 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/analytics',
         ],
         deny: [
+          '/catalog/skus',
           '/returns',
           '/statements',
           '/reconciliation',

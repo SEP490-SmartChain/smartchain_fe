@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Pencil, Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -10,8 +10,13 @@ import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTab
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { useAuthStore } from '@/stores/authStore';
 
+import { CreateProductModal } from './CreateProductModal';
+import { DeactivateProductModal } from './DeactivateProductModal';
 import { EditProductModal } from './EditProductModal';
+import { ImportProductsModal } from './ImportProductsModal';
+import { ProductConfigurationModal } from './ProductConfigurationModal';
 import { useProducts } from '../hooks/useProducts';
 
 import type { Product, ProductFilters } from '../types/product.types';
@@ -25,6 +30,19 @@ export function ProductCatalogTable() {
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState(1);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [configurationProduct, setConfigurationProduct] = useState<Product | null>(null);
+  const [deactivationProduct, setDeactivationProduct] = useState<Product | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const principal = useAuthStore((state) => state.user);
+  useEffect(() => {
+    setCurrentPage(1);
+    setEditingProduct(null);
+    setConfigurationProduct(null);
+    setIsCreating(false);
+    setDeactivationProduct(null);
+    setIsImporting(false);
+  }, [principal]);
   const { can } = useAccess();
   const canManageProducts = can('catalog.products.manage');
   const { products, error, isLoading, hasNextPage, refetch, loadMore } = useProducts(filters);
@@ -93,15 +111,30 @@ export function ProductCatalogTable() {
             key: 'actions',
             label: <span className="sr-only">{t('columnActions')}</span>,
             render: (row: Product) => (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                aria-label={t('editAction', { sku: row.sku })}
-                onClick={() => setEditingProduct(row)}
-              >
-                <Pencil size={16} aria-hidden="true" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  aria-label={t('editAction', { sku: row.sku })}
+                  onClick={() => setEditingProduct(row)}
+                >
+                  <Pencil size={16} aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setConfigurationProduct(row)}
+                >
+                  {t('configure')}
+                </Button>
+                {row.isActive && (
+                  <Button variant="ghost" size="sm" onClick={() => setDeactivationProduct(row)}>
+                    {t('deactivate')}
+                  </Button>
+                )}
+              </div>
             ),
           },
         ]
@@ -110,10 +143,20 @@ export function ProductCatalogTable() {
 
   return (
     <div className="space-y-5">
-      <header>
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
           {t('title')}
         </h1>
+        {canManageProducts && (
+          <div className="flex gap-2">
+            <Button type="button" onClick={() => setIsCreating(true)}>
+              {t('create')}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setIsImporting(true)}>
+              {t('import')}
+            </Button>
+          </div>
+        )}
       </header>
 
       {error ? (
@@ -162,11 +205,33 @@ export function ProductCatalogTable() {
       )}
 
       {canManageProducts && (
-        <EditProductModal
-          product={editingProduct}
-          onClose={() => setEditingProduct(null)}
-          onChanged={handleProductChanged}
-        />
+        <>
+          <CreateProductModal
+            isOpen={isCreating}
+            onClose={() => setIsCreating(false)}
+            onChanged={handleProductChanged}
+          />
+          <DeactivateProductModal
+            product={deactivationProduct}
+            onClose={() => setDeactivationProduct(null)}
+            onChanged={handleProductChanged}
+          />
+          <ProductConfigurationModal
+            product={configurationProduct}
+            onClose={() => setConfigurationProduct(null)}
+            onChanged={handleProductChanged}
+          />
+          <ImportProductsModal
+            isOpen={isImporting}
+            onClose={() => setIsImporting(false)}
+            onChanged={handleProductChanged}
+          />
+          <EditProductModal
+            product={editingProduct}
+            onClose={() => setEditingProduct(null)}
+            onChanged={handleProductChanged}
+          />
+        </>
       )}
     </div>
   );

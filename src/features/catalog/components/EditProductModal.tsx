@@ -102,6 +102,23 @@ export function EditProductModal({ product, onClose, onChanged }: EditProductMod
         <Input label={t('fieldSku')} value={product?.sku ?? ''} disabled readOnly />
 
         <Input
+          label={t('fieldBarcode')}
+          maxLength={128}
+          {...register('barcode')}
+          error={errors.barcode?.message ? tValidation(errors.barcode.message) : undefined}
+        />
+        <Input
+          label={t('fieldDeclaredCost')}
+          inputMode="numeric"
+          maxLength={20}
+          {...register('declaredCostVnd')}
+          error={
+            errors.declaredCostVnd?.message
+              ? tValidation(errors.declaredCostVnd.message)
+              : undefined
+          }
+        />
+        <Input
           label={t('fieldName')}
           required
           maxLength={255}
@@ -195,6 +212,7 @@ export function EditProductModal({ product, onClose, onChanged }: EditProductMod
 
         <Select
           label={t('fieldStatus')}
+          disabled={product?.isActive}
           options={[
             { value: 'true', label: t('active') },
             { value: 'false', label: t('inactive') },
