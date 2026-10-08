@@ -1057,9 +1057,11 @@
     "refresh": "Refresh",
     "create": "Create API key",
     "guideTitle": "Connection details",
-    "guideEndpointLabel": "SKU sync endpoint",
+    "guideEndpointLabel": "Order intake endpoint",
+    "guideCatalogEndpointLabel": "SKU sync endpoint (catalog:write)",
     "guideEndpointUnconfigured": "No public API address is configured for this environment. Contact your ORCA administrator for the connection address.",
     "guideAuth": "Send the API key in the <header>X-Api-Key</header> header of every request.",
+    "guideIdempotency": "Include X-Idempotency-Key for every order. Retry with the same key and unchanged payload; changing the payload returns 409. A 202 response means the order is received and address validation runs asynchronously.",
     "loadError": "Could not load API keys.",
     "retry": "Retry",
     "tableLabel": "API keys",
@@ -1073,7 +1075,8 @@
     "columnCreatedAt": "Created",
     "columnActions": "Actions",
     "scope": {
-      "catalog:write": "Sync SKU catalog"
+      "catalog:write": "Sync SKU catalog",
+      "orders:write": "Submit orders"
     },
     "status": {
       "ACTIVE": "Active",

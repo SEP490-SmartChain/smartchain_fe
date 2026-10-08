@@ -36,6 +36,9 @@ export function useApiKeys() {
 
   useEffect(() => {
     void loadPage();
+    return () => {
+      requestRevision.current += 1;
+    };
   }, [loadPage]);
 
   return {

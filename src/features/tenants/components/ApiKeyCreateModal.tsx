@@ -29,7 +29,7 @@ interface ApiKeyCreateModalProps {
 
 const DEFAULT_VALUES: CreateApiKeySchemaValues = {
   name: '',
-  scopes: [...API_KEY_SCOPES],
+  scopes: ['orders:write'],
   expiry: 'never',
 };
 

@@ -196,3 +196,21 @@ test('createApiKeySchema requires a scope and a known expiry', () => {
     false,
   );
 });
+
+test('order-only keys preserve least privilege when sent to the server', async () => {
+  const values = { name: 'Order channel', scopes: ['orders:write'], expiry: 'never' };
+  assert.equal(createApiKeySchema.safeParse(values).success, true);
+  const orderKey = { ...apiKey, scopes: ['orders:write'] };
+  globalThis.fetch = async (_url, options) => {
+    assert.deepEqual(JSON.parse(options.body), { name: values.name, scopes: values.scopes });
+    return ok({ apiKey: orderKey, rawKey: `orca_0123456789abcdef_${'A'.repeat(43)}` });
+  };
+  const created = await apiKeyApi.create(values);
+  assert.deepEqual(created.apiKey.scopes, ['orders:write']);
+  assert.equal(created.rawKey.startsWith('orca_'), true);
+  assert.equal(JSON.stringify(useAuthStore.getState()).includes(created.rawKey), false);
+  assert.equal(
+    createApiKeySchema.safeParse({ ...values, scopes: ['orders:admin'] }).success,
+    false,
+  );
+});

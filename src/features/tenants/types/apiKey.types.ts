@@ -1,5 +1,5 @@
 /** Quyền của API key, đồng bộ với `API_KEY_SCOPES` phía BE. */
-export const API_KEY_SCOPES = ['catalog:write'] as const;
+export const API_KEY_SCOPES = ['catalog:write', 'orders:write'] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 /** `never` = không hết hạn; số còn lại là số ngày, đồng bộ `API_KEY_EXPIRY_DAYS` phía BE. */

@@ -21,7 +21,7 @@ import type { ApiKey, ApiKeyStatus, CreatedApiKey } from '../types/apiKey.types'
 
 const PAGE_SIZE = 10;
 /** Đường dẫn endpoint tính từ base URL của API (đã gồm `/api`). */
-const INGEST_PATH = '/v1/ingest/products';
+const INGEST_PATH = '/v1/ingest/orders';
 const STATUS_BADGE: Record<ApiKeyStatus, 'success' | 'default' | 'warning'> = {
   ACTIVE: 'success',
   REVOKED: 'default',
@@ -46,6 +46,7 @@ export function ApiKeyManager() {
     [locale],
   );
   const ingestUrl = useMemo(() => buildPublicApiUrl(INGEST_PATH), []);
+  const catalogUrl = useMemo(() => buildPublicApiUrl('/v1/ingest/products'), []);
   const { isCopied: isEndpointCopied, copy } = useCopyToClipboard();
 
   const loadedPageCount = Math.max(1, Math.ceil(apiKeys.length / PAGE_SIZE));
@@ -87,7 +88,7 @@ export function ApiKeyManager() {
       key: 'keyPrefix',
       label: t('columnKey'),
       render: (row) => (
-        <code className="whitespace-nowrap font-mono text-xs">{`sck_${row.keyPrefix}…`}</code>
+        <code className="whitespace-nowrap font-mono text-xs">{`${row.keyPrefix}…`}</code>
       ),
     },
     {
@@ -230,6 +231,12 @@ export function ApiKeyManager() {
             </Alert>
           )}
 
+          {catalogUrl && (
+            <p className="mb-0 mt-3 text-xs text-[var(--sc-text-secondary)]">
+              {t('guideCatalogEndpointLabel')}:{' '}
+              <code className="break-all font-mono">POST {catalogUrl}</code>
+            </p>
+          )}
           <p className="mb-0 mt-3 text-sm text-[var(--sc-text-secondary)]">
             {t.rich('guideAuth', {
               header: (chunks) => (
@@ -238,6 +245,9 @@ export function ApiKeyManager() {
                 </code>
               ),
             })}
+          </p>
+          <p className="mb-0 mt-3 text-sm text-[var(--sc-text-secondary)]">
+            {t('guideIdempotency')}
           </p>
         </section>
       </Card>

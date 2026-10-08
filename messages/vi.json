@@ -1057,9 +1057,11 @@
     "refresh": "Làm mới",
     "create": "Tạo API key",
     "guideTitle": "Thông tin kết nối",
-    "guideEndpointLabel": "Endpoint đồng bộ SKU",
+    "guideEndpointLabel": "Endpoint tiếp nhận đơn hàng",
+    "guideCatalogEndpointLabel": "Endpoint đồng bộ SKU (catalog:write)",
     "guideEndpointUnconfigured": "Chưa có địa chỉ API công khai cho môi trường này. Liên hệ quản trị hệ thống ORCA để nhận địa chỉ kết nối.",
     "guideAuth": "Gửi API key trong header <header>X-Api-Key</header> của mỗi request.",
+    "guideIdempotency": "Gửi X-Idempotency-Key cho mỗi đơn hàng. Khi thử lại, giữ nguyên key và nội dung; thay đổi nội dung sẽ trả về 409. Phản hồi 202 nghĩa là đã tiếp nhận đơn, địa chỉ sẽ được kiểm tra bất đồng bộ.",
     "loadError": "Không tải được danh sách API key.",
     "retry": "Thử lại",
     "tableLabel": "Danh sách API key",
@@ -1073,7 +1075,8 @@
     "columnCreatedAt": "Ngày tạo",
     "columnActions": "Thao tác",
     "scope": {
-      "catalog:write": "Đồng bộ danh mục SKU"
+      "catalog:write": "Đồng bộ danh mục SKU",
+      "orders:write": "Gửi đơn hàng"
     },
     "status": {
       "ACTIVE": "Đang hoạt động",
