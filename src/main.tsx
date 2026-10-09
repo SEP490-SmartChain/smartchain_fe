@@ -60,6 +60,7 @@ const ApiTrafficPage = React.lazy(() => import('@/pages/admin/ApiTrafficPage'));
 const ObservabilityPage = React.lazy(() => import('@/pages/admin/ObservabilityPage'));
 const AdminWebhooksPage = React.lazy(() => import('@/pages/admin/WebhooksPage'));
 const QuotasPage = React.lazy(() => import('@/pages/admin/QuotasPage'));
+const PlatformStaffPage = React.lazy(() => import('@/pages/admin/PlatformStaffPage'));
 
 function PageLoader() {
   return (
@@ -158,6 +159,7 @@ function App() {
                     </>
                   )}
 
+                  <Route path="/admin/staff" element={<PlatformStaffPage />} />
                   <Route path="/admin/warehouses" element={<AdminWarehousesPage />} />
                   <Route path="/admin/tenants" element={<TenantsPage />} />
                   <Route path="/admin/carriers" element={<CarrierCatalogPage />} />
