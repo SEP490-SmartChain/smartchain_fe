@@ -132,7 +132,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
     onClose();
   };
 
-  if (!can('warehouses.manage')) return null;
+  if (!can(warehouse ? 'warehouses.update' : 'warehouses.manage')) return null;
 
   return (
     <Modal
