@@ -212,6 +212,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'inventory.positions.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1118 / UC-46: GET /v1/inventory/positions, own seller or assigned warehouse',
+  ),
+  capability(
+    'inventory.ledger.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1118 / UC-47: GET /v1/inventory/ledger, own seller or assigned warehouse',
+  ),
+  capability(
     'inventory.reservations.view',
     'inventory',
     'TENANT',
