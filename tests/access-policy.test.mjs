@@ -508,6 +508,7 @@ test('default path for every role is a route that role may access', () => {
 test('sidebar derives from the same capability source for every role', () => {
   const expected = {
     ORCA_ADMIN: [
+      'platform_staff_heading',
       'platform_tenants_heading',
       'network_warehouses_heading',
       'shipping_heading',

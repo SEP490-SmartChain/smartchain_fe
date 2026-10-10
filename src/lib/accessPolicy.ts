@@ -117,6 +117,14 @@ const ALL_ORCA_ROLES: readonly OrcaRole[] = ORCA_ROLES;
  */
 export const CAPABILITIES: readonly CapabilityDef[] = [
   capability(
+    'iam.warehouses.assign',
+    'iam',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    'SS-980/SS-982; R3 UC-07: PUT /v1/admin/staff/:id/warehouses',
+  ),
+  capability(
     'workspace.dashboard.view',
     'workspace',
     'ANY',
@@ -444,6 +452,7 @@ export interface RoutePolicy {
 }
 
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
+  { path: '/admin/staff', capability: 'iam.warehouses.assign' },
   { path: '/dashboard', capability: 'workspace.dashboard.view' },
   { path: '/catalog/skus', capability: 'catalog.products.view' },
   { path: '/asns', capability: 'asns.view' },
@@ -509,6 +518,11 @@ export interface NavGroup {
 
 /** Template sidebar dùng chung lọc theo 3 cổng; lọc theo capability để ra template từng role. */
 export const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    key: 'platform_staff_heading',
+    scope: 'platform',
+    items: [{ key: 'platform_staff', href: '/admin/staff', capability: 'iam.warehouses.assign' }],
+  },
   // 1. CỔNG NGƯỜI BÁN (TENANT)
   {
     key: 'overview_heading',
