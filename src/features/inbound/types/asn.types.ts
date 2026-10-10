@@ -65,6 +65,11 @@ export interface CreateAsnInput {
   }>;
 }
 
+export type UpdateAsnInput = Omit<
+  Partial<CreateAsnInput>,
+  'warehouseId' | 'operationKey' | 'expectedArrivalAt'
+> & { version: number; expectedArrivalAt?: string | null };
+
 export interface AsnSkuOption {
   id: string;
   sku: string;

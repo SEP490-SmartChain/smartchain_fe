@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
-import type { Asn, AsnPage, AsnStatus, CreateAsnInput } from '../types/asn.types';
+import type { Asn, AsnPage, AsnStatus, CreateAsnInput, UpdateAsnInput } from '../types/asn.types';
 
 const asnLineSchema = z.object({
   id: z.string().uuid(),
@@ -115,10 +115,7 @@ export const asnApi = {
     return asnSchema.parse(data);
   },
 
-  async update(
-    id: string,
-    input: Omit<Partial<CreateAsnInput>, 'warehouseId' | 'operationKey'> & { version: number },
-  ): Promise<Asn> {
+  async update(id: string, input: UpdateAsnInput): Promise<Asn> {
     const { data } = await apiClient.patch<ApiResponse<unknown>>(
       `/v1/asns/${encodeURIComponent(id)}`,
       input,

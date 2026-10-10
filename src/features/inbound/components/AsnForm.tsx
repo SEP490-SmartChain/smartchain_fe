@@ -120,7 +120,11 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
     try {
       if (draft) {
         const { warehouseId: _warehouseId, ...changes } = payload;
-        await asnApi.update(draft.id, { ...changes, version: draft.version });
+        await asnApi.update(draft.id, {
+          ...changes,
+          expectedArrivalAt: changes.expectedArrivalAt ?? null,
+          version: draft.version,
+        });
       } else await asnApi.create({ ...payload, operationKey: creationKey.current });
       if (principal !== useAuthStore.getState().user) return;
       toast.success(t('saved'));

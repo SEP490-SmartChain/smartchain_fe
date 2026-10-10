@@ -162,15 +162,22 @@ test('pagination follows the supplied cursor', async () => {
   assert.equal((await api.list('', undefined, id)).pagination.nextCursor, id);
 });
 
-test('draft edit sends lines and version, without selecting a new warehouse', async () => {
-  const changes = { version: 1, cartonCount: 3, lines: [{ productId: id, declaredQty: 5 }] };
+test('draft edit sends lines, version and explicit null to clear arrival, without changing warehouse', async () => {
+  const changes = {
+    version: 1,
+    cartonCount: 3,
+    expectedArrivalAt: null,
+    lines: [{ productId: id, declaredQty: 5 }],
+  };
   globalThis.fetch = async (url, options) => {
     assert.equal(new URL(url, 'https://example.test').pathname, `/api/v1/asns/${id}`);
     assert.equal(options.method, 'PATCH');
     assert.deepEqual(JSON.parse(options.body), changes);
     return ok({ ...asn, version: 2 });
   };
-  assert.equal((await api.update(id, changes)).version, 2);
+  const updated = await api.update(id, changes);
+  assert.equal(updated.version, 2);
+  assert.equal(updated.expectedArrivalAt, null);
 });
 
 test('stale version remains a recoverable API conflict', async () => {
