@@ -183,14 +183,7 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'warehouses.view',
     'warehouses',
     'ANY',
-    [
-      'ORCA_ADMIN',
-      'OPS_DISPATCHER',
-      'WAREHOUSE_MANAGER',
-      'WAREHOUSE_STAFF',
-      'SELLER_OWNER',
-      'SELLER_STAFF',
-    ],
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF', 'SELLER_OWNER'],
     'APPROVED',
     R3_MATRIX,
   ),
@@ -199,14 +192,7 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'catalog.products.view',
     'catalog',
     'ANY',
-    [
-      'ORCA_ADMIN',
-      'OPS_DISPATCHER',
-      'WAREHOUSE_MANAGER',
-      'WAREHOUSE_STAFF',
-      'SELLER_OWNER',
-      'SELLER_STAFF',
-    ],
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF', 'SELLER_OWNER'],
     'APPROVED',
     R3_MATRIX,
   ),
@@ -214,9 +200,9 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'catalog.products.manage',
     'catalog',
     'ANY',
-    ['SELLER_OWNER', 'SELLER_STAFF'],
+    ['SELLER_OWNER'],
     'APPROVED',
-    R3_MATRIX,
+    'R3 §2.1 Seller Staff; UC-26–UC-30: SKU write belongs to Seller Owner',
   ),
   capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
@@ -239,7 +225,7 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'rules.view',
     'rules',
     'PLATFORM',
-    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT'],
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
     'APPROVED',
     R3_MATRIX,
   ),
@@ -250,9 +236,9 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'orders.operate',
     'orders',
     'ANY',
-    ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER', 'SELLER_STAFF'],
+    ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'],
     'APPROVED',
-    R3_MATRIX,
+    'R3 §2.1 Seller Staff; UC-65–UC-72: Seller Staff has order read only',
   ),
   capability(
     'shipments.view',
@@ -312,12 +298,19 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   capability(
     'integration.errors.view',
     'integration',
-    'ANY',
-    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
     'APPROVED',
-    R3_MATRIX,
+    'R3 §3.1.3, UC-154: integration health belongs to Admin and Ops',
   ),
-  capability('audit.tenant.view', 'audit', 'TENANT', ['SELLER_OWNER'], 'APPROVED', R3_MATRIX),
+  capability(
+    'audit.tenant.view',
+    'audit',
+    'TENANT',
+    [],
+    'PROPOSED',
+    'R3 §3.1.3, UC-152: technical audit is Admin only; seller evidence stays in business screens',
+  ),
   capability('audit.platform.view', 'audit', 'PLATFORM', ['ORCA_ADMIN'], 'APPROVED', R3_MATRIX),
   capability(
     'platform.tenants.manage',
@@ -822,6 +815,23 @@ export function getDefaultPath(roles: readonly string[]): string {
     if ((roles as readonly string[]).includes(role)) return DEFAULT_PATHS[role];
   }
   return '/403';
+}
+
+/** URL chooses an accessible platform portal; profile keeps the role's home portal. */
+export function getPortal(
+  roles: readonly string[],
+  pathname: string,
+): 'seller' | 'warehouse' | 'operations' | null {
+  const scope = resolveActorScope(roles);
+  if (scope === null) return null;
+  if (scope === 'TENANT') return 'seller';
+  if (pathname === '/warehouse' || pathname.startsWith('/warehouse/')) {
+    return can(roles, 'warehouse.operations.view') ? 'warehouse' : null;
+  }
+  if (pathname === '/settings/profile' && getDefaultPath(roles).startsWith('/warehouse/')) {
+    return 'warehouse';
+  }
+  return 'operations';
 }
 
 function isLinkAllowed(roles: readonly string[], link: NavLink): boolean {

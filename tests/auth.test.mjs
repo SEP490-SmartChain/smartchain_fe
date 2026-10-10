@@ -15,6 +15,8 @@ let getPostLoginPath;
 let getHomePath;
 let getEffectiveRoles;
 let getDefaultPath;
+let getPortal;
+let isRouteAllowed;
 const originalFetch = globalThis.fetch;
 const user = {
   userId: 'test-user',
@@ -68,7 +70,9 @@ before(async () => {
     '/src/features/auth/schemas/resetPassword.schema.ts',
   ));
   ({ getPostLoginPath, getHomePath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
-  ({ getEffectiveRoles, getDefaultPath } = await server.ssrLoadModule('/src/lib/accessPolicy.ts'));
+  ({ getEffectiveRoles, getDefaultPath, getPortal, isRouteAllowed } = await server.ssrLoadModule(
+    '/src/lib/accessPolicy.ts',
+  ));
 });
 after(async () => {
   globalThis.fetch = originalFetch;
@@ -97,6 +101,56 @@ test('login sends the BE contract with cookies and stores the safe profile', asy
   assert.equal(useAuthStore.getState().accessToken, 'test-access');
   assert.equal(useTenantStore.getState().activeTenantId, user.tenantId);
   assert.deepEqual(useTenantStore.getState().permissions, user.permissions);
+});
+
+test('SS-976: API login, session and portal redirect agree for all seven roles', async () => {
+  const cases = [
+    ['ORCA_ADMIN', 'PLATFORM', '/admin/tenants', 'operations'],
+    ['OPS_DISPATCHER', 'PLATFORM', '/shipments', 'operations'],
+    ['WAREHOUSE_MANAGER', 'PLATFORM', '/warehouse/inbound', 'warehouse'],
+    ['WAREHOUSE_STAFF', 'PLATFORM', '/warehouse/inbound', 'warehouse'],
+    ['ORCA_ACCOUNTANT', 'PLATFORM', '/reconciliation', 'operations'],
+    ['SELLER_OWNER', 'TENANT', '/dashboard', 'seller'],
+    ['SELLER_STAFF', 'TENANT', '/dashboard', 'seller'],
+  ];
+  for (const [role, actorScope, path, portal] of cases) {
+    useAuthStore.getState().clear();
+    globalThis.fetch = async (url, options) => {
+      assert.equal(url, '/api/v1/auth/login');
+      assert.equal(options.method, 'POST');
+      return ok(
+        session(`token-${role}`, {
+          actorScope,
+          roles: [role],
+          tenantId: actorScope === 'TENANT' ? user.tenantId : null,
+        }),
+      );
+    };
+    const loggedIn = await apiClient.login({
+      email: user.email,
+      password: 'Test-password-1',
+      rememberSession: false,
+    });
+    assert.deepEqual(useAuthStore.getState().user, loggedIn);
+    assert.equal(useTenantStore.getState().activeTenantId, loggedIn.tenantId);
+    const roles = getEffectiveRoles(loggedIn.roles, loggedIn.actorScope);
+    assert.equal(getPostLoginPath(loggedIn, null), path);
+    assert.equal(isRouteAllowed(roles, path), true);
+    assert.equal(getPortal(roles, path), portal);
+  }
+});
+
+test('SS-976: refreshed Seller Staff profile loses Owner routes without logout', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async () => ok({ ...user, roles: ['SELLER_STAFF'] });
+  await apiClient.currentUser();
+  const refreshed = useAuthStore.getState().user;
+  const roles = getEffectiveRoles(refreshed.roles, refreshed.actorScope);
+  for (const path of ['/catalog/skus', '/billing', '/settings/api-keys', '/iam/users']) {
+    assert.equal(isRouteAllowed(roles, path), false, path);
+    assert.equal(getPostLoginPath(refreshed, { from: path }), '/dashboard', path);
+  }
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
 });
 
 test('public tax lookup uses VietQR without leaking the SmartChain session', async () => {

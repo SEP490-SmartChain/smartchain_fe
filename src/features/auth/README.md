@@ -21,9 +21,12 @@ Logout waits for pending refresh and prevents new rotations until revocation com
 logout keeps the session visible so the user can retry. Tenant context and permissions come
 from the verified profile, never a client-supplied tenant header.
 
-SUPER_ADMIN lands on /admin/tenants; workspace users land on /dashboard. Protected redirects
-preserve an allowed internal destination. Admin menus and routes require SUPER_ADMIN; the API
-remains responsible for enforcing permissions. Workspace slug can disambiguate shared emails.
+Portal redirects use the verified roles through `accessPolicy.ts`: Admin lands on
+`/admin/tenants`, Ops on `/shipments`, Warehouse Manager/Staff on `/warehouse/inbound`,
+Accountant on `/reconciliation`, and Seller Owner/Staff on `/dashboard`. Protected redirects
+preserve only an allowed internal destination. Missing, legacy or mixed-scope roles fail closed.
+Menus, search and routes share the same policy; the API remains responsible for enforcing
+permissions. Workspace slug can disambiguate shared emails.
 
 Run `npm test` for contract, validation, session restoration, concurrent refresh, logout,
 permission and redirect regression tests. Tests use Node's test runner and Vite's module loader;
