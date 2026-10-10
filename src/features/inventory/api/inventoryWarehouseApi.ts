@@ -4,7 +4,7 @@ import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 // Inventory only consumes identifiers/labels from the platform warehouse projection.
 // Platform warehouses have tenantId=null; legacy seller warehouse DTOs are incompatible.
-const optionSchema = z.object({ id: z.string().uuid(), code: z.string(), name: z.string() });
+const optionSchema = z.object({ id: z.guid(), code: z.string(), name: z.string() });
 const pageSchema = z.object({
   items: z.array(optionSchema),
   pagination: z.object({

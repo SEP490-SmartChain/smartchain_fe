@@ -5,7 +5,7 @@ import { apiClient, type ApiResponse } from '@/services/apiClient';
 const quantity = z.number().int().nonnegative();
 const positionSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.guid(),
     sku: z.string(),
     productName: z.string(),
     warehouseCode: z.string(),
@@ -30,7 +30,7 @@ const positionSchema = z
   .strict();
 const movementSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.guid(),
     sku: z.string(),
     warehouseCode: z.string(),
     lotCode: z.string().nullable(),
@@ -41,7 +41,7 @@ const movementSchema = z
     onHandAfter: quantity,
     reservedAfter: quantity,
     refType: z.string(),
-    refId: z.string().uuid(),
+    refId: z.guid(),
     actorReference: z.string(),
     createdAt: z.string().datetime(),
   })

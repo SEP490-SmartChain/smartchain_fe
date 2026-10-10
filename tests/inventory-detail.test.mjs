@@ -152,7 +152,8 @@ test('UC-46 and UC-47 capabilities preserve their separate actor scope', () => {
 });
 
 test('inventory accepts platform warehouse labels with nullable seller scope and strips unused fields', async () => {
-  globalThis.fetch = async () => ok([{ id, code: 'HN', name: 'Synthetic warehouse', tenantId: null,
+  const seedId = '00000015-0000-0000-0000-000000000001';
+  globalThis.fetch = async () => ok([{ id: seedId, code: 'HN', name: 'Synthetic warehouse', tenantId: null,
     ownershipScope: 'PLATFORM', contactPhone: 'synthetic-private-field' }]);
-  assert.deepEqual((await warehouseApi.listInventoryWarehouses()).items, [{ id, code: 'HN', name: 'Synthetic warehouse' }]);
+  assert.deepEqual((await warehouseApi.listInventoryWarehouses()).items, [{ id: seedId, code: 'HN', name: 'Synthetic warehouse' }]);
 });
