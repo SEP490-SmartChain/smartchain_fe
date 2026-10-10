@@ -147,6 +147,9 @@ test('UC-46 and UC-47 capabilities preserve their separate actor scope', () => {
       policy.can([role], 'inventory.ledger.view'),
       ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'].includes(role),
     );
+    const links = policy.getVisibleNavGroups([role], false).flatMap((group) => group.items);
+    assert.equal(links.some((link) => link.href === '/inventory'),
+      ['SELLER_OWNER', 'SELLER_STAFF', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'].includes(role));
   }
   assert.deepEqual(policy.getEffectiveRoles(['SELLER_OWNER', 'WAREHOUSE_MANAGER'], null), []);
 });

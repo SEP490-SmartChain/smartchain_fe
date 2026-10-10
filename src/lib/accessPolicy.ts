@@ -642,6 +642,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'platform',
     items: [
       {
+        key: 'inventory',
+        href: '/inventory',
+        anyCapability: ['inventory.positions.view', 'inventory.ledger.view'],
+      },
+      {
         key: 'admin_warehouses',
         href: '/admin/warehouses',
         capability: 'platform.warehouses.view',
