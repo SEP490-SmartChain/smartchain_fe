@@ -75,6 +75,10 @@ export function InventoryDetailPanel({ kind }: { kind: 'positions' | 'ledger' })
     () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }),
     [locale],
   );
+  const timestamp = useMemo(
+    () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }),
+    [locale],
+  );
   const columns: ColumnDef<DetailRow>[] = [
     { key: 'sku', label: t('sku') },
     { key: 'warehouseCode', label: t('warehouse') },
@@ -148,7 +152,7 @@ export function InventoryDetailPanel({ kind }: { kind: 'positions' | 'ledger' })
             key: 'createdAt',
             label: t('time'),
             render: (row: DetailRow) =>
-              'createdAt' in row ? date.format(new Date(row.createdAt)) : '',
+              'createdAt' in row ? timestamp.format(new Date(row.createdAt)) : '',
           },
         ]),
   ];
@@ -174,7 +178,11 @@ export function InventoryDetailPanel({ kind }: { kind: 'positions' | 'ledger' })
         <Select
           label={t('warehouse')}
           value={input.warehouseId ?? ''}
-          placeholder={warehouseError ? t('warehouseLoadError') : t('selectWarehouse')}
+          placeholder={
+            warehouseError
+              ? t('warehouseLoadError')
+              : t(actorScope === 'TENANT' ? 'allWarehouses' : 'selectWarehouse')
+          }
           isPlaceholderDisabled={actorScope === 'PLATFORM'}
           disabled={Boolean(warehouseError)}
           options={warehouses.map((warehouse) => ({

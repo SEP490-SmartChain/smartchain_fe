@@ -1184,6 +1184,7 @@
       "RELOCATE": "Chuyển vị trí"
     },
     "selectWarehouse": "Chọn kho trong phạm vi được giao",
+    "allWarehouses": "Tất cả kho",
     "warehouseLoadError": "Không tải được danh sách kho",
     "lotStatus": "Trạng thái lot",
     "allLotStatuses": "Mọi trạng thái lot",

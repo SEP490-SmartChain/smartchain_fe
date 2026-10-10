@@ -1184,6 +1184,7 @@
       "RELOCATE": "Relocation"
     },
     "selectWarehouse": "Select an assigned warehouse",
+    "allWarehouses": "All warehouses",
     "warehouseLoadError": "Could not load warehouses",
     "lotStatus": "Lot status",
     "allLotStatuses": "All lot states",
