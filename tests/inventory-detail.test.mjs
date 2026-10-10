@@ -8,6 +8,7 @@ let server;
 let api;
 let auth;
 let policy;
+let warehouseApi;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const filters = {
@@ -56,6 +57,7 @@ before(async () => {
   ));
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
+  warehouseApi = await server.ssrLoadModule('/src/features/inventory/api/inventoryWarehouseApi.ts');
   auth
     .getState()
     .setSession({
@@ -147,4 +149,10 @@ test('UC-46 and UC-47 capabilities preserve their separate actor scope', () => {
     );
   }
   assert.deepEqual(policy.getEffectiveRoles(['SELLER_OWNER', 'WAREHOUSE_MANAGER'], null), []);
+});
+
+test('inventory accepts platform warehouse labels with nullable seller scope and strips unused fields', async () => {
+  globalThis.fetch = async () => ok([{ id, code: 'HN', name: 'Synthetic warehouse', tenantId: null,
+    ownershipScope: 'PLATFORM', contactPhone: 'synthetic-private-field' }]);
+  assert.deepEqual((await warehouseApi.listInventoryWarehouses()).items, [{ id, code: 'HN', name: 'Synthetic warehouse' }]);
 });
