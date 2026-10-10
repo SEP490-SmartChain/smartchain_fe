@@ -231,10 +231,10 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   capability(
     'catalog.products.view',
     'catalog',
-    'ANY',
-    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF', 'SELLER_OWNER'],
+    'TENANT',
+    ['SELLER_OWNER'],
     'APPROVED',
-    R3_MATRIX,
+    'UC-26–30: current priced catalog API is Owner-only; operational SKU lookups use scoped inbound/inventory APIs',
   ),
   capability(
     'catalog.products.manage',
