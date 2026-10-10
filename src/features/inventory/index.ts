@@ -5,6 +5,7 @@
  * (FE dependency rule #2, SDD mục 1.2.1)
  */
 export { StockLevelsPanel } from './components/StockLevelsPanel';
+export { InventoryDetailPanel } from './components/InventoryDetailPanel';
 export { ActiveReservationsPanel } from './components/ActiveReservationsPanel';
 export type {
   ActiveReservation,
