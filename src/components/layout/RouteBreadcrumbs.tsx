@@ -13,6 +13,7 @@ interface BreadcrumbItem {
 }
 
 const ADMIN_LABEL_KEYS: Record<string, string> = {
+  '/admin/staff': 'platform_staff',
   '/admin/tenants': 'admin_tenants',
   '/admin/warehouses': 'admin_warehouses',
   '/admin/carriers': 'admin_carriers',

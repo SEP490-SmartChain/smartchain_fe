@@ -193,7 +193,6 @@ test('each ORCA role has the expected action visibility', () => {
     ['ORCA_ACCOUNTANT', PLATFORM, 'invoice.view'],
     ['SELLER_OWNER', TENANT, 'apikey.manage'],
     ['SELLER_OWNER', TENANT, 'catalog.products.manage'],
-    ['SELLER_STAFF', TENANT, 'orders.operate'],
     ['SELLER_STAFF', TENANT, 'inventory.view'],
   ];
   for (const [role, scope, capability] of allowed) {
@@ -215,6 +214,8 @@ test('each ORCA role has the expected action visibility', () => {
     ['SELLER_OWNER', TENANT, 'audit.platform.view'],
     ['SELLER_STAFF', TENANT, 'apikey.manage'],
     ['SELLER_STAFF', TENANT, 'iam.users.manage'],
+    ['SELLER_STAFF', TENANT, 'catalog.products.manage'],
+    ['SELLER_STAFF', TENANT, 'orders.operate'],
   ];
   for (const [role, scope, capability] of denied) {
     assert.equal(
@@ -371,16 +372,10 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
       'ORCA_ACCOUNTANT',
       PLATFORM,
       {
-        allow: [
-          '/reconciliation',
-          '/billing',
-          '/rules',
-          '/orders',
-          '/dashboard',
-          '/analytics',
-          '/integration-errors',
-        ],
+        allow: ['/reconciliation', '/billing', '/orders', '/dashboard', '/analytics'],
         deny: [
+          '/rules',
+          '/integration-errors',
           '/warehouses',
           '/settings/general',
           '/settings/integrations',
@@ -414,10 +409,10 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
           '/settings/api-keys',
           '/settings/webhooks',
           '/iam/users',
-          '/audit',
-          '/integration-errors',
         ],
         deny: [
+          '/audit',
+          '/integration-errors',
           '/rules',
           '/reconciliation',
           '/admin/tenants',
@@ -432,17 +427,10 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
       'SELLER_STAFF',
       TENANT,
       {
-        allow: [
-          '/dashboard',
-          '/catalog/skus',
-          '/asns',
-          '/orders',
-          '/inventory',
-          '/warehouses',
-          '/shipments',
-          '/analytics',
-        ],
+        allow: ['/dashboard', '/asns', '/orders', '/inventory', '/shipments', '/analytics'],
         deny: [
+          '/catalog/skus',
+          '/warehouses',
           '/returns',
           '/statements',
           '/reconciliation',
@@ -520,6 +508,7 @@ test('default path for every role is a route that role may access', () => {
 test('sidebar derives from the same capability source for every role', () => {
   const expected = {
     ORCA_ADMIN: [
+      'platform_staff_heading',
       'platform_tenants_heading',
       'network_warehouses_heading',
       'shipping_heading',
@@ -544,12 +533,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'account_heading',
     ],
     WAREHOUSE_STAFF: ['warehouse_ops_heading', 'account_heading'],
-    ORCA_ACCOUNTANT: [
-      'shipping_heading',
-      'finance_heading',
-      'monitoring_heading',
-      'account_heading',
-    ],
+    ORCA_ACCOUNTANT: ['finance_heading', 'monitoring_heading', 'account_heading'],
     SELLER_OWNER: [
       'overview_heading',
       'goods_heading',
@@ -728,4 +712,54 @@ test('role display shows every effective ORCA role and never a legacy label', ()
   // Multi-role: hiển thị dùng union hiệu lực trong cùng scope, không lấy phần tử đầu.
   const multi = effective(['SELLER_OWNER', 'SELLER_STAFF'], TENANT);
   assert.deepEqual(multi, ['SELLER_OWNER', 'SELLER_STAFF']);
+});
+
+test('SS-976: login and portal selection agree for all seven roles', () => {
+  const destinations = {
+    ORCA_ADMIN: ['/admin/tenants', 'operations'],
+    OPS_DISPATCHER: ['/shipments', 'operations'],
+    WAREHOUSE_MANAGER: ['/warehouse/inbound', 'warehouse'],
+    WAREHOUSE_STAFF: ['/warehouse/inbound', 'warehouse'],
+    ORCA_ACCOUNTANT: ['/reconciliation', 'operations'],
+    SELLER_OWNER: ['/dashboard', 'seller'],
+    SELLER_STAFF: ['/dashboard', 'seller'],
+  };
+  for (const [role, scope] of ALL_ROLES) {
+    const [path, portal] = destinations[role];
+    assert.equal(getPostLoginPath(user([role], scope), null), path);
+    assert.equal(policy.getPortal([role], path), portal);
+    assert.equal(policy.isRouteAllowed([role], path), true);
+  }
+  assert.equal(policy.getPortal(['ORCA_ADMIN', 'SELLER_OWNER'], '/admin/tenants'), null);
+  assert.equal(policy.getPortal(['SUPER_ADMIN'], '/admin/tenants'), null);
+  assert.equal(policy.getPortal(['OPS_DISPATCHER'], '/warehouse/inbound'), null);
+});
+
+test('SS-972: Seller Staff only reads orders and stock and prepares ASNs', () => {
+  const roles = effective(SELLER_STAFF, TENANT);
+  for (const capability of ['catalog.products.manage', 'orders.operate']) {
+    assert.equal(policy.can(roles, capability), false, capability);
+  }
+  for (const path of ['/catalog/skus', '/warehouses', '/billing', '/iam/users']) {
+    assert.equal(policy.isRouteAllowed(roles, path), false, path);
+    assert.equal(hrefs(SELLER_STAFF, TENANT).includes(path), false, path);
+  }
+  for (const path of ['/asns', '/orders', '/inventory']) {
+    assert.equal(policy.isRouteAllowed(roles, path), true, path);
+  }
+  assert.equal(policy.can(effective(OWNER, TENANT), 'catalog.products.manage'), true);
+});
+
+test('SS-972: business evidence does not grant technical logs or routing rules', () => {
+  for (const [role, scope] of [
+    ['SELLER_OWNER', TENANT],
+    ['ORCA_ACCOUNTANT', PLATFORM],
+  ]) {
+    const roles = effective([role], scope);
+    for (const path of ['/audit', '/integration-errors', '/rules']) {
+      assert.equal(policy.isRouteAllowed(roles, path), false, `${role}: ${path}`);
+      assert.equal(hrefs([role], scope).includes(path), false, `${role}: ${path}`);
+    }
+  }
+  assert.equal(policy.isRouteAllowed(effective(OPS, PLATFORM), '/integration-errors'), true);
 });

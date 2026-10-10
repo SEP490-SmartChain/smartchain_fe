@@ -1,4 +1,25 @@
 {
+  "PlatformStaff": {
+    "title": "ORCA staff warehouse access",
+    "description": "Assign or revoke access to platform warehouses for active ORCA personnel.",
+    "editTitle": "Warehouse access — {name}",
+    "hint": "Select warehouses this person may access. Clear all selections to revoke every warehouse assignment. Role permissions still apply.",
+    "warehouses": "Warehouses",
+    "unlisted": "Assigned warehouse not on this page ({id})",
+    "noWarehouses": "No active platform warehouses are available.",
+    "invalidSelection": "Choose up to 100 different warehouses.",
+    "loading": "Loading…",
+    "loadMore": "Load more",
+    "retry": "Reload",
+    "cancel": "Cancel",
+    "save": "Save assignments",
+    "saved": "Warehouse assignments saved.",
+    "loadError": "Could not load staff or warehouses. Try again.",
+    "saveError": "Could not save warehouse assignments. Try again.",
+    "empty": "No active ORCA staff accounts.",
+    "assignedCount": "Assigned warehouses: {count}",
+    "assign": "Assign warehouses"
+  },
   "Sidebar": {
     "workspace_heading": "Workspace",
     "dashboard": "Dashboard",
@@ -77,7 +98,9 @@
     "connected_title": "Merchant connected",
     "connected_copy": "Services and carrier connections are operating normally.",
     "online": "All systems operational",
-    "warehouses": "Warehouse Network"
+    "warehouses": "Warehouse Network",
+    "platform_staff_heading": "ORCA personnel",
+    "platform_staff": "Staff warehouse access"
   },
   "Topbar": {
     "title_dashboard": "Operations Dashboard",
@@ -1196,5 +1219,10 @@
       "EXPIRED": "Expired",
       "RECALLED": "Recalled"
     }
+  },
+  "Portals": {
+    "seller": "Seller Portal",
+    "warehouse": "Warehouse Portal",
+    "operations": "ORCA Operations"
   }
 }

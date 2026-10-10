@@ -34,3 +34,5 @@ export type {
   WebhookEventTopic,
   WebhookTestResult,
 } from './types/webhook.types';
+
+export { PlatformStaffAssignments } from './components/PlatformStaffAssignments';

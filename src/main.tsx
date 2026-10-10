@@ -9,8 +9,8 @@ import '@fontsource/archivo/500.css';
 import '@fontsource/archivo/600.css';
 import '@fontsource/archivo/700.css';
 
-import AdminLayout from '@/components/layout/AdminLayout';
 import LoginLayout from '@/components/layout/LoginLayout';
+import { PortalLayout } from '@/components/layout/PortalLayout';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import RootLayout from '@/components/layout/RootLayout';
 import HomePage from '@/pages/public/HomePage';
@@ -48,9 +48,16 @@ const ReturnsPage = React.lazy(() => import('@/pages/workspace/ReturnsPage'));
 const StatementsPage = React.lazy(() => import('@/pages/workspace/StatementsPage'));
 const ExceptionsPage = React.lazy(() => import('@/pages/workspace/ExceptionsPage'));
 const AdminWarehousesPage = React.lazy(() => import('@/pages/admin/AdminWarehousesPage'));
-const WarehouseOpsPage = React.lazy(() => import('@/pages/warehouse/WarehouseOpsPage'));
+const WarehouseInboundPage = React.lazy(() => import('@/pages/warehouse/InboundPage'));
+const WarehouseReceivingPage = React.lazy(() => import('@/pages/warehouse/ReceivingPage'));
+const WarehousePutawayPage = React.lazy(() => import('@/pages/warehouse/PutawayPage'));
+const WarehousePickingPage = React.lazy(() => import('@/pages/warehouse/PickingPage'));
+const WarehousePackingPage = React.lazy(() => import('@/pages/warehouse/PackingPage'));
+const WarehouseHandoverPage = React.lazy(() => import('@/pages/warehouse/HandoverPage'));
+const WarehouseReturnsPage = React.lazy(() => import('@/pages/warehouse/ReturnsPage'));
+const WarehouseCountsPage = React.lazy(() => import('@/pages/warehouse/CountsPage'));
 
-// Super Admin console
+// ORCA operations portal
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
 const CarrierCatalogPage = React.lazy(() => import('@/pages/admin/CarrierCatalogPage'));
 const PlansPage = React.lazy(() => import('@/pages/admin/PlansPage'));
@@ -60,6 +67,7 @@ const ApiTrafficPage = React.lazy(() => import('@/pages/admin/ApiTrafficPage'));
 const ObservabilityPage = React.lazy(() => import('@/pages/admin/ObservabilityPage'));
 const AdminWebhooksPage = React.lazy(() => import('@/pages/admin/WebhooksPage'));
 const QuotasPage = React.lazy(() => import('@/pages/admin/QuotasPage'));
+const PlatformStaffPage = React.lazy(() => import('@/pages/admin/PlatformStaffPage'));
 
 function PageLoader() {
   return (
@@ -104,9 +112,9 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route
                 element={
-                  <AdminLayout>
+                  <PortalLayout>
                     <RouteOutlet />
-                  </AdminLayout>
+                  </PortalLayout>
                 }
               >
                 {/* Trang 403 + redirect helper nằm ngoài route matrix. */}
@@ -131,14 +139,14 @@ function App() {
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/warehouses" element={<WarehousesPage />} />
                   <Route path="/warehouse" element={<Navigate to="/warehouse/inbound" replace />} />
-                  <Route path="/warehouse/inbound" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/receiving" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/putaway" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/picking" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/packing" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/handover" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/returns" element={<WarehouseOpsPage />} />
-                  <Route path="/warehouse/counts" element={<WarehouseOpsPage />} />
+                  <Route path="/warehouse/inbound" element={<WarehouseInboundPage />} />
+                  <Route path="/warehouse/receiving" element={<WarehouseReceivingPage />} />
+                  <Route path="/warehouse/putaway" element={<WarehousePutawayPage />} />
+                  <Route path="/warehouse/picking" element={<WarehousePickingPage />} />
+                  <Route path="/warehouse/packing" element={<WarehousePackingPage />} />
+                  <Route path="/warehouse/handover" element={<WarehouseHandoverPage />} />
+                  <Route path="/warehouse/returns" element={<WarehouseReturnsPage />} />
+                  <Route path="/warehouse/counts" element={<WarehouseCountsPage />} />
                   <Route path="/rules" element={<RulesPage />} />
                   <Route path="/shipments" element={<ShipmentsPage />} />
                   <Route path="/exceptions" element={<ExceptionsPage />} />
@@ -158,6 +166,7 @@ function App() {
                     </>
                   )}
 
+                  <Route path="/admin/staff" element={<PlatformStaffPage />} />
                   <Route path="/admin/warehouses" element={<AdminWarehousesPage />} />
                   <Route path="/admin/tenants" element={<TenantsPage />} />
                   <Route path="/admin/carriers" element={<CarrierCatalogPage />} />

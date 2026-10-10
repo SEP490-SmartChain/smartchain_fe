@@ -1,5 +1,5 @@
 import { UnderConstruction } from '@/components/Common';
 
-export default function ObservabilityPage() {
+export default function InboundPage() {
   return <UnderConstruction />;
 }
