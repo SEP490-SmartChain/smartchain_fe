@@ -1,6 +1,6 @@
 # features/rules
 
-SS-1086 implements `/rules` for RP3 FU-35 (UC-96–98), FU-41 (UC-76), BR-25,
+SS-1086 implements `/rules` for RP3 FU-35 (UC-96–97), FU-41 (UC-76), BR-25,
 BR-42 and BR-43. It consumes the SS-1084 configuration API in `smartchain_be`;
 deploy that API and its migration before enabling this screen.
 
