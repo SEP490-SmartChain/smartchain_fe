@@ -18,7 +18,7 @@ const asnLineSchema = z.object({
   declaredLotCode: z.string().nullable(),
   declaredExpiryOn: z.string().datetime().nullable(),
 });
-const asnSchema = z.object({
+export const asnSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
   warehouseId: z.string().uuid(),
