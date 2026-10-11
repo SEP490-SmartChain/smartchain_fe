@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { tenantManagementApi } from '../api/tenantManagementApi';
+
 import type {
   SystemDashboardOverview,
   TenantDetail,
@@ -39,16 +40,10 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
       setIsLoading(true);
       setError(null);
       try {
-        const [pageData] = await Promise.all([tenantManagementApi.list(q), fetchOverview()]);
-        const items = Array.isArray(pageData)
-          ? pageData
-          : ((pageData as unknown as { items?: TenantSummary[] })?.items ?? []);
-        const pagination = (
-          pageData as unknown as { pagination?: { hasNext?: boolean; nextCursor?: string | null } }
-        )?.pagination;
-        setTenants(items);
-        setHasNextPage(Boolean(pagination?.hasNext));
-        setNextCursor(pagination?.nextCursor ?? null);
+        const [page] = await Promise.all([tenantManagementApi.list(q), fetchOverview()]);
+        setTenants(page.items);
+        setHasNextPage(page.pagination.hasNext);
+        setNextCursor(page.pagination.nextCursor);
       } catch (err) {
         const caughtError = err instanceof Error ? err : new Error(String(err));
         setError(caughtError);

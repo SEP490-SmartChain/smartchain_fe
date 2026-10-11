@@ -16,3 +16,14 @@ retain the form and offer reload. The panel reports same-day eligibility without
 claiming an implemented SLA alert or changing existing work/bin labels.
 
 Backend contract: `smartchain_be/docs/SS-1305-WAREHOUSE-CALENDAR.md`.
+
+## ORCA API response contract
+
+Directory APIs return arrays in `data` and cursor information in `meta.pagination`.
+Warehouse DTOs include nullable `tenantId`/`districtCode`, region, operating hours and
+`version`; ORCA platform ownership is represented by `tenantId: null`.
+Creation requires `region`. Status changes call `PATCH /v1/warehouses/:id/status`
+with `status`, `reason` and `expectedVersion`, and reload confirmed server data.
+Request/validation errors render a retry state rather than an empty directory.
+
+Regression checks: `node --test tests/orca-api-contracts.test.mjs`.

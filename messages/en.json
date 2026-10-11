@@ -1,4 +1,21 @@
 {
+  "WarehouseDirectory": {
+    "loadError": "Could not load warehouses.",
+    "retry": "Retry",
+    "statusTitle": "Change warehouse status",
+    "statusSaved": "Warehouse status updated.",
+    "statusError": "Could not update warehouse status.",
+    "confirmDisable": "Disable warehouse {name}?",
+    "confirmEnable": "Enable warehouse {name}?",
+    "reason": "Reason for change",
+    "reasonInvalid": "Enter a reason between 3 and 500 characters.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "region": "Operating region",
+    "north": "North",
+    "central": "Central",
+    "south": "South"
+  },
   "PlatformStaff": {
     "title": "ORCA staff warehouse access",
     "description": "Assign or revoke access to platform warehouses for active ORCA personnel.",
@@ -524,6 +541,8 @@
     "userActions": "Actions for {name}",
     "closeActions": "Close user actions",
     "moreRoles": "+{count} more",
+    "roleSellerOwner": "Seller Owner",
+    "roleSellerStaff": "Seller Staff",
     "roleTenantAdmin": "Tenant Admin",
     "roleDispatcher": "Logistics Dispatcher",
     "roleAccountant": "Finance Accountant",

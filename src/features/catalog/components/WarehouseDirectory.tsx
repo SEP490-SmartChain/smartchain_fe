@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, Fragment } from 'react';
+import { useCallback, useEffect, useRef, useState, Fragment, type ReactNode } from 'react';
 
 import {
   ChevronDown,
@@ -21,6 +21,7 @@ import { Input } from '@/components/Common/Input/Input';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { AddWarehouseModal } from './AddWarehouseModal';
@@ -30,9 +31,18 @@ import { WarehouseLayoutPanel } from './WarehouseLayoutPanel';
 import { WarehouseStatusModal } from './WarehouseStatusModal';
 import { warehouseApi } from '../api/warehouseApi';
 
-import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
+import type {
+  Warehouse,
+  WarehouseFilters,
+  WarehousePage,
+  WarehouseStatus,
+} from '../types/warehouse';
 
-export function WarehouseDirectory() {
+interface WarehouseDirectoryProps {
+  headerAction?: ReactNode;
+}
+
+export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {}) {
   const t = useTranslations('Warehouses');
   const locale = useLocale();
   const { can } = useAccess();
@@ -43,7 +53,7 @@ export function WarehouseDirectory() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const requestRevision = useRef(0);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,9 +65,7 @@ export function WarehouseDirectory() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
-  const cache = useRef<
-    Record<number, { items: Warehouse[]; cursor: string | null; hasNext: boolean }>
-  >({});
+  const cache = useRef<Record<number, WarehousePage>>({});
 
   const invalidateRequests = useCallback(() => {
     requestRevision.current++;
@@ -87,20 +95,19 @@ export function WarehouseDirectory() {
         setWarehouses(result.items);
         setHasNextPage(result.pagination.hasNext);
         setNextCursor(result.pagination.nextCursor);
-        cache.current[page] = {
-          items: result.items,
-          cursor: result.pagination.nextCursor,
-          hasNext: result.pagination.hasNext,
-        };
+        cache.current[page] = result;
       } catch (failure) {
         if (revision === requestRevision.current) {
-          setError(failure instanceof Error ? failure : new Error(String(failure)));
+          setWarehouses([]);
+          setHasNextPage(false);
+          setNextCursor(null);
+          setError(failure instanceof ApiError ? failure.message : t('loadError'));
         }
       } finally {
         if (revision === requestRevision.current) setIsLoading(false);
       }
     },
-    [debouncedSearch, filters.status],
+    [debouncedSearch, filters.status, t],
   );
 
   useEffect(() => {
@@ -120,8 +127,9 @@ export function WarehouseDirectory() {
     if (cache.current[page]) {
       invalidateRequests();
       setWarehouses(cache.current[page].items);
-      setNextCursor(cache.current[page].cursor);
-      setHasNextPage(cache.current[page].hasNext);
+      setNextCursor(cache.current[page].pagination.nextCursor);
+      setHasNextPage(cache.current[page].pagination.hasNext);
+      setError(null);
       setIsLoading(false);
       setCurrentPage(page);
     } else if (page > currentPage && nextCursor) {
@@ -139,12 +147,13 @@ export function WarehouseDirectory() {
           <p className="mt-1.5 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          {canManage && (
-            <Button variant="primary" onClick={() => setAddModalOpen(true)}>
-              <Plus size={16} />
-              {t('addWarehouse')}
-            </Button>
-          )}
+          {canManage &&
+            (headerAction ?? (
+              <Button variant="primary" onClick={() => setAddModalOpen(true)}>
+                <Plus size={16} />
+                {t('addWarehouse')}
+              </Button>
+            ))}
         </div>
       </header>
 
@@ -187,7 +196,8 @@ export function WarehouseDirectory() {
 
       {error ? (
         <Alert variant="error" title={t('loadError')}>
-          <Button variant="outline" onClick={() => void fetchWarehouses()}>
+          <p>{error}</p>
+          <Button variant="outline" onClick={() => void fetchWarehouses(undefined, 1)}>
             {t('retry')}
           </Button>
         </Alert>

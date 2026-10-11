@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -310,26 +311,25 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label>
-            {t('region')}
+          <div>
             {warehouse ? (
-              <>
+              <label>
+                {t('region')}
                 <p>{t(`regions.${warehouse.region}`)}</p>
                 <input type="hidden" {...register('region')} />
-              </>
+              </label>
             ) : (
-              <select
+              <Select
                 {...register('region')}
-                className="block w-full rounded border p-2 bg-[var(--sc-bg-primary)]"
-              >
-                {['NORTH', 'CENTRAL', 'SOUTH'].map((v) => (
-                  <option key={v} value={v}>
-                    {t(`regions.${v}`)}
-                  </option>
-                ))}
-              </select>
+                label={t('region')}
+                options={(['NORTH', 'CENTRAL', 'SOUTH'] as const).map((value) => ({
+                  value,
+                  label: t(`regions.${value}`),
+                }))}
+                error={errors.region?.message}
+              />
             )}
-          </label>
+          </div>
           <p>{t('timeZone')}: Asia/Ho_Chi_Minh</p>
           {(['operatingStartMinute', 'operatingEndMinute', 'cutoffMinute'] as const).map(
             (field) => (

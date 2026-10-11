@@ -7,18 +7,18 @@ import type {
   WarehouseFilters,
   WarehousePage,
   CreateWarehousePayload,
-  WarehouseStatus,
+  SetWarehouseStatusPayload,
 } from '../types/warehouse';
 
 export const warehouseSchema = z.object({
   id: z.string().uuid(),
-  version: z.number().int().positive(),
+  tenantId: z.string().uuid().nullable(),
   region: z.enum(['NORTH', 'CENTRAL', 'SOUTH']),
   timeZone: z.string(),
-  cutoffMinute: z.number().int(),
-  operatingStartMinute: z.number().int(),
-  operatingEndMinute: z.number().int(),
-  tenantId: z.string().uuid().nullable(),
+  cutoffMinute: z.number().int().min(0).max(1439),
+  operatingStartMinute: z.number().int().min(0).max(1439),
+  operatingEndMinute: z.number().int().min(1).max(1440),
+  version: z.number().int().positive(),
   code: z.string(),
   name: z.string(),
   address: z.string(),
@@ -108,20 +108,6 @@ export const warehouseApi = {
     return warehousePageSchema.parse({ items: data, pagination: meta.pagination });
   },
 
-  async setStatus(
-    id: string,
-    status: WarehouseStatus,
-    reason: string,
-    expectedVersion: number,
-  ): Promise<Warehouse> {
-    const { data } = await apiClient.patch<ApiResponse<unknown>>(
-      `/v1/warehouses/${encodeURIComponent(id)}/status`,
-      { status, reason, expectedVersion },
-      { silent: true },
-    );
-    return warehouseSchema.parse(data);
-  },
-
   async update(
     id: string,
     payload: Partial<Omit<CreateWarehousePayload, 'code' | 'region'>> & { expectedVersion: number },
@@ -136,6 +122,15 @@ export const warehouseApi = {
 
   async create(payload: CreateWarehousePayload): Promise<Warehouse> {
     const { data } = await apiClient.post<ApiResponse<unknown>>('/v1/warehouses', payload);
+    return warehouseSchema.parse(data);
+  },
+
+  async setStatus(id: string, payload: SetWarehouseStatusPayload): Promise<Warehouse> {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
+      `/v1/warehouses/${encodeURIComponent(id)}/status`,
+      payload,
+      { silent: true },
+    );
     return warehouseSchema.parse(data);
   },
 };
