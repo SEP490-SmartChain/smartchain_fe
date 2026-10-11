@@ -130,7 +130,18 @@ UI dùng API client, React Hook Form/Zod, Common components và i18n hiện có;
 thành công sau server confirmation. Đổi identity/scope/role sẽ unmount, hủy request và
 xóa dữ liệu staff đang hiển thị. Các grant còn thiếu được liệt kê bên dưới thuộc đợt riêng.
 
-## 9. Gap implementation phải giải quyết ở đợt sau
+## 9. SS-1086: cấu hình routing rule
+
+Route `/rules` dùng `rules.view`; mọi thao tác cấu hình dùng capability trung tâm
+`routing.rule.set`. Cả hai chỉ cho PLATFORM `ORCA_ADMIN` và `OPS_DISPATCHER` theo
+UC-76/96/97, BR-42 và action/API SS-1084. Manager, warehouse staff, Accountant,
+Seller và identity legacy/mixed scope đều bị từ chối. Backend kiểm tra assignment
+hiện hành qua RLS cho rule/kho; metadata picker không trả carrier credentials và
+không mở quyền quản trị seller. Scope/role/identity thay đổi sẽ xóa form, dữ liệu
+và pending reads của màn hình. UI không cấp quyền SYSTEM worker hoặc đặt quyền
+cho các workflow allocation/booking của package khác.
+
+## 10. Gap implementation phải giải quyết ở đợt sau
 
 Source hiện có đã có `actorScope` và ORCA role policy. Các grant được triển khai từ auth contract trước đây không hoàn toàn đồng bộ SRS cập nhật 02/10: backend core-auth audit grant còn rộng, contract read còn Seller Staff, contract approval còn Accountant; compatibility upload/reconciliation còn legacy groups. Frontend capabilities dựa screen matrix cũ cũng cần review action-level theo UC mới.
 
