@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, Fragment, type ReactNode } from 'react';
 
-import {} from 'react-dom';
+import { useForm } from 'react-hook-form';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ChevronDown,
   ChevronRight,
@@ -13,19 +14,31 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+import { z } from 'zod';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
-import { toast } from 'sonner';
-
 import { useAccess } from '@/hooks/useAccess';
+import { ApiError } from '@/services/apiClient';
+
 import { warehouseApi } from '../api/warehouseApi';
 
-import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
+import type {
+  Warehouse,
+  WarehouseFilters,
+  WarehousePage,
+  WarehouseStatus,
+} from '../types/warehouse';
+
+const statusReasonSchema = z.object({ reason: z.string().trim().min(3).max(500) });
+type StatusReasonValues = z.infer<typeof statusReasonSchema>;
 
 interface WarehouseDirectoryProps {
   /** Hành động ở đầu trang (vd. nút thêm kho) — chỉ trang ORCA Admin truyền vào. */
@@ -33,12 +46,14 @@ interface WarehouseDirectoryProps {
 }
 
 export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps) {
+  const t = useTranslations('WarehouseDirectory');
   const { can } = useAccess();
   const canManage = can('warehouses.manage');
   const [filters, setFilters] = useState<WarehouseFilters>({ search: '', status: '' });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -48,7 +63,21 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
-  const cache = useRef<Record<number, { items: Warehouse[]; cursor: string | null }>>({});
+  const cache = useRef<Record<number, WarehousePage>>({});
+  const requestRevision = useRef(0);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<StatusReasonValues>({
+    resolver: zodResolver(statusReasonSchema),
+    defaultValues: { reason: '' },
+  });
+
+  useEffect(() => {
+    reset({ reason: '' });
+  }, [selectedWarehouse, reset]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -59,61 +88,77 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
 
   const fetchWarehouses = useCallback(
     async (cursor?: string, page = 1) => {
+      const revision = ++requestRevision.current;
+      setIsLoading(true);
+      setError(null);
       try {
-        if (page === 1) setIsLoading(true);
         const activeFilters = {
           search: debouncedSearch,
           status: filters.status,
         };
 
         const result = await warehouseApi.list(activeFilters, cursor);
+        if (revision !== requestRevision.current) return;
         setWarehouses(result.items);
         setHasNextPage(result.pagination.hasNext);
         setNextCursor(result.pagination.nextCursor);
-        cache.current[page] = { items: result.items, cursor: result.pagination.nextCursor };
-      } catch {
-        toast.error('Lỗi tải danh sách kho');
+        setCurrentPage(page);
+        cache.current[page] = result;
+      } catch (failure) {
+        if (revision !== requestRevision.current) return;
+        setWarehouses([]);
+        setHasNextPage(false);
+        setNextCursor(null);
+        setError(failure instanceof ApiError ? failure.message : t('loadError'));
       } finally {
-        setIsLoading(false);
+        if (revision === requestRevision.current) setIsLoading(false);
       }
     },
-    [debouncedSearch, filters.status],
+    [debouncedSearch, filters.status, t],
   );
 
   useEffect(() => {
     cache.current = {};
     setCurrentPage(1);
     void fetchWarehouses(undefined, 1);
+    return () => {
+      requestRevision.current += 1;
+    };
   }, [fetchWarehouses]);
 
   const handlePageChange = (page: number) => {
     if (page === currentPage) return;
     if (cache.current[page]) {
+      requestRevision.current += 1;
       setWarehouses(cache.current[page].items);
+      setHasNextPage(cache.current[page].pagination.hasNext);
+      setNextCursor(cache.current[page].pagination.nextCursor);
+      setError(null);
+      setIsLoading(false);
       setCurrentPage(page);
     } else if (page > currentPage && nextCursor) {
       void fetchWarehouses(nextCursor, page);
-      setCurrentPage(page);
     }
   };
 
-  const handleToggleStatus = async () => {
-    if (!selectedWarehouse) return;
+  const handleToggleStatus = async ({ reason }: StatusReasonValues) => {
+    if (!selectedWarehouse || !canManage) return;
     setUpdatingId(selectedWarehouse.id);
     try {
       const newStatus = selectedWarehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      // In a real implementation we would call the setStatus API here
-      // const updated = await warehouseApi.setStatus(selectedWarehouse.id, newStatus);
-
-      setWarehouses((prev) =>
-        prev.map((w) => (w.id === selectedWarehouse.id ? { ...w, status: newStatus } : w)),
-      );
-      toast.success('Đã cập nhật trạng thái kho');
-    } catch {
-      toast.error('Không thể cập nhật trạng thái');
+      await warehouseApi.setStatus(selectedWarehouse.id, {
+        status: newStatus,
+        reason,
+        expectedVersion: selectedWarehouse.version,
+      });
+      toast.success(t('statusSaved'));
+      setSelectedWarehouse(null);
+      cache.current = {};
+      await fetchWarehouses(undefined, 1);
+    } catch (failure) {
+      toast.error(failure instanceof ApiError ? failure.message : t('statusError'));
     } finally {
       setUpdatingId(null);
-      setSelectedWarehouse(null);
     }
   };
 
@@ -169,6 +214,20 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <LoaderCircle size={28} className="animate-spin text-[var(--sc-brand-primary)]" />
+        </div>
+      ) : error ? (
+        <div className="p-4 sm:px-6 lg:px-8">
+          <Alert variant="error" title={t('loadError')}>
+            <p>{error}</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3"
+              onClick={() => void fetchWarehouses(undefined, 1)}
+            >
+              {t('retry')}
+            </Button>
+          </Alert>
         </div>
       ) : warehouses.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
@@ -305,25 +364,41 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
 
       <Modal
         isOpen={selectedWarehouse !== null}
-        onClose={() => setSelectedWarehouse(null)}
-        title="Đổi trạng thái kho"
+        onClose={() => {
+          if (updatingId === null) setSelectedWarehouse(null);
+        }}
+        title={t('statusTitle')}
       >
-        <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
-          Bạn có chắc muốn {selectedWarehouse?.status === 'ACTIVE' ? 'tạm ngưng' : 'kích hoạt'} kho{' '}
-          <strong>{selectedWarehouse?.name}</strong>?
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setSelectedWarehouse(null)}>
-            Hủy
-          </Button>
-          <Button
-            variant={selectedWarehouse?.status === 'ACTIVE' ? 'danger' : 'primary'}
-            isLoading={updatingId === selectedWarehouse?.id}
-            onClick={handleToggleStatus}
-          >
-            Xác nhận
-          </Button>
-        </div>
+        <form onSubmit={handleSubmit(handleToggleStatus)} className="mt-4 space-y-4">
+          <p className="text-sm text-[var(--sc-text-secondary)]">
+            {t(selectedWarehouse?.status === 'ACTIVE' ? 'confirmDisable' : 'confirmEnable', {
+              name: selectedWarehouse?.name ?? '',
+            })}
+          </p>
+          <Input
+            {...register('reason')}
+            label={t('reason')}
+            disabled={updatingId !== null}
+            error={errors.reason ? t('reasonInvalid') : undefined}
+          />
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={updatingId !== null}
+              onClick={() => setSelectedWarehouse(null)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="submit"
+              variant={selectedWarehouse?.status === 'ACTIVE' ? 'danger' : 'primary'}
+              isLoading={updatingId === selectedWarehouse?.id}
+            >
+              {t('confirm')}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

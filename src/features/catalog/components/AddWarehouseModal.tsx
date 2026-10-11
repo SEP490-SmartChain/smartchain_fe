@@ -4,16 +4,19 @@ import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MapPin, Building, Phone, User, Mail, Hash, Activity } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
-import { toast } from 'sonner';
+import { Select } from '@/components/Common/Select/Select';
 
 import { warehouseApi } from '../api/warehouseApi';
 
 const createWarehouseSchema = z.object({
+  region: z.enum(['NORTH', 'CENTRAL', 'SOUTH']),
   code: z.string().min(1, 'Mã kho không được để trống'),
   name: z.string().min(3, 'Tên kho từ 3-150 kí tự').max(150),
   address: z.string().min(5, 'Địa chỉ từ 5-255 kí tự').max(255),
@@ -36,6 +39,7 @@ interface Props {
 }
 
 export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props) {
+  const t = useTranslations('WarehouseDirectory');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -46,6 +50,7 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
   } = useForm<FormValues>({
     resolver: zodResolver(createWarehouseSchema),
     defaultValues: {
+      region: 'SOUTH',
       dailyCapacity: 100,
       latitude: 10.762622,
       longitude: 106.660172,
@@ -80,6 +85,15 @@ export default function AddWarehouseModal({ isOpen, onClose, onSuccess }: Props)
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Thêm kho hàng mới">
       <form onSubmit={handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-5">
+        <Select
+          {...register('region')}
+          label={t('region')}
+          options={[
+            { value: 'NORTH', label: t('north') },
+            { value: 'CENTRAL', label: t('central') },
+            { value: 'SOUTH', label: t('south') },
+          ]}
+        />
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]">
