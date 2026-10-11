@@ -47,6 +47,24 @@ export const warehousePageSchema = z.object({
 });
 
 export const warehouseApi = {
+  async calendar(id: string, at?: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `/v1/warehouses/${encodeURIComponent(id)}/calendar`,
+      { params: at ? { at } : undefined, signal, silent: true },
+    );
+    return calendarSchema.parse(data);
+  },
+  async updateCalendar(
+    id: string,
+    payload: { workingDays: number[]; closedDates: string[]; expectedVersion: number },
+  ) {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
+      `/v1/warehouses/${encodeURIComponent(id)}/calendar`,
+      payload,
+      { silent: true },
+    );
+    return calendarSchema.parse(data);
+  },
   async outstanding(id: string) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       `/v1/warehouses/${encodeURIComponent(id)}/outstanding`,
@@ -137,3 +155,34 @@ const downtimeSchema = z.object({
 });
 export type Downtime = z.infer<typeof downtimeSchema>;
 export type WarehouseOutstanding = z.infer<typeof outstandingSchema>;
+
+const calendarSchema = z.object({
+  warehouseId: z.string().uuid(),
+  version: z.number().int().positive(),
+  workingDays: z.array(z.number().int().min(1).max(7)).min(1).max(7),
+  closedDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(366),
+  timeZone: z.literal('Asia/Ho_Chi_Minh'),
+  operatingStartMinute: z.number().int().min(0).max(1439),
+  operatingEndMinute: z.number().int().min(1).max(1440),
+  cutoffMinute: z.number().int().min(0).max(1439),
+  dailyCapacity: z.number().int().positive(),
+  checkedAt: z.string().datetime(),
+  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  localMinute: z.number().int().min(0).max(1439),
+  intakeEligible: z.boolean(),
+  allocationEligible: z.boolean(),
+  sameDayHandoverEligible: z.boolean(),
+  capacityUsed: z.number().int().nonnegative(),
+  capacityRemaining: z.number().int().nonnegative(),
+  reasons: z.array(
+    z.enum([
+      'INACTIVE',
+      'CLOSED_DAY',
+      'OUTSIDE_HOURS',
+      'DOWNTIME',
+      'CAPACITY_REACHED',
+      'AFTER_CUTOFF',
+    ]),
+  ),
+});
+export type WarehouseCalendar = z.infer<typeof calendarSchema>;

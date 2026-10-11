@@ -1275,7 +1275,7 @@
   },
   "Warehouses": {
     "title": "Kho ORCA",
-    "description": "Xem các kho dùng chung của ORCA. Chỉ quản trị viên ORCA quản lý thông tin vận hành.",
+    "description": "Xem các kho dùng chung của ORCA. Manager quản lý thông tin vận hành của kho được giao; quản trị viên ORCA tạo kho và kiểm soát trạng thái.",
     "addWarehouse": "Thêm kho mới",
     "searchPlaceholder": "Tìm theo mã hoặc tên kho...",
     "searchLabel": "Tìm kho",
@@ -1354,7 +1354,41 @@
     "print": "In",
     "printError": "Không thể in nhãn. Thử lại từ bản xem trước.",
     "loadedLabels": "In nhãn cho {count} vị trí đang hiển thị.",
-    "loading": "Đang tải…"
+    "loading": "Đang tải…",
+    "calendarTitle": "Lịch làm việc",
+    "calendarNotice": "Lịch mới áp dụng cho nhận hàng và phân bổ tiếp theo. Đơn đang chạy và nhãn bin được giữ để điều phối lại theo quyền. Thời gian theo múi giờ kho (Việt Nam).",
+    "calendarInvalid": "Chọn ít nhất một ngày làm việc và ngày nghỉ hợp lệ, không trùng (YYYY-MM-DD).",
+    "calendarSaved": "Đã lưu lịch làm việc.",
+    "downtimeSaved": "Đã đặt lịch tạm ngừng kho.",
+    "downtimeSaveError": "Không thể đặt lịch tạm ngừng kho. Vui lòng thử lại.",
+    "workingDays": "Ngày làm việc trong tuần",
+    "closedDates": "Ngày nghỉ (mỗi dòng một ngày)",
+    "saveCalendar": "Lưu lịch làm việc",
+    "calendarCheckAt": "Kiểm tra thời điểm (giờ Việt Nam)",
+    "checkCalendar": "Kiểm tra khả năng hoạt động",
+    "calendarCapacity": "Số suất xử lý trong ngày đã dùng: {used} / {total}",
+    "intakeEligible": "Nhận hàng tại thời điểm đã chọn",
+    "allocationEligible": "Phân bổ mới",
+    "sameDayHandover": "Bàn giao trong ngày",
+    "eligible": "Đủ điều kiện",
+    "unavailable": "Không đủ điều kiện",
+    "weekdays": {
+      "1": "Thứ Hai",
+      "2": "Thứ Ba",
+      "3": "Thứ Tư",
+      "4": "Thứ Năm",
+      "5": "Thứ Sáu",
+      "6": "Thứ Bảy",
+      "7": "Chủ Nhật"
+    },
+    "calendarReasons": {
+      "INACTIVE": "Kho ngừng hoạt động",
+      "CLOSED_DAY": "Ngày không làm việc hoặc ngày nghỉ",
+      "OUTSIDE_HOURS": "Ngoài giờ hoạt động",
+      "DOWNTIME": "Kho đang tạm ngừng theo lịch",
+      "CAPACITY_REACHED": "Đã hết công suất xử lý trong ngày",
+      "AFTER_CUTOFF": "Đã đến cutoff; không đủ điều kiện bàn giao trong ngày"
+    }
   },
   "WarehouseLayout": {
     "title": "Zone và bin",

@@ -87,12 +87,12 @@ export function WarehouseDowntimePanel({
         expectedVersion: warehouse.version,
       });
       if (principal !== useAuthStore.getState().user) return;
-      toast.success(t('statusUpdated'));
+      toast.success(t('downtimeSaved'));
       onSaved();
       setRetry((v) => v + 1);
     } catch (f) {
       if (principal === useAuthStore.getState().user) {
-        setError(f instanceof ApiError ? f.message : t('statusError'));
+        setError(f instanceof ApiError ? f.message : t('downtimeSaveError'));
       }
     } finally {
       setSaving(false);

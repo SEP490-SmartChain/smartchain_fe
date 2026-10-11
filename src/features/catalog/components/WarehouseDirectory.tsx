@@ -24,9 +24,10 @@ import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
 import { AddWarehouseModal } from './AddWarehouseModal';
+import { WarehouseCalendarPanel } from './WarehouseCalendarPanel';
 import { WarehouseDowntimePanel } from './WarehouseDowntimePanel';
-import { WarehouseStatusModal } from './WarehouseStatusModal';
 import { WarehouseLayoutPanel } from './WarehouseLayoutPanel';
+import { WarehouseStatusModal } from './WarehouseStatusModal';
 import { warehouseApi } from '../api/warehouseApi';
 
 import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
@@ -323,6 +324,16 @@ export function WarehouseDirectory() {
                             )}
                             {can('warehouses.layout.view') && (
                               <WarehouseLayoutPanel key={warehouse.id} warehouse={warehouse} />
+                            )}
+                            {can('warehouses.downtime.view') && (
+                              <WarehouseCalendarPanel
+                                key={`${warehouse.id}-${principal?.userId}-${principal?.actorScope}-${principal?.tenantId}-${principal?.roles.join(',')}`}
+                                warehouse={warehouse}
+                                onSaved={() => {
+                                  cache.current = {};
+                                  void fetchWarehouses();
+                                }}
+                              />
                             )}
                             {can('warehouses.downtime.view') && (
                               <WarehouseDowntimePanel
