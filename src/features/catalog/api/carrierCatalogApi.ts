@@ -6,6 +6,7 @@ import type {
   CarrierDetail,
   CarrierListPage,
   CarrierListQuery,
+  CarrierSummary,
 } from '../types/carrierCatalog.types';
 
 const carrierSummarySchema = z.object({

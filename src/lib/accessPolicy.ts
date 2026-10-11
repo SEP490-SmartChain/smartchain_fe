@@ -176,8 +176,8 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'carriers',
     'PLATFORM',
     ['ORCA_ADMIN'],
-    'PROPOSED',
-    'R3 UC-92: ORCA Admin; UI integrations hiện vẫn dùng API tenant legacy',
+    'APPROVED',
+    'R3 UC-92/93: ORCA Admin quản lý account hãng theo kho tại admin/carriers',
   ),
   capability(
     'warehouses.view',
@@ -491,7 +491,6 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   // Profile chỉ cần đăng nhập + scope/role hợp lệ, mọi role ORCA đều xem được.
   { path: '/settings/profile' },
   { path: '/settings/general', capability: 'workspace.settings.manage' },
-  { path: '/settings/integrations', capability: 'carriers.credentials.manage' },
   { path: '/settings/api-keys', capability: 'apikey.manage' },
   { path: '/settings/webhooks', capability: 'workspace.settings.manage' },
   { path: '/audit', capability: 'audit.tenant.view' },
