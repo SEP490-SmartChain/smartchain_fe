@@ -298,7 +298,15 @@ class ApiClient {
     const pendingRefresh = this.refreshPromise;
     this.logoutPromise = (async () => {
       await pendingRefresh?.catch(() => undefined);
-      await this.post<ApiResponse<null>>('/v1/auth/logout', {}, { requiresAuth: false });
+      const accessToken = useAuthStore.getState().accessToken;
+      await this.post<ApiResponse<null>>(
+        '/v1/auth/logout',
+        {},
+        {
+          requiresAuth: false,
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        },
+      );
       useAuthStore.getState().clear();
     })().finally(() => {
       this.logoutPromise = null;
