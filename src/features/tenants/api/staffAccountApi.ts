@@ -7,14 +7,13 @@ import type {
   StaffAccountFilters,
   StaffAccountPage,
   StaffAccountStatus,
-  StaffRole,
 } from '../types/staffAccount.types';
 
 const staffAccountSchema = z.object({
   userId: z.string().uuid(),
   fullName: z.string(),
   email: z.string().email(),
-  roles: z.array(z.enum(['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'])),
+  roles: z.array(z.enum(['SELLER_OWNER', 'SELLER_STAFF'])),
   lastSessionAt: z.string().datetime().nullable(),
   phone: z.string().nullable().optional(),
   avatarUrl: z.string().nullable().optional(),
@@ -67,14 +66,6 @@ export const staffAccountApi = {
     const { data } = await apiClient.patch<ApiResponse<unknown>>(
       `/v1/iam/users/${encodeURIComponent(userId)}/status`,
       { status },
-    );
-    return staffAccountSchema.parse(data);
-  },
-
-  async updateRoles(userId: string, roles: StaffRole[]): Promise<StaffAccount> {
-    const { data } = await apiClient.patch<ApiResponse<unknown>>(
-      `/v1/iam/users/${encodeURIComponent(userId)}/roles`,
-      { roles },
     );
     return staffAccountSchema.parse(data);
   },

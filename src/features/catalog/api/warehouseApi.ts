@@ -7,16 +7,23 @@ import type {
   WarehouseFilters,
   WarehousePage,
   CreateWarehousePayload,
+  SetWarehouseStatusPayload,
 } from '../types/warehouse';
 
 export const warehouseSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  tenantId: z.string().uuid().nullable(),
+  region: z.enum(['NORTH', 'CENTRAL', 'SOUTH']),
+  timeZone: z.string(),
+  cutoffMinute: z.number().int().min(0).max(1439),
+  operatingStartMinute: z.number().int().min(0).max(1439),
+  operatingEndMinute: z.number().int().min(1).max(1440),
+  version: z.number().int().positive(),
   code: z.string(),
   name: z.string(),
   address: z.string(),
   provinceCode: z.string(),
-  districtCode: z.string(),
+  districtCode: z.string().nullable(),
   wardCode: z.string(),
   latitude: z.number(),
   longitude: z.number(),
@@ -54,6 +61,15 @@ export const warehouseApi = {
 
   async create(payload: CreateWarehousePayload): Promise<Warehouse> {
     const { data } = await apiClient.post<ApiResponse<unknown>>('/v1/warehouses', payload);
+    return warehouseSchema.parse(data);
+  },
+
+  async setStatus(id: string, payload: SetWarehouseStatusPayload): Promise<Warehouse> {
+    const { data } = await apiClient.patch<ApiResponse<unknown>>(
+      `/v1/warehouses/${encodeURIComponent(id)}/status`,
+      payload,
+      { silent: true },
+    );
     return warehouseSchema.parse(data);
   },
 };

@@ -2,6 +2,14 @@
 
 Quản lý tenant, người dùng, vai trò và quyền RBAC, workspace config, webhook đầu ra, Super Admin console. BE: `iam`. SRS: FE-02 → FE-07.
 
+## ORCA directory contract
+
+Seller account responses and filters use `SELLER_OWNER` / `SELLER_STAFF`; legacy
+and platform role codes are rejected by the seller directory response validator.
+Platform seller lists read `data` as the item array and `meta.pagination` as cursor
+metadata, matching the backend envelope. Regression checks are included in
+`tests/orca-api-contracts.test.mjs` and `tests/staff-accounts.test.mjs`.
+
 ## API Keys cho ERP (SS-473)
 
 `ApiKeyManager` là tab `/settings/api-keys` (ORCA `SELLER_OWNER` theo D8 v3): tạo, xem và thu hồi API key để
