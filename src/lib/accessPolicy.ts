@@ -474,6 +474,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'ORCA-UI-REFACTOR-PLAN UI-03',
   ),
   capability(
+    'warehouse.asn.checkIn',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-37; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/arrival',
+  ),
+  capability(
     'platform.warehouses.view',
     'warehouses',
     'PLATFORM',
