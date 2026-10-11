@@ -1294,7 +1294,7 @@
   },
   "Warehouses": {
     "title": "ORCA warehouses",
-    "description": "View ORCA shared warehouses. Only ORCA administrators manage operating information.",
+    "description": "View ORCA shared warehouses. Assigned warehouse managers maintain operating information; ORCA administrators control warehouse creation and status.",
     "addWarehouse": "Add warehouse",
     "searchPlaceholder": "Search by warehouse code or name...",
     "searchLabel": "Search warehouses",
@@ -1373,7 +1373,41 @@
     "print": "Print",
     "printError": "Unable to print labels. Retry from the preview.",
     "loadedLabels": "Print labels for the {count} bins currently loaded.",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "calendarTitle": "Business calendar",
+    "calendarNotice": "Calendar changes apply to future intake and allocation. Existing work and bin labels stay available for explicit rescheduling. Times use the warehouse time zone (Vietnam).",
+    "calendarInvalid": "Select at least one weekday and valid, unique dates (YYYY-MM-DD).",
+    "calendarSaved": "Business calendar saved.",
+    "downtimeSaved": "Warehouse downtime scheduled.",
+    "downtimeSaveError": "Unable to schedule warehouse downtime. Try again.",
+    "workingDays": "Working weekdays",
+    "closedDates": "Closed dates (one date per line)",
+    "saveCalendar": "Save calendar",
+    "calendarCheckAt": "Check availability at (Vietnam time)",
+    "checkCalendar": "Check availability",
+    "calendarCapacity": "Daily processing slots used: {used} / {total}",
+    "intakeEligible": "Receiving at the selected time",
+    "allocationEligible": "New allocation",
+    "sameDayHandover": "Same-day handover",
+    "eligible": "Eligible",
+    "unavailable": "Unavailable",
+    "weekdays": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    },
+    "calendarReasons": {
+      "INACTIVE": "Warehouse inactive",
+      "CLOSED_DAY": "Non-working weekday or closed date",
+      "OUTSIDE_HOURS": "Outside operating hours",
+      "DOWNTIME": "Scheduled downtime",
+      "CAPACITY_REACHED": "Daily processing capacity reached",
+      "AFTER_CUTOFF": "Cutoff reached; no same-day handover eligibility"
+    }
   },
   "WarehouseLayout": {
     "title": "Zones and bins",
