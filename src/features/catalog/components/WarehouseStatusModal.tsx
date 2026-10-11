@@ -56,12 +56,11 @@ export function WarehouseStatusModal({
     setSaving(true);
     setError(null);
     try {
-      await warehouseApi.setStatus(
-        warehouse.id,
-        warehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
-        reason.trim(),
-        warehouse.version,
-      );
+      await warehouseApi.setStatus(warehouse.id, {
+        status: warehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
+        reason: reason.trim(),
+        expectedVersion: warehouse.version,
+      });
       if (principal !== useAuthStore.getState().user) return;
       toast.success(t('statusUpdated'));
       onSaved();

@@ -47,9 +47,8 @@ import type {
 const INITIAL_FILTERS: StaffAccountFilters = { search: '', role: '', status: '' };
 const PAGE_SIZE = 10;
 /**
- * UI-04: Seller Owner thêm nhân viên với role cố định SELLER_STAFF. BE `CreateStaffAccountDto`
- * hiện chỉ nhận DISPATCHER/ACCOUNTANT nên gọi sẽ lỗi 400 → ẩn nút thêm cho tới khi BE hỗ trợ.
- * Bật lại (`true`) sau khi BE chấp nhận SELLER_STAFF.
+ * UI-04: Backend tạo nhân viên với role cố định SELLER_STAFF. Giữ nút thêm ẩn cho tới
+ * khi form tạo nhân viên được cập nhật theo contract này.
  */
 const STAFF_CREATE_SUPPORTED: boolean = false;
 
@@ -130,9 +129,8 @@ export function StaffAccountDirectory() {
   const roleLabel = useCallback(
     (role: StaffRole): string => {
       const labels: Record<StaffRole, string> = {
-        TENANT_ADMIN: t('roleTenantAdmin'),
-        DISPATCHER: t('roleDispatcher'),
-        ACCOUNTANT: t('roleAccountant'),
+        SELLER_OWNER: t('roleSellerOwner'),
+        SELLER_STAFF: t('roleSellerStaff'),
       };
       return labels[role];
     },
@@ -331,9 +329,8 @@ export function StaffAccountDirectory() {
                 placeholder={t('allRoles')}
                 isPlaceholderDisabled={false}
                 options={[
-                  { value: 'TENANT_ADMIN', label: t('roleTenantAdmin') },
-                  { value: 'DISPATCHER', label: t('roleDispatcher') },
-                  { value: 'ACCOUNTANT', label: t('roleAccountant') },
+                  { value: 'SELLER_OWNER', label: t('roleSellerOwner') },
+                  { value: 'SELLER_STAFF', label: t('roleSellerStaff') },
                 ]}
                 onChange={(event) => handleFilter('role', event.target.value)}
               />

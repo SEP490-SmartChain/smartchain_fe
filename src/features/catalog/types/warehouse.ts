@@ -1,15 +1,15 @@
 export type WarehouseStatus = 'ACTIVE' | 'INACTIVE';
+export type WarehouseRegion = 'NORTH' | 'CENTRAL' | 'SOUTH';
 
 export interface Warehouse {
   id: string;
-  version: number;
-  region: 'NORTH' | 'CENTRAL' | 'SOUTH';
+  tenantId: string | null;
+  region: WarehouseRegion;
   timeZone: string;
   cutoffMinute: number;
   operatingStartMinute: number;
   operatingEndMinute: number;
-
-  tenantId: string | null;
+  version: number;
   code: string;
   name: string;
   address: string;
@@ -43,11 +43,11 @@ export interface WarehousePage {
 }
 
 export interface CreateWarehousePayload {
-  region: 'NORTH' | 'CENTRAL' | 'SOUTH';
-  timeZone: string;
-  cutoffMinute: number;
-  operatingStartMinute: number;
-  operatingEndMinute: number;
+  region: WarehouseRegion;
+  timeZone?: string;
+  cutoffMinute?: number;
+  operatingStartMinute?: number;
+  operatingEndMinute?: number;
 
   code: string;
   name: string;
@@ -61,4 +61,10 @@ export interface CreateWarehousePayload {
   contactName?: string | null;
   contactPhone?: string | null;
   contactEmail?: string | null;
+}
+
+export interface SetWarehouseStatusPayload {
+  status: WarehouseStatus;
+  reason: string;
+  expectedVersion: number;
 }

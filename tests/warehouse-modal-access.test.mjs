@@ -80,6 +80,14 @@ test('Admin can create warehouses while Manager metadata editing stays denied', 
   assert.equal(render(['ORCA_ADMIN'], { id: '00000000-0000-4000-8000-000000000001' }), '');
 });
 
+test('warehouse creation has one region selector with all three valid regions', () => {
+  const markup = render(['ORCA_ADMIN'], null);
+  assert.equal((markup.match(/<select[^>]*name="region"/g) ?? []).length, 1);
+  for (const region of ['NORTH', 'CENTRAL', 'SOUTH']) {
+    assert.match(markup, new RegExp(`<option[^>]*value="${region}"`));
+  }
+});
+
 test('seller and warehouse staff cannot open either warehouse mutation form', () => {
   for (const role of ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_STAFF']) {
     assert.equal(render([role], null), '');

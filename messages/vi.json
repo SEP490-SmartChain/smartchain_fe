@@ -1,4 +1,21 @@
 {
+  "WarehouseDirectory": {
+    "loadError": "Không thể tải danh sách kho.",
+    "retry": "Thử lại",
+    "statusTitle": "Đổi trạng thái kho",
+    "statusSaved": "Đã cập nhật trạng thái kho.",
+    "statusError": "Không thể cập nhật trạng thái kho.",
+    "confirmDisable": "Bạn có chắc muốn tạm ngưng kho {name}?",
+    "confirmEnable": "Bạn có chắc muốn kích hoạt kho {name}?",
+    "reason": "Lý do thay đổi",
+    "reasonInvalid": "Nhập lý do từ 3 đến 500 ký tự.",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "region": "Vùng hoạt động",
+    "north": "Miền Bắc",
+    "central": "Miền Trung",
+    "south": "Miền Nam"
+  },
   "PlatformStaff": {
     "title": "Phân quyền kho cho nhân viên ORCA",
     "description": "Gán hoặc thu hồi quyền truy cập kho cho nhân viên ORCA đang hoạt động.",
@@ -524,6 +541,8 @@
     "userActions": "Thao tác với {name}",
     "closeActions": "Đóng menu thao tác",
     "moreRoles": "+{count} vai trò",
+    "roleSellerOwner": "Chủ seller",
+    "roleSellerStaff": "Nhân viên seller",
     "roleTenantAdmin": "Quản trị workspace",
     "roleDispatcher": "Điều phối logistics",
     "roleAccountant": "Kế toán tài chính",
