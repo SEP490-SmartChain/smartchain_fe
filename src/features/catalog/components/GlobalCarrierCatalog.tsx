@@ -12,6 +12,7 @@ import { Input } from '@/components/Common/Input/Input';
 
 import { CarrierDetailModal } from './CarrierDetailModal';
 import { useCarrierCatalog } from '../hooks/useCarrierCatalog';
+
 import type { CarrierSummary } from '../types/carrierCatalog.types';
 
 type ViewMode = 'grid' | 'table';
@@ -306,7 +307,7 @@ export function GlobalCarrierCatalog() {
                       </div>
                       <div>
                         <div className="text-base font-medium text-[var(--sc-text-primary)]">
-                          {carrier.connectedTenantsCount}
+                          {carrier.connectedTenantsCount ?? '—'}
                         </div>
                         <div className="mt-0.5 text-[10px] text-[var(--sc-text-tertiary)] uppercase">
                           Doanh nghiệp

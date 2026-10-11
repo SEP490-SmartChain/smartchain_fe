@@ -37,7 +37,7 @@ export function CarrierDetailModal({ isOpen, onClose, carrier }: CarrierDetailMo
                 />
               </div>
               <div className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">
-                {carrier.connectedTenantsCount} {t('connected_tenants')}
+                {carrier.connectedTenantsCount ?? '—'} {t('connected_tenants')}
               </div>
             </div>
           </div>

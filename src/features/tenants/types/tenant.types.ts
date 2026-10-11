@@ -44,7 +44,7 @@ export interface TenantRestorationInfo {
 export interface TenantAggregates {
   activeWarehouseCount: number;
   currentMonthOrderCount: number;
-  connectedCarrierCount: number;
+  connectedCarrierCount: number | null;
 }
 
 export interface TenantDetail extends TenantSummary {

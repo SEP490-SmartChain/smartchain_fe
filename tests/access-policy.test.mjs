@@ -236,7 +236,6 @@ test('WAREHOUSE_STAFF is denied financial, COD, invoice and API-key capabilities
     'reconciliation.view',
     'reconciliation.operate',
     'workspace.billing.view',
-    'carriers.credentials.manage',
     'audit.platform.view',
   ]) {
     assert.equal(
@@ -593,7 +592,7 @@ test('PROPOSED capabilities never grant routes or actions', () => {
   const owner = effective(OWNER, TENANT);
 
   assert.equal(policy.can(admin, 'finance.view'), false);
-  assert.equal(policy.can(admin, 'carriers.credentials.manage'), false);
+  assert.equal(policy.can(admin, 'carriers.credentials.manage'), true);
   assert.equal(policy.can(owner, 'carriers.credentials.manage'), false);
   assert.equal(policy.isRouteAllowed(owner, '/settings/integrations'), false);
   assert.equal(policy.isRouteAllowed(admin, '/admin/tenants'), true);

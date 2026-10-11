@@ -25,6 +25,7 @@ import { PlatformDashboardOverview } from './PlatformDashboardOverview';
 import { TenantDetailModal } from './TenantDetailModal';
 import { TenantStatusModal } from './TenantStatusModal';
 import { useTenantManagement } from '../hooks/useTenantManagement';
+
 import type { TenantStatus, TenantSummary } from '../types/tenant.types';
 
 export function TenantDirectory() {

@@ -5,8 +5,9 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button, Input, Radio } from '@/components/Common';
-import { staffAccountApi } from '../api/staffAccountApi';
 import Modal from '@/components/Common/Modal/Modal';
+
+import { staffAccountApi } from '../api/staffAccountApi';
 
 export interface AddStaffAccountModalProps {
   isOpen: boolean;

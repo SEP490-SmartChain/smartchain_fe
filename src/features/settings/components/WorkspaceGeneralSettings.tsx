@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { Button, Input } from '@/components/Common';
 import { uploadApi } from '@/services/uploadApi';
 
-import { workspaceSettingsApi, type WorkspaceSettings } from '../api/workspaceSettingsApi';
 import { SettingsMatrixCard } from './SettingsMatrixCard';
+import { workspaceSettingsApi, type WorkspaceSettings } from '../api/workspaceSettingsApi';
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
