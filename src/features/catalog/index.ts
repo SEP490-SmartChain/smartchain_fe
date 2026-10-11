@@ -39,3 +39,6 @@ export { useProducts } from './hooks/useProducts';
 export type { Product, ProductFilters, ProductPage } from './types/product.types';
 export { warehouseApi } from './api/warehouseApi';
 export type { Warehouse, WarehouseFilters } from './types/warehouse';
+
+export { WarehouseDirectory } from './components/WarehouseDirectory';
+export { binBarcode as encodeCode128 } from './lib/binBarcode';

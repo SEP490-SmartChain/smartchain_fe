@@ -44,6 +44,11 @@ export interface WarehousePage {
 
 export interface CreateWarehousePayload {
   region: WarehouseRegion;
+  timeZone?: string;
+  cutoffMinute?: number;
+  operatingStartMinute?: number;
+  operatingEndMinute?: number;
+
   code: string;
   name: string;
   address: string;
