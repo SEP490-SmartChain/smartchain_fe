@@ -12,10 +12,15 @@ import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { ReceiptCountForm } from './ReceiptCountForm';
-import { receivingApi, type AsnArrival, type ReceivingWarehouse } from '../api/receivingApi';
+import {
+  receivingApi,
+  type AsnArrival,
+  type ReceivingWarehouse,
+  type WarehouseAsn,
+} from '../api/receivingApi';
 import { asnCodeFromScan, asnScanSchema } from '../schemas/asnScanSchema';
 
-import type { Asn, AsnStatus } from '../types/asn.types';
+import type { AsnStatus } from '../types/asn.types';
 
 const statuses: AsnStatus[] = [
   'SUBMITTED',
@@ -46,9 +51,11 @@ export function ReceivingWorkspace() {
   const [warehouseId, setWarehouseId] = useState('');
   const [status, setStatus] = useState<AsnStatus | ''>('');
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState<Scoped<{ items: Asn[]; cursor: string | null }> | null>(null);
-  const [selected, setSelected] = useState<Scoped<Asn> | null>(null);
-  const [countSelection, setCountSelection] = useState<Scoped<Asn> | null>(null);
+  const [page, setPage] = useState<Scoped<{ items: WarehouseAsn[]; cursor: string | null }> | null>(
+    null,
+  );
+  const [selected, setSelected] = useState<Scoped<WarehouseAsn> | null>(null);
+  const [countSelection, setCountSelection] = useState<Scoped<WarehouseAsn> | null>(null);
   const [arrival, setArrival] = useState<Scoped<AsnArrival> | null>(null);
   const [error, setError] = useState<Scoped<string> | null>(null);
   const [directoryError, setDirectoryError] = useState<Principal | false>(false);
@@ -295,24 +302,17 @@ export function ReceivingWorkspace() {
                 <table aria-label={t('title')} className="w-full min-w-[760px] text-left text-sm">
                   <thead className="border-b border-[var(--sc-border-default)]">
                     <tr>
-                      {['code', 'declared', 'received', 'status', 'arrival', 'actions'].map(
-                        (key) => (
-                          <th key={key} className="px-4 py-3">
-                            {t(key)}
-                          </th>
-                        ),
-                      )}
+                      {['code', 'received', 'status', 'arrival', 'actions'].map((key) => (
+                        <th key={key} className="px-4 py-3">
+                          {t(key)}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((asn) => (
                       <tr key={asn.id} className="border-b border-[var(--sc-border-default)]">
                         <td className="px-4 py-3">{asn.asnCode}</td>
-                        <td className="px-4 py-3">
-                          {asn.lines
-                            .reduce((sum, line) => sum + line.declaredQty, 0)
-                            .toLocaleString(locale)}
-                        </td>
                         <td className="px-4 py-3">
                           {asn.lines
                             .reduce((sum, line) => sum + line.receivedQty, 0)

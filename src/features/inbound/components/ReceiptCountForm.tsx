@@ -10,6 +10,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
 import { ReceiptPhotos } from './ReceiptPhotos';
 import { receivingApi, type ReceivingState } from '../api/receivingApi';
@@ -137,7 +138,13 @@ export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Prop
               <div key={lot.recordId} className="mt-3 text-sm">
                 <p className="text-[var(--sc-text-secondary)]">
                   {lot.lotCode} · {lot.receivedQty} · {lot.expiresOn ?? '—'} ·{' '}
-                  {lot.quarantinedQty > 0 ? t('countQuarantine') : t('countPendingQc')}
+                  {lot.qcState === 'REVIEW_REQUIRED'
+                    ? t('qcReviewRequired')
+                    : lot.qcState === 'APPROVED'
+                      ? t('countQcApproved')
+                      : lot.quarantinedQty > 0
+                        ? t('countQuarantine')
+                        : t('countPendingQc')}
                 </p>
                 <ReceiptPhotos
                   warehouseId={warehouseId}
@@ -191,6 +198,15 @@ export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Prop
             ))}
           </div>
         ))}
+      {receipt && (
+        <ReceiptDiscrepancyPanel
+          warehouseId={warehouseId}
+          asnId={asnId}
+          receiptVersion={receipt.version}
+          canWrite={can('warehouse.asn.reportDiscrepancy')}
+          onSaved={() => setRefresh((v) => v + 1)}
+        />
+      )}
       {editable && (
         <form
           className="space-y-4"
