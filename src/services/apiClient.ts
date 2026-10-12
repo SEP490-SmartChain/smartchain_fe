@@ -56,6 +56,9 @@ const profileSchema = z.object({
   actorScope: actorScopeSchema,
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
+  warehouseIds: z
+    .array(z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i))
+    .optional(),
 });
 const sessionSchema = z.object({
   accessToken: z.string().min(1),
@@ -185,16 +188,19 @@ class ApiClient {
       // (contract v0.2 §5/§8; docs/RBAC_UI_SCOPE.md mục 10).
       if (requiresAuth && response.status === 401) {
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw this.scopeChanged();
         }
         // A parallel request may already have rotated this access token.
         if (useAuthStore.getState().accessToken === token) await this.refreshSession();
+        if (revision !== useAuthStore.getState().revision) throw this.scopeChanged();
         response = await this.send(endpoint, options, useAuthStore.getState().accessToken);
-        if (response.status === 401 && revision === useAuthStore.getState().revision) {
-          useAuthStore.getState().clear();
-        }
       }
       const body: unknown = await response.json().catch(() => null);
+      // Responses from a previous seller/grant/assignment must never enter a new view/cache.
+      if (requiresAuth && revision !== useAuthStore.getState().revision) {
+        throw this.scopeChanged();
+      }
+      if (requiresAuth && response.status === 401) useAuthStore.getState().clear();
       if (!response.ok) {
         const parsed = errorSchema.safeParse(body);
         // 403 phải hiển thị là "thiếu quyền", không phải lỗi phiên/mạng.
@@ -243,9 +249,17 @@ class ApiClient {
               0,
               'NETWORK.ERROR',
             );
-      if (!silent) toast.error(failure.message);
+      if (!silent && failure.code !== 'AUTH.SCOPE_CHANGED') toast.error(failure.message);
       throw failure;
     }
+  }
+
+  private scopeChanged() {
+    return new ApiError(
+      this.message('Phạm vi truy cập đã thay đổi.', 'Your access scope has changed.'),
+      0,
+      'AUTH.SCOPE_CHANGED',
+    );
   }
 
   refreshSession(): Promise<void> {
@@ -263,7 +277,7 @@ class ApiClient {
     )
       .then(({ data }) => {
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw this.scopeChanged();
         }
         useAuthStore.getState().setSession(sessionSchema.parse(data));
       })

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { toast } from 'sonner';
 import { createServer } from 'vite';
 
 let server;
@@ -101,6 +102,162 @@ test('login sends the BE contract with cookies and stores the safe profile', asy
   assert.equal(useAuthStore.getState().accessToken, 'test-access');
   assert.equal(useTenantStore.getState().activeTenantId, user.tenantId);
   assert.deepEqual(useTenantStore.getState().permissions, user.permissions);
+});
+
+test('SS-985: profile preserves server warehouse assignments and rejects malformed IDs', async () => {
+  // PostgreSQL accepts UUIDs without RFC version bits, including the ORCA seed IDs.
+  const warehouseIds = ['00000015-0000-0000-0000-000000000001'];
+  globalThis.fetch = async () =>
+    ok(
+      session('platform-token', {
+        tenantId: null,
+        actorScope: 'PLATFORM',
+        roles: ['WAREHOUSE_MANAGER'],
+        warehouseIds,
+      }),
+    );
+  await apiClient.login({ email: user.email, password: 'Test-password-1', rememberSession: false });
+  assert.deepEqual(useAuthStore.getState().user.warehouseIds, warehouseIds);
+  globalThis.fetch = async () => ok(session('bad-token', { warehouseIds: ['not-a-uuid'] }));
+  await assert.rejects(
+    apiClient.login({ email: user.email, password: 'Test-password-1', rememberSession: false }),
+  );
+  assert.equal(useAuthStore.getState().accessToken, 'platform-token');
+});
+
+test('SS-985: every identity/grant/assignment change invalidates the scope revision', () => {
+  const scoped = {
+    ...user,
+    tenantId: null,
+    actorScope: 'PLATFORM',
+    roles: ['WAREHOUSE_MANAGER', 'OPS_DISPATCHER'],
+    permissions: ['inventory:read', 'orders:read'],
+    warehouseIds: ['00000015-0000-0000-0000-000000000001', '00000015-0000-0000-0000-000000000002'],
+  };
+  useAuthStore.getState().setSession(session('old', scoped));
+  const revision = useAuthStore.getState().revision;
+  useAuthStore.getState().setSession(
+    session('rotated', {
+      ...scoped,
+      fullName: 'Updated name',
+      roles: [...scoped.roles].reverse(),
+      permissions: [...scoped.permissions].reverse(),
+      warehouseIds: [...scoped.warehouseIds].reverse(),
+    }),
+  );
+  assert.equal(
+    useAuthStore.getState().revision,
+    revision,
+    'token/profile/set ordering does not change scope',
+  );
+  for (const patch of [
+    { warehouseIds: [] },
+    { roles: ['WAREHOUSE_STAFF'] },
+    { permissions: [] },
+    { userId: 'another-user' },
+    { actorScope: null },
+    { tenantId: 'another-seller' },
+  ]) {
+    useAuthStore.getState().setUser(scoped);
+    const before = useAuthStore.getState().revision;
+    useAuthStore.getState().setUser({ ...scoped, ...patch });
+    assert.equal(useAuthStore.getState().revision, before + 1);
+  }
+});
+
+for (const [name, patch] of [
+  ['seller switch', { tenantId: 'other-seller', userId: 'other-owner' }],
+  ['actor scope switch', { actorScope: 'PLATFORM', tenantId: null, roles: ['WAREHOUSE_MANAGER'] }],
+  ['role revoke', { roles: ['SELLER_STAFF'] }],
+  ['warehouse revoke', { warehouseIds: [] }],
+]) {
+  test(`SS-985: pending success cannot enter the new view after ${name}`, async () => {
+    const scoped = { ...user, warehouseIds: ['00000015-0000-0000-0000-000000000001'] };
+    useAuthStore.getState().setSession(session('old', scoped));
+    const pending = deferred();
+    globalThis.fetch = async () => pending.promise;
+    const request = apiClient.get('/inventory', { silent: true });
+    useAuthStore.getState().setUser({ ...scoped, ...patch });
+    pending.resolve(ok({ privateRows: ['old-scope'] }));
+    await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED' });
+    assert.deepEqual(useAuthStore.getState().user, { ...scoped, ...patch });
+  });
+}
+
+test('SS-985: a late 401 after scope change is silent and preserves the current session', async (t) => {
+  const toastError = t.mock.method(toast, 'error', () => {});
+  useAuthStore.getState().setSession(session('old'));
+  const pending = deferred();
+  const calls = [];
+  globalThis.fetch = (url) => {
+    calls.push(url);
+    return pending.promise;
+  };
+  const request = apiClient.get('/orders');
+  useAuthStore.getState().setSession(session('current', { userId: 'another-user' }));
+  pending.resolve(fail(401));
+  await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED', status: 0 });
+  assert.deepEqual(calls, ['/api/orders']);
+  assert.equal(toastError.mock.callCount(), 0);
+  assert.equal(useAuthStore.getState().user.userId, 'another-user');
+  assert.equal(useAuthStore.getState().accessToken, 'current');
+});
+
+test('SS-985: scope change while refreshing is silent and cannot overwrite the current session', async (t) => {
+  const toastError = t.mock.method(toast, 'error', () => {});
+  useAuthStore.getState().setSession(session('old'));
+  const pending = deferred();
+  const started = deferred();
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    if (url.endsWith('/refresh')) {
+      started.resolve();
+      return pending.promise;
+    }
+    return fail(401);
+  };
+  const request = apiClient.get('/orders');
+  await started.promise;
+  useAuthStore.getState().setSession(session('current', { userId: 'another-user' }));
+  pending.resolve(ok(session('stale')));
+  await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED', status: 0 });
+  assert.deepEqual(calls, ['/api/orders', '/api/v1/auth/refresh']);
+  assert.equal(toastError.mock.callCount(), 0);
+  assert.equal(useAuthStore.getState().user.userId, 'another-user');
+  assert.equal(useAuthStore.getState().accessToken, 'current');
+});
+
+test('SS-985: grant changes during 401 refresh do not replay the old request', async () => {
+  useAuthStore.getState().setSession(session('old'));
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    return url.endsWith('/refresh') ? ok(session('new', { roles: ['SELLER_STAFF'] })) : fail(401);
+  };
+  await assert.rejects(apiClient.get('/billing', { silent: true }), { code: 'AUTH.SCOPE_CHANGED' });
+  assert.deepEqual(calls, ['/api/billing', '/api/v1/auth/refresh']);
+  assert.equal(useAuthStore.getState().accessToken, 'new');
+});
+
+test('SS-985: stale response body cannot overwrite a changed identity', async () => {
+  useAuthStore.getState().setSession(session());
+  const pendingBody = deferred();
+  const bodyStarted = deferred();
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: () => {
+      bodyStarted.resolve();
+      return pendingBody.promise;
+    },
+  });
+  const request = apiClient.get('/inventory', { silent: true });
+  await bodyStarted.promise;
+  useAuthStore.getState().clear();
+  pendingBody.resolve({ success: true, data: ['old-scope'], meta: {} });
+  await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED' });
+  assert.equal(useAuthStore.getState().user, null);
 });
 
 test('SS-976: API login, session and portal redirect agree for all seven roles', async () => {
@@ -448,7 +605,7 @@ test('late refresh results cannot resurrect a cleared identity', async () => {
   const refresh = apiClient.refreshSession();
   useAuthStore.getState().clear();
   pending.resolve(ok(session()));
-  await assert.rejects(refresh, { code: 'AUTH.UNAUTHENTICATED' });
+  await assert.rejects(refresh, { code: 'AUTH.SCOPE_CHANGED', status: 0 });
   assert.equal(useAuthStore.getState().user, null);
 });
 

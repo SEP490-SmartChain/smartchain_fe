@@ -32,6 +32,11 @@ Run `npm test` for contract, validation, session restoration, concurrent refresh
 permission and redirect regression tests. Tests use Node's test runner and Vite's module loader;
 only the fetch boundary is mocked. No additional test dependency is required.
 
+SS-985 retains the server's current `warehouseIds`; identity/grant/assignment changes
+invalidate protected feature state and reject pending responses from the previous scope.
+Token rotation without a scope change preserves state. See
+[scope isolation](../../../docs/SS-985-SCOPE-ISOLATION.md).
+
 Local integration: Vite proxies /api to VITE_API_TARGET; BE AUTH_WEB_ORIGIN must exactly match
 http://localhost:2324 (or the actual FE origin). BE NODE_ENV=development permits HTTP cookies.
 Production requires HTTPS, a same-site API, and preferably a reverse proxy retaining /api.
