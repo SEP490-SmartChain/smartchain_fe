@@ -22,7 +22,7 @@ export default function ProtectedRoute({
   requiredCapability,
   enforceRoutePolicy,
 }: ProtectedRouteProps) {
-  const { user, status } = useAuthStore();
+  const { user, status, revision } = useAuthStore();
   const location = useLocation();
 
   if (status === 'initializing') return null;
@@ -47,5 +47,6 @@ export default function ProtectedRoute({
     return <Navigate to="/403" replace state={{ from: location.pathname }} />;
   }
 
-  return <Outlet />;
+  // Drop feature state and pending view consumers on identity/grant/assignment changes.
+  return <Outlet key={revision} />;
 }
