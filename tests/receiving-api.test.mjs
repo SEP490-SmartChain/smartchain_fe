@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
-let server, api, auth, policy, scan;
+let server, api, auth, policy, scan, countForm;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const warehouseId = '00000000-0000-4000-8000-000000000002';
@@ -32,21 +32,20 @@ before(async () => {
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
   scan = await server.ssrLoadModule('/src/features/inbound/schemas/asnScanSchema.ts');
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-arrival-token',
-      expiresIn: 900,
-      user: {
-        userId: id,
-        tenantId: null,
-        email: 'staff@example.test',
-        fullName: 'Arrival Staff',
-        actorScope: 'PLATFORM',
-        roles: ['WAREHOUSE_STAFF'],
-        permissions: [],
-      },
-    });
+  countForm = await server.ssrLoadModule('/src/features/inbound/schemas/receiptCountSchema.ts');
+  auth.getState().setSession({
+    accessToken: 'synthetic-arrival-token',
+    expiresIn: 900,
+    user: {
+      userId: id,
+      tenantId: null,
+      email: 'staff@example.test',
+      fullName: 'Arrival Staff',
+      actorScope: 'PLATFORM',
+      roles: ['WAREHOUSE_STAFF'],
+      permissions: [],
+    },
+  });
 });
 after(async () => {
   globalThis.fetch = originalFetch;
@@ -203,6 +202,183 @@ test('only Warehouse Staff grants check-in across all seven roles', () => {
   );
   assert.equal(
     policy.can(policy.getEffectiveRoles(['WAREHOUSE_STAFF'], undefined), 'warehouse.asn.checkIn'),
+    false,
+  );
+});
+
+const lineId = '00000000-0000-4000-8000-000000000004';
+const countId = '00000000-0000-4000-8000-000000000005';
+const physicalCount = {
+  id: countId,
+  receiptId,
+  inboundLineId: lineId,
+  receivedQty: 5,
+  receiptVersion: 2,
+  countedAt: arrival.arrivedAt,
+  lots: [
+    {
+      recordId: id,
+      lotId: id,
+      lotCode: 'OBSERVED',
+      receivedQty: 5,
+      quarantinedQty: 0,
+      qcState: 'PENDING',
+      manufacturedOn: null,
+      expiresOn: null,
+      lotStatus: 'SELLABLE',
+    },
+  ],
+};
+const countInput = {
+  operationKey: countId,
+  expectedVersion: 1,
+  inboundLineId: lineId,
+  receivedQty: 5,
+  lots: [{ lotCode: 'OBSERVED', receivedQty: 5 }],
+};
+const receiptState = {
+  asnId: id,
+  asnCode: arrival.asnCode,
+  asnStatus: 'RECEIVING',
+  receiptId,
+  version: 2,
+  status: 'RECEIVING',
+  lines: [
+    {
+      id: lineId,
+      lineNo: 1,
+      sku: 'OBS-01',
+      productName: 'Observed SKU',
+      trackExpiry: false,
+      shelfLifeDays: null,
+      minInboundShelfLifePct: 50,
+      count: physicalCount,
+    },
+  ],
+};
+test('physical count submits the same operation reference on a repeated attempt', async () => {
+  const attempts = [];
+  globalThis.fetch = async (url, options) => {
+    assert.equal(
+      new URL(url, 'https://example.test').pathname,
+      `/api/v1/warehouses/${warehouseId}/asns/${id}/receiving/counts`,
+    );
+    attempts.push(JSON.parse(options.body));
+    return ok(physicalCount);
+  };
+  assert.deepEqual(await api.recordCount(warehouseId, id, countInput), physicalCount);
+  await api.recordCount(warehouseId, id, countInput);
+  assert.deepEqual(attempts, [countInput, countInput]);
+});
+test('receipt lookup keeps uncounted distinct from an observed zero', async () => {
+  globalThis.fetch = async () =>
+    ok({ ...receiptState, lines: [{ ...receiptState.lines[0], count: null }] });
+  assert.equal((await api.receipt(warehouseId, id)).lines[0].count, null);
+  globalThis.fetch = async () =>
+    ok({
+      ...receiptState,
+      lines: [{ ...receiptState.lines[0], count: { ...physicalCount, receivedQty: 0, lots: [] } }],
+    });
+  assert.equal((await api.receipt(warehouseId, id)).lines[0].count.receivedQty, 0);
+});
+for (const patch of [
+  { receivedQty: -1 },
+  { receivedQty: 6 },
+  { receiptVersion: 1 },
+  { countedAt: 'bad' },
+  { orderValueVnd: '1000' },
+  { lots: [{ ...physicalCount.lots[0], quarantinedQty: 6 }] },
+]) {
+  test(`physical count rejects inconsistent/private response ${JSON.stringify(patch)}`, async () => {
+    globalThis.fetch = async () => ok({ ...physicalCount, ...patch });
+    await assert.rejects(api.recordCount(warehouseId, id, countInput));
+  });
+}
+test('receipt lookup rejects another ASN, line or receipt provenance', async () => {
+  for (const data of [
+    { ...receiptState, asnId: countId },
+    { ...receiptState, lines: [{ ...receiptState.lines[0], id: countId }] },
+    { ...receiptState, receiptId: countId },
+  ]) {
+    globalThis.fetch = async () => ok(data);
+    await assert.rejects(api.receipt(warehouseId, id));
+  }
+});
+for (const status of [400, 403, 404, 409]) {
+  test(`count failure ${status} retains the authenticated session`, async () => {
+    globalThis.fetch = async () =>
+      Response.json(
+        { success: false, error: { code: 'INBOUND.COUNT_STALE', message: 'Check receipt' } },
+        { status },
+      );
+    await assert.rejects(api.recordCount(warehouseId, id, countInput), {
+      name: 'ApiError',
+      status,
+    });
+    assert.equal(auth.getState().accessToken, 'synthetic-arrival-token');
+  });
+}
+test('physical count form trims codes, omits blank dates and never copies a declared quantity', () => {
+  const command = countForm.countCommand(
+    {
+      inboundLineId: lineId,
+      receivedQty: 5,
+      lots: [{ lotCode: ' OBSERVED ', receivedQty: 5, manufacturedOn: '', expiresOn: '' }],
+    },
+    countId,
+    1,
+  );
+  assert.deepEqual(command, countInput);
+  assert.equal(
+    countForm.receiptCountFormSchema.safeParse({ inboundLineId: lineId, receivedQty: 0, lots: [] })
+      .success,
+    true,
+  );
+});
+for (const value of [
+  { receivedQty: -1, lots: [] },
+  { receivedQty: 0.5, lots: [] },
+  { receivedQty: 5, lots: [] },
+  {
+    receivedQty: 2,
+    lots: [
+      { lotCode: 'A', receivedQty: 1, manufacturedOn: '', expiresOn: '' },
+      { lotCode: ' A ', receivedQty: 1, manufacturedOn: '', expiresOn: '' },
+    ],
+  },
+  {
+    receivedQty: 1,
+    lots: [{ lotCode: 'A', receivedQty: 1, manufacturedOn: '', expiresOn: '2026-02-30' }],
+  },
+  {
+    receivedQty: 1,
+    lots: [{ lotCode: 'A', receivedQty: 1, manufacturedOn: '2026-10-11', expiresOn: '2026-10-11' }],
+  },
+])
+  test(`physical form rejects invalid lot breakdown ${JSON.stringify(value)}`, () => {
+    assert.equal(
+      countForm.receiptCountFormSchema.safeParse({ inboundLineId: lineId, ...value }).success,
+      false,
+    );
+  });
+test('count capability is Staff-only and denies mixed, legacy or missing scope', () => {
+  for (const role of [
+    'ORCA_ADMIN',
+    'OPS_DISPATCHER',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
+    'ORCA_ACCOUNTANT',
+    'SELLER_OWNER',
+    'SELLER_STAFF',
+  ])
+    assert.equal(policy.can([role], 'warehouse.asn.recordCount'), role === 'WAREHOUSE_STAFF', role);
+  for (const roles of [[], ['WAREHOUSE_STAFF', 'SELLER_OWNER'], ['WAREHOUSE_STAFF', 'ADMIN']])
+    assert.equal(policy.can(roles, 'warehouse.asn.recordCount'), false);
+  assert.equal(
+    policy.can(
+      policy.getEffectiveRoles(['WAREHOUSE_STAFF'], 'TENANT'),
+      'warehouse.asn.recordCount',
+    ),
     false,
   );
 });

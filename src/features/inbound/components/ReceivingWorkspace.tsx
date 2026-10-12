@@ -11,6 +11,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptCountForm } from './ReceiptCountForm';
 import { receivingApi, type AsnArrival, type ReceivingWarehouse } from '../api/receivingApi';
 import { asnCodeFromScan, asnScanSchema } from '../schemas/asnScanSchema';
 
@@ -47,6 +48,7 @@ export function ReceivingWorkspace() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState<Scoped<{ items: Asn[]; cursor: string | null }> | null>(null);
   const [selected, setSelected] = useState<Scoped<Asn> | null>(null);
+  const [countSelection, setCountSelection] = useState<Scoped<Asn> | null>(null);
   const [arrival, setArrival] = useState<Scoped<AsnArrival> | null>(null);
   const [error, setError] = useState<Scoped<string> | null>(null);
   const [directoryError, setDirectoryError] = useState<Principal | false>(false);
@@ -73,6 +75,7 @@ export function ReceivingWorkspace() {
   const items = isCurrent(page) ? (page?.data.items ?? []) : [];
   const cursor = isCurrent(page) ? page?.data.cursor : null;
   const command = isCurrent(selected) ? selected?.data : null;
+  const countedAsn = isCurrent(countSelection) ? countSelection?.data : null;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -336,6 +339,22 @@ export function ReceivingWorkspace() {
                               {t('checkIn')}
                             </Button>
                           )}
+                          {asn.receiptIds.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busy || loading}
+                              onClick={() =>
+                                setCountSelection({
+                                  owner: user,
+                                  warehouse: activeWarehouse,
+                                  data: asn,
+                                })
+                              }
+                            >
+                              {t(can('warehouse.asn.recordCount') ? 'countOpen' : 'countView')}
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -385,6 +404,25 @@ export function ReceivingWorkspace() {
             </Button>
           </div>
         </div>
+      </Modal>
+      <Modal
+        isOpen={Boolean(countedAsn)}
+        title={t('countTitle', { code: countedAsn?.asnCode ?? '' })}
+        width="720px"
+        onClose={() => setCountSelection(null)}
+      >
+        {countedAsn && (
+          <ReceiptCountForm
+            key={`${activeWarehouse}:${countedAsn.id}`}
+            warehouseId={activeWarehouse}
+            asnId={countedAsn.id}
+            canWrite={can('warehouse.asn.recordCount')}
+            onSaved={() => {
+              setCountSelection(null);
+              setRefresh((value) => value + 1);
+            }}
+          />
+        )}
       </Modal>
     </div>
   );
