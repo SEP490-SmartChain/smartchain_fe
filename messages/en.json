@@ -1562,7 +1562,22 @@
     "confirmTitle": "Confirm ASN arrival",
     "confirmDescription": "Confirm that shipment {code} has physically arrived at the selected warehouse? This opens a receiving task; it does not confirm quantities or quality.",
     "cancel": "Cancel",
-    "checkInError": "Arrival could not be confirmed. Reload the notice before retrying."
+    "checkInError": "Arrival could not be confirmed. Reload the notice before retrying.",
+    "photoOpen": "Receipt photos",
+    "photoHelp": "Upload a packaging or damage photo for this counted lot. JPEG, PNG or WebP, up to 5 MB. A confirmed photo is evidence; it does not approve QC or add stock.",
+    "photoError": "The photo could not be saved or viewed. Check your connection and retry.",
+    "photoList": "Receipt image evidence",
+    "photoNumber": "Photo {number}",
+    "photoConfirmed": "Confirmed",
+    "photoPending": "Upload not confirmed",
+    "photoView": "View photo {number}",
+    "photoEmpty": "No photos have been saved for this lot.",
+    "photoPreview": "Confirmed receipt photo",
+    "photoSelect": "Choose receipt photo",
+    "photoInvalid": "Choose a JPEG, PNG or WebP image from 12 bytes to 5 MB.",
+    "photoUpload": "Upload and confirm photo",
+    "photoRetry": "Retry this photo",
+    "photoRetryHelp": "The result is not confirmed. Retry the same photo to avoid creating a duplicate."
   },
   "Asns": {
     "title": "Advance Shipping Notices",

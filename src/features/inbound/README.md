@@ -47,5 +47,28 @@ current role/assignment and writes remain server enforced.
 Response schemas reject mismatched receipt/line/quantity, invalid lot totals and
 unexpected private fields. Old warehouse or identity responses are discarded.
 Recorded units and quarantine eligibility are evidence pending QC; they do not
-become stock on this screen. UC-39–41 evidence, discrepancy and Manager review
+become stock on this screen. QC classification, discrepancy and Manager review
 remain separate work.
+
+## Receipt photos (SS-1071 / FU-21 / UC-39)
+
+Staff expands photos on a saved counted lot, selects JPEG/PNG/WebP (12 bytes to
+5 MiB), then uploads and confirms evidence. Manager has a read-only list and
+private preview. The backend owns live warehouse/receipt/uploader authorization;
+the UI does not grant QC approval or stock posting.
+
+`evidenceApi` validates minimal metadata, matching record/photo IDs, signed
+checksum headers and HTTPS or loopback storage URLs. Private fields in a response
+are rejected. PUT runs through `apiClient.uploadSignedImage` with credentials
+omitted, no bearer token and redirect rejection. App APIs retain normal auth handling.
+
+The exact file, SHA-256 and operation UUID are retained after an uncertain response.
+Retry reuses the original intent; a verified replay skips PUT/confirmation. The
+native file input resets after success so the same file can be selected again.
+Scope or identity changes abort requests and discard obsolete responses/previews.
+Pending photos cannot be previewed. At ten visible intents the picker is disabled;
+the backend enforces the authoritative total including intents hidden from that user.
+
+The API contract and storage deployment requirements are documented in
+`smartchain_be/docs/SS-1071-RECEIPT-PHOTOS.md`. Classification and Manager disposition
+must be implemented before SS-1071/SS-1070 can be considered complete.

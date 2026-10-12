@@ -92,6 +92,36 @@ class ApiClient {
     return useLocaleStore.getState().locale === 'en' ? en : vi;
   }
 
+  /** Private object PUT: send only signed headers, never application cookies or bearer tokens. */
+  async uploadSignedImage(
+    url: string,
+    file: File,
+    headers: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const parsed = new URL(url);
+    if (
+      (parsed.protocol !== 'https:' &&
+        !(
+          parsed.protocol === 'http:' &&
+          ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+        )) ||
+      parsed.username ||
+      parsed.password
+    ) {
+      throw new Error('Invalid image upload URL');
+    }
+    const response = await fetch(url, {
+      method: 'PUT',
+      body: file,
+      headers,
+      credentials: 'omit',
+      redirect: 'error',
+      signal: signal ?? AbortSignal.timeout(30000),
+    });
+    if (!response.ok) throw new Error(`Image storage rejected upload (${response.status})`);
+  }
+
   /** Public VietQR lookup: never send the SmartChain session or cookies to a third party. */
   async lookupBusinessTaxId(
     taxId: string,
