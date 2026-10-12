@@ -1562,7 +1562,22 @@
     "confirmTitle": "Xác nhận ASN đến kho",
     "confirmDescription": "Xác nhận lô hàng {code} đã đến kho đã chọn? Thao tác này mở phiếu nhận hàng; chưa xác nhận số lượng hoặc chất lượng.",
     "cancel": "Hủy",
-    "checkInError": "Không thể xác nhận hàng đến. Hãy tải lại thông báo trước khi thử lại."
+    "checkInError": "Không thể xác nhận hàng đến. Hãy tải lại thông báo trước khi thử lại.",
+    "photoOpen": "Ảnh nhận hàng",
+    "photoHelp": "Tải ảnh bao bì hoặc hư hỏng của lô đã đếm này. JPEG, PNG hoặc WebP, tối đa 5 MB. Ảnh xác nhận là bằng chứng, không tự duyệt QC hay nhập tồn kho.",
+    "photoError": "Không thể lưu hoặc xem ảnh. Kiểm tra kết nối rồi thử lại.",
+    "photoList": "Ảnh bằng chứng nhận hàng",
+    "photoNumber": "Ảnh {number}",
+    "photoConfirmed": "Đã xác nhận",
+    "photoPending": "Chưa xác nhận tải lên",
+    "photoView": "Xem ảnh {number}",
+    "photoEmpty": "Chưa có ảnh cho lô này.",
+    "photoPreview": "Ảnh nhận hàng đã xác nhận",
+    "photoSelect": "Chọn ảnh nhận hàng",
+    "photoInvalid": "Chọn ảnh JPEG, PNG hoặc WebP từ 12 byte đến 5 MB.",
+    "photoUpload": "Tải lên và xác nhận ảnh",
+    "photoRetry": "Thử lại ảnh này",
+    "photoRetryHelp": "Chưa xác nhận được kết quả. Thử lại cùng ảnh để tránh tạo ảnh trùng."
   },
   "Asns": {
     "title": "Phiếu ASN",

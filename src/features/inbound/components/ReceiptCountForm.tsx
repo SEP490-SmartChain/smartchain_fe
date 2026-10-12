@@ -6,9 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
+import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptPhotos } from './ReceiptPhotos';
 import { receivingApi, type ReceivingState } from '../api/receivingApi';
 import {
   countCommand,
@@ -26,6 +28,7 @@ interface Props {
 
 export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Props) {
   const t = useTranslations('Receiving');
+  const { can } = useAccess();
   const owner = useAuthStore((state) => state.user);
   const [receipt, setReceipt] = useState<ReceivingState | null>(null);
   const [error, setError] = useState('');
@@ -130,10 +133,23 @@ export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Prop
             </p>
             <p>{t('countSaved', { quantity: row.count?.receivedQty ?? 0 })}</p>
             {row.count?.lots.map((lot) => (
-              <p key={lot.recordId} className="text-sm text-[var(--sc-text-secondary)]">
-                {lot.lotCode} · {lot.receivedQty} · {lot.expiresOn ?? '—'} ·{' '}
-                {lot.quarantinedQty > 0 ? t('countQuarantine') : t('countPendingQc')}
-              </p>
+              <div key={lot.recordId} className="mt-3 text-sm">
+                <p className="text-[var(--sc-text-secondary)]">
+                  {lot.lotCode} · {lot.receivedQty} · {lot.expiresOn ?? '—'} ·{' '}
+                  {lot.quarantinedQty > 0 ? t('countQuarantine') : t('countPendingQc')}
+                </p>
+                <ReceiptPhotos
+                  warehouseId={warehouseId}
+                  asnId={asnId}
+                  recordId={lot.recordId}
+                  canWrite={
+                    can('warehouse.asn.uploadPhoto') &&
+                    receipt.status === 'RECEIVING' &&
+                    ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus) &&
+                    lot.qcState !== 'APPROVED'
+                  }
+                />
+              </div>
             ))}
           </div>
         ))}
