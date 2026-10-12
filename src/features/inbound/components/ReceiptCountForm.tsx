@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
 import { ReceiptPhotos } from './ReceiptPhotos';
+import { ReceiptReviewPanel } from './ReceiptReviewPanel';
 import { receivingApi, type ReceivingState } from '../api/receivingApi';
 import {
   countCommand,
@@ -26,9 +27,16 @@ interface Props {
   asnId: string;
   canWrite: boolean;
   onSaved: () => void;
+  onReceiptChanged: () => void;
 }
 
-export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Props) {
+export function ReceiptCountForm({
+  warehouseId,
+  asnId,
+  canWrite,
+  onSaved,
+  onReceiptChanged,
+}: Props) {
   const t = useTranslations('Receiving');
   const { can } = useAccess();
   const owner = useAuthStore((state) => state.user);
@@ -158,6 +166,7 @@ export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Prop
                   }
                 />
                 <ReceiptInspectionForm
+                  key={`${lot.recordId}:${refresh}`}
                   warehouseId={warehouseId}
                   asnId={asnId}
                   recordId={lot.recordId}
@@ -199,12 +208,27 @@ export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Prop
           </div>
         ))}
       {receipt && (
+        <ReceiptReviewPanel
+          warehouseId={warehouseId}
+          asnId={asnId}
+          receiptVersion={receipt.version}
+          canWrite={can('warehouse.asn.review')}
+          onSaved={() => {
+            setRefresh((v) => v + 1);
+            onReceiptChanged();
+          }}
+        />
+      )}
+      {receipt && (
         <ReceiptDiscrepancyPanel
           warehouseId={warehouseId}
           asnId={asnId}
           receiptVersion={receipt.version}
           canWrite={can('warehouse.asn.reportDiscrepancy')}
-          onSaved={() => setRefresh((v) => v + 1)}
+          onSaved={() => {
+            setRefresh((v) => v + 1);
+            onReceiptChanged();
+          }}
         />
       )}
       {editable && (

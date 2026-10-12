@@ -80,6 +80,12 @@ test('reads scoped QC history and propagates cancellation', async () => {
   };
   assert.deepEqual(await api.get(warehouse, id, record, controller.signal), state);
 });
+test('permits another inspection only when pending history has a Manager RETURN decision', async () => {
+  globalThis.fetch = async () => ok({ ...state, qcState: 'PENDING', lastDecision: 'RETURN' });
+  assert.equal((await api.get(warehouse, id, record)).qcState, 'PENDING');
+  globalThis.fetch = async () => ok({ ...state, qcState: 'PENDING', lastDecision: 'APPROVE' });
+  await assert.rejects(api.get(warehouse, id, record), { name: 'ZodError' });
+});
 test('rejects foreign identity, inconsistent quantities, revisions and duplicate history', async () => {
   for (const changed of [
     { receivingRecordId: id },

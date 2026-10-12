@@ -498,6 +498,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-39; assigned warehouse, private receipt evidence presign/confirm',
   ),
   capability(
+    'warehouse.asn.review',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'RP3 FU-21/UC-41; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/reviews',
+  ),
+  capability(
     'warehouse.asn.reportDiscrepancy',
     'warehouses',
     'PLATFORM',
