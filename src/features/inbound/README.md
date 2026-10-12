@@ -106,3 +106,22 @@ Strict response schemas check record/receipt identity, physical partitions, sele
 actual source quantities. Unknown replies preserve the same command and operation for retry;
 confirmed conflicts reload evidence. Scope/identity changes abort requests and clear old data.
 The list offers a bounded server search; it never loads unrelated Seller inventory or finance.
+
+## Assigned putaway (SS-1078 / FU-22 / UC-42/43)
+
+`/warehouse/putaway` reads the assigned warehouse's cursor-paginated tasks. Manager
+selects a live assigned Staff from IAM's minimal picker; Staff claims an OPEN task
+and scans receiving bin, storage bin, SKU, lot and the observed whole task quantity.
+The form starts blank. Wrong quantity is rejected locally and the server remains
+authoritative for scans, version, current assignment, lot eligibility and capacity.
+Manager reads outcomes without a physical-confirmation form.
+
+Strict adapters reject private/unrelated fields, inconsistent task states and
+mismatched task/actor/revision/quantity replies. Unknown transport results retain
+the exact attempted command and operation UUID. Controls that would change scope
+or replace the attempted task are locked until replay resolves it. Identity/scope
+changes abort old requests and discard stale records. The backend posts physical
+movements through P3 and only confirmed accepted goods become SELLABLE.
+
+UC-44 relocation and whole-parent demo/UAT remain separate work; this page does
+not imply billing, Seller notification delivery or completed quarantine handling.

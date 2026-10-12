@@ -522,6 +522,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-40; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/discrepancies',
   ),
   capability(
+    'warehouse.putaway.assign',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-42; assigned warehouse, Manager assignment or Staff self-claim',
+  ),
+  capability(
+    'warehouse.putaway.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-43; assigned task and physical scans, InventoryFacade.move',
+  ),
+  capability(
     'warehouse.asn.inspect',
     'warehouses',
     'PLATFORM',

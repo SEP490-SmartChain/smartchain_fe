@@ -1898,5 +1898,44 @@
       "DELETE": "Deleted",
       "REORDER": "Priority changed"
     }
+  },
+  "Putaway": {
+    "title": "Putaway tasks",
+    "description": "Assign reviewed receiving goods, scan their bins, SKU and lot, then confirm physical storage.",
+    "warehouse": "Warehouse",
+    "refresh": "Refresh",
+    "loadError": "Could not load putaway tasks. Refresh to try again.",
+    "loading": "Loading tasks…",
+    "taskSummary": "{quantity} units · {confirmed} confirmed · {status}",
+    "openTask": "Open task",
+    "empty": "No putaway tasks in this warehouse.",
+    "firstPage": "First page",
+    "nextPage": "Next page",
+    "taskTitle": "Putaway {sku} · {lot}",
+    "expected": "Move {qty} units from {from} to {to}.",
+    "assignee": "Assigned Staff",
+    "assign": "Assign Staff",
+    "claim": "Claim this task",
+    "fromScan": "Scan receiving bin",
+    "toScan": "Scan storage bin",
+    "skuScan": "Scan SKU",
+    "lotScan": "Scan lot",
+    "quantity": "Observed quantity",
+    "scanRequired": "Scan a valid code.",
+    "quantityRequired": "Enter the full task quantity.",
+    "confirm": "Confirm physical putaway",
+    "assignmentSuccess": "Task assigned.",
+    "confirmSuccess": "Putaway confirmed. Goods are now sellable.",
+    "saveError": "The result is uncertain. Preserve the attempted operation and retry.",
+    "unknown": "The reply was uncertain. Retry reuses the exact scans and operation; do not move the goods again.",
+    "retry": "Retry the same operation",
+    "managerReadOnly": "Manager assigns work and reads results. Assigned Staff confirms the physical goods.",
+    "claimFirst": "Claim or receive this task assignment before confirming.",
+    "status": {
+      "OPEN": "Open",
+      "ASSIGNED": "Assigned",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
   }
 }

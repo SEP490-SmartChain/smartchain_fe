@@ -1898,5 +1898,44 @@
       "DELETE": "Đã xóa",
       "REORDER": "Đã đổi ưu tiên"
     }
+  },
+  "Putaway": {
+    "title": "Công việc cất hàng",
+    "description": "Phân công hàng đã duyệt, quét bin, SKU và lot rồi xác nhận cất hàng thực tế.",
+    "warehouse": "Kho",
+    "refresh": "Tải lại",
+    "loadError": "Không tải được công việc cất hàng. Vui lòng thử lại.",
+    "loading": "Đang tải…",
+    "taskSummary": "{quantity} đơn vị · đã xác nhận {confirmed} · {status}",
+    "openTask": "Mở công việc",
+    "empty": "Kho chưa có công việc cất hàng.",
+    "firstPage": "Trang đầu",
+    "nextPage": "Trang tiếp",
+    "taskTitle": "Cất hàng {sku} · {lot}",
+    "expected": "Chuyển {qty} đơn vị từ {from} đến {to}.",
+    "assignee": "Nhân viên được phân công",
+    "assign": "Phân công",
+    "claim": "Nhận công việc",
+    "fromScan": "Quét bin nhận hàng",
+    "toScan": "Quét bin lưu trữ",
+    "skuScan": "Quét SKU",
+    "lotScan": "Quét lot",
+    "quantity": "Số lượng thực tế",
+    "scanRequired": "Quét mã hợp lệ.",
+    "quantityRequired": "Nhập đúng số lượng của công việc.",
+    "confirm": "Xác nhận cất hàng",
+    "assignmentSuccess": "Đã phân công công việc.",
+    "confirmSuccess": "Đã xác nhận cất hàng. Hàng có thể bán.",
+    "saveError": "Chưa xác định được kết quả. Giữ nguyên thao tác và thử lại.",
+    "unknown": "Chưa nhận được phản hồi chắc chắn. Thử lại giữ nguyên mã và dữ liệu đã quét; không chuyển hàng thêm lần nữa.",
+    "retry": "Thử lại cùng thao tác",
+    "managerReadOnly": "Manager phân công và xem kết quả. Nhân viên được giao xác nhận hàng thực tế.",
+    "claimFirst": "Nhận công việc hoặc chờ phân công trước khi xác nhận.",
+    "status": {
+      "OPEN": "Chưa nhận",
+      "ASSIGNED": "Đã phân công",
+      "COMPLETED": "Hoàn thành",
+      "CANCELLED": "Đã hủy"
+    }
   }
 }
