@@ -4,6 +4,7 @@ import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 import { asnSchema } from './asnApi';
 
+import type { ReceiptCountInput } from '../schemas/receiptCountSchema';
 import type { AsnPage, AsnStatus } from '../types/asn.types';
 
 const paginationSchema = z.object({
@@ -26,7 +27,109 @@ export const arrivalSchema = z.object({
 export type AsnArrival = z.infer<typeof arrivalSchema>;
 export type ReceivingWarehouse = z.infer<typeof directorySchema>['items'][number];
 
+export const receiptCountSchema = z
+  .object({
+    id: z.string().uuid(),
+    receiptId: z.string().uuid(),
+    inboundLineId: z.string().uuid(),
+    receivedQty: z.number().int().min(0).max(1_000_000),
+    receiptVersion: z.number().int().min(2),
+    countedAt: z.string().datetime(),
+    lots: z
+      .array(
+        z
+          .object({
+            recordId: z.string().uuid(),
+            lotId: z.string().uuid(),
+            lotCode: z.string().min(1),
+            receivedQty: z.number().int().positive(),
+            quarantinedQty: z.number().int().nonnegative(),
+            qcState: z.enum(['PENDING', 'REVIEW_REQUIRED', 'APPROVED']),
+            manufacturedOn: z.iso.date().nullable(),
+            expiresOn: z.iso.date().nullable(),
+            lotStatus: z.enum([
+              'SELLABLE',
+              'NEAR_EXPIRY',
+              'QUARANTINE',
+              'NEAR_EXPIRY_LOCKED',
+              'EXPIRED',
+              'RECALLED',
+            ]),
+          })
+          .strict(),
+      )
+      .max(50),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.lots.reduce((sum, lot) => sum + lot.receivedQty, 0) !== value.receivedQty ||
+      value.lots.some((lot) => lot.quarantinedQty > lot.receivedQty)
+    ) {
+      context.addIssue({ code: 'custom', message: 'Inconsistent physical count' });
+    }
+  });
+export const receivingStateSchema = z
+  .object({
+    receiptId: z.string().uuid(),
+    version: z.number().int().positive(),
+    status: z.enum(['RECEIVING', 'COMPLETED', 'CANCELLED']),
+    asnId: z.string().uuid(),
+    asnCode: z.string(),
+    asnStatus: asnSchema.shape.status,
+    lines: z.array(
+      z
+        .object({
+          id: z.string().uuid(),
+          lineNo: z.number().int().positive(),
+          sku: z.string(),
+          productName: z.string(),
+          trackExpiry: z.boolean(),
+          shelfLifeDays: z.number().int().positive().nullable(),
+          minInboundShelfLifePct: z.number().min(0).max(100),
+          count: receiptCountSchema.nullable(),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.lines.some(
+        (line) =>
+          line.count &&
+          (line.count.inboundLineId !== line.id ||
+            line.count.receiptId !== value.receiptId ||
+            line.count.receiptVersion > value.version),
+      )
+    ) {
+      context.addIssue({ code: 'custom', message: 'Count belongs to another receipt or line' });
+    }
+  });
+export type ReceivingState = z.infer<typeof receivingStateSchema>;
+
 export const receivingApi = {
+  async receipt(warehouseId: string, asnId: string, signal?: AbortSignal): Promise<ReceivingState> {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `/v1/warehouses/${encodeURIComponent(warehouseId)}/asns/${encodeURIComponent(asnId)}/receiving`,
+      { signal, silent: true },
+    );
+    const result = receivingStateSchema.parse(data);
+    if (result.asnId !== asnId) throw new Error('Receipt belongs to another ASN');
+    return result;
+  },
+  async recordCount(warehouseId: string, asnId: string, input: ReceiptCountInput) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/warehouses/${encodeURIComponent(warehouseId)}/asns/${encodeURIComponent(asnId)}/receiving/counts`,
+      input,
+      { silent: true },
+    );
+    const result = receiptCountSchema.parse(data);
+    if (result.inboundLineId !== input.inboundLineId || result.receivedQty !== input.receivedQty) {
+      throw new Error('Count does not match the submitted line');
+    }
+    return result;
+  },
   async warehouses(signal?: AbortSignal): Promise<ReceivingWarehouse[]> {
     const result: ReceivingWarehouse[] = [];
     let cursor: string | null = null;

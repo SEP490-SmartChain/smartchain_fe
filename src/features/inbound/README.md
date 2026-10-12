@@ -27,4 +27,25 @@ Arrival displays the server timestamp and receipt reference after confirmation;
 it does not increment received, accepted or sellable quantities. Repeated scans
 return the original receipt. Conflicts retain the confirmation dialog and offer
 reload; obsolete warehouse/identity responses do not populate the new view.
-Actual count, QC evidence and Manager approval (UC-38–41) remain separate work.
+UC-38 uses the receiving count dialog and the separate physical-count API.
+
+## Physical count (SS-1071 / FU-21 / UC-38)
+
+Staff opens an arrived receipt, selects an uncounted SKU and enters observed
+total plus lot breakdown and packaging dates. The form starts without seller
+declarations or expected quantities. Explicit zero creates no lot. Lot quantities
+must total the observed count, codes must be unique and dates must be real.
+Warehouse-local shelf-life and existing provenance are validated by the backend.
+
+The dialog reads `GET /v1/warehouses/:warehouseId/asns/:id/receiving` and posts
+`POST /v1/warehouses/:warehouseId/asns/:id/receiving/counts` with the receipt
+revision and operation UUID. An uncertain result freezes the attempted count and
+offers replay with the same UUID or a read to check saved evidence. Saved counts
+are immutable through this initial-count form. Manager sees actual counts only;
+current role/assignment and writes remain server enforced.
+
+Response schemas reject mismatched receipt/line/quantity, invalid lot totals and
+unexpected private fields. Old warehouse or identity responses are discarded.
+Recorded units and quarantine eligibility are evidence pending QC; they do not
+become stock on this screen. UC-39–41 evidence, discrepancy and Manager review
+remain separate work.

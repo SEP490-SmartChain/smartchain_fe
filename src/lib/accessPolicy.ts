@@ -482,6 +482,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-37; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/arrival',
   ),
   capability(
+    'warehouse.asn.recordCount',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-38; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/receiving/counts',
+  ),
+  capability(
     'platform.warehouses.view',
     'warehouses',
     'PLATFORM',
