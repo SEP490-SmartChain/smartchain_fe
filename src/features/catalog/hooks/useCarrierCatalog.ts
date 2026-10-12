@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { carrierCatalogApi } from '../api/carrierCatalogApi';
+
 import type {
   CarrierDetail,
   CarrierListQuery,
@@ -24,16 +25,10 @@ export function useCarrierCatalog(initialQuery: CarrierListQuery = {}) {
       setIsLoading(true);
       setError(null);
       try {
-        const pageData = await carrierCatalogApi.list(q);
-        const items = Array.isArray(pageData)
-          ? pageData
-          : ((pageData as unknown as { items?: CarrierSummary[] })?.items ?? []);
-        const pagination = (
-          pageData as unknown as { pagination?: { hasNext?: boolean; nextCursor?: string | null } }
-        )?.pagination;
-        setCarriers(items);
-        setHasNextPage(Boolean(pagination?.hasNext));
-        setNextCursor(pagination?.nextCursor ?? null);
+        const page = await carrierCatalogApi.list(q);
+        setCarriers(page.items);
+        setHasNextPage(page.pagination.hasNext);
+        setNextCursor(page.pagination.nextCursor);
       } catch (err) {
         const caughtError = err instanceof Error ? err : new Error(String(err));
         setError(caughtError);

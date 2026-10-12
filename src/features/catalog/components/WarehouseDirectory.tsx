@@ -1,54 +1,75 @@
 import { useCallback, useEffect, useRef, useState, Fragment, type ReactNode } from 'react';
 
-import {} from 'react-dom';
-
 import {
   ChevronDown,
   ChevronRight,
   Filter,
   LoaderCircle,
   MapPin,
+  Plus,
   Search,
   Warehouse as WarehouseIcon,
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
-import Modal from '@/components/Common/Modal/Modal';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
-import { toast } from 'sonner';
-
 import { useAccess } from '@/hooks/useAccess';
+import { ApiError } from '@/services/apiClient';
+import { useAuthStore } from '@/stores/authStore';
+
+import { AddWarehouseModal } from './AddWarehouseModal';
+import { WarehouseCalendarPanel } from './WarehouseCalendarPanel';
+import { WarehouseDowntimePanel } from './WarehouseDowntimePanel';
+import { WarehouseLayoutPanel } from './WarehouseLayoutPanel';
+import { WarehouseStatusModal } from './WarehouseStatusModal';
 import { warehouseApi } from '../api/warehouseApi';
 
-import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
+import type {
+  Warehouse,
+  WarehouseFilters,
+  WarehousePage,
+  WarehouseStatus,
+} from '../types/warehouse';
 
 interface WarehouseDirectoryProps {
-  /** Hành động ở đầu trang (vd. nút thêm kho) — chỉ trang ORCA Admin truyền vào. */
   headerAction?: ReactNode;
 }
 
-export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps) {
+export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {}) {
+  const t = useTranslations('Warehouses');
+  const locale = useLocale();
   const { can } = useAccess();
   const canManage = can('warehouses.manage');
+  const canUpdate = can('warehouses.update');
+  const principal = useAuthStore((state) => state.user);
   const [filters, setFilters] = useState<WarehouseFilters>({ search: '', status: '' });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestRevision = useRef(0);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
-  const cache = useRef<Record<number, { items: Warehouse[]; cursor: string | null }>>({});
+  const cache = useRef<Record<number, WarehousePage>>({});
+
+  const invalidateRequests = useCallback(() => {
+    requestRevision.current++;
+  }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -59,61 +80,60 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
 
   const fetchWarehouses = useCallback(
     async (cursor?: string, page = 1) => {
+      const revision = ++requestRevision.current;
       try {
-        if (page === 1) setIsLoading(true);
+        setIsLoading(true);
+        setError(null);
         const activeFilters = {
           search: debouncedSearch,
           status: filters.status,
         };
 
         const result = await warehouseApi.list(activeFilters, cursor);
+        if (revision !== requestRevision.current) return;
+        setCurrentPage(page);
         setWarehouses(result.items);
         setHasNextPage(result.pagination.hasNext);
         setNextCursor(result.pagination.nextCursor);
-        cache.current[page] = { items: result.items, cursor: result.pagination.nextCursor };
-      } catch {
-        toast.error('Lỗi tải danh sách kho');
+        cache.current[page] = result;
+      } catch (failure) {
+        if (revision === requestRevision.current) {
+          setWarehouses([]);
+          setHasNextPage(false);
+          setNextCursor(null);
+          setError(failure instanceof ApiError ? failure.message : t('loadError'));
+        }
       } finally {
-        setIsLoading(false);
+        if (revision === requestRevision.current) setIsLoading(false);
       }
     },
-    [debouncedSearch, filters.status],
+    [debouncedSearch, filters.status, t],
   );
 
   useEffect(() => {
     cache.current = {};
     setCurrentPage(1);
+    setWarehouses([]);
+    setExpandedId(null);
+    setAddModalOpen(false);
+    setEditingWarehouse(null);
+    setSelectedWarehouse(null);
     void fetchWarehouses(undefined, 1);
-  }, [fetchWarehouses]);
+    return invalidateRequests;
+  }, [fetchWarehouses, invalidateRequests, principal]);
 
   const handlePageChange = (page: number) => {
     if (page === currentPage) return;
     if (cache.current[page]) {
+      invalidateRequests();
       setWarehouses(cache.current[page].items);
+      setNextCursor(cache.current[page].pagination.nextCursor);
+      setHasNextPage(cache.current[page].pagination.hasNext);
+      setError(null);
+      setIsLoading(false);
       setCurrentPage(page);
     } else if (page > currentPage && nextCursor) {
       void fetchWarehouses(nextCursor, page);
-      setCurrentPage(page);
-    }
-  };
-
-  const handleToggleStatus = async () => {
-    if (!selectedWarehouse) return;
-    setUpdatingId(selectedWarehouse.id);
-    try {
-      const newStatus = selectedWarehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      // In a real implementation we would call the setStatus API here
-      // const updated = await warehouseApi.setStatus(selectedWarehouse.id, newStatus);
-
-      setWarehouses((prev) =>
-        prev.map((w) => (w.id === selectedWarehouse.id ? { ...w, status: newStatus } : w)),
-      );
-      toast.success('Đã cập nhật trạng thái kho');
-    } catch {
-      toast.error('Không thể cập nhật trạng thái');
-    } finally {
-      setUpdatingId(null);
-      setSelectedWarehouse(null);
     }
   };
 
@@ -122,13 +142,19 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
       <header className="flex flex-col gap-5 border-b border-[var(--sc-border-default)] px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-[var(--sc-text-primary)]">
-            Danh sách Kho hàng
+            {t('title')}
           </h1>
-          <p className="mt-1.5 text-sm text-[var(--sc-text-secondary)]">
-            Quản lý các kho, điểm tập kết hàng và sức chứa.
-          </p>
+          <p className="mt-1.5 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
         </div>
-        {headerAction && <div className="flex shrink-0 items-center gap-3">{headerAction}</div>}
+        <div className="flex shrink-0 items-center gap-3">
+          {canManage &&
+            (headerAction ?? (
+              <Button variant="primary" onClick={() => setAddModalOpen(true)}>
+                <Plus size={16} />
+                {t('addWarehouse')}
+              </Button>
+            ))}
+        </div>
       </header>
 
       <div className="flex flex-col gap-4 p-4 sm:px-6 lg:px-8">
@@ -140,7 +166,8 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
             />
             <Input
               type="text"
-              placeholder="Tìm theo mã hoặc tên kho..."
+              placeholder={t('searchPlaceholder')}
+              aria-label={t('searchLabel')}
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
               className="pl-10"
@@ -150,14 +177,15 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
             <div className="flex items-center gap-2">
               <Filter size={16} className="text-[var(--sc-text-secondary)]" />
               <Select
+                aria-label={t('statusFilter')}
                 value={filters.status}
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, status: e.target.value as WarehouseStatus | '' }))
                 }
                 options={[
-                  { label: 'Tất cả trạng thái', value: '' },
-                  { label: 'Hoạt động', value: 'ACTIVE' },
-                  { label: 'Ngừng hoạt động', value: 'INACTIVE' },
+                  { label: t('allStatuses'), value: '' },
+                  { label: t('active'), value: 'ACTIVE' },
+                  { label: t('inactive'), value: 'INACTIVE' },
                 ]}
                 className="w-[140px]"
               />
@@ -166,9 +194,16 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
         </div>
       </div>
 
-      {isLoading ? (
+      {error ? (
+        <Alert variant="error" title={t('loadError')}>
+          <p>{error}</p>
+          <Button variant="outline" onClick={() => void fetchWarehouses(undefined, 1)}>
+            {t('retry')}
+          </Button>
+        </Alert>
+      ) : isLoading ? (
         <div className="flex flex-1 items-center justify-center">
-          <LoaderCircle size={28} className="animate-spin text-[var(--sc-brand-primary)]" />
+          <LoaderCircle size={28} className="animate-spin text-[var(--sc-primary)]" />
         </div>
       ) : warehouses.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
@@ -176,25 +211,25 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
             <WarehouseIcon size={24} />
           </div>
           <h3 className="mt-4 text-base font-semibold text-[var(--sc-text-primary)]">
-            Không tìm thấy kho
+            {t('emptyTitle')}
           </h3>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--sc-text-secondary)]">
-            Chưa có dữ liệu kho hàng hoặc không có kết quả phù hợp.
+            {t('emptyState')}
           </p>
         </div>
       ) : (
         <section className="flex min-h-0 flex-1 flex-col justify-between overflow-hidden sm:px-6 lg:px-8">
           <div className="min-h-0 overflow-auto rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-sm">
-            <table className="w-full min-w-[800px] text-left text-sm">
+            <table aria-label={t('tableLabel')} className="w-full min-w-[800px] text-left text-sm">
               <thead className="sticky top-0 z-10 bg-[var(--sc-bg-elevated)] text-[13px] font-medium text-[var(--sc-text-secondary)] shadow-[0_1px_0_var(--sc-border-default)]">
                 <tr>
                   <th className="w-12 px-2 py-3.5 pl-4 sm:pl-5" />
-                  <th className="px-4 py-3.5">Mã kho</th>
-                  <th className="px-4 py-3.5">Tên kho</th>
-                  <th className="px-4 py-3.5">Địa chỉ</th>
-                  <th className="px-4 py-3.5">Công suất (đơn/ngày)</th>
-                  <th className="px-4 py-3.5">Trạng thái</th>
-                  {canManage && <th className="w-16 px-4 py-3.5 text-right" />}
+                  <th className="px-4 py-3.5">{t('columnCode')}</th>
+                  <th className="px-4 py-3.5">{t('columnName')}</th>
+                  <th className="px-4 py-3.5">{t('columnAddress')}</th>
+                  <th className="px-4 py-3.5">{t('columnCapacity')}</th>
+                  <th className="px-4 py-3.5">{t('columnStatus')}</th>
+                  <th className="w-16 px-4 py-3.5 text-right" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--sc-border-default)]">
@@ -208,13 +243,16 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
                         }`}
                       >
                         <td className="px-2 py-3.5 pl-4 sm:pl-5">
-                          <button
+                          <Button
+                            variant="ghost"
                             type="button"
+                            aria-label={t('toggleDetails', { code: warehouse.code })}
+                            aria-expanded={isExpanded}
                             onClick={() => setExpandedId(isExpanded ? null : warehouse.id)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-text-tertiary)] hover:bg-[var(--sc-bg-hover)] hover:text-[var(--sc-text-primary)] transition-colors"
+                            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-text-tertiary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] transition-colors"
                           >
                             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                          </button>
+                          </Button>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-[var(--sc-text-primary)]">
                           {warehouse.code}
@@ -229,19 +267,21 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-[var(--sc-text-primary)]">
-                          {warehouse.dailyCapacity.toLocaleString()}
+                          {warehouse.dailyCapacity.toLocaleString(locale)}
                         </td>
                         <td className="px-4 py-3.5">
                           <Badge
                             status={warehouse.status === 'ACTIVE' ? 'success' : 'neutral'}
-                            label={warehouse.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
+                            label={t(warehouse.status === 'ACTIVE' ? 'active' : 'inactive')}
                             size="md"
                           />
                         </td>
-                        {canManage && (
-                          <td className="px-3 py-3.5 text-right">
-                            <button
+                        <td className="px-3 py-3.5 text-right">
+                          {canManage && (
+                            <Button
+                              variant="ghost"
                               type="button"
+                              aria-label={t('changeStatus', { code: warehouse.code })}
                               onClick={() => setSelectedWarehouse(warehouse)}
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
                             >
@@ -250,9 +290,9 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
                               ) : (
                                 <ToggleLeft size={17} />
                               )}
-                            </button>
-                          </td>
-                        )}
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                       {isExpanded && (
                         <tr className="bg-[var(--sc-bg-secondary)]/50">
@@ -260,7 +300,7 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
                             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                               <div>
                                 <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  GPS
+                                  {t('gps')}
                                 </span>
                                 <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
                                   {warehouse.latitude}, {warehouse.longitude}
@@ -268,7 +308,7 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
                               </div>
                               <div>
                                 <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  Liên hệ
+                                  {t('contactName')}
                                 </span>
                                 <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
                                   {warehouse.contactName || '—'}
@@ -276,13 +316,44 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
                               </div>
                               <div>
                                 <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  SĐT
+                                  {t('contactPhone')}
                                 </span>
                                 <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
                                   {warehouse.contactPhone || '—'}
                                 </span>
                               </div>
                             </div>
+                            {canUpdate && (
+                              <Button
+                                className="mt-4"
+                                variant="outline"
+                                onClick={() => setEditingWarehouse(warehouse)}
+                              >
+                                {t('editWarehouse')}
+                              </Button>
+                            )}
+                            {can('warehouses.layout.view') && (
+                              <WarehouseLayoutPanel key={warehouse.id} warehouse={warehouse} />
+                            )}
+                            {can('warehouses.downtime.view') && (
+                              <WarehouseCalendarPanel
+                                key={`${warehouse.id}-${principal?.userId}-${principal?.actorScope}-${principal?.tenantId}-${principal?.roles.join(',')}`}
+                                warehouse={warehouse}
+                                onSaved={() => {
+                                  cache.current = {};
+                                  void fetchWarehouses();
+                                }}
+                              />
+                            )}
+                            {can('warehouses.downtime.view') && (
+                              <WarehouseDowntimePanel
+                                warehouse={warehouse}
+                                onSaved={() => {
+                                  cache.current = {};
+                                  void fetchWarehouses();
+                                }}
+                              />
+                            )}
                           </td>
                         </tr>
                       )}
@@ -303,28 +374,36 @@ export default function WarehouseDirectory({ headerAction }: WarehouseDirectoryP
         </section>
       )}
 
-      <Modal
-        isOpen={selectedWarehouse !== null}
-        onClose={() => setSelectedWarehouse(null)}
-        title="Đổi trạng thái kho"
-      >
-        <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
-          Bạn có chắc muốn {selectedWarehouse?.status === 'ACTIVE' ? 'tạm ngưng' : 'kích hoạt'} kho{' '}
-          <strong>{selectedWarehouse?.name}</strong>?
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setSelectedWarehouse(null)}>
-            Hủy
-          </Button>
-          <Button
-            variant={selectedWarehouse?.status === 'ACTIVE' ? 'danger' : 'primary'}
-            isLoading={updatingId === selectedWarehouse?.id}
-            onClick={handleToggleStatus}
-          >
-            Xác nhận
-          </Button>
-        </div>
-      </Modal>
+      {(canManage || canUpdate) && (
+        <>
+          <AddWarehouseModal
+            isOpen={addModalOpen || editingWarehouse !== null}
+            warehouse={editingWarehouse}
+            onClose={() => {
+              setAddModalOpen(false);
+              setEditingWarehouse(null);
+            }}
+            onSuccess={() => {
+              setAddModalOpen(false);
+              setEditingWarehouse(null);
+              cache.current = {};
+              void fetchWarehouses();
+            }}
+          />
+
+          {canManage && selectedWarehouse && (
+            <WarehouseStatusModal
+              warehouse={selectedWarehouse}
+              onClose={() => setSelectedWarehouse(null)}
+              onSaved={() => {
+                setSelectedWarehouse(null);
+                cache.current = {};
+                void fetchWarehouses();
+              }}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

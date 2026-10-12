@@ -38,7 +38,7 @@ export interface CarrierSummary {
   isActive: boolean;
   endpointsCount: number;
   servicesCount: number;
-  connectedTenantsCount: number;
+  connectedTenantsCount: number | null;
   createdAt: string;
   updatedAt: string;
 }

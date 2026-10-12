@@ -1,5 +1,5 @@
 export type StaffAccountStatus = 'ACTIVE' | 'LOCKED' | 'PENDING';
-export type StaffRole = 'TENANT_ADMIN' | 'DISPATCHER' | 'ACCOUNTANT';
+export type StaffRole = 'SELLER_OWNER' | 'SELLER_STAFF';
 
 export interface StaffAccount {
   userId: string;

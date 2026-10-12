@@ -33,6 +33,12 @@ const stockLevel = {
 };
 const lastPage = { limit: 100, hasNext: false, nextCursor: null };
 const warehouse = {
+  region: 'NORTH',
+  timeZone: 'Asia/Ho_Chi_Minh',
+  cutoffMinute: 840,
+  operatingStartMinute: 480,
+  operatingEndMinute: 1080,
+  version: 1,
   id: warehouseId,
   tenantId: dispatcher.tenantId,
   code: 'HN-01',
