@@ -1,5 +1,35 @@
 # features/tenants
 
+## SS-990 ORCA commercial onboarding
+
+Baseline: UC-08–UC-13 and BR-59; existing identity UC-01–UC-05 is reused.
+Historical FE identifiers below are not the SS-990 requirement mapping.
+
+- Owner `/settings/contract`: standard plans, prepared PDF, signNow embedded
+  signing/window fallback, server polling, signed evidence and invoices.
+- Admin Plans, Quotas and tenant Contract tab: immutable publication, custom
+  inquiry/draft/PDF/confirmation, scheduled changes and guarded lifecycle.
+- `/billing`: Owner own invoices/quotas; Accountant bank evidence/receipt;
+  Admin financial read. Staff and warehouse roles have no financial actions.
+- All HTTP uses `apiClient` and schemas; multipart uses `uploadForm`. Auth
+  revisions/unmount cancel pending work. Signing URLs stay in memory;
+  ReturnUrl cannot accept a contract or credit payment.
+
+Agreement/prepared PDF previews open inside the Owner portal without popups.
+The viewer renders one page at a time and uses the bundled PDF worker; closing
+releases the document. Failed/expired downloads show a retry instruction. Private
+URLs stay in memory and are invalidated when the auth revision changes. Configure
+storage CORS GET/HEAD for the actual web origin (`AUTH_WEB_ORIGIN`); a different
+local Vite port also needs a matching test download endpoint.
+
+Forms use RHF/Zod, Common controls, semantic tokens and en/vi resources. Enterprise
+needs negotiated inputs. The reference PDF has draft legal placeholders and needs
+approval before real contracts. Final signature is a human action.
+
+Backend handoff: `smartchain_be/docs/SS-990-IMPLEMENTATION-STATUS.md`. SePay (S53),
+recurring/storage billing (S17), refunds/settlement (S16), notifications (S19/S52)
+and intake quota consumers are separate dependencies; no fake completion is shown.
+
 Quản lý tenant, người dùng, vai trò và quyền RBAC, workspace config, webhook đầu ra, Super Admin console. BE: `iam`. SRS: FE-02 → FE-07.
 
 ## ORCA directory contract
