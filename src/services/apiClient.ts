@@ -162,7 +162,8 @@ class ApiClient {
     const { params, requiresAuth: _auth, silent: _silent, headers, ...config } = options;
     const url = `${this.baseURL}${endpoint}${params ? `?${new URLSearchParams(params)}` : ''}`;
     const requestHeaders = new Headers(headers);
-    requestHeaders.set('Content-Type', 'application/json');
+    if (config.body instanceof FormData) requestHeaders.delete('Content-Type');
+    else requestHeaders.set('Content-Type', 'application/json');
     requestHeaders.set('Accept-Language', useLocaleStore.getState().locale);
     if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
     return fetch(url, {
@@ -260,6 +261,10 @@ class ApiClient {
       0,
       'AUTH.SCOPE_CHANGED',
     );
+  }
+
+  uploadForm<T>(endpoint: string, body: FormData, options: FetchOptions = {}): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
 
   refreshSession(): Promise<void> {

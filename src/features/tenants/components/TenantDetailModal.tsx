@@ -26,6 +26,7 @@ import Modal from '@/components/Common/Modal/Modal';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
 
 import type { TenantDetail } from '../types/tenant.types';
+import { TenantContractTab } from './TenantContractTab';
 
 interface TenantDetailModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ interface TenantDetailModalProps {
   onToggleStatusClick: () => void;
 }
 
-type DetailTab = 'overview' | 'metrics' | 'audit';
+type DetailTab = 'overview' | 'metrics' | 'audit' | 'contract';
 
 export function TenantDetailModal({
   isOpen,
@@ -43,6 +44,7 @@ export function TenantDetailModal({
   onToggleStatusClick,
 }: TenantDetailModalProps) {
   const t = useTranslations('AdminTenants');
+  const commercial = useTranslations('CommercialAdmin');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -146,6 +148,7 @@ export function TenantDetailModal({
                 { id: 'overview', label: 'Tổng quan' },
                 { id: 'metrics', label: 'Chỉ số & Quota' },
                 { id: 'audit', label: 'Trạng thái & Lịch sử' },
+                { id: 'contract', label: commercial('contractTab') },
               ]}
             />
           </div>
@@ -153,6 +156,7 @@ export function TenantDetailModal({
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-6 text-sm">
+          {activeTab === 'contract' && <TenantContractTab key={tenant.id} tenantId={tenant.id} />}
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
