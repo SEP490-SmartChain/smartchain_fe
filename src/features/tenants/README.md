@@ -7,6 +7,15 @@ Historical FE identifiers below are not the SS-990 requirement mapping.
 
 - Owner `/settings/contract`: standard plans, prepared PDF, signNow embedded
   signing/window fallback, server polling, signed evidence and invoices.
+- All new Owners see the same published Basic/Standard choices until they create
+  a personal contract. Once a current contract exists, choices are hidden. Basic
+  is 7,000,000 VND/month for the confirmed demo; historical contracts keep their
+  original plan fee. Monthly fee, deposit and permitted service debt are distinct.
+- New `BUSINESS_PROFILE_V1` terms require RHF/Zod contracting party declarations
+  and explicit review before preparation. PDF previews are read-only; ORCA locks
+  the declared details and server commercial data before opening signNow. Sample
+  and prepared PDF windows have distinct names and instructions. Authenticated
+  email, tenant, price and role cannot be supplied through this form.
 - Admin Plans, Quotas and tenant Contract tab: immutable publication, custom
   inquiry/draft/PDF/confirmation, scheduled changes and guarded lifecycle.
 - `/billing`: Owner own invoices/quotas; Accountant bank evidence/receipt;
