@@ -1937,5 +1937,41 @@
       "COMPLETED": "Hoàn thành",
       "CANCELLED": "Đã hủy"
     }
+  },
+  "Relocation": {
+    "title": "Chuyển hàng giữa các bin",
+    "description": "Chuyển hàng chưa giữ chỗ trong cùng kho. Seller, lot và trạng thái không đổi; hàng cách ly vẫn cách ly.",
+    "refresh": "Tải lại tồn kho",
+    "loading": "Đang tải tồn kho…",
+    "loadError": "Không tải được tồn kho hoặc bin đích. Vui lòng thử lại.",
+    "available": "{qty} đơn vị chưa giữ chỗ",
+    "open": "Chuyển hàng này",
+    "empty": "Chưa có hàng trong bin đủ điều kiện chuyển.",
+    "firstPage": "Trang đầu",
+    "nextPage": "Trang tiếp",
+    "state": {
+      "SELLABLE": "Có thể bán",
+      "QUARANTINE": "Cách ly"
+    },
+    "formTitle": "Chuyển {sku} · {lot}",
+    "source": "Bin nguồn {bin} · {qty} đơn vị chưa giữ chỗ · {state}",
+    "search": "Tìm bin đích",
+    "searchButton": "Tìm bin",
+    "moreBins": "Thu hẹp tìm kiếm để xem thêm bin.",
+    "destination": "Bin đích",
+    "fromScan": "Quét bin nguồn",
+    "toScan": "Quét bin đích",
+    "skuScan": "Quét SKU",
+    "lotScan": "Quét lot",
+    "quantity": "Số lượng thực tế cần chuyển",
+    "reason": "Lý do chuyển bin",
+    "required": "Chọn hoặc quét mã hợp lệ.",
+    "quantityError": "Chỉ nhập số lượng chưa giữ chỗ.",
+    "reasonError": "Nhập lý do từ 3 đến 500 ký tự.",
+    "confirm": "Xác nhận chuyển bin",
+    "success": "Đã chuyển {qty} đơn vị. Trạng thái hàng không đổi.",
+    "saveError": "Chưa rõ kết quả. Thử lại đúng thao tác chuyển đã gửi.",
+    "unknown": "Chưa nhận được phản hồi chắc chắn. Thử lại giữ nguyên thao tác; không chuyển hàng thêm lần nữa.",
+    "retry": "Thử lại cùng thao tác chuyển"
   }
 }

@@ -1937,5 +1937,41 @@
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
     }
+  },
+  "Relocation": {
+    "title": "Move stock between bins",
+    "description": "Move unreserved goods within this warehouse. Seller, lot and stock state stay unchanged; quarantine remains quarantined.",
+    "refresh": "Refresh stock",
+    "loading": "Loading stock…",
+    "loadError": "Could not load stock or destinations. Try again.",
+    "available": "{qty} unreserved units",
+    "open": "Move this stock",
+    "empty": "No mapped unreserved stock is available for relocation.",
+    "firstPage": "First page",
+    "nextPage": "Next page",
+    "state": {
+      "SELLABLE": "Sellable",
+      "QUARANTINE": "Quarantine"
+    },
+    "formTitle": "Move {sku} · {lot}",
+    "source": "Source {bin} · {qty} unreserved units · {state}",
+    "search": "Find destination bin",
+    "searchButton": "Search bins",
+    "moreBins": "Refine the bin search to see more locations.",
+    "destination": "Destination bin",
+    "fromScan": "Scan source bin",
+    "toScan": "Scan destination bin",
+    "skuScan": "Scan SKU",
+    "lotScan": "Scan lot",
+    "quantity": "Observed move quantity",
+    "reason": "Reason for relocation",
+    "required": "Select or scan a valid code.",
+    "quantityError": "Enter only the unreserved quantity.",
+    "reasonError": "Enter a reason from 3 to 500 characters.",
+    "confirm": "Confirm physical relocation",
+    "success": "Moved {qty} units. Stock state is unchanged.",
+    "saveError": "The response is uncertain. Retry the exact attempted movement.",
+    "unknown": "The response is uncertain. The same operation will be retried; do not physically move the goods again.",
+    "retry": "Retry the same movement"
   }
 }

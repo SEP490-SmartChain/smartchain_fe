@@ -11,6 +11,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { RelocationWorkspace } from './RelocationWorkspace';
 import {
   putawayApi,
   putawayConfirmationSchema,
@@ -41,7 +42,9 @@ export function PutawayWorkspace() {
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false),
     [refresh, setRefresh] = useState(0),
-    [locked, setLocked] = useState(false);
+    [taskLocked, setTaskLocked] = useState(false),
+    [relocationLocked, setRelocationLocked] = useState(false);
+  const locked = taskLocked || relocationLocked;
   const manager = can('warehouse.asn.review'),
     warehouses = directory?.owner === user ? directory.items : [],
     current = warehouses.some((w) => w.id === warehouse) ? warehouse : '',
@@ -69,7 +72,8 @@ export function PutawayWorkspace() {
     setCursor(null);
     setSelected(null);
     setPage(null);
-    setLocked(false);
+    setTaskLocked(false);
+    setRelocationLocked(false);
   }, [user, current]);
   useEffect(() => {
     if (!current) return;
@@ -183,7 +187,8 @@ export function PutawayWorkspace() {
                 task={selected}
                 staff={visible.staff}
                 manager={manager}
-                onLock={setLocked}
+                onLock={setTaskLocked}
+                disabled={relocationLocked}
                 onSaved={() => {
                   setCursor(null);
                   setRefresh((v) => v + 1);
@@ -192,6 +197,13 @@ export function PutawayWorkspace() {
             )}
           </>
         )
+      )}
+      {current && can('warehouse.putaway.relocate') && (
+        <RelocationWorkspace
+          warehouse={current}
+          disabled={taskLocked}
+          onLock={setRelocationLocked}
+        />
       )}
     </div>
   );
@@ -203,6 +215,7 @@ function PutawayTaskForm({
   manager,
   onSaved,
   onLock,
+  disabled,
 }: {
   warehouse: string;
   task: PutawayTask;
@@ -210,6 +223,7 @@ function PutawayTaskForm({
   manager: boolean;
   onSaved: () => void;
   onLock: (locked: boolean) => void;
+  disabled: boolean;
 }) {
   const t = useTranslations('Putaway'),
     user = useAuthStore((s) => s.user),
@@ -263,7 +277,7 @@ function PutawayTaskForm({
     task.status === 'ASSIGNED' &&
     task.assigneeId === user?.userId;
   async function send(command: NonNullable<typeof attempt>) {
-    if (busy || user !== useAuthStore.getState().user) return;
+    if (disabled || busy || user !== useAuthStore.getState().user) return;
     const g = generation.current;
     setBusy(true);
     setError('');
@@ -308,7 +322,7 @@ function PutawayTaskForm({
         {attempt ? (
           <>
             <Alert variant="warning">{t('unknown')}</Alert>
-            <Button disabled={busy} onClick={() => void send(attempt)}>
+            <Button disabled={busy || disabled} onClick={() => void send(attempt)}>
               {t('retry')}
             </Button>
           </>
@@ -327,7 +341,7 @@ function PutawayTaskForm({
                   </div>
                 )}
                 <Button
-                  disabled={busy || (manager && !assignee)}
+                  disabled={busy || disabled || (manager && !assignee)}
                   onClick={() =>
                     void send({
                       kind: 'ASSIGN',
@@ -348,7 +362,7 @@ function PutawayTaskForm({
                 className="space-y-4"
                 onSubmit={handleSubmit((input) => void send({ kind: 'CONFIRM', input }))}
               >
-                <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2" disabled={busy}>
+                <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2" disabled={busy || disabled}>
                   <Input
                     label={t('fromScan')}
                     required
@@ -383,7 +397,7 @@ function PutawayTaskForm({
                     error={errors.qty ? t('quantityRequired') : undefined}
                   />
                 </fieldset>
-                <Button type="submit" disabled={busy}>
+                <Button type="submit" disabled={busy || disabled}>
                   {t('confirm')}
                 </Button>
               </form>

@@ -530,6 +530,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-22/UC-42; assigned warehouse, Manager assignment or Staff self-claim',
   ),
   capability(
+    'warehouse.putaway.relocate',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-44; same assigned warehouse, physical scans and unreserved stock',
+  ),
+  capability(
     'warehouse.putaway.confirm',
     'warehouses',
     'PLATFORM',

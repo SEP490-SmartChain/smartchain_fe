@@ -123,5 +123,25 @@ or replace the attempted task are locked until replay resolves it. Identity/scop
 changes abort old requests and discard stale records. The backend posts physical
 movements through P3 and only confirmed accepted goods become SELLABLE.
 
-UC-44 relocation and whole-parent demo/UAT remain separate work; this page does
-not imply billing, Seller notification delivery or completed quarantine handling.
+Whole-parent demo/UAT remains separate work; this page does not imply billing,
+Seller notification delivery or completed quarantine handling.
+
+## Same-warehouse relocation (SS-1078 / FU-22 / UC-44)
+
+The putaway page also shows minimal unreserved stock positions for assigned
+Manager and Staff. Users select a source, search compatible active destination
+bins and enter actual source/destination, SKU and lot scans, observed quantity
+and a reason. SELLABLE moves inside STORAGE; QUARANTINE moves inside QUARANTINE
+and retains its state. The UI starts scans blank and displays the source state.
+Authoritative occupancy, held capacity, revision and current scope are checked
+by the server before P3 posts the paired physical movement.
+
+The strict relocation adapter rejects private fields, malformed positions and
+proofs with different stock, destination, quantity, state or revision. An unknown
+reply retains the exact attempted operation for replay; it freezes warehouse,
+task and relocation changes until resolved. Task and relocation writes cannot
+run through one another's pending forms. Obsolete identity/warehouse requests
+are aborted and their results discarded. Successful movement reloads actual
+positions without changing QC or reporting them as newly received stock.
+
+The backend contract is `smartchain_be/packages/inventory/BIN-RELOCATION.md`.
