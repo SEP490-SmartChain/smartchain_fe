@@ -24,6 +24,11 @@ Historical FE identifiers below are not the SS-990 requirement mapping.
   revisions/unmount cancel pending work. Signing URLs stay in memory;
   ReturnUrl cannot accept a contract or credit payment.
 
+HTTP, localhost and IP-address deployments use the separate signing window so
+the provider's return navigation does not hit local-network iframe restrictions.
+Public HTTPS deployments retain the embedded view and window fallback. In both
+cases, only fresh worker/provider verification closes the pending signing state.
+
 Agreement/prepared PDF previews open inside the Owner portal without popups.
 The viewer renders one page at a time and uses the bundled PDF worker; closing
 releases the document. Failed/expired downloads show a retry instruction. Private

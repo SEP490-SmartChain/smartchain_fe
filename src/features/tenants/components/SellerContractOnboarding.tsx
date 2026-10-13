@@ -12,6 +12,7 @@ import { CommercialCustomInquiry } from './CommercialCustomInquiry';
 import { CommercialPdfPreview } from './CommercialPdfPreview';
 import { CommercialPreparationForm } from './CommercialPreparationForm';
 import { useSellerCommercial } from '../hooks/useSellerCommercial';
+import { shouldUseSigningWindow } from '../lib/signingPresentation';
 
 import type { CommercialPlan } from '../api/commercialApi';
 
@@ -20,6 +21,9 @@ export function SellerContractOnboarding() {
   const locale = useLocaleStore((state) => state.locale);
   const flow = useSellerCommercial();
   const [selectedPlan, setSelectedPlan] = useState<CommercialPlan | null>(null);
+  const signingInWindow = shouldUseSigningWindow(
+    typeof window === 'undefined' ? '' : window.location.origin,
+  );
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const contract = flow.state?.contracts.find((item) => item.id === flow.state?.currentContractId);
@@ -236,14 +240,18 @@ export function SellerContractOnboarding() {
               </Button>
             </div>
           </div>
-          <p className="mb-3 text-xs text-[var(--sc-text-secondary)]">{t('signingHint')}</p>
-          <iframe
-            src={flow.signingUrl}
-            title={t('signWithSignNow')}
-            className="h-[70vh] w-full rounded-lg border border-[var(--sc-border-default)]"
-            referrerPolicy="no-referrer"
-            allow="fullscreen"
-          />
+          <p className="mb-3 text-xs text-[var(--sc-text-secondary)]">
+            {t(signingInWindow ? 'signingWindowHint' : 'signingHint')}
+          </p>
+          {!signingInWindow && (
+            <iframe
+              src={flow.signingUrl}
+              title={t('signWithSignNow')}
+              className="h-[70vh] w-full rounded-lg border border-[var(--sc-border-default)]"
+              referrerPolicy="no-referrer"
+              allow="fullscreen"
+            />
+          )}
         </div>
       )}
       {flow.invoices.map((invoice) => (

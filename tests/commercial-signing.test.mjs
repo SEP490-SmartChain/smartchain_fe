@@ -3,7 +3,7 @@ import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
-let server, api, store, policy, safeUrl, profileSchema;
+let server, api, store, policy, safeUrl, profileSchema, shouldUseSigningWindow;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const agreementId = '00000000-0000-4000-8000-000000000002';
@@ -38,10 +38,29 @@ before(async () => {
   ({ contractBusinessProfileSchema: profileSchema } = await server.ssrLoadModule(
     '/src/features/tenants/schemas/contractBusinessProfileSchema.ts',
   ));
+  ({ shouldUseSigningWindow } = await server.ssrLoadModule(
+    '/src/features/tenants/lib/signingPresentation.ts',
+  ));
 });
 after(async () => {
   globalThis.fetch = originalFetch;
   await server?.close();
+});
+
+test('signing returns use a separate window for local origins and preserve hosted HTTPS embedding', () => {
+  for (const origin of [
+    'http://localhost:2326',
+    'https://localhost:2326',
+    'https://127.0.0.1',
+    'https://[::1]',
+    'https://192.168.1.2',
+    'https://orca.local',
+    'http://orca.example.test',
+    'invalid',
+  ]) {
+    assert.equal(shouldUseSigningWindow(origin), true);
+  }
+  assert.equal(shouldUseSigningWindow('https://orca.example.test'), false);
 });
 beforeEach(() => {
   store.getState().clear();

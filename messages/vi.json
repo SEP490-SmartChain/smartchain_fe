@@ -157,6 +157,7 @@
     "newTab": "Mở cửa sổ ký riêng",
     "close": "Đóng màn hình ký",
     "signingHint": "Kiểm tra nội dung trước khi ký. Nếu màn hình nhúng không tải, mở cửa sổ ký riêng. ORCA sẽ xác minh kết quả qua máy chủ.",
+    "signingWindowHint": "Mở cửa sổ ký riêng để hoàn tất chữ ký, sau đó quay lại ORCA. Trạng thái hợp đồng sẽ tự cập nhật sau khi máy chủ xác minh kết quả.",
     "invoice": "Hóa đơn onboarding",
     "total": "Tổng tiền",
     "paid": "Đã thanh toán",

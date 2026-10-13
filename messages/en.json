@@ -157,6 +157,7 @@
     "newTab": "Open signing in a separate window",
     "close": "Close signing view",
     "signingHint": "Review the terms before signing. If the embedded view does not load, use the separate window. ORCA verifies completion on the server.",
+    "signingWindowHint": "Open the separate signing window to finish, then return to ORCA. The contract updates automatically after server verification.",
     "invoice": "Onboarding invoice",
     "total": "Total",
     "paid": "Paid",
