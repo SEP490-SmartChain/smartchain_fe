@@ -9,6 +9,7 @@ import {
   type OnboardingInvoice,
   type SellerCommercialState,
 } from '../api/commercialApi';
+import { launchSigningSession, shouldUseSigningWindow } from '../lib/signingPresentation';
 
 export function useSellerCommercial() {
   const revision = useAuthStore((state) => state.revision);
@@ -20,6 +21,7 @@ export function useSellerCommercial() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
+  const [popupBlocked, setPopupBlocked] = useState(false);
   const [pdf, setPdf] = useState<{
     url: string;
     revision: number;
@@ -53,6 +55,7 @@ export function useSellerCommercial() {
           )
         ) {
           setSigningUrl(null);
+          setPopupBlocked(false);
         }
       } catch (failure) {
         if (isCurrent() && !signal?.aborted) {
@@ -120,13 +123,22 @@ export function useSellerCommercial() {
       if (isCurrent()) setBusy(false);
     }
   };
-  const open = async (id: string) => {
+  const open = async (id: string, separateWindow = false) => {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      const session = await commercialApi.session(id, controller.current?.signal);
-      if (isCurrent()) setSigningUrl(session.signingUrl);
+      const session = await launchSigningSession(
+        separateWindow || shouldUseSigningWindow(window.location.origin)
+          ? () => window.open('about:blank', '_blank')
+          : undefined,
+        () => commercialApi.session(id, controller.current?.signal),
+        isCurrent,
+      );
+      if (session && isCurrent()) {
+        setSigningUrl(session.signingUrl);
+        setPopupBlocked(session.popupBlocked);
+      }
     } catch (failure) {
       if (isCurrent()) {
         setError(failure instanceof Error ? failure : new Error('COMMERCIAL.SESSION_FAILED'));
@@ -168,6 +180,7 @@ export function useSellerCommercial() {
     busy,
     error,
     signingUrl,
+    popupBlocked,
     pdfUrl: pdf?.revision === revision ? pdf.url : null,
     pdfKind: pdf?.kind ?? 'sample',
     closePdf,
@@ -185,7 +198,10 @@ export function useSellerCommercial() {
         () => commercialApi.contractPdf(tenantId, id, controller.current?.signal),
         'prepared',
       ),
-    close: () => setSigningUrl(null),
+    close: () => {
+      setSigningUrl(null);
+      setPopupBlocked(false);
+    },
     reload: () => reload(controller.current?.signal),
   };
 }

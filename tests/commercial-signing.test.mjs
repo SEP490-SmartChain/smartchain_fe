@@ -3,7 +3,14 @@ import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
-let server, api, store, policy, safeUrl, profileSchema, shouldUseSigningWindow;
+let server,
+  api,
+  store,
+  policy,
+  safeUrl,
+  profileSchema,
+  shouldUseSigningWindow,
+  launchSigningSession;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const agreementId = '00000000-0000-4000-8000-000000000002';
@@ -38,7 +45,7 @@ before(async () => {
   ({ contractBusinessProfileSchema: profileSchema } = await server.ssrLoadModule(
     '/src/features/tenants/schemas/contractBusinessProfileSchema.ts',
   ));
-  ({ shouldUseSigningWindow } = await server.ssrLoadModule(
+  ({ shouldUseSigningWindow, launchSigningSession } = await server.ssrLoadModule(
     '/src/features/tenants/lib/signingPresentation.ts',
   ));
 });
@@ -61,6 +68,96 @@ test('signing returns use a separate window for local origins and preserve hoste
     assert.equal(shouldUseSigningWindow(origin), true);
   }
   assert.equal(shouldUseSigningWindow('https://orca.example.test'), false);
+});
+
+test('a signing click reserves a detached popup before awaiting the authenticated link', async () => {
+  const events = [];
+  let finish;
+  const popup = {
+    opener: 'orca',
+    location: { replace: (url) => events.push(url) },
+    close: () => events.push('close'),
+  };
+  const pending = launchSigningSession(
+    () => {
+      events.push('open');
+      return popup;
+    },
+    () => {
+      assert.equal(popup.opener, null);
+      events.push('request');
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+    () => true,
+  );
+  assert.deepEqual(events, ['open', 'request']);
+  finish({ signingUrl: 'https://app.signnow.com/sign/fixture' });
+  assert.deepEqual(await pending, {
+    signingUrl: 'https://app.signnow.com/sign/fixture',
+    popupBlocked: false,
+  });
+  assert.deepEqual(events, ['open', 'request', 'https://app.signnow.com/sign/fixture']);
+});
+
+test('blocked popups preserve a signing fallback; hosted embedding needs no popup', async () => {
+  for (const [open, popupBlocked] of [
+    [() => null, true],
+    [undefined, false],
+  ]) {
+    assert.deepEqual(
+      await launchSigningSession(
+        open,
+        async () => ({ signingUrl: 'https://app.signnow.com/sign/fixture' }),
+        () => true,
+      ),
+      { signingUrl: 'https://app.signnow.com/sign/fixture', popupBlocked },
+    );
+  }
+});
+
+test('scope changes close the reserved popup without loading a private signing link', async () => {
+  let closeCount = 0;
+  const popup = {
+    opener: null,
+    location: { replace: () => assert.fail('stale signing link must never navigate') },
+    close: () => {
+      closeCount++;
+    },
+  };
+  assert.equal(
+    await launchSigningSession(
+      () => popup,
+      async () => ({ signingUrl: 'https://app.signnow.com/sign/fixture' }),
+      () => false,
+    ),
+    null,
+  );
+  assert.equal(closeCount, 1);
+});
+
+test('failed signing requests close the empty popup and retain the API error', async () => {
+  let closed = false;
+  const failure = new Error('fixture API failure');
+  const popup = {
+    opener: null,
+    location: { replace: () => assert.fail('failed request must never navigate') },
+    close: () => {
+      closed = true;
+    },
+  };
+  await assert.rejects(
+    launchSigningSession(
+      () => popup,
+      async () => {
+        throw failure;
+      },
+      () => true,
+    ),
+    (error) => error === failure,
+  );
+  assert.equal(closed, true);
 });
 beforeEach(() => {
   store.getState().clear();
