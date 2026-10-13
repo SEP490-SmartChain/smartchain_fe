@@ -32,7 +32,7 @@ const agreementSchema = z.object({
   versionRef: z.string().trim().min(1).max(100),
   signerRole: z.string().trim().min(1).max(100),
   templateId: z.string().regex(/^$|^[a-f0-9]{40}$/i),
-  compositionMode: z.enum(['EXISTING_FIELDS', 'ORCA_REFERENCE_16_V1']),
+  compositionMode: z.enum(['EXISTING_FIELDS', 'ORCA_REFERENCE_16_V1', 'BUSINESS_PROFILE_V1']),
   depositRequiredVnd: money,
   creditLimitVnd: money,
   claimCapVnd: money,
@@ -52,7 +52,7 @@ export function CommercialPlanAdmin() {
     defaultValues: {
       code: 'BASIC',
       name: 'Basic',
-      monthlyFeeVnd: '4000000',
+      monthlyFeeVnd: '7000000',
       salesOrderAllowance: 500,
       warehouseAllowance: 1,
       storageAllowanceM3: '',
@@ -69,7 +69,7 @@ export function CommercialPlanAdmin() {
       versionRef: '',
       signerRole: 'Role 1',
       templateId: '',
-      compositionMode: 'ORCA_REFERENCE_16_V1',
+      compositionMode: 'EXISTING_FIELDS',
       depositRequiredVnd: '3000000',
       creditLimitVnd: '5000000',
       claimCapVnd: '',
@@ -127,7 +127,7 @@ export function CommercialPlanAdmin() {
         controller.current?.signal,
       );
       if (!current()) return;
-      agreement.setValue('planVersionId', result.id);
+      agreement.setValue('planVersionId', value.code === 'ENTERPRISE' ? '' : result.id);
       setNotice(t('planSaved'));
       await reload(controller.current?.signal);
     } catch (failure) {
@@ -189,7 +189,7 @@ export function CommercialPlanAdmin() {
               onChange: (event) => {
                 const code: string = event.target.value;
                 if (code === 'BASIC' || code === 'STANDARD') {
-                  plan.setValue('monthlyFeeVnd', code === 'BASIC' ? '4000000' : '12000000');
+                  plan.setValue('monthlyFeeVnd', code === 'BASIC' ? '7000000' : '12000000');
                   plan.setValue('salesOrderAllowance', code === 'BASIC' ? 500 : 1500);
                   plan.setValue('warehouseAllowance', code === 'BASIC' ? 1 : 3);
                   plan.setValue('name', code === 'BASIC' ? 'Basic' : 'Standard');
@@ -260,10 +260,12 @@ export function CommercialPlanAdmin() {
             error={agreementError('planVersionId')}
             placeholder={t('choose')}
             options={
-              terms?.plans.map((item) => ({
-                value: item.id,
-                label: `${item.name} · v${item.versionNo} · ${item.monthlyFeeVnd} VND`,
-              })) ?? []
+              terms?.plans
+                .filter((item) => item.code === 'BASIC' || item.code === 'STANDARD')
+                .map((item) => ({
+                  value: item.id,
+                  label: `${item.name} · v${item.versionNo} · ${item.monthlyFeeVnd} VND`,
+                })) ?? []
             }
             {...agreement.register('planVersionId')}
           />
@@ -329,6 +331,7 @@ export function CommercialPlanAdmin() {
             label={t('templateLayout')}
             options={[
               { value: 'ORCA_REFERENCE_16_V1', label: t('referenceLayout') },
+              { value: 'BUSINESS_PROFILE_V1', label: t('businessProfileLayout') },
               { value: 'EXISTING_FIELDS', label: t('preparedLayout') },
             ]}
             {...agreement.register('compositionMode')}

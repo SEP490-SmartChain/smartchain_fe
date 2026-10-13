@@ -11,15 +11,18 @@ import { usePdfDocument } from '@/components/Common/pdf-viewer/hooks/usePdfDocum
 interface CommercialPdfPreviewProps {
   url: string;
   onClose: () => void;
+  title?: string;
+  hint?: string;
 }
 
-export function CommercialPdfPreview({ url, onClose }: CommercialPdfPreviewProps) {
+export function CommercialPdfPreview({ url, onClose, title, hint }: CommercialPdfPreviewProps) {
   const t = useTranslations('Commercial');
   const [page, setPage] = useState(1);
   const { pdfDoc, numPages, isLoading, error } = usePdfDocument(url, true);
 
   return (
-    <Modal isOpen onClose={onClose} title={t('pdfTitle')} width="900px">
+    <Modal isOpen onClose={onClose} title={title ?? t('pdfTitle')} width="900px">
+      {hint && <p className="mb-4 text-sm text-[var(--sc-text-secondary)]">{hint}</p>}
       {isLoading && <p role="status">{t('pdfLoading')}</p>}
       {error && <Alert variant="error">{t('pdfError')}</Alert>}
       {pdfDoc && numPages && (

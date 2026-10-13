@@ -37,7 +37,6 @@
     "finalizeClosure": "Finalize closure",
     "closureGuardHint": "The API checks stock, accepted work, claims, unbilled fees, receipts, balances and deposit refund before closing.",
     "closureFinalized": "Contract closure completed.",
-
     "serviceControl": "Service status",
     "suspendService": "Suspend service",
     "reactivateService": "Reactivate service",
@@ -49,7 +48,6 @@
     "reconcileHint": "Use the ORCA document created for this intent. Do not create another document or invitation.",
     "retry": "Retry loading",
     "unallocated": "Unallocated amount: {amount} VND",
-
     "title": "Service plan administration",
     "description": "Publish reviewed plan versions and contract terms.",
     "refresh": "Refresh",
@@ -113,7 +111,8 @@
     "noInvoices": "No onboarding invoices yet.",
     "financeTitle": "Onboarding invoices & receipts",
     "quotaTitle": "Service plan allowances",
-    "noContract": "This seller has no current contract."
+    "noContract": "This seller has no current contract.",
+    "businessProfileLayout": "Completed terms and contracting party details"
   },
   "Commercial": {
     "customInquiry": "Request a custom plan",
@@ -123,17 +122,16 @@
     "sendInquiry": "Submit request",
     "inquirySubmitted": "Your request is saved. ORCA will discuss the terms with you.",
     "inquiryFailed": "Could not submit your request. Retry with the same content.",
-    "preview": "Preview agreement",
-    "pdfTitle": "View contract PDF",
+    "preview": "Read agreement template and terms",
+    "pdfTitle": "ORCA service agreement",
     "pdfLoading": "Loading PDF…",
     "pdfError": "Could not load the PDF. Close this view and try again to get a fresh link.",
     "pdfPrevious": "Previous page",
     "pdfNext": "Next page",
     "pdfPage": "Page {page} / {total}",
-    "preparedPdf": "View prepared agreement",
-
+    "preparedPdf": "Review agreement before signing",
     "title": "Service plans & contract",
-    "description": "Choose a plan, review its terms and sign electronically with signNow.",
+    "description": "Published plans are shared by all Sellers. Read the terms, choose a plan, enter the contracting party details and review before signing.",
     "refresh": "Refresh",
     "error": "Unable to complete this action",
     "loading": "Loading contracts…",
@@ -148,7 +146,7 @@
     "noPlans": "No published service plans yet.",
     "contract": "Contract",
     "deposit": "Deposit",
-    "creditLimit": "Credit limit",
+    "creditLimit": "Service debt limit",
     "signingStatus": "Signing status",
     "preparingHelp": "The contract is being prepared. This page updates automatically when signing is ready.",
     "sign": "Sign contract",
@@ -186,7 +184,33 @@
       "PAID": "Fully paid",
       "EXPIRED": "Overdue"
     },
-    "purpose": { "PLAN_FEE": "First month fee", "DEPOSIT": "Deposit" }
+    "purpose": {
+      "PLAN_FEE": "First month fee",
+      "DEPOSIT": "Deposit"
+    },
+    "samplePdfTitle": "ORCA service agreement template",
+    "preparedPdfTitle": "ORCA service agreement — Ready for signature",
+    "creditHelp": "The service debt limit is the permitted unpaid service balance, not a loan or subscription fee. The deposit is tracked separately and settled under the agreement.",
+    "monthlyFee": "Monthly service fee",
+    "contractTitle": "ORCA service agreement — {plan} plan",
+    "contractTitleGeneric": "ORCA service agreement",
+    "prepareTitle": "Prepare agreement — {plan} plan",
+    "profileHelp": "Contracting party details and the plan price are frozen in the agreement. ORCA publishes the common terms; review the whole agreement before signing.",
+    "profileInvalid": "Check the value, length and format; line breaks are not allowed.",
+    "reviewedTerms": "I have read this plan’s terms and confirm the contracting party details and my authority to sign.",
+    "reviewRequired": "Read and confirm the terms before preparing the agreement.",
+    "confirmPrepare": "Confirm details and prepare agreement",
+    "profile": {
+      "legalName": "Company / household / individual legal name",
+      "address": "Contracting party address",
+      "registrationNumber": "Business / tax registration number (if any)",
+      "representativeName": "Signing representative name",
+      "representativeTitle": "Position / signing capacity",
+      "authorityBasis": "Authority or authorization basis",
+      "phone": "Contact phone"
+    },
+    "samplePdfHelp": "This template is for reading the terms. Enter contracting party details in ORCA during preparation; they will be filled and locked in the agreement before signing. This PDF is read-only.",
+    "preparedPdfHelp": "This agreement contains the Seller’s frozen details. Review all content before opening electronic signing."
   },
   "WarehouseDirectory": {
     "loadError": "Could not load warehouses.",

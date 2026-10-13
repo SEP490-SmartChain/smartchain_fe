@@ -1,18 +1,25 @@
+import { useState } from 'react';
+
 import { FileSignature, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
+import Modal from '@/components/Common/Modal/Modal';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { CommercialCustomInquiry } from './CommercialCustomInquiry';
 import { CommercialPdfPreview } from './CommercialPdfPreview';
+import { CommercialPreparationForm } from './CommercialPreparationForm';
 import { useSellerCommercial } from '../hooks/useSellerCommercial';
+
+import type { CommercialPlan } from '../api/commercialApi';
 
 export function SellerContractOnboarding() {
   const t = useTranslations('Commercial');
   const locale = useLocaleStore((state) => state.locale);
   const flow = useSellerCommercial();
+  const [selectedPlan, setSelectedPlan] = useState<CommercialPlan | null>(null);
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const contract = flow.state?.contracts.find((item) => item.id === flow.state?.currentContractId);
@@ -21,9 +28,6 @@ export function SellerContractOnboarding() {
 
   return (
     <section className="space-y-4" aria-busy={flow.loading}>
-      {flow.pdfUrl && (
-        <CommercialPdfPreview key={flow.pdfUrl} url={flow.pdfUrl} onClose={flow.closePdf} />
-      )}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">{t('title')}</h2>
@@ -56,7 +60,7 @@ export function SellerContractOnboarding() {
           {t('serviceStatus')}: <strong>{t(`service.${flow.state.serviceStatus}`)}</strong>
         </p>
       )}
-      {!contract && (
+      {!contract && !flow.loading && flow.state && (
         <div className="grid gap-4 md:grid-cols-2">
           {flow.plans
             .filter((plan) => plan.code !== 'ENTERPRISE')
@@ -67,6 +71,16 @@ export function SellerContractOnboarding() {
                   {money(plan.monthlyFeeVnd)}
                   <span className="ml-1 text-sm font-normal">/ {t('month')}</span>
                 </p>
+                {plan.depositRequiredVnd && (
+                  <p className="mt-2 text-sm">
+                    {t('deposit')}: {money(plan.depositRequiredVnd)}
+                  </p>
+                )}
+                {plan.creditLimitVnd && (
+                  <p className="mt-1 text-sm">
+                    {t('creditLimit')}: {money(plan.creditLimitVnd)}
+                  </p>
+                )}
                 <p className="my-3 text-sm">
                   {t('allowances', {
                     warehouses: plan.warehouseAllowance,
@@ -77,10 +91,16 @@ export function SellerContractOnboarding() {
                   {t('version')}: {plan.agreementVersionRef ?? t('unpublished')}
                 </p>
                 <Button
-                  disabled={!flow.configured || !plan.agreementId}
+                  disabled={
+                    flow.loading ||
+                    !!contract ||
+                    !flow.state ||
+                    !flow.configured ||
+                    !plan.agreementId
+                  }
                   isLoading={flow.busy}
                   onClick={() => {
-                    void flow.start(plan);
+                    setSelectedPlan(plan);
                   }}
                 >
                   <FileSignature size={16} />
@@ -101,16 +121,50 @@ export function SellerContractOnboarding() {
           {!flow.loading && flow.plans.length === 0 && <Alert variant="info">{t('noPlans')}</Alert>}
         </div>
       )}
+      {selectedPlan && !contract && (
+        <Modal
+          isOpen
+          onClose={() => {
+            if (!flow.busy && !flow.pdfUrl) setSelectedPlan(null);
+          }}
+          title={t('prepareTitle', { plan: selectedPlan.name })}
+          width="720px"
+        >
+          <CommercialPreparationForm
+            key={selectedPlan.id}
+            plan={selectedPlan}
+            busy={flow.busy}
+            onPreview={() => {
+              void flow.preview(selectedPlan.agreementId);
+            }}
+            onSubmit={async (profile) => {
+              if (await flow.start(selectedPlan, profile)) setSelectedPlan(null);
+            }}
+          />
+          {flow.error && <Alert variant="error">{flow.error.message}</Alert>}
+        </Modal>
+      )}
       {!contract && !flow.loading && <CommercialCustomInquiry />}
       {contract && (
         <article className={style}>
           <h3 className="text-base font-semibold">
-            {t('contract')}: {contract.agreementVersionRef}
+            {contract.planName
+              ? t('contractTitle', { plan: contract.planName })
+              : t('contractTitleGeneric')}
           </h3>
+          <p className="mt-1 break-all text-xs text-[var(--sc-text-secondary)]">
+            {t('version')}: {contract.agreementVersionRef}
+          </p>
+          {contract.monthlyFeeVnd && (
+            <p className="mt-3 text-lg font-semibold">
+              {t('monthlyFee')}: {money(contract.monthlyFeeVnd)} / {t('month')}
+            </p>
+          )}
           <p className="mt-2 text-sm">
             {t('deposit')}: {money(contract.depositRequiredVnd)} · {t('creditLimit')}:{' '}
             {money(contract.creditLimitVnd)}
           </p>
+          <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">{t('creditHelp')}</p>
           <p className="my-3 text-sm" role="status">
             {t('signingStatus')}:{' '}
             <strong>{request ? t(`status.${request.status}`) : contract.status}</strong>
@@ -213,6 +267,15 @@ export function SellerContractOnboarding() {
           </ul>
         </article>
       ))}
+      {flow.pdfUrl && (
+        <CommercialPdfPreview
+          key={flow.pdfUrl}
+          url={flow.pdfUrl}
+          onClose={flow.closePdf}
+          title={t(flow.pdfKind === 'sample' ? 'samplePdfTitle' : 'preparedPdfTitle')}
+          hint={t(flow.pdfKind === 'sample' ? 'samplePdfHelp' : 'preparedPdfHelp')}
+        />
+      )}
     </section>
   );
 }

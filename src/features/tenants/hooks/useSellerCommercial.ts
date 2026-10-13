@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import {
   commercialApi,
   type CommercialPlan,
+  type ContractBusinessProfile,
   type OnboardingInvoice,
   type SellerCommercialState,
 } from '../api/commercialApi';
@@ -19,7 +20,11 @@ export function useSellerCommercial() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [signingUrl, setSigningUrl] = useState<string | null>(null);
-  const [pdf, setPdf] = useState<{ url: string; revision: number } | null>(null);
+  const [pdf, setPdf] = useState<{
+    url: string;
+    revision: number;
+    kind: 'sample' | 'prepared';
+  } | null>(null);
   const operation = useRef<{ agreementId: string; key: string } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(false);
@@ -86,8 +91,11 @@ export function useSellerCommercial() {
     };
   }, [reload]);
 
-  const start = async (plan: CommercialPlan) => {
-    if (busy || !plan.agreementId || !plan.agreementVersionRef) return;
+  const start = async (
+    plan: CommercialPlan,
+    businessProfile?: ContractBusinessProfile,
+  ): Promise<boolean> => {
+    if (busy || !plan.agreementId || !plan.agreementVersionRef) return false;
     setBusy(true);
     setError(null);
     if (operation.current?.agreementId !== plan.agreementId) {
@@ -99,12 +107,15 @@ export function useSellerCommercial() {
         plan.agreementVersionRef,
         operation.current.key,
         controller.current?.signal,
+        businessProfile,
       );
       await reload(controller.current?.signal);
+      return true;
     } catch (failure) {
       if (isCurrent()) {
         setError(failure instanceof Error ? failure : new Error('COMMERCIAL.START_FAILED'));
       }
+      return false;
     } finally {
       if (isCurrent()) setBusy(false);
     }
@@ -134,11 +145,14 @@ export function useSellerCommercial() {
       }
     }
   };
-  const openArtifact = async (get: () => Promise<{ downloadUrl: string }>) => {
+  const openArtifact = async (
+    get: () => Promise<{ downloadUrl: string }>,
+    kind: 'sample' | 'prepared',
+  ) => {
     setError(null);
     try {
       const result = await get();
-      if (isCurrent()) setPdf({ url: result.downloadUrl, revision });
+      if (isCurrent()) setPdf({ url: result.downloadUrl, revision, kind });
     } catch (failure) {
       if (isCurrent()) {
         setError(failure instanceof Error ? failure : new Error('COMMERCIAL.EVIDENCE_FAILED'));
@@ -155,18 +169,22 @@ export function useSellerCommercial() {
     error,
     signingUrl,
     pdfUrl: pdf?.revision === revision ? pdf.url : null,
+    pdfKind: pdf?.kind ?? 'sample',
     closePdf,
     start,
     open,
     download,
     preview: (id: string | null) =>
       id
-        ? openArtifact(() => commercialApi.preview(id, controller.current?.signal))
+        ? openArtifact(() => commercialApi.preview(id, controller.current?.signal), 'sample')
         : Promise.resolve(),
     original: (id: string) =>
-      openArtifact(() => commercialApi.originalPdf(id, controller.current?.signal)),
+      openArtifact(() => commercialApi.originalPdf(id, controller.current?.signal), 'prepared'),
     contractPdf: (tenantId: string, id: string) =>
-      openArtifact(() => commercialApi.contractPdf(tenantId, id, controller.current?.signal)),
+      openArtifact(
+        () => commercialApi.contractPdf(tenantId, id, controller.current?.signal),
+        'prepared',
+      ),
     close: () => setSigningUrl(null),
     reload: () => reload(controller.current?.signal),
   };

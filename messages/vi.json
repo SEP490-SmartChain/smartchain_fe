@@ -37,7 +37,6 @@
     "finalizeClosure": "Hoàn tất thanh lý",
     "closureGuardHint": "BE kiểm tra tồn kho, công việc, khiếu nại, phí chưa lập hóa đơn, tiền nhận, số dư và hoàn cọc trước khi đóng.",
     "closureFinalized": "Đã hoàn tất thanh lý hợp đồng.",
-
     "serviceControl": "Trạng thái dịch vụ",
     "suspendService": "Tạm dừng dịch vụ",
     "reactivateService": "Kích hoạt lại dịch vụ",
@@ -49,7 +48,6 @@
     "reconcileHint": "Dùng tài liệu ORCA đã tạo cho yêu cầu này. Không tạo tài liệu hoặc lời mời ký mới.",
     "retry": "Thử tải lại",
     "unallocated": "Tiền chưa phân bổ: {amount} VND",
-
     "title": "Quản trị gói dịch vụ",
     "description": "Công bố phiên bản gói và điều khoản hợp đồng đã được rà soát.",
     "refresh": "Cập nhật",
@@ -113,7 +111,8 @@
     "noInvoices": "Chưa có hóa đơn onboarding.",
     "financeTitle": "Hóa đơn & khoản thu onboarding",
     "quotaTitle": "Định mức gói dịch vụ",
-    "noContract": "Seller chưa có hợp đồng hiện tại."
+    "noContract": "Seller chưa có hợp đồng hiện tại.",
+    "businessProfileLayout": "Thông tin bên ký và điều khoản đã hoàn thiện"
   },
   "Commercial": {
     "customInquiry": "Yêu cầu gói custom",
@@ -123,17 +122,16 @@
     "sendInquiry": "Gửi yêu cầu",
     "inquirySubmitted": "Đã lưu yêu cầu. ORCA sẽ trao đổi điều khoản với bạn.",
     "inquiryFailed": "Không gửi được yêu cầu. Thử lại với cùng nội dung.",
-    "preview": "Xem mẫu hợp đồng",
-    "pdfTitle": "Xem hợp đồng PDF",
+    "preview": "Đọc mẫu hợp đồng và điều khoản",
+    "pdfTitle": "Hợp đồng dịch vụ ORCA",
     "pdfLoading": "Đang tải PDF…",
     "pdfError": "Không tải được PDF. Đóng cửa sổ này và bấm xem lại để lấy liên kết mới.",
     "pdfPrevious": "Trang trước",
     "pdfNext": "Trang sau",
     "pdfPage": "Trang {page} / {total}",
-    "preparedPdf": "Xem hợp đồng đã điền",
-
+    "preparedPdf": "Xem bản hợp đồng chờ ký",
     "title": "Gói dịch vụ & hợp đồng",
-    "description": "Chọn gói, kiểm tra điều khoản và ký hợp đồng điện tử qua signNow.",
+    "description": "Các gói dịch vụ được công bố chung cho Seller. Đọc điều khoản, chọn gói, điền thông tin bên ký và xem lại trước khi ký điện tử.",
     "refresh": "Cập nhật",
     "error": "Không thể thực hiện",
     "loading": "Đang tải hợp đồng…",
@@ -148,7 +146,7 @@
     "noPlans": "Chưa có gói dịch vụ được công bố.",
     "contract": "Hợp đồng",
     "deposit": "Tiền cọc",
-    "creditLimit": "Hạn mức tín dụng",
+    "creditLimit": "Hạn mức công nợ dịch vụ",
     "signingStatus": "Trạng thái ký",
     "preparingHelp": "Hợp đồng đang được chuẩn bị. Trang sẽ tự cập nhật khi có thể ký.",
     "sign": "Ký hợp đồng",
@@ -186,7 +184,33 @@
       "PAID": "Đã thanh toán đủ",
       "EXPIRED": "Quá hạn"
     },
-    "purpose": { "PLAN_FEE": "Phí tháng đầu", "DEPOSIT": "Tiền cọc" }
+    "purpose": {
+      "PLAN_FEE": "Phí tháng đầu",
+      "DEPOSIT": "Tiền cọc"
+    },
+    "samplePdfTitle": "Mẫu hợp đồng dịch vụ ORCA",
+    "preparedPdfTitle": "Hợp đồng dịch vụ ORCA — Bản chờ ký",
+    "creditHelp": "Hạn mức công nợ là mức nợ phí dịch vụ được phép, không phải tiền vay hay phí thuê bao. Tiền cọc được theo dõi riêng và quyết toán theo hợp đồng.",
+    "monthlyFee": "Phí dịch vụ tháng",
+    "contractTitle": "Hợp đồng dịch vụ ORCA — Gói {plan}",
+    "contractTitleGeneric": "Hợp đồng dịch vụ ORCA",
+    "prepareTitle": "Chuẩn bị hợp đồng — Gói {plan}",
+    "profileHelp": "Thông tin bên ký và giá của gói được khóa trong bản hợp đồng. Các điều kiện chung do ORCA công bố; bạn cần kiểm tra toàn bộ nội dung trước khi ký.",
+    "profileInvalid": "Kiểm tra nội dung, độ dài và định dạng; không dùng xuống dòng.",
+    "reviewedTerms": "Tôi đã đọc điều khoản của gói này và xác nhận thông tin bên ký, căn cứ đại diện là đúng.",
+    "reviewRequired": "Bạn cần đọc điều khoản và xác nhận trước khi chuẩn bị hợp đồng.",
+    "confirmPrepare": "Xác nhận thông tin và tạo bản chờ ký",
+    "profile": {
+      "legalName": "Tên pháp lý doanh nghiệp / chủ hộ / cá nhân",
+      "address": "Địa chỉ bên ký",
+      "registrationNumber": "Mã số doanh nghiệp / mã số thuế (nếu có)",
+      "representativeName": "Họ tên người đại diện ký",
+      "representativeTitle": "Chức vụ / tư cách ký",
+      "authorityBasis": "Căn cứ đại diện hoặc ủy quyền",
+      "phone": "Điện thoại liên hệ"
+    },
+    "samplePdfHelp": "Đây là mẫu để đọc điều khoản. Thông tin bên ký được nhập ở bước chuẩn bị trên ORCA và sẽ được điền, khóa trong bản chờ ký; không điền trực tiếp trên PDF này.",
+    "preparedPdfHelp": "Đây là bản đã khóa thông tin của Seller. Kiểm tra toàn bộ nội dung trước khi mở ký điện tử."
   },
   "WarehouseDirectory": {
     "loadError": "Không thể tải danh sách kho.",
