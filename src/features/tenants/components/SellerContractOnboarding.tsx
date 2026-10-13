@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
-import { FileSignature, RefreshCw } from 'lucide-react';
+import { ExternalLink, FileSignature, FileText, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
+import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import Modal from '@/components/Common/Modal/Modal';
 import { useLocaleStore } from '@/stores/localeStore';
@@ -32,10 +33,12 @@ export function SellerContractOnboarding() {
 
   return (
     <section className="space-y-4" aria-busy={flow.loading}>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">{t('title')}</h2>
-          <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
+          <p className="mt-1 max-w-2xl text-sm text-[var(--sc-text-secondary)]">
+            {t(contract ? 'contractDescription' : 'description')}
+          </p>
         </div>
         <Button
           variant="outline"
@@ -60,9 +63,13 @@ export function SellerContractOnboarding() {
       )}
       {flow.loading && <p role="status">{t('loading')}</p>}
       {flow.state && (
-        <p className="text-sm">
-          {t('serviceStatus')}: <strong>{t(`service.${flow.state.serviceStatus}`)}</strong>
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-[var(--sc-text-secondary)]">{t('serviceStatus')}</span>
+          <Badge
+            status={flow.state.serviceStatus === 'ACTIVE' ? 'success' : 'default'}
+            label={t(`service.${flow.state.serviceStatus}`)}
+          />
+        </div>
       )}
       {!contract && !flow.loading && flow.state && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -151,49 +158,70 @@ export function SellerContractOnboarding() {
       {!contract && !flow.loading && <CommercialCustomInquiry />}
       {contract && (
         <article className={style}>
-          <h3 className="text-base font-semibold">
-            {contract.planName
-              ? t('contractTitle', { plan: contract.planName })
-              : t('contractTitleGeneric')}
-          </h3>
-          <p className="mt-1 break-all text-xs text-[var(--sc-text-secondary)]">
-            {t('version')}: {contract.agreementVersionRef}
-          </p>
-          {contract.monthlyFeeVnd && (
-            <p className="mt-3 text-lg font-semibold">
-              {t('monthlyFee')}: {money(contract.monthlyFeeVnd)} / {t('month')}
-            </p>
-          )}
-          <p className="mt-2 text-sm">
-            {t('deposit')}: {money(contract.depositRequiredVnd)} · {t('creditLimit')}:{' '}
-            {money(contract.creditLimitVnd)}
-          </p>
-          <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">{t('creditHelp')}</p>
-          <p className="my-3 text-sm" role="status">
-            {t('signingStatus')}:{' '}
-            <strong>{request ? t(`status.${request.status}`) : contract.status}</strong>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold">
+                {contract.planName
+                  ? t('contractTitle', { plan: contract.planName })
+                  : t('contractTitleGeneric')}
+              </h3>
+              <p className="mt-1 break-all text-xs text-[var(--sc-text-secondary)]">
+                {t('version')}: {contract.agreementVersionRef}
+              </p>
+            </div>
+            <div role="status" aria-label={t('signingStatus')}>
+              <Badge
+                status={request?.status === 'COMPLETED' ? 'success' : 'warning'}
+                label={request ? t(`status.${request.status}`) : contract.status}
+              />
+            </div>
+          </div>
+          <dl className="my-5 grid gap-3 sm:grid-cols-3">
+            {[
+              ...(contract.monthlyFeeVnd
+                ? [{ label: t('monthlyFee'), amount: contract.monthlyFeeVnd, monthly: true }]
+                : []),
+              { label: t('deposit'), amount: contract.depositRequiredVnd, monthly: false },
+              { label: t('creditLimit'), amount: contract.creditLimitVnd, monthly: false },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg bg-[var(--sc-bg-secondary)] p-4">
+                <dt className="text-xs text-[var(--sc-text-secondary)]">{item.label}</dt>
+                <dd className="mt-2 text-lg font-semibold tabular-nums">
+                  {money(item.amount)}
+                  {item.monthly && (
+                    <span className="mt-1 block text-xs font-normal text-[var(--sc-text-secondary)]">
+                      / {t('month')}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mb-5 max-w-3xl text-xs leading-relaxed text-[var(--sc-text-secondary)]">
+            {t('creditHelp')}
           </p>
           {request?.status === 'PREPARING' && <p className="text-sm">{t('preparingHelp')}</p>}
           {request?.status === 'IN_PROGRESS' && (
-            <Button
-              isLoading={flow.busy}
-              onClick={() => {
-                void flow.open(request.id);
-              }}
-            >
-              <FileSignature size={16} />
-              {t('sign')}
-            </Button>
-          )}
-          {request?.status === 'IN_PROGRESS' && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                void flow.original(request.id);
-              }}
-            >
-              {t('preparedPdf')}
-            </Button>
+            <div className="flex flex-wrap gap-3 border-t border-[var(--sc-border-default)] pt-4">
+              <Button
+                isLoading={flow.busy}
+                onClick={() => {
+                  void flow.open(request.id);
+                }}
+              >
+                <FileSignature size={16} />
+                {t('sign')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void flow.original(request.id);
+                }}
+              >
+                <FileText size={16} />
+                {t('preparedPdf')}
+              </Button>
+            </div>
           )}
           {contract.contractKind === 'CUSTOM' && contract.status === 'CONFIRMED' && (
             <Button
@@ -224,30 +252,54 @@ export function SellerContractOnboarding() {
       )}
       {flow.signingUrl && (
         <div className={style}>
-          <div className="mb-3 flex flex-wrap justify-between gap-2">
-            <h3 className="text-base font-semibold">{t('signWithSignNow')}</h3>
-            <div className="flex gap-2">
-              <a
-                href={flow.signingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-[var(--sc-primary)] underline"
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[var(--sc-bg-secondary)] p-3 text-[var(--sc-primary)]">
+                <FileSignature size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold">
+                  {t(
+                    signingInWindow
+                      ? flow.popupBlocked
+                        ? 'popupBlocked'
+                        : 'windowOpened'
+                      : 'signWithSignNow',
+                  )}
+                </h3>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--sc-text-secondary)]">
+                  {t(
+                    signingInWindow
+                      ? flow.popupBlocked
+                        ? 'popupBlockedHint'
+                        : 'signingWindowHint'
+                      : 'signingHint',
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                isLoading={flow.busy}
+                onClick={() => {
+                  if (request) void flow.open(request.id, true);
+                }}
               >
-                {t('newTab')}
-              </a>
+                <ExternalLink size={14} />
+                {t(flow.popupBlocked ? 'newTab' : 'openAgain')}
+              </Button>
               <Button variant="ghost" size="sm" onClick={flow.close}>
                 {t('close')}
               </Button>
             </div>
           </div>
-          <p className="mb-3 text-xs text-[var(--sc-text-secondary)]">
-            {t(signingInWindow ? 'signingWindowHint' : 'signingHint')}
-          </p>
           {!signingInWindow && (
             <iframe
               src={flow.signingUrl}
               title={t('signWithSignNow')}
-              className="h-[70vh] w-full rounded-lg border border-[var(--sc-border-default)]"
+              className="mt-4 h-[70vh] w-full rounded-lg border border-[var(--sc-border-default)]"
               referrerPolicy="no-referrer"
               allow="fullscreen"
             />
