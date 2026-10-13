@@ -418,6 +418,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     `${D8_PROPOSED}; ${CONTRACT_SECURITY}`,
   ),
   capability(
+    'contract.sign',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA Report 3 BR-59 / SS-990: Seller Owner accepts their standard agreement',
+  ),
+  capability(
     'cod.view',
     'finance',
     'ANY',
@@ -432,6 +440,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
     'APPROVED',
     D8_APPROVED,
+  ),
+  capability(
+    'invoice.bankReceipt.post',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-127 / SS-990: Accountant verifies bank evidence and posts once',
   ),
   capability(
     'apikey.manage',
@@ -613,6 +629,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/settings/general', capability: 'workspace.settings.manage' },
   { path: '/settings/api-keys', capability: 'apikey.manage' },
   { path: '/settings/webhooks', capability: 'workspace.settings.manage' },
+  { path: '/settings/contract', capability: 'contract.sign' },
   { path: '/audit', capability: 'audit.tenant.view' },
   { path: '/integration-errors', capability: 'integration.errors.view' },
   // Catalog phát triển: chỉ tồn tại khi DEV.
@@ -704,6 +721,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
       { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
+      { key: 'contract', href: '/settings/contract', capability: 'contract.sign' },
     ],
   },
 
@@ -799,6 +817,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' },
       { key: 'subscription_plans', href: '/admin/plans', capability: 'platform.plans.manage' },
+      { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
     ],
   },
   {
