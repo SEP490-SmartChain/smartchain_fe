@@ -15,6 +15,9 @@ const planSchema = z.object({
   storageAllowanceM3: z.string(),
   agreementId: z.string().uuid().nullable(),
   agreementVersionRef: z.string().nullable(),
+  requiresBusinessProfile: z.boolean().optional().default(false),
+  depositRequiredVnd: money.nullable().optional(),
+  creditLimitVnd: money.nullable().optional(),
 });
 export const signingSchema = z.object({
   id: z.string().uuid(),
@@ -40,6 +43,8 @@ const contractSchema = z.object({
   status: z.string(),
   agreementVersionRef: z.string(),
   planVersionId: z.string().uuid(),
+  planName: z.string().nullable().optional(),
+  monthlyFeeVnd: money.nullable().optional(),
   depositRequiredVnd: money,
   creditLimitVnd: money,
   effectiveFrom: z.string(),
@@ -159,10 +164,20 @@ export interface AgreementInput {
   versionRef: string;
   signerRole: string;
   templateId?: string;
-  compositionMode: 'EXISTING_FIELDS' | 'ORCA_REFERENCE_16_V1';
+  compositionMode: 'EXISTING_FIELDS' | 'ORCA_REFERENCE_16_V1' | 'BUSINESS_PROFILE_V1';
   depositRequiredVnd: string;
   creditLimitVnd: string;
   claimCapVnd: string;
+}
+
+export interface ContractBusinessProfile {
+  legalName: string;
+  address: string;
+  registrationNumber?: string;
+  representativeName: string;
+  representativeTitle: string;
+  authorityBasis: string;
+  phone: string;
 }
 
 /** A signing URL is a short-lived credential. Never put it in localStorage, logs or a shared cache. */
@@ -325,10 +340,16 @@ export const commercialApi = {
     agreementVersionRef: string,
     operationKey: string,
     signal?: AbortSignal,
+    businessProfile?: ContractBusinessProfile,
   ) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       '/v1/commercial/signing-requests',
-      { agreementId, agreementVersionRef, operationKey },
+      {
+        agreementId,
+        agreementVersionRef,
+        operationKey,
+        ...(businessProfile ? { businessProfile } : {}),
+      },
       { signal, silent: true },
     );
     return signingSchema.parse(data);

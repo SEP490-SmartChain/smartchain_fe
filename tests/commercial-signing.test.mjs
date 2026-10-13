@@ -3,7 +3,7 @@ import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
-let server, api, store, policy, safeUrl;
+let server, api, store, policy, safeUrl, profileSchema;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const agreementId = '00000000-0000-4000-8000-000000000002';
@@ -35,6 +35,9 @@ before(async () => {
   ));
   ({ useAuthStore: store } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
+  ({ contractBusinessProfileSchema: profileSchema } = await server.ssrLoadModule(
+    '/src/features/tenants/schemas/contractBusinessProfileSchema.ts',
+  ));
 });
 after(async () => {
   globalThis.fetch = originalFetch;
@@ -77,6 +80,66 @@ test('start retries send the same operation reference without trusting a client 
   await api.start(agreementId, 'V1', id);
   assert.deepEqual(calls[0].body, { agreementId, agreementVersionRef: 'V1', operationKey: id });
   assert.deepEqual(calls[1].body, calls[0].body);
+});
+
+test('party details are explicit input while signer identity and money stay server controlled', async () => {
+  const profile = {
+    legalName: 'Demo Seller',
+    address: 'Demo address',
+    representativeName: 'Demo Owner',
+    representativeTitle: 'Owner',
+    authorityBasis: 'Self represented',
+    phone: '0900000000',
+  };
+  let body;
+  globalThis.fetch = async (_url, options) => {
+    body = JSON.parse(options.body);
+    return ok(request);
+  };
+  await api.start(agreementId, 'V3', id, undefined, profile);
+  assert.deepEqual(body, {
+    agreementId,
+    agreementVersionRef: 'V3',
+    operationKey: id,
+    businessProfile: profile,
+  });
+});
+
+test('a new contracting party template requires complete details and explicit review', () => {
+  const values = {
+    legalName: 'Demo Seller',
+    address: 'Demo address',
+    registrationNumber: '',
+    representativeName: 'Demo Owner',
+    representativeTitle: 'Owner',
+    authorityBasis: 'Self represented',
+    phone: '0900000000',
+    hasReviewedTerms: true,
+  };
+  assert.equal(profileSchema(true).safeParse(values).success, true);
+  for (const change of [
+    { legalName: '  ' },
+    { address: 'four' },
+    { phone: 'invalid' },
+    { representativeName: 'Owner\nAdmin' },
+    { authorityBasis: 'a'.repeat(201) },
+    { hasReviewedTerms: false },
+  ]) {
+    assert.equal(profileSchema(true).safeParse({ ...values, ...change }).success, false);
+  }
+  assert.equal(
+    profileSchema(false).safeParse({
+      legalName: '',
+      address: '',
+      registrationNumber: '',
+      representativeName: '',
+      representativeTitle: '',
+      authorityBasis: '',
+      phone: '',
+      hasReviewedTerms: true,
+    }).success,
+    true,
+  );
 });
 test('signing links accept only the provider HTTPS origins', () => {
   assert.equal(safeUrl('https://app.signnow.com/sign/token'), 'https://app.signnow.com/sign/token');
