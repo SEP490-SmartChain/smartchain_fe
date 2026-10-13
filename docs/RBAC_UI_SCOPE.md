@@ -165,3 +165,9 @@ permits assigned Staff. The decision covers exact current physical QC/report IDs
 receipt revision, with a mandatory reason. Staff cannot approve via a hidden button or
 an alternative route. The server/RLS checks grants again on replay. This capability does
 not grant product/lot metadata edits, inventory posting, billing or notification delivery.
+
+SS-1072 reviewed physical stock posting: `warehouse.asn.postStock` belongs only to pure
+PLATFORM WAREHOUSE_STAFF on the live assigned warehouse. It posts the selected actual record
+to `receiving/records/:recordId/stock` after Manager approval. Manager/Staff read the evidence,
+while Manager cannot perform the Staff stock effect. Quantities/Seller identity come from
+reviewed evidence; no generic inventory editing, metadata writes or finance access is granted.

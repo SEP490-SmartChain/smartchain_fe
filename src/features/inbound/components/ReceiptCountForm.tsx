@@ -14,6 +14,7 @@ import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
 import { ReceiptPhotos } from './ReceiptPhotos';
 import { ReceiptReviewPanel } from './ReceiptReviewPanel';
+import { ReceiptStockPanel } from './ReceiptStockPanel';
 import { receivingApi, type ReceivingState } from '../api/receivingApi';
 import {
   countCommand,
@@ -202,6 +203,18 @@ export function ReceiptCountForm({
                         : previous,
                     )
                   }
+                />
+                <ReceiptStockPanel
+                  key={`stock:${lot.recordId}:${refresh}`}
+                  receiptId={receipt.receiptId}
+                  warehouseId={warehouseId}
+                  asnId={asnId}
+                  recordId={lot.recordId}
+                  canWrite={can('warehouse.asn.postStock')}
+                  onSaved={() => {
+                    setRefresh((v) => v + 1);
+                    onReceiptChanged();
+                  }}
                 />
               </div>
             ))}

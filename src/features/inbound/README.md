@@ -93,3 +93,16 @@ as pending integration; a durable outbox intent is not proof of delivery. Origin
 reports remain immutable OPEN submissions; Manager history describes their disposition.
 SS-1072 receive, SS-1073 billing/webhooks and actual Seller notification delivery remain
 outstanding. Do not mark the entire SS-1070/1071 task complete based on these screens.
+
+## Reviewed stock recognition (SS-1072 / FU-21)
+
+Each physical lot has a stock-recognition section. Assigned Staff searches by receiving-bin
+code/barcode, chooses receiving/quarantine locations and submits only operation, receipt
+revision and bin references. Manager reads physical recognition history without a write form.
+The backend derives quantities from Manager-approved QC and delegates stock effects to P3.
+Rejected units are excluded; receiving/quarantine stock is not sellable before confirmed putaway.
+
+Strict response schemas check record/receipt identity, physical partitions, selected bins and
+actual source quantities. Unknown replies preserve the same command and operation for retry;
+confirmed conflicts reload evidence. Scope/identity changes abort requests and clear old data.
+The list offers a bounded server search; it never loads unrelated Seller inventory or finance.
