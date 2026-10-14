@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-const uuid = z.string().uuid();
+const uuid = z
+  .string()
+  .uuid()
+  .transform((value) => value.toLowerCase());
 const integer = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const version = z.number().int().min(1).max(2147483646);
 const text = z

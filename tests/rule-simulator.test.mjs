@@ -130,6 +130,51 @@ test('returns explicit no match and no fabricated selection', async () => {
   globalThis.fetch = async () => ok(value);
   assert.deepEqual(await api.simulate(sample()), value);
 });
+test('canonicalizes uppercase UUID references and accepts the server saved-version identity', async () => {
+  const ruleId = '00000000-0000-4000-8000-0000000000aa';
+  const sampleSeller = '00000000-0000-4000-8000-0000000000bb';
+  const warehouseId = '00000000-0000-4000-8000-0000000000cc';
+  globalThis.fetch = async (_url, options) => {
+    assert.deepEqual(JSON.parse(options.body), {
+      kind: 'ALLOCATION',
+      sample: { sellerId: sampleSeller, warehouseId },
+      candidate: { ruleId, version: 2 },
+    });
+    return ok({
+      ...result(),
+      mode: 'SAVED_VERSION',
+      match: { ...result().match, ruleId },
+      trace: [{ ...trace(), ruleId }],
+    });
+  };
+  const response = await api.simulate({
+    kind: 'ALLOCATION',
+    sample: {
+      sellerId: sampleSeller.toUpperCase(),
+      warehouseId: warehouseId.toUpperCase(),
+    },
+    candidate: { ruleId: ruleId.toUpperCase(), version: 2 },
+  });
+  assert.equal(response.match.ruleId, ruleId);
+  assert.equal(response.trace.length, 1);
+});
+test('rejects a carrier fallback repeating the primary through different UUID casing', () => {
+  const primary = '00000000-0000-4000-8000-0000000000aa';
+  const value = {
+    ...result(),
+    kind: 'CARRIER',
+    match: {
+      ...result().match,
+      action: { carrierServiceId: primary, fallbackServiceIds: [primary.toUpperCase()] },
+    },
+    carrierServices: [
+      { id: primary, name: 'Primary', role: 'PRIMARY' },
+      { id: primary.toUpperCase(), name: 'Duplicate', role: 'FALLBACK' },
+    ],
+    pending: ['CARRIER_QUOTE'],
+  };
+  assert.equal(schema.simulationResponseSchema.safeParse(value).success, false);
+});
 test('accepts primary/fallback metadata only in the rule-defined order and keeps price pending', async () => {
   const value = {
     ...result(),
@@ -222,13 +267,11 @@ test('rejects late results after identity/assignment changes and an aborted requ
     });
   const request = api.simulate(sample());
   await new Promise((resolve) => setImmediate(resolve));
-  store
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-updated-token',
-      expiresIn: 900,
-      user: { ...actor(), warehouseIds: [carrierId] },
-    });
+  store.getState().setSession({
+    accessToken: 'synthetic-updated-token',
+    expiresIn: 900,
+    user: { ...actor(), warehouseIds: [carrierId] },
+  });
   release(ok(result()));
   await assert.rejects(request);
   const controller = new AbortController();
