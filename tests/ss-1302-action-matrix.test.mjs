@@ -51,6 +51,8 @@ const expected = {
   'catalog.products.view': O,
   'catalog.products.manage': O,
   'inventory.view': roles,
+  'inventory.expiry.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
+  'inventory.notifications.manage': O,
   'inventory.positions.view': ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_MANAGER'],
   'inventory.ledger.view': ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'inventory.reservations.view': [],
@@ -59,6 +61,8 @@ const expected = {
   'routing.rule.set': AO,
   'rules.create_delete': A,
   'rules.operate': ['OPS_DISPATCHER'],
+  'rules.simulate.allocation': ['OPS_DISPATCHER'],
+  'rules.simulate.carrier': AO,
   'orders.view': roles,
   'orders.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'],
   'shipments.view': [

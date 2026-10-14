@@ -43,5 +43,26 @@ malformed responses, API pagination, retry references, versioned commands, role
 denials, priority immutability and English/Vietnamese translation parity. Run the
 repository gate documented in `AGENTS.md` before committing.
 
-The simulator is SS-1088. Order splitting, physical allocation and carrier booking
-belong to their owning workflows and are not implemented by this configuration UI.
+## Simulator (SS-1090 / SS-1088)
+
+The inline simulator consumes `POST /v1/rules/simulate` from SS-1089. Ops may preview
+ALLOCATION; Admin/Ops may preview CARRIER, through separate central capabilities.
+Sample seller/warehouse references never change authenticated scope. Typed optional
+facts retain zero/false and canonical VND strings; empty fields stay absent.
+
+Current published policies are the default. Selecting a visible rule and an exact
+saved draft/historical version previews it alongside other published policies;
+it does not activate that version. Match traces explain priority, seller/warehouse
+exclusion and missing facts. Carrier primary/fallback names retain policy order.
+Planning/FEFO/split and tariff quote projections are shown as pending, without
+fabricating prices, chosen warehouses or operational effects.
+
+The form retains input on errors, supports retry, cancels obsolete requests and
+only displays results for the current sample/configuration revision. Parent identity
+changes unmount/reset the form; late API responses after auth-scope changes are denied.
+Response validation rejects private fields, wrong kind/mode/version, inconsistent
+trace/match, reordered carrier chains and fake selections. English/Vietnamese text
+uses `RuleSimulator` messages. Tests: `tests/rule-simulator.test.mjs`.
+
+Order splitting, physical allocation and carrier booking belong to their owning
+workflows. Full SS-1088 acceptance awaits the verified P4/P5 projections.

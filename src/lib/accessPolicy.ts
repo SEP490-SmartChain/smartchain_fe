@@ -311,6 +311,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('rules.create_delete', 'rules', 'PLATFORM', ['ORCA_ADMIN'], 'APPROVED', R3_MATRIX),
   capability('rules.operate', 'rules', 'PLATFORM', ['OPS_DISPATCHER'], 'APPROVED', R3_MATRIX),
+  capability(
+    'rules.simulate.allocation',
+    'rules',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 FU-42 / UC-77; SS-1089 POST /v1/rules/simulate kind ALLOCATION',
+  ),
+  capability(
+    'rules.simulate.carrier',
+    'rules',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 FU-35 / UC-98; SS-1089 POST /v1/rules/simulate kind CARRIER',
+  ),
   capability('orders.view', 'orders', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
     'orders.operate',
