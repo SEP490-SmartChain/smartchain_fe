@@ -1338,7 +1338,6 @@
     "orders_quota": "Hạn mức đơn hàng",
     "api_calls_quota": "Hạn mức cuộc gọi API"
   },
-
   "AdminCarriers": {
     "page_title": "Danh mục Hãng vận chuyển toàn nền tảng",
     "page_description": "Quản lý hãng vận chuyển và các dịch vụ ORCA hỗ trợ.",
@@ -1564,7 +1563,7 @@
     "infoSecurityTitle": "Bảo mật & Chống SSRF",
     "infoSecurityDesc": "Chỉ chấp nhận URL công khai HTTPS có chứng chỉ hợp lệ. Mạng nội bộ bị chặn.",
     "infoSignatureTitle": "Chữ ký HMAC-SHA256",
-    "infoSignatureDesc": "Mỗi payload được ký điện tử kèm header X-SmartChain-Signature và timestamp.",
+    "infoSignatureDesc": "Mỗi payload được ký điện tử kèm header X-orca-Signature và timestamp.",
     "infoRetryTitle": "Cơ chế Thử lại (Retry)",
     "infoRetryDesc": "Hệ thống tự động thử lại tối đa 5 lần với exponential backoff khi endpoint lỗi.",
     "loadingWebhooks": "Đang tải danh sách webhook...",
@@ -1637,7 +1636,7 @@
     "copied": "Đã sao chép!",
     "secretCopied": "Đã sao chép mã bí mật vào bộ nhớ tạm.",
     "copyFailed": "Không thể sao chép vào bộ nhớ tạm. Vui lòng chọn và sao chép thủ công.",
-    "secretStorageAdvice": "Cách dùng: Sử dụng khóa này để kiểm tra tính hợp lệ của chữ ký trong header X-SmartChain-Signature đối với mỗi webhook request nhận được từ ORCA.",
+    "secretStorageAdvice": "Cách dùng: Sử dụng khóa này để kiểm tra tính hợp lệ của chữ ký trong header X-orca-Signature đối với mỗi webhook request nhận được từ ORCA.",
     "savedSecretConfirmation": "Tôi đã lưu mã bí mật"
   },
   "ProductCatalog": {

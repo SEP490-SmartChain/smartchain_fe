@@ -45,7 +45,7 @@ export const ROLE_ACTOR_SCOPE: Readonly<Record<OrcaRole, ActorScope>> = Object.f
 });
 
 /**
- * Bốn role legacy của SmartChain trước ORCA. Chỉ giữ để migration/compile-time:
+ * Bốn role legacy của orca trước ORCA. Chỉ giữ để migration/compile-time:
  * chúng được nhận diện nhưng **không cấp bất kỳ quyền nào** (deny-by-default).
  */
 export const LEGACY_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] as const;

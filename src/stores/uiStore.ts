@@ -23,7 +23,7 @@ function resolveDarkMode(mode: ThemeMode) {
 }
 
 const storedTheme =
-  typeof window !== 'undefined' ? window.localStorage.getItem('smartchain-theme') : null;
+  typeof window !== 'undefined' ? window.localStorage.getItem('orca-theme') : null;
 const initialTheme: ThemeMode =
   storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
     ? storedTheme
@@ -45,7 +45,7 @@ export const useUiStore = create<UiState>((set) => ({
   setThemeMode: (themeMode) => {
     const isDarkMode = resolveDarkMode(themeMode);
     document.documentElement.dataset.theme = isDarkMode ? 'dark' : 'light';
-    window.localStorage.setItem('smartchain-theme', themeMode);
+    window.localStorage.setItem('orca-theme', themeMode);
     set({ themeMode, isDarkMode });
   },
 

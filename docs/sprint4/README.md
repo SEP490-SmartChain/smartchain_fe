@@ -20,6 +20,6 @@ UX update 09/10/2026: `orders-manual-friendly.png` and `orders-import-preview-fr
 
 ## Actual local API verification — 09/10/2026
 
-`orders-address-verified.png`, `orders-payment-verified.png`, and `orders-detail-payment-verified.png` were captured from localhost:2324 using API localhost:3000 and the local smartchain database, rather than the preview fixture. Official address data contains 34 provinces and 3,321 wards. Province changes reset the ward; Hanoi has 126 wards and Da Nang has 94.
+`orders-address-verified.png`, `orders-payment-verified.png`, and `orders-detail-payment-verified.png` were captured from localhost:2324 using API localhost:3000 and the local orca database, rather than the preview fixture. Official address data contains 34 provinces and 3,321 wards. Province changes reset the ward; Hanoi has 126 wards and Da Nang has 94.
 
 The payment controls were exercised for COD, goods prepaid, partial payment and free shipping. One synthetic order `UX-VERIFY-20261009-PAYMENT` was actually accepted: DEMO-TEE × 2 at 100,000, goods COD 200,000, buyer shipping 30,000, collection total 230,000. It remains in the local DB as RECEIVED. Allocation/booking/reconciliation and live Google OAuth remain outside this verified result; see BE docs/SPRINT4_ORDER_INTAKE_HANDOFF.md for source conflicts and limitations.

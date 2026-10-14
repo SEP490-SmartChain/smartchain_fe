@@ -69,7 +69,7 @@ retains its documented backend TTL (up to five minutes).
 
 Core backend `contract.read` now excludes Seller Staff; `contract.approve` excludes
 Accountant. The backend audit records the exact route inventory, narrowed handler
-rules, RLS evidence and limits in `smartchain_be/docs/SS-1302-PERMISSION-AUDIT.md`.
+rules, RLS evidence and limits in `orca_be/docs/SS-1302-PERMISSION-AUDIT.md`.
 Unimplemented workflows and provider/legal acceptance testing remain separate.
 
 ## Browser verification

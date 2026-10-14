@@ -185,7 +185,7 @@ for (const [name, patch] of [
 }
 
 test('SS-985: a late 401 after scope change is silent and preserves the current session', async (t) => {
-  const toastError = t.mock.method(toast, 'error', () => {});
+  const toastError = t.mock.method(toast, 'error', () => { });
   useAuthStore.getState().setSession(session('old'));
   const pending = deferred();
   const calls = [];
@@ -204,7 +204,7 @@ test('SS-985: a late 401 after scope change is silent and preserves the current 
 });
 
 test('SS-985: scope change while refreshing is silent and cannot overwrite the current session', async (t) => {
-  const toastError = t.mock.method(toast, 'error', () => {});
+  const toastError = t.mock.method(toast, 'error', () => { });
   useAuthStore.getState().setSession(session('old'));
   const pending = deferred();
   const started = deferred();
@@ -310,7 +310,7 @@ test('SS-976: refreshed Seller Staff profile loses Owner routes without logout',
   assert.equal(useAuthStore.getState().accessToken, 'test-access');
 });
 
-test('public tax lookup uses VietQR without leaking the SmartChain session', async () => {
+test('public tax lookup uses VietQR without leaking the orca session', async () => {
   useAuthStore.getState().setSession(session());
   globalThis.fetch = async (url, options) => {
     assert.equal(url, 'https://api.vietqr.io/v2/business/0316794479');

@@ -116,8 +116,8 @@ test('updateProfile sends PATCH to /v1/iam/users/me and accepts user profile dat
     assert.deepEqual(JSON.parse(options.body), { phone: '0901234567' });
     return ok({
       userId: 'usr-12345',
-      fullName: 'SmartChain Admin',
-      email: 'admin@smartchain.vn',
+      fullName: 'orca Admin',
+      email: 'admin@orca.vn',
       phone: '0901234567',
       roles: ['SUPER_ADMIN'],
     });
