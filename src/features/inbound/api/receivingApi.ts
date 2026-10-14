@@ -100,7 +100,7 @@ export const receivingStateSchema = z
   .object({
     receiptId: z.string().uuid(),
     version: z.number().int().positive(),
-    status: z.enum(['RECEIVING', 'COMPLETED', 'CANCELLED']),
+    status: z.enum(['RECEIVING', 'APPROVED', 'COMPLETED', 'CANCELLED']),
     asnId: z.string().uuid(),
     asnCode: z.string(),
     asnStatus: asnSchema.shape.status,
