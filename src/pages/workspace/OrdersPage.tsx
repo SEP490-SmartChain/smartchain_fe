@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { SellerOrders } from '@/features/orders';
 
 export default function OrdersPage() {
-  return <UnderConstruction />;
+  return <SellerOrders />;
 }
