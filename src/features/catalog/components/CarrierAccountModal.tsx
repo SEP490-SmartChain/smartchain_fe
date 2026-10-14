@@ -42,9 +42,10 @@ export function CarrierAccountModal({
     .object({
       warehouseId: z.string().uuid(t('required')),
       carrierId: z.string().uuid(t('required')),
-      environment: z.enum(['SANDBOX', 'PRODUCTION']),
       apiToken: z.string().max(500, t('invalidToken')),
       shopId: z.string().max(50, t('invalidShop')),
+      partnerCode: z.string().regex(/^[A-Za-z0-9_-]{0,50}$/, t('invalidPartnerCode')),
+      pick_address_id: z.string(),
       pick_name: z.string(),
       pick_tel: z.string(),
       pick_address: z.string(),
@@ -65,16 +66,8 @@ export function CarrierAccountModal({
       if (code === 'GHN' && !/^[A-Za-z0-9_-]{1,50}$/.test(values.shopId)) {
         ctx.addIssue({ code: 'custom', path: ['shopId'], message: t('invalidShop') });
       }
-      if (code === 'GHTK') {
-        for (const field of pickupFields) {
-          if (
-            !values[field].trim() ||
-            values[field].length > 200 ||
-            (field === 'pick_tel' && !/^(?:\+84|0)[0-9]{9,10}$/.test(values[field]))
-          ) {
-            ctx.addIssue({ code: 'custom', path: [field], message: t('invalidPickup') });
-          }
-        }
+      if (code === 'GHTK' && !/^[0-9]{1,50}$/.test(values.pick_address_id)) {
+        ctx.addIssue({ code: 'custom', path: ['pick_address_id'], message: t('invalidPickup') });
       }
     });
   type FormValues = z.infer<typeof schema>;
@@ -88,9 +81,10 @@ export function CarrierAccountModal({
     defaultValues: {
       warehouseId: account?.warehouseId ?? '',
       carrierId: account?.carrierId ?? '',
-      environment: account?.environment ?? 'SANDBOX',
       apiToken: '',
+      pick_address_id: account?.pickupMapping['pick_address_id'] ?? '',
       shopId: account?.pickupMapping['shop_id'] ?? '',
+      partnerCode: '',
       ...Object.fromEntries(
         pickupFields.map((field) => [field, account?.pickupMapping[field] ?? '']),
       ),
@@ -102,19 +96,24 @@ export function CarrierAccountModal({
   const submit = handleSubmit(async (values) => {
     setError(false);
     const credentials = values.apiToken
-      ? { apiToken: values.apiToken.trim(), ...(code === 'GHN' ? { shopId: values.shopId } : {}) }
+      ? {
+          apiToken: values.apiToken.trim(),
+          ...(code === 'GHN' ? { shopId: values.shopId } : {}),
+          ...(code === 'GHTK' && values.partnerCode.trim()
+            ? { partnerCode: values.partnerCode.trim() }
+            : {}),
+        }
       : undefined;
-    const pickupMapping =
+    const pickupMapping: Record<string, string> =
       code === 'GHN'
         ? { shop_id: values.shopId }
-        : Object.fromEntries(pickupFields.map((field) => [field, values[field].trim()]));
+        : { pick_address_id: values.pick_address_id.trim() };
     try {
       if (account) await carrierAccountApi.update(account.id, { credentials, pickupMapping });
       else if (credentials) {
         await carrierAccountApi.create({
           warehouseId: values.warehouseId,
           carrierId: values.carrierId,
-          environment: values.environment,
           credentials,
           pickupMapping,
         });
@@ -150,10 +149,8 @@ export function CarrierAccountModal({
               readOnly
             />
             <Input label={t('carrier')} value={account.orcaCarrier.name} readOnly />
-            <Input label={t('environment')} value={account.environment} readOnly />
             <input type="hidden" {...register('warehouseId')} />
             <input type="hidden" {...register('carrierId')} />
-            <input type="hidden" {...register('environment')} />
           </>
         ) : (
           <>
@@ -172,12 +169,6 @@ export function CarrierAccountModal({
               options={carriers.map((row) => ({ value: row.id, label: row.name }))}
               {...register('carrierId')}
               error={errors.carrierId?.message}
-              disabled={isSubmitting}
-            />
-            <Select
-              label={t('environment')}
-              options={['SANDBOX', 'PRODUCTION'].map((value) => ({ value, label: value }))}
-              {...register('environment')}
               disabled={isSubmitting}
             />
           </>
@@ -201,17 +192,25 @@ export function CarrierAccountModal({
             disabled={isSubmitting}
           />
         )}
-        {code === 'GHTK' &&
-          pickupFields.map((field) => (
-            <Input
-              key={field}
-              label={t(field)}
-              maxLength={200}
-              {...register(field)}
-              error={errors[field]?.message}
-              disabled={isSubmitting}
-            />
-          ))}
+        {code === 'GHTK' && (
+          <Input
+            label={t('partnerCode')}
+            helperText={t('partnerCodeHint')}
+            maxLength={50}
+            {...register('partnerCode')}
+            error={errors.partnerCode?.message}
+            disabled={isSubmitting}
+          />
+        )}
+        {code === 'GHTK' && (
+          <Input
+            label={t('pickupAddressId')}
+            helperText={t('pickupAddressHint')}
+            {...register('pick_address_id')}
+            error={errors.pick_address_id?.message}
+            disabled={isSubmitting}
+          />
+        )}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" disabled={isSubmitting} onClick={onClose}>
             {t('cancel')}

@@ -53,7 +53,7 @@ export interface CreateWarehousePayload {
   name: string;
   address: string;
   provinceCode: string;
-  districtCode?: string;
+  districtCode?: string | null;
   wardCode: string;
   latitude: number;
   longitude: number;

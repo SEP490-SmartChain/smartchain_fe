@@ -27,7 +27,6 @@ function AccountManager() {
   const [rows, setRows] = useState<CarrierAccount[]>([]);
   const [warehouseId, setWarehouseId] = useState('');
   const [carrierId, setCarrierId] = useState('');
-  const [environment, setEnvironment] = useState('');
   const [cursor, setCursor] = useState<string | undefined>();
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
@@ -74,7 +73,7 @@ function AccountManager() {
     setLoading(true);
     setError(false);
     void carrierAccountApi
-      .list({ warehouseId, carrierId, environment, cursor }, abort.signal)
+      .list({ warehouseId, carrierId, cursor }, abort.signal)
       .then((page) => {
         if (!cancelled) {
           setRows(page.items);
@@ -95,7 +94,7 @@ function AccountManager() {
       cancelled = true;
       abort.abort();
     };
-  }, [warehouseId, carrierId, environment, cursor, revision]);
+  }, [warehouseId, carrierId, cursor, revision]);
 
   const refresh = () => {
     setCursor(undefined);
@@ -135,7 +134,6 @@ function AccountManager() {
         warehouses.find((warehouse) => warehouse.id === row.warehouseId)?.code ?? row.warehouseId,
     },
     { key: 'carrierId', label: t('carrier'), render: (row) => row.orcaCarrier.name },
-    { key: 'environment', label: t('environment') },
     { key: 'maskedPreview', label: t('token') },
     {
       key: 'status',
@@ -229,18 +227,6 @@ function AccountManager() {
           ]}
           onChange={(event) => {
             setCarrierId(event.target.value);
-            setCursor(undefined);
-          }}
-        />
-        <Select
-          label={t('environment')}
-          value={environment}
-          options={[
-            { value: '', label: t('all') },
-            ...['SANDBOX', 'PRODUCTION'].map((value) => ({ value, label: value })),
-          ]}
-          onChange={(event) => {
-            setEnvironment(event.target.value);
             setCursor(undefined);
           }}
         />

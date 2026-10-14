@@ -117,6 +117,14 @@ const ALL_ORCA_ROLES: readonly OrcaRole[] = ORCA_ROLES;
  */
 export const CAPABILITIES: readonly CapabilityDef[] = [
   capability(
+    'tariffs.manage',
+    'carriers',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'R3 UC-94/118; /v1/platform/tariffs v1, separate from carrier secrets',
+  ),
+  capability(
     'iam.warehouses.assign',
     'iam',
     'PLATFORM',
@@ -343,6 +351,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER', 'SELLER_STAFF'],
     'APPROVED',
     R3_MATRIX,
+  ),
+  capability(
+    'shipments.label.download',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-81 label print; GET /v1/shipments/:id/label; PDF includes COD/recipient data; RLS shipment.read',
   ),
   capability(
     'shipments.operate',
@@ -652,6 +668,7 @@ export interface RoutePolicy {
 }
 
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
+  { path: '/admin/tariffs', capability: 'tariffs.manage' },
   { path: '/admin/staff', capability: 'iam.warehouses.assign' },
   { path: '/dashboard', capability: 'workspace.dashboard.view' },
   { path: '/catalog/skus', capability: 'catalog.products.view' },
@@ -850,6 +867,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'platform',
     items: [
       { key: 'admin_carriers', href: '/admin/carriers', capability: 'platform.carriers.manage' },
+      { key: 'freight_tariffs', href: '/admin/tariffs', capability: 'tariffs.manage' },
       { key: 'rules', href: '/rules', capability: 'rules.view' },
       { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
     ],
