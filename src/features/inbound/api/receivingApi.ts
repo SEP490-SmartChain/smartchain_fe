@@ -5,7 +5,34 @@ import { apiClient, type ApiResponse } from '@/services/apiClient';
 import { asnSchema } from './asnApi';
 
 import type { ReceiptCountInput } from '../schemas/receiptCountSchema';
-import type { AsnPage, AsnStatus } from '../types/asn.types';
+import type { AsnStatus } from '../types/asn.types';
+
+// A separate warehouse contract prevents seller declarations from biasing physical counts.
+export const warehouseAsnSchema = z
+  .object({
+    id: z.string().uuid(),
+    warehouseId: z.string().uuid(),
+    asnCode: z.string().min(1),
+    status: asnSchema.shape.status.exclude(['DRAFT']),
+    arrivedAt: z.string().datetime().nullable(),
+    version: z.number().int().positive(),
+    receiptIds: z.array(z.string().uuid()),
+    lines: z
+      .array(
+        z
+          .object({
+            id: z.string().uuid(),
+            lineNo: z.number().int().positive(),
+            sku: z.string(),
+            productName: z.string(),
+            receivedQty: z.number().int().nonnegative(),
+          })
+          .strict(),
+      )
+      .max(100),
+  })
+  .strict();
+export type WarehouseAsn = z.infer<typeof warehouseAsnSchema>;
 
 const paginationSchema = z.object({
   limit: z.number().int().positive(),
@@ -73,7 +100,7 @@ export const receivingStateSchema = z
   .object({
     receiptId: z.string().uuid(),
     version: z.number().int().positive(),
-    status: z.enum(['RECEIVING', 'COMPLETED', 'CANCELLED']),
+    status: z.enum(['RECEIVING', 'APPROVED', 'COMPLETED', 'CANCELLED']),
     asnId: z.string().uuid(),
     asnCode: z.string(),
     asnStatus: asnSchema.shape.status,
@@ -155,7 +182,7 @@ export const receivingApi = {
     status?: AsnStatus,
     cursor?: string,
     signal?: AbortSignal,
-  ): Promise<AsnPage> {
+  ) {
     const { data, meta } = await apiClient.get<ApiResponse<unknown>>(
       `/v1/warehouses/${encodeURIComponent(warehouseId)}/asns`,
       {
@@ -169,9 +196,13 @@ export const receivingApi = {
         silent: true,
       },
     );
-    return z
-      .object({ items: z.array(asnSchema), pagination: paginationSchema })
-      .parse({ items: data, pagination: meta.pagination }) as AsnPage;
+    const page = z
+      .object({ items: z.array(warehouseAsnSchema), pagination: paginationSchema })
+      .parse({ items: data, pagination: meta.pagination });
+    if (page.items.some((asn) => asn.warehouseId !== warehouseId)) {
+      throw new Error('ASN belongs to another warehouse');
+    }
+    return page;
   },
   async checkIn(warehouseId: string, id: string, version: number): Promise<AsnArrival> {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
