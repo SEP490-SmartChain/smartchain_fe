@@ -3,9 +3,10 @@ import { z } from 'zod';
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 import { asnSchema } from './asnApi';
+import { warehouseAsnSchema } from './warehouseAsnSchema';
 
 import type { ReceiptCountInput } from '../schemas/receiptCountSchema';
-import type { AsnPage, AsnStatus } from '../types/asn.types';
+import type { AsnStatus } from '../types/asn.types';
 
 const paginationSchema = z.object({
   limit: z.number().int().positive(),
@@ -16,14 +17,16 @@ const directorySchema = z.object({
   items: z.array(z.object({ id: z.string().uuid(), code: z.string(), name: z.string() })),
   pagination: paginationSchema,
 });
-export const arrivalSchema = z.object({
-  asnId: z.string().uuid(),
-  asnCode: z.string(),
-  warehouseId: z.string().uuid(),
-  receiptId: z.string().uuid(),
-  arrivedAt: z.string().datetime(),
-  version: z.number().int().positive(),
-});
+export const arrivalSchema = z
+  .object({
+    asnId: z.string().uuid(),
+    asnCode: z.string(),
+    warehouseId: z.string().uuid(),
+    receiptId: z.string().uuid(),
+    arrivedAt: z.string().datetime(),
+    version: z.number().int().positive(),
+  })
+  .strict();
 export type AsnArrival = z.infer<typeof arrivalSchema>;
 export type ReceivingWarehouse = z.infer<typeof directorySchema>['items'][number];
 
@@ -155,7 +158,7 @@ export const receivingApi = {
     status?: AsnStatus,
     cursor?: string,
     signal?: AbortSignal,
-  ): Promise<AsnPage> {
+  ) {
     const { data, meta } = await apiClient.get<ApiResponse<unknown>>(
       `/v1/warehouses/${encodeURIComponent(warehouseId)}/asns`,
       {
@@ -169,9 +172,16 @@ export const receivingApi = {
         silent: true,
       },
     );
-    return z
-      .object({ items: z.array(asnSchema), pagination: paginationSchema })
-      .parse({ items: data, pagination: meta.pagination }) as AsnPage;
+    const result = z
+      .object({ items: z.array(warehouseAsnSchema), pagination: paginationSchema })
+      .parse({ items: data, pagination: meta.pagination });
+    if (result.items.some((asn) => asn.warehouseId !== warehouseId)) {
+      throw new Error('ASN belongs to another warehouse');
+    }
+    if (new Set(result.items.map((asn) => asn.id)).size !== result.items.length) {
+      throw new Error('Duplicate warehouse ASN identity');
+    }
+    return result;
   },
   async checkIn(warehouseId: string, id: string, version: number): Promise<AsnArrival> {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
@@ -179,6 +189,10 @@ export const receivingApi = {
       { version },
       { silent: true },
     );
-    return arrivalSchema.parse(data);
+    const result = arrivalSchema.parse(data);
+    if (result.asnId !== id || result.warehouseId !== warehouseId) {
+      throw new Error('Arrival belongs to another ASN or warehouse');
+    }
+    return result;
   },
 };

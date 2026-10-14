@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MapPin, Building, Phone, User, Mail, Hash, Activity } from 'lucide-react';
@@ -14,14 +14,23 @@ import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
+import { WarehouseAddressFields } from './WarehouseAddressFields';
+import { WarehouseHoursFields } from './WarehouseHoursFields';
 import { warehouseApi } from '../api/warehouseApi';
 import {
   getCreateWarehouseSchema,
   toWarehouseChanges,
   type CreateWarehouseFormValues,
 } from '../schemas/warehouseSchema';
+import { isValidCoordinate } from '../utils/locationCoordinates';
 
 import type { Warehouse } from '../types/warehouse';
+
+// The HERE map code is only needed when an admin opens the map, so keep it out of the main bundle.
+const WarehouseHerePicker = lazy(() => import('./WarehouseHerePicker'));
+
+// The map picker is available only when a HERE browser key is configured (VITE_HERE_API_KEY).
+const HERE_API_KEY = import.meta.env.VITE_HERE_API_KEY?.trim() ?? '';
 
 interface Props {
   isOpen: boolean;
@@ -34,14 +43,18 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
   const t = useTranslations('Warehouses');
   const { can } = useAccess();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [addressPreview, setAddressPreview] = useState('');
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    control,
     formState: { errors },
   } = useForm<CreateWarehouseFormValues>({
-    resolver: zodResolver(getCreateWarehouseSchema(t, warehouse !== null)),
+    resolver: zodResolver(getCreateWarehouseSchema(t)),
     defaultValues: {
       region: 'SOUTH',
       timeZone: 'Asia/Ho_Chi_Minh',
@@ -49,13 +62,34 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
       operatingStartMinute: 480,
       operatingEndMinute: 1080,
       dailyCapacity: 100,
-      latitude: 10.762622,
-      longitude: 106.660172,
     },
+  });
+  const [
+    provinceCode,
+    wardCode,
+    detail,
+    startMinute,
+    endMinute,
+    cutoffMinute,
+    latitude,
+    longitude,
+  ] = useWatch({
+    control,
+    name: [
+      'provinceCode',
+      'wardCode',
+      'address',
+      'operatingStartMinute',
+      'operatingEndMinute',
+      'cutoffMinute',
+      'latitude',
+      'longitude',
+    ],
   });
 
   useEffect(() => {
     if (isOpen) {
+      setShowMap(false);
       reset(
         warehouse
           ? {
@@ -90,8 +124,6 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               operatingStartMinute: 480,
               operatingEndMinute: 1080,
               dailyCapacity: 100,
-              latitude: 10.762622,
-              longitude: 106.660172,
             },
       );
     }
@@ -104,12 +136,14 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
     try {
       if (warehouse) {
         await warehouseApi.update(warehouse.id, {
-          ...toWarehouseChanges(values),
+          ...toWarehouseChanges(values, warehouse),
           expectedVersion: warehouse.version,
         });
       } else {
+        const { districtCode: _legacyDistrict, ...fields } = values;
+        void _legacyDistrict;
         await warehouseApi.create({
-          ...values,
+          ...fields,
           contactName: values.contactName || null,
           contactPhone: values.contactPhone || null,
           contactEmail: values.contactEmail || null,
@@ -189,12 +223,22 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
           </div>
         </div>
 
+        <WarehouseAddressFields
+          register={register}
+          setValue={setValue}
+          errors={errors}
+          provinceCode={provinceCode ?? ''}
+          wardCode={wardCode ?? ''}
+          detail={detail ?? ''}
+          onPreview={setAddressPreview}
+        />
+
         <div>
           <label
             htmlFor="warehouse-address"
             className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
           >
-            {t('address')} <span className="text-[var(--sc-error)]">*</span>
+            {t('addressDetail')} <span className="text-[var(--sc-error)]">*</span>
           </label>
           <div className="relative">
             <MapPin
@@ -204,58 +248,40 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
             <Input
               id="warehouse-address"
               {...register('address')}
-              placeholder={t('address')}
+              placeholder={t('addressDetailPlaceholder')}
               className="pl-9"
               error={errors.address?.message}
             />
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label
-              htmlFor="warehouse-provinceCode"
-              className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
-            >
-              {t('provinceCode')} <span className="text-[var(--sc-error)]">*</span>
-            </label>
-            <Input
-              id="warehouse-provinceCode"
-              {...register('provinceCode')}
-              placeholder="79"
-              error={errors.provinceCode?.message}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="warehouse-districtCode"
-              className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
-            >
-              {t('districtCode')} <span className="text-[var(--sc-error)]">*</span>
-            </label>
-            <Input
-              id="warehouse-districtCode"
-              {...register('districtCode')}
-              placeholder="760"
-              error={errors.districtCode?.message}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="warehouse-wardCode"
-              className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
-            >
-              {t('wardCode')} <span className="text-[var(--sc-error)]">*</span>
-            </label>
-            <Input
-              id="warehouse-wardCode"
-              {...register('wardCode')}
-              placeholder="26734"
-              error={errors.wardCode?.message}
-            />
-          </div>
+        <div>
+          <p className="text-sm font-medium text-[var(--sc-text-primary)]">{t('locationTitle')}</p>
+          <p className="text-sm text-[var(--sc-text-secondary)]">{t('locationHelp')}</p>
         </div>
-
+        {HERE_API_KEY && (
+          <>
+            <div>
+              <Button type="button" variant="outline" onClick={() => setShowMap((open) => !open)}>
+                {t(showMap ? 'hideMap' : 'showMap')}
+              </Button>
+            </div>
+            {showMap && (
+              <Suspense fallback={<p className="text-sm">{t('loading')}</p>}>
+                <WarehouseHerePicker
+                  apiKey={HERE_API_KEY}
+                  latitude={isValidCoordinate(latitude, longitude) ? latitude : undefined}
+                  longitude={isValidCoordinate(latitude, longitude) ? longitude : undefined}
+                  searchText={addressPreview}
+                  onChange={(nextLatitude, nextLongitude) => {
+                    setValue('latitude', nextLatitude, { shouldValidate: true });
+                    setValue('longitude', nextLongitude, { shouldValidate: true });
+                  }}
+                />
+              </Suspense>
+            )}
+          </>
+        )}
         <div className="grid gap-5 sm:grid-cols-3">
           <div>
             <label
@@ -307,6 +333,9 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
                 error={errors.dailyCapacity?.message}
               />
             </div>
+            <p className="mt-1.5 text-sm text-[var(--sc-text-secondary)]">
+              {t('dailyCapacityHelp')}
+            </p>
           </div>
         </div>
 
@@ -316,6 +345,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               <label>
                 {t('region')}
                 <p>{t(`regions.${warehouse.region}`)}</p>
+                <p className="text-sm text-[var(--sc-text-secondary)]">{t('regionHelp')}</p>
                 <input type="hidden" {...register('region')} />
               </label>
             ) : (
@@ -327,24 +357,19 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
                   label: t(`regions.${value}`),
                 }))}
                 error={errors.region?.message}
+                helperText={t('regionHelp')}
               />
             )}
           </div>
-          <p>{t('timeZone')}: Asia/Ho_Chi_Minh</p>
-          {(['operatingStartMinute', 'operatingEndMinute', 'cutoffMinute'] as const).map(
-            (field) => (
-              <label key={field}>
-                {t(field)}
-                <Input
-                  type="number"
-                  {...register(field, { valueAsNumber: true })}
-                  error={errors[field]?.message}
-                />
-              </label>
-            ),
-          )}
-          <p className="text-sm">{t('minuteHelp')}</p>
+          <Input label={t('timeZone')} value="Asia/Ho_Chi_Minh" readOnly />
         </div>
+        <WarehouseHoursFields
+          control={control}
+          errors={errors}
+          start={startMinute ?? 480}
+          end={endMinute ?? 1080}
+          cutoff={cutoffMinute ?? 840}
+        />
         <hr className="my-2 border-[var(--sc-border-default)]" />
 
         <div className="grid gap-5 sm:grid-cols-3">

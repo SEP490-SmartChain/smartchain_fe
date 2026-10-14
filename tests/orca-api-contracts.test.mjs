@@ -204,6 +204,12 @@ for (const roles of [['ORCA_ADMIN'], ['TENANT_ADMIN'], ['SELLER_STAFF', 'ORCA_AD
     });
   });
 }
+test('carrier list preserves unavailable connection statistics as null', async () => {
+  const item = { ...carrier, connectedTenantsCount: null };
+  globalThis.fetch = async () => ok([item]);
+  assert.deepEqual(await carrierCatalogApi.list({}), { items: [item], pagination });
+});
+
 for (const [label, getApi, item, path] of [
   ['carrier', () => carrierCatalogApi, carrier, '/api/v1/platform/carriers'],
   ['seller', () => tenantManagementApi, tenant, '/api/v1/platform/tenants'],

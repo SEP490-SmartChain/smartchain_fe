@@ -143,10 +143,28 @@ không mở quyền quản trị seller. Scope/role/identity thay đổi sẽ x�
 và pending reads của màn hình. UI không cấp quyền SYSTEM worker hoặc đặt quyền
 cho các workflow allocation/booking của package khác.
 
+### Sprint 4 tariff contract v1 (12/10/2026)
+
+`tariffs.manage` chỉ PLATFORM Admin/Accountant, theo UC-94/118 và API `/v1/platform/tariffs`. `/admin/tariffs` là tariff-only route; không mở generic `/admin/*` hay carrier credentials cho Accountant. `/admin/carriers` vẫn Admin và có tab bảng cước. Purchase/sell read, draft/create/update/publish/close dùng backend role gate + transaction-local resources `carrier_purchase`/`tariff`; không nhận tenant/actor từ body. Preview nội bộ ở endpoint này chỉ Admin vì warehouse metadata hiện chưa grant Accountant; không broaden warehouse access để mô phỏng cước. Tests `freight-tariffs.test.mjs` kiểm cả các route bị deny và mixed/unknown scopes. Migration/RLS integration trên DB disposable phải được xác minh trước rollout; code contract không chứng minh DB dự án đã cutover.
+
 ## 10. Gap implementation phải giải quyết ở đợt sau
 
-Source hiện có đã có `actorScope` và ORCA role policy. Các grant được triển khai từ auth contract trước đây không hoàn toàn đồng bộ SRS cập nhật 02/10: backend core-auth audit grant còn rộng, contract read còn Seller Staff, contract approval còn Accountant; compatibility upload/reconciliation còn legacy groups. Frontend capabilities dựa screen matrix cũ cũng cần review action-level theo UC mới.
+SS-1090 simulator uses `rules.simulate.allocation` for PLATFORM Ops only (RP3
+FU-42/UC-77), and `rules.simulate.carrier` for PLATFORM Admin/Ops (FU-35/UC-98).
+The SS-1089 endpoint rechecks the actor and live database grants; sample seller
+references never authorize another tenant. Rules screen access is insufficient
+for Admin-only allocation simulation. Preview does not publish or perform stock,
+order, billing or booking effects; planning and price projections remain pending.
+
+Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Blind receiving dùng DTO kho riêng, không tải declaration/expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
 
 Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.
 
 Source/audit toàn bộ 165 UC/61 BR/20 NFR và target DB ở repo backend: `docs/ORCA-SRS-CHANGE-ANALYSIS.md`, `docs/ORCA-SRS-TRACEABILITY.md`, `db.md`. Các grant hoặc route đề xuất chưa có acceptance evidence vẫn PROPOSED.
+
+UC-39 QC proposal: `warehouse.asn.inspect` is a Staff-only, assigned-warehouse action
+for `POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/records/:recordId/inspections`.
+Staff and assigned Manager may read the matching GET projection. This proposal action
+does not grant Manager approval, discrepancy closure, putaway, inventory or financial writes.
+The form requires the actual count to be fully partitioned and only uses verified receipt
+photo IDs; it preserves the exact operation/payload after an uncertain response.

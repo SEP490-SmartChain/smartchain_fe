@@ -1,0 +1,154 @@
+import assert from 'node:assert/strict';
+import { after, before, test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { createServer } from 'vite';
+
+const roles = [
+  'ORCA_ADMIN',
+  'OPS_DISPATCHER',
+  'WAREHOUSE_MANAGER',
+  'WAREHOUSE_STAFF',
+  'ORCA_ACCOUNTANT',
+  'SELLER_OWNER',
+  'SELLER_STAFF',
+];
+const A = ['ORCA_ADMIN'],
+  O = ['SELLER_OWNER'],
+  M = ['WAREHOUSE_MANAGER'],
+  S = ['WAREHOUSE_STAFF'];
+const AO = ['ORCA_ADMIN', 'OPS_DISPATCHER'];
+const finance = ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'];
+const reporting = [
+  'ORCA_ADMIN',
+  'OPS_DISPATCHER',
+  'WAREHOUSE_MANAGER',
+  'ORCA_ACCOUNTANT',
+  'SELLER_OWNER',
+  'SELLER_STAFF',
+];
+// Independently reviewed UI action expectations; proposed actions remain denied.
+const expected = {
+  'iam.warehouses.assign': A,
+  'workspace.dashboard.view': reporting,
+  'workspace.settings.manage': O,
+  'workspace.billing.view': finance,
+  'iam.users.manage': ['ORCA_ADMIN', 'SELLER_OWNER'],
+  'iam.roles.assign': ['ORCA_ADMIN', 'SELLER_OWNER'],
+  'carriers.credentials.manage': A,
+  'warehouses.view': [
+    'ORCA_ADMIN',
+    'OPS_DISPATCHER',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
+    'SELLER_OWNER',
+  ],
+  'warehouses.manage': A,
+  'warehouses.update': M,
+  'warehouses.layout.view': ['ORCA_ADMIN', 'WAREHOUSE_MANAGER'],
+  'warehouses.layout.manage': M,
+  'warehouses.downtime.view': ['ORCA_ADMIN', 'WAREHOUSE_MANAGER', 'OPS_DISPATCHER'],
+  'warehouses.downtime.manage': M,
+  'catalog.products.view': O,
+  'catalog.products.manage': O,
+  'inventory.view': roles,
+  'inventory.expiry.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
+  'inventory.notifications.manage': O,
+  'inventory.positions.view': ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_MANAGER'],
+  'inventory.ledger.view': ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+  'inventory.reservations.view': [],
+  'inventory.reservations.release': [],
+  'rules.view': AO,
+  'routing.rule.set': AO,
+  'rules.create_delete': A,
+  'rules.operate': ['OPS_DISPATCHER'],
+  'rules.simulate.allocation': ['OPS_DISPATCHER'],
+  'rules.simulate.carrier': AO,
+  'orders.view': roles,
+  'orders.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'],
+  'shipments.view': [
+    'ORCA_ADMIN',
+    'OPS_DISPATCHER',
+    'WAREHOUSE_MANAGER',
+    'SELLER_OWNER',
+    'SELLER_STAFF',
+  ],
+  'shipments.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'reconciliation.view': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
+  'reconciliation.operate': ['ORCA_ACCOUNTANT'],
+  'analytics.operations.view': reporting,
+  'analytics.finance.view': finance,
+  'integration.errors.view': AO,
+  'audit.tenant.view': [],
+  'audit.platform.view': A,
+  'platform.tenants.manage': A,
+  'platform.carriers.manage': A,
+  'platform.plans.manage': A,
+  'platform.observability.view': A,
+  'finance.view': [],
+  'cod.view': ['ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+  'invoice.view': finance,
+  'invoice.bankReceipt.post': ['ORCA_ACCOUNTANT'],
+  'apikey.manage': O,
+  'contract.sign': O,
+  'asns.view': ['SELLER_OWNER', 'SELLER_STAFF'],
+  'returns.view': O,
+  'statements.view': O,
+  'warehouse.operations.view': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'warehouse.asn.checkIn': S,
+  'warehouse.asn.recordCount': S,
+  'warehouse.asn.uploadPhoto': S,
+  'warehouse.asn.inspect': S,
+  'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+  'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+};
+let server, policy;
+before(async () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  server = await createServer({
+    configFile: false,
+    envFile: false,
+    root,
+    optimizeDeps: { noDiscovery: true, include: [] },
+    server: { middlewareMode: true, watch: null, ws: false },
+  });
+  policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
+});
+after(async () => {
+  await server?.close();
+});
+
+test('SS-1302: every UI capability has an independent audit expectation', () => {
+  assert.deepEqual(
+    policy.CAPABILITIES.map((entry) => entry.code).sort(),
+    Object.keys(expected).sort(),
+  );
+});
+for (const [capability, allowed] of Object.entries(expected)) {
+  test(`SS-1302: seven-role action matrix ${capability}`, () => {
+    for (const role of roles)
+      assert.equal(
+        policy.can([role], capability),
+        allowed.includes(role),
+        `${role}: ${capability}`,
+      );
+    for (const invalid of [
+      [],
+      ['SUPER_ADMIN'],
+      ['SELLER_OWNER', 'ORCA_ADMIN'],
+      ['WAREHOUSE_STAFF', 'UNKNOWN'],
+    ]) {
+      assert.equal(policy.can(invalid, capability), false);
+    }
+  });
+}
+test('SS-1302: unknown exports and print capabilities never acquire a screen grant', () => {
+  for (const role of roles)
+    for (const capability of [
+      'orders.export',
+      'inventory.export',
+      'finance.export',
+      'invoice.print',
+    ]) {
+      assert.equal(policy.can([role], capability), false);
+    }
+});

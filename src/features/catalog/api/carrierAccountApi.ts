@@ -26,11 +26,10 @@ const warehousesSchema = z.object({
   hasMore: z.boolean(),
 });
 export type CarrierAccount = z.infer<typeof accountSchema>;
-export type AccountCredentials = { apiToken: string; shopId?: string };
+export type AccountCredentials = { apiToken: string; shopId?: string; partnerCode?: string };
 export type CreateAccount = {
   warehouseId: string;
   carrierId: string;
-  environment: CarrierAccount['environment'];
   credentials: AccountCredentials;
   pickupMapping: Record<string, string>;
 };
