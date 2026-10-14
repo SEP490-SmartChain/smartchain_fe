@@ -53,22 +53,20 @@ const payload = {
 };
 const downtime = { id, warehouseId: id, ...payload };
 function signIn() {
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-token',
-      expiresIn: 900,
-      user: {
-        userId: id,
-        tenantId: id,
-        sessionId: id,
-        actorScope: 'TENANT',
-        email: 'unit@example.test',
-        fullName: 'Unit Tester',
-        roles: ['SELLER_OWNER'],
-        permissions: [],
-      },
-    });
+  auth.getState().setSession({
+    accessToken: 'synthetic-token',
+    expiresIn: 900,
+    user: {
+      userId: id,
+      tenantId: id,
+      sessionId: id,
+      actorScope: 'TENANT',
+      email: 'unit@example.test',
+      fullName: 'Unit Tester',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+    },
+  });
 }
 function crc32(bytes) {
   let crc = 0xffffffff;
@@ -160,10 +158,35 @@ test(
     assert.equal(result.contactEmail, input.contactEmail);
     assert.equal(result.contactPhone, input.contactPhone);
     assert.equal(result.contactName, input.contactName);
-    assert.equal(result.districtCode, input.districtCode);
+    // Two-level addresses: a changed address clears the legacy district explicitly.
+    assert.equal(result.districtCode, null);
     assert.ok(!('code' in result));
   },
 );
+test('Hours/contact-only edit leaves the stored address untouched', async () => {
+  const original = {
+    provinceCode: valid.provinceCode,
+    wardCode: valid.wardCode,
+    districtCode: 'LEGACY',
+  };
+  const result = warehouse.toWarehouseChanges({ ...valid, cutoffMinute: 900 }, original);
+  assert.equal(result.cutoffMinute, 900);
+  assert.ok(!('provinceCode' in result));
+  assert.ok(!('wardCode' in result));
+  assert.ok(!('districtCode' in result));
+});
+test('Changing the ward sends the pair and clears the district with null', async () => {
+  const original = { provinceCode: valid.provinceCode, wardCode: 'OLD', districtCode: 'LEGACY' };
+  const result = warehouse.toWarehouseChanges(valid, original);
+  assert.equal(result.provinceCode, valid.provinceCode);
+  assert.equal(result.wardCode, valid.wardCode);
+  assert.equal(result.districtCode, null);
+});
+test('A new warehouse has no default coordinates', async () => {
+  const { latitude: _lat, longitude: _lng, ...rest } = valid;
+  const result = warehouse.getCreateWarehouseSchema((k) => k).safeParse(rest);
+  assert.equal(result.success, false);
+});
 test(
   'FE-17.01 UTC0005: ' + 'Optional contacts are absent; latitude=0 and longitude=-180.',
   async () => {

@@ -51,9 +51,11 @@ export function useCarrierCatalog(initialQuery: CarrierListQuery = {}) {
     try {
       const detail = await carrierCatalogApi.getDetail(id);
       setSelectedCarrier(detail);
+      return detail;
     } catch {
       toast.error('Không thể tải chi tiết hãng vận chuyển');
       setSelectedCarrier(null);
+      return null;
     } finally {
       setIsLoadingDetail(false);
     }

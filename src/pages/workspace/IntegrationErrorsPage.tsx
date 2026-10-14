@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { CarrierBreakerPanel } from '@/features/shipments';
 
 export default function IntegrationErrorsPage() {
-  return <UnderConstruction />;
+  return <CarrierBreakerPanel />;
 }

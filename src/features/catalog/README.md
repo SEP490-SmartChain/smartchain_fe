@@ -1,6 +1,8 @@
 # features/catalog
 
-Kho logic, SKU, hãng vận chuyển, bảng giá hợp đồng, credential 3PL (BYOA) và ping-test. BE: `catalog`. SRS: FE-08 → FE-11.
+Carrier catalogue management UI (UC-91): create/edit carrier metadata and create/edit/enable/disable services in carrier details. Backend mutation endpoints are a separate dependency. Contract and ownership handoff: [carrier management API](../../../docs/CARRIER-CATALOG-MANAGEMENT-API-HANDOFF.md). Adding a carrier does not implement its provider adapter or configure carrier zones.
+
+Seller SKU, platform warehouse/carrier catalogue, ORCA-owned carrier accounts/ping và purchase/sell tariff UI. Report3 UC-91–95/118/119; không BYOA. Tariff contract và role/state mapping ở `docs/SS-1246-RATE-CARDS.md`.
 
 ## ORCA warehouse calendar (SS-1305)
 
