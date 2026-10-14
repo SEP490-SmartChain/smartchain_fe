@@ -118,9 +118,9 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
       }
     }, true);
   }
-  function downloadTemplate() {
+  function downloadTemplate(sheet = false) {
     void execute(async (signal) => {
-      const template = await ordersApi.template(signal);
+      const template = await ordersApi.template(signal, sheet);
       if (orderScope() !== scope || signal.aborted) return;
       const bytes = Uint8Array.from(atob(template.contentBase64), (character) =>
         character.charCodeAt(0),
@@ -384,6 +384,15 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
               {t('template')}
             </Button>
           </div>
+          <details className="rounded-lg border border-[var(--sc-border-default)] p-3 text-sm">
+            <summary className="rounded font-medium focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+              {t('sheetSetup')}
+            </summary>
+            <p className="mt-2 text-[var(--sc-text-secondary)]">{t('sheet_hint')}</p>
+            <Button variant="ghost" isLoading={busy} onClick={() => downloadTemplate(true)}>
+              {t('sheet_template')}
+            </Button>
+          </details>
           <Dropzone
             files={files}
             onFilesChange={(next) => {

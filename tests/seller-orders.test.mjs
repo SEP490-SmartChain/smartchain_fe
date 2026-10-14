@@ -94,6 +94,34 @@ beforeEach(() => {
   useAuthStore.getState().clear();
   useAuthStore.getState().setSession({ user, accessToken: 'seller-test-token', expiresIn: 900 });
 });
+
+test('Excel and Google Sheets downloads use distinct authenticated contracts and forward cancellation', async () => {
+  const controller = new AbortController();
+  const paths = [];
+  globalThis.fetch = async (url, options) => {
+    const pathname = new URL(url, 'https://app.example.test').pathname;
+    paths.push(pathname);
+    assert.equal(options.headers.get('Authorization'), 'Bearer seller-test-token');
+    assert.equal(options.signal, controller.signal);
+    return ok({
+      fileName: pathname.endsWith('/sheet-template')
+        ? 'orca-google-sheet.xlsx'
+        : 'orca-orders.xlsx',
+      contentBase64: 'UEs=',
+    });
+  };
+  assert.equal((await orders.ordersApi.template(controller.signal)).fileName, 'orca-orders.xlsx');
+  assert.equal(
+    (await orders.ordersApi.template(controller.signal, true)).fileName,
+    'orca-google-sheet.xlsx',
+  );
+  assert.deepEqual(paths, ['/api/v1/orders/import-template', '/api/v1/orders/sheet-template']);
+});
+
+test('Google Sheets download rejects a mismatched workbook response', async () => {
+  globalThis.fetch = async () => ok({ fileName: 'orca-orders.xlsx', contentBase64: 'UEs=' });
+  await assert.rejects(() => orders.ordersApi.template(undefined, true));
+});
 test('automatic merchandise collection follows line totals, separates customer freight and preserves prepaid zero', () => {
   const automatic = {
     ...draft,
