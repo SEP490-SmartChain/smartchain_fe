@@ -917,6 +917,21 @@
     "only_letters_spaces": "Chỉ được chứa chữ cái và khoảng trắng"
   },
   "AdminTenants": {
+    "exportCsv": "Xuất CSV",
+    "exportDenied": "Vai trò hiện tại không được xuất dữ liệu seller.",
+    "exportEmpty": "Không có dữ liệu để xuất.",
+    "exportSuccess": "Đã tải trang seller đang hiển thị dưới dạng CSV.",
+    "exportHeaders": {
+      "id": "ID",
+      "name": "Tên seller",
+      "slug": "Slug",
+      "email": "Email Owner",
+      "plan": "Gói cước",
+      "status": "Trạng thái",
+      "used": "Đơn đã dùng",
+      "total": "Hạn mức đơn",
+      "created": "Ngày tạo"
+    },
     "page_title": "Quản lý Doanh nghiệp",
     "page_description": "Trung tâm điều khiển và giám sát toàn bộ không gian làm việc doanh nghiệp trên nền tảng ORCA.",
     "refresh": "Làm mới",
