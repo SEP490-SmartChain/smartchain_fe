@@ -28,6 +28,7 @@ const reporting = [
 ];
 // Independently reviewed UI action expectations; proposed actions remain denied.
 const expected = {
+  'tariffs.manage': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'iam.warehouses.assign': A,
   'workspace.dashboard.view': reporting,
   'workspace.settings.manage': O,
@@ -73,6 +74,7 @@ const expected = {
     'SELLER_STAFF',
   ],
   'shipments.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'shipments.label.download': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   'reconciliation.view': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'reconciliation.operate': ['ORCA_ACCOUNTANT'],
   'analytics.operations.view': reporting,
