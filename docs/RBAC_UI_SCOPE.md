@@ -145,6 +145,13 @@ cho các workflow allocation/booking của package khác.
 
 ## 10. Gap implementation phải giải quyết ở đợt sau
 
+SS-1090 simulator uses `rules.simulate.allocation` for PLATFORM Ops only (RP3
+FU-42/UC-77), and `rules.simulate.carrier` for PLATFORM Admin/Ops (FU-35/UC-98).
+The SS-1089 endpoint rechecks the actor and live database grants; sample seller
+references never authorize another tenant. Rules screen access is insufficient
+for Admin-only allocation simulation. Preview does not publish or perform stock,
+order, billing or booking effects; planning and price projections remain pending.
+
 Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Blind receiving dùng DTO kho riêng, không tải declaration/expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
 
 Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.

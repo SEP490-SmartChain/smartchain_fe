@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { RuleCommand, type Command } from './RuleCommand';
 import { RuleEditor } from './RuleEditor';
 import { RuleHistory } from './RuleHistory';
+import { RuleSimulator } from './RuleSimulator';
 import { useRuleList } from '../hooks/useRuleList';
 import { moveRule } from '../lib/rulePriority';
 
@@ -86,6 +87,7 @@ function ScopedRules() {
         />
       </div>
       <Alert>{t('draftNotice')}</Alert>
+      <RuleSimulator key={kind} kind={kind} rules={items} />
       {dirty && (
         <Alert variant="warning">
           <div className="flex flex-wrap items-center justify-between gap-3">

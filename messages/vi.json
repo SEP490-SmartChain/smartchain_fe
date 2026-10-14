@@ -2105,5 +2105,71 @@
     "savingSettings": "Đang lưu…",
     "settingsSaved": "Đã lưu cài đặt",
     "settingsError": "Không tải hoặc lưu được cài đặt. Hãy tải lại để tránh ghi đè thay đổi mới."
+  },
+  "RuleSimulator": {
+    "title": "Mô phỏng rule",
+    "description": "Thử đơn mẫu với các policy đã lưu và xem lý do khớp trước khi thay cấu hình vận hành.",
+    "readOnly": "Chỉ xem trước. Không áp dụng quy tắc, giữ tồn kho, tạo đơn hay đặt vận đơn.",
+    "sellerId": "Mã seller của đơn mẫu",
+    "provinceCode": "Mã tỉnh/thành (không bắt buộc)",
+    "wardCode": "Mã phường/xã (không bắt buộc)",
+    "warehouseId": "Mã kho (không bắt buộc)",
+    "warehouseHint": "Dùng kho đang hoạt động trong phạm vi được giao. Để trống để thử policy chung.",
+    "weightG": "Trọng lượng, gram (không bắt buộc)",
+    "itemCount": "Số lượng (không bắt buộc)",
+    "codAmountVnd": "COD, VND (không bắt buộc)",
+    "isCod": "Thu hộ COD",
+    "notSupplied": "Chưa cung cấp",
+    "yes": "Có",
+    "no": "Không",
+    "ruleVersion": "Bộ rule",
+    "published": "Các policy đang có hiệu lực",
+    "savedVersion": "Phiên bản rule đã lưu",
+    "versionHint": "Thử bản nháp hoặc phiên bản cũ này cùng các policy đang có hiệu lực. Không kích hoạt rule.",
+    "invalid": "Nhập mã hoặc giá trị hợp lệ theo đơn vị được ghi.",
+    "run": "Chạy mô phỏng",
+    "running": "Đang chạy…",
+    "failed": "Không chạy được mô phỏng. Dữ liệu mẫu được giữ lại.",
+    "retryHint": "Kiểm tra mẫu và chạy lại.",
+    "matched": "Khớp {name} · phiên bản {version}",
+    "noMatch": "Không có policy khớp mẫu này. Kiểm tra điều kiện hoặc bổ sung dữ liệu còn thiếu.",
+    "savedPreview": "Đang xem trước phiên bản đã lưu; policy vận hành không thay đổi.",
+    "strategy": "Chiến lược phân bổ",
+    "trace": "Giải thích khớp rule",
+    "policy": "Policy",
+    "version": "Phiên bản",
+    "priority": "Ưu tiên",
+    "outcome": "Kết quả",
+    "missing": "Chưa cung cấp: {fields}",
+    "serviceRoles": {
+      "PRIMARY": "Dịch vụ chính",
+      "FALLBACK": "Dự phòng"
+    },
+    "scopes": {
+      "GLOBAL": "Policy chung",
+      "SELLER_EXCEPTION": "Ngoại lệ seller"
+    },
+    "outcomes": {
+      "OTHER_SELLER": "Ngoại lệ của seller khác",
+      "OTHER_WAREHOUSE": "Phạm vi kho khác",
+      "MISSING_FACTS": "Thiếu dữ liệu mẫu cần thiết",
+      "NOT_MATCHED": "Không khớp điều kiện",
+      "MATCHED": "Khớp; policy khác được ưu tiên",
+      "SELECTED": "Được chọn theo ngoại lệ, ưu tiên và mã ổn định"
+    },
+    "pending": {
+      "ALLOCATION_PREVIEW": "Kết quả hiện chỉ xác định quy tắc phân bổ. Chưa có kho đề xuất, đánh giá lô theo hạn sử dụng hoặc kết quả chia đơn.",
+      "CARRIER_QUOTE": "Kết quả hiện chỉ xác định thứ tự dịch vụ vận chuyển. Chưa có báo giá hoặc thông tin biểu phí cho lần mô phỏng này."
+    },
+    "fields": {
+      "tenantId": "Seller",
+      "provinceCode": "Tỉnh/thành",
+      "wardCode": "Phường/xã",
+      "warehouseId": "Kho",
+      "weightG": "Trọng lượng",
+      "itemCount": "Số lượng",
+      "codAmountVnd": "COD",
+      "isCod": "Thu hộ COD"
+    }
   }
 }

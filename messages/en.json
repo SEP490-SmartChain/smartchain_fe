@@ -2105,5 +2105,71 @@
     "savingSettings": "Saving…",
     "settingsSaved": "Settings saved",
     "settingsError": "Settings could not be loaded or saved. Reload before saving again to avoid overwriting a newer change."
+  },
+  "RuleSimulator": {
+    "title": "Rule simulator",
+    "description": "Test a synthetic order against saved policies. Review why a rule matches before changing the operational configuration.",
+    "readOnly": "Preview only. This does not publish rules, reserve stock, create orders or book shipments.",
+    "sellerId": "Sample seller reference",
+    "provinceCode": "Province code (optional)",
+    "wardCode": "Ward code (optional)",
+    "warehouseId": "Warehouse reference (optional)",
+    "warehouseHint": "Use an active warehouse in your assigned scope. Leave blank to test global policies.",
+    "weightG": "Weight in grams (optional)",
+    "itemCount": "Item count (optional)",
+    "codAmountVnd": "COD in VND (optional)",
+    "isCod": "Cash on delivery",
+    "notSupplied": "Not supplied",
+    "yes": "Yes",
+    "no": "No",
+    "ruleVersion": "Rule set",
+    "published": "Current published policies",
+    "savedVersion": "Saved rule version",
+    "versionHint": "Preview this saved draft or historical version alongside other published policies. It will not activate.",
+    "invalid": "Enter a valid reference or value with the displayed unit.",
+    "run": "Run simulation",
+    "running": "Running…",
+    "failed": "Could not run the simulation. Your sample is retained.",
+    "retryHint": "Review the sample and run again.",
+    "matched": "Matched {name} · version {version}",
+    "noMatch": "No policy matches this sample. Review the conditions or supply the missing facts.",
+    "savedPreview": "This result previews a saved version; operational policies are unchanged.",
+    "strategy": "Allocation strategy",
+    "trace": "Rule matching explanation",
+    "policy": "Policy",
+    "version": "Version",
+    "priority": "Priority",
+    "outcome": "Result",
+    "missing": "Not supplied: {fields}",
+    "serviceRoles": {
+      "PRIMARY": "Primary service",
+      "FALLBACK": "Fallback"
+    },
+    "scopes": {
+      "GLOBAL": "General policy",
+      "SELLER_EXCEPTION": "Seller exception"
+    },
+    "outcomes": {
+      "OTHER_SELLER": "Different seller exception",
+      "OTHER_WAREHOUSE": "Different warehouse scope",
+      "MISSING_FACTS": "Required sample facts missing",
+      "NOT_MATCHED": "Conditions not matched",
+      "MATCHED": "Matched; another policy takes priority",
+      "SELECTED": "Selected by exception, priority and stable ID"
+    },
+    "pending": {
+      "ALLOCATION_PREVIEW": "This preview identifies the allocation policy only. Warehouse recommendations, expiry eligibility and split-order results are unavailable.",
+      "CARRIER_QUOTE": "This preview identifies the carrier service order. Price estimates and tariff details are unavailable for this simulation."
+    },
+    "fields": {
+      "tenantId": "Seller",
+      "provinceCode": "Province",
+      "wardCode": "Ward",
+      "warehouseId": "Warehouse",
+      "weightG": "Weight",
+      "itemCount": "Item count",
+      "codAmountVnd": "COD",
+      "isCod": "COD flag"
+    }
   }
 }
