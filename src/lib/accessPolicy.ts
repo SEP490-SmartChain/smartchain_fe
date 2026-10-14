@@ -246,6 +246,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'inventory.expiry.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'Sprint5 UC-52: GET /v1/lots/near-expiry, own seller or assigned warehouse',
+  ),
+  capability(
+    'inventory.notifications.manage',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'Sprint5 UC-52: owner-managed notification thresholds and destinations',
+  ),
+  capability(
     'inventory.positions.view',
     'inventory',
     'ANY',

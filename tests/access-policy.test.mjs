@@ -193,6 +193,7 @@ test('each ORCA role has the expected action visibility', () => {
     ['ORCA_ACCOUNTANT', PLATFORM, 'invoice.view'],
     ['SELLER_OWNER', TENANT, 'apikey.manage'],
     ['SELLER_OWNER', TENANT, 'catalog.products.manage'],
+    ['SELLER_OWNER', TENANT, 'inventory.notifications.manage'],
     ['SELLER_STAFF', TENANT, 'inventory.view'],
   ];
   for (const [role, scope, capability] of allowed) {
@@ -215,6 +216,7 @@ test('each ORCA role has the expected action visibility', () => {
     ['SELLER_STAFF', TENANT, 'apikey.manage'],
     ['SELLER_STAFF', TENANT, 'iam.users.manage'],
     ['SELLER_STAFF', TENANT, 'catalog.products.manage'],
+    ['SELLER_STAFF', TENANT, 'inventory.notifications.manage'],
     ['SELLER_STAFF', TENANT, 'orders.operate'],
   ];
   for (const [role, scope, capability] of denied) {
