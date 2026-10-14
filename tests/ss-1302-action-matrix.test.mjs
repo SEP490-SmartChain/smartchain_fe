@@ -97,6 +97,7 @@ const expected = {
   'warehouse.asn.checkIn': S,
   'warehouse.asn.recordCount': S,
   'warehouse.asn.uploadPhoto': S,
+  'warehouse.asn.inspect': S,
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
 };
