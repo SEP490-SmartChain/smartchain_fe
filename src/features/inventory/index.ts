@@ -17,3 +17,5 @@ export type {
   InventoryStockLevel,
   InventoryStockSummary,
 } from './types/inventoryStock.types';
+export { NearExpiryPanel } from './components/NearExpiryPanel';
+export { InventoryNotificationSettingsCard } from './components/InventoryNotificationSettingsCard';
