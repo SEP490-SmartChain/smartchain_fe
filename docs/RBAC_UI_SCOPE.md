@@ -132,6 +132,10 @@ xóa dữ liệu staff đang hiển thị. Các grant còn thiếu được li�
 
 ## 9. Gap implementation phải giải quyết ở đợt sau
 
+### Sprint 4 tariff contract v1 (12/10/2026)
+
+`tariffs.manage` chỉ PLATFORM Admin/Accountant, theo UC-94/118 và API `/v1/platform/tariffs`. `/admin/tariffs` là tariff-only route; không mở generic `/admin/*` hay carrier credentials cho Accountant. `/admin/carriers` vẫn Admin và có tab bảng cước. Purchase/sell read, draft/create/update/publish/close dùng backend role gate + transaction-local resources `carrier_purchase`/`tariff`; không nhận tenant/actor từ body. Preview nội bộ ở endpoint này chỉ Admin vì warehouse metadata hiện chưa grant Accountant; không broaden warehouse access để mô phỏng cước. Tests `freight-tariffs.test.mjs` kiểm cả các route bị deny và mixed/unknown scopes. Migration/RLS integration trên DB disposable phải được xác minh trước rollout; code contract không chứng minh DB dự án đã cutover.
+
 Source hiện có đã có `actorScope` và ORCA role policy. Các grant được triển khai từ auth contract trước đây không hoàn toàn đồng bộ SRS cập nhật 02/10: backend core-auth audit grant còn rộng, contract read còn Seller Staff, contract approval còn Accountant; compatibility upload/reconciliation còn legacy groups. Frontend capabilities dựa screen matrix cũ cũng cần review action-level theo UC mới.
 
 Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.

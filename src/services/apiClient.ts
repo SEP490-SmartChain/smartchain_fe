@@ -9,6 +9,7 @@ interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
   requiresAuth?: boolean;
   silent?: boolean;
+  responseMode?: 'pdf';
 }
 
 export interface ApiPaginationMeta {
@@ -126,7 +127,14 @@ class ApiClient {
   }
 
   private async send(endpoint: string, options: FetchOptions, token: string | null) {
-    const { params, requiresAuth: _auth, silent: _silent, headers, ...config } = options;
+    const {
+      params,
+      requiresAuth: _auth,
+      silent: _silent,
+      responseMode: _mode,
+      headers,
+      ...config
+    } = options;
     const url = `${this.baseURL}${endpoint}${params ? `?${new URLSearchParams(params)}` : ''}`;
     const requestHeaders = new Headers(headers);
     requestHeaders.set('Content-Type', 'application/json');
@@ -163,6 +171,20 @@ class ApiClient {
         if (response.status === 401 && revision === useAuthStore.getState().revision) {
           useAuthStore.getState().clear();
         }
+      }
+      if (response.ok && options.responseMode === 'pdf') {
+        if (response.headers.get('Content-Type')?.split(';')[0] !== 'application/pdf') {
+          throw new ApiError('Invalid label response', response.status, 'API.INVALID_RESPONSE');
+        }
+        const blob = await response.blob();
+        const signature = await blob.slice(0, 5).text();
+        if (revision !== useAuthStore.getState().revision) {
+          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+        }
+        if (blob.size > 4 * 1024 * 1024 || signature !== '%PDF-') {
+          throw new ApiError('Invalid label response', response.status, 'API.INVALID_RESPONSE');
+        }
+        return blob as T;
       }
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
@@ -324,6 +346,9 @@ class ApiClient {
 
   get<T>(endpoint: string, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+  downloadPdf(endpoint: string, options?: FetchOptions): Promise<Blob> {
+    return this.request<Blob>(endpoint, { ...options, method: 'GET', responseMode: 'pdf' });
   }
   post<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) });
