@@ -7,22 +7,24 @@ export const warehouseAsnSchema = z
   .object({
     id: z.string().uuid(),
     warehouseId: z.string().uuid(),
-    asnCode: z.string(),
-    status: asnSchema.shape.status,
+    asnCode: z.string().min(1),
+    status: asnSchema.shape.status.exclude(['DRAFT']),
     arrivedAt: z.string().datetime().nullable(),
     receiptIds: z.array(z.string().uuid()),
     version: z.number().int().positive(),
-    lines: z.array(
-      z
-        .object({
-          id: z.string().uuid(),
-          lineNo: z.number().int().positive(),
-          sku: z.string(),
-          productName: z.string(),
-          receivedQty: z.number().int().nonnegative(),
-        })
-        .strict(),
-    ),
+    lines: z
+      .array(
+        z
+          .object({
+            id: z.string().uuid(),
+            lineNo: z.number().int().positive(),
+            sku: z.string(),
+            productName: z.string(),
+            receivedQty: z.number().int().nonnegative(),
+          })
+          .strict(),
+      )
+      .max(100),
   })
   .strict();
 

@@ -413,6 +413,7 @@ export function ReceivingWorkspace() {
             warehouseId={activeWarehouse}
             asnId={countedAsn.id}
             canWrite={can('warehouse.asn.recordCount')}
+            onReceiptChanged={() => setRefresh((value) => value + 1)}
             onSaved={() => {
               setCountSelection(null);
               setRefresh((value) => value + 1);

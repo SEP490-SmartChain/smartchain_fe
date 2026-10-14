@@ -28,6 +28,7 @@ const reporting = [
 ];
 // Independently reviewed UI action expectations; proposed actions remain denied.
 const expected = {
+  'tariffs.manage': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'iam.warehouses.assign': A,
   'workspace.dashboard.view': reporting,
   'workspace.settings.manage': O,
@@ -73,6 +74,7 @@ const expected = {
     'SELLER_STAFF',
   ],
   'shipments.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'shipments.label.download': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   'reconciliation.view': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'reconciliation.operate': ['ORCA_ACCOUNTANT'],
   'analytics.operations.view': reporting,
@@ -98,6 +100,12 @@ const expected = {
   'warehouse.asn.recordCount': S,
   'warehouse.asn.uploadPhoto': S,
   'warehouse.asn.inspect': S,
+  'warehouse.asn.reportDiscrepancy': S,
+  'warehouse.asn.review': M,
+  'warehouse.asn.postStock': S,
+  'warehouse.putaway.assign': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'warehouse.putaway.confirm': S,
+  'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
 };
