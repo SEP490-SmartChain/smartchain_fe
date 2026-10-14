@@ -418,6 +418,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     `${D8_PROPOSED}; ${CONTRACT_SECURITY}`,
   ),
   capability(
+    'contract.sign',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA Report 3 BR-59 / SS-990: Seller Owner accepts their standard agreement',
+  ),
+  capability(
     'cod.view',
     'finance',
     'ANY',
@@ -432,6 +440,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
     'APPROVED',
     D8_APPROVED,
+  ),
+  capability(
+    'invoice.bankReceipt.post',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-127 / SS-990: Accountant verifies bank evidence and posts once',
   ),
   capability(
     'apikey.manage',
@@ -522,6 +538,30 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-40; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/discrepancies',
   ),
   capability(
+    'warehouse.putaway.assign',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-42; assigned warehouse, Manager assignment or Staff self-claim',
+  ),
+  capability(
+    'warehouse.putaway.relocate',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-44; same assigned warehouse, physical scans and unreserved stock',
+  ),
+  capability(
+    'warehouse.putaway.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-43; assigned task and physical scans, InventoryFacade.move',
+  ),
+  capability(
     'warehouse.asn.inspect',
     'warehouses',
     'PLATFORM',
@@ -597,6 +637,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/settings/general', capability: 'workspace.settings.manage' },
   { path: '/settings/api-keys', capability: 'apikey.manage' },
   { path: '/settings/webhooks', capability: 'workspace.settings.manage' },
+  { path: '/settings/contract', capability: 'contract.sign' },
   { path: '/audit', capability: 'audit.tenant.view' },
   { path: '/integration-errors', capability: 'integration.errors.view' },
   // Catalog phát triển: chỉ tồn tại khi DEV.
@@ -688,6 +729,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
       { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
+      { key: 'contract', href: '/settings/contract', capability: 'contract.sign' },
     ],
   },
 
@@ -783,6 +825,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' },
       { key: 'subscription_plans', href: '/admin/plans', capability: 'platform.plans.manage' },
+      { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
     ],
   },
   {

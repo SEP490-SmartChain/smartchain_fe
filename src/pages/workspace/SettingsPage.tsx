@@ -7,16 +7,17 @@ import { useTranslations } from 'next-intl';
 import { Tabs } from '@/components/Common';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
 import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
-import { ApiKeyManager, WebhookManager } from '@/features/tenants';
+import { ApiKeyManager, WebhookManager, SellerContractOnboarding } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
-const ALL_SETTING_TABS = ['profile', 'general', 'api-keys', 'webhooks'] as const;
+const ALL_SETTING_TABS = ['profile', 'general', 'api-keys', 'webhooks', 'contract'] as const;
 type SettingTab = (typeof ALL_SETTING_TABS)[number];
 const WORKSPACE_TABS: readonly { id: SettingTab; capability: string }[] = [
   { id: 'general', capability: 'workspace.settings.manage' },
   { id: 'api-keys', capability: 'apikey.manage' },
   { id: 'webhooks', capability: 'workspace.settings.manage' },
+  { id: 'contract', capability: 'contract.sign' },
 ];
 export default function SettingsPage() {
   const t = useTranslations('Settings');
@@ -68,6 +69,7 @@ export default function SettingsPage() {
       {activeTab === 'api-keys' && <ApiKeyManager key={keyContext} />}
 
       {activeTab === 'webhooks' && <WebhookManager />}
+      {activeTab === 'contract' && <SellerContractOnboarding key={keyContext} />}
     </div>
   );
 }
