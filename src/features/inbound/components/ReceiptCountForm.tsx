@@ -10,6 +10,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptInspectionForm } from './ReceiptInspectionForm';
 import { ReceiptPhotos } from './ReceiptPhotos';
 import { receivingApi, type ReceivingState } from '../api/receivingApi';
 import {
@@ -147,6 +148,43 @@ export function ReceiptCountForm({ warehouseId, asnId, canWrite, onSaved }: Prop
                     receipt.status === 'RECEIVING' &&
                     ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus) &&
                     lot.qcState !== 'APPROVED'
+                  }
+                />
+                <ReceiptInspectionForm
+                  warehouseId={warehouseId}
+                  asnId={asnId}
+                  recordId={lot.recordId}
+                  receivedQty={lot.receivedQty}
+                  requiresQuarantine={
+                    lot.quarantinedQty > 0 || !['SELLABLE', 'NEAR_EXPIRY'].includes(lot.lotStatus)
+                  }
+                  canWrite={
+                    can('warehouse.asn.inspect') &&
+                    receipt.status === 'RECEIVING' &&
+                    ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus)
+                  }
+                  onSaved={(inspection) =>
+                    setReceipt((previous) =>
+                      previous
+                        ? {
+                            ...previous,
+                            version: Math.max(previous.version, inspection.receiptVersion),
+                            lines: previous.lines.map((item) => ({
+                              ...item,
+                              count: item.count
+                                ? {
+                                    ...item.count,
+                                    lots: item.count.lots.map((itemLot) =>
+                                      itemLot.recordId === lot.recordId
+                                        ? { ...itemLot, qcState: 'REVIEW_REQUIRED' }
+                                        : itemLot,
+                                    ),
+                                  }
+                                : null,
+                            })),
+                          }
+                        : previous,
+                    )
                   }
                 />
               </div>
