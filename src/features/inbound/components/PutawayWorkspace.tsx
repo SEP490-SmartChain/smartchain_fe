@@ -11,6 +11,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { PutawayBinOverridePanel } from './PutawayBinOverridePanel';
 import { RelocationWorkspace } from './RelocationWorkspace';
 import {
   putawayApi,
@@ -43,8 +44,9 @@ export function PutawayWorkspace() {
     [loading, setLoading] = useState(false),
     [refresh, setRefresh] = useState(0),
     [taskLocked, setTaskLocked] = useState(false),
-    [relocationLocked, setRelocationLocked] = useState(false);
-  const locked = taskLocked || relocationLocked;
+    [relocationLocked, setRelocationLocked] = useState(false),
+    [overrideLocked, setOverrideLocked] = useState(false);
+  const locked = taskLocked || relocationLocked || overrideLocked;
   const manager = can('warehouse.asn.review'),
     warehouses = directory?.owner === user ? directory.items : [],
     current = warehouses.some((w) => w.id === warehouse) ? warehouse : '',
@@ -74,6 +76,7 @@ export function PutawayWorkspace() {
     setPage(null);
     setTaskLocked(false);
     setRelocationLocked(false);
+    setOverrideLocked(false);
   }, [user, current]);
   useEffect(() => {
     if (!current) return;
@@ -152,7 +155,8 @@ export function PutawayWorkspace() {
                         status: t(`status.${task.status}`),
                       })}
                     </p>
-                    {['OPEN', 'ASSIGNED'].includes(task.status) && (
+                    {(['OPEN', 'ASSIGNED'].includes(task.status) ||
+                      can('warehouse.putaway.overrideBin')) && (
                       <Button variant="outline" disabled={locked} onClick={() => setSelected(task)}>
                         {t('openTask')}
                       </Button>
@@ -181,19 +185,34 @@ export function PutawayWorkspace() {
               )}
             </div>
             {selected && visible.items.some((i) => i.id === selected.id) && (
-              <PutawayTaskForm
-                key={`${current}:${selected.id}:${user?.userId}`}
-                warehouse={current}
-                task={selected}
-                staff={visible.staff}
-                manager={manager}
-                onLock={setTaskLocked}
-                disabled={relocationLocked}
-                onSaved={() => {
-                  setCursor(null);
-                  setRefresh((v) => v + 1);
-                }}
-              />
+              <>
+                <PutawayTaskForm
+                  key={`${current}:${selected.id}:${user?.userId}`}
+                  warehouse={current}
+                  task={selected}
+                  staff={visible.staff}
+                  manager={manager}
+                  onLock={setTaskLocked}
+                  disabled={relocationLocked || overrideLocked}
+                  onSaved={() => {
+                    setCursor(null);
+                    setRefresh((v) => v + 1);
+                  }}
+                />
+                {can('warehouse.putaway.overrideBin') && (
+                  <PutawayBinOverridePanel
+                    key={`override:${current}:${selected.id}:${selected.version}:${user?.userId}`}
+                    warehouse={current}
+                    task={selected}
+                    disabled={taskLocked || relocationLocked}
+                    onLock={setOverrideLocked}
+                    onSaved={() => {
+                      setCursor(null);
+                      setRefresh((v) => v + 1);
+                    }}
+                  />
+                )}
+              </>
             )}
           </>
         )
@@ -201,7 +220,7 @@ export function PutawayWorkspace() {
       {current && can('warehouse.putaway.relocate') && (
         <RelocationWorkspace
           warehouse={current}
-          disabled={taskLocked}
+          disabled={taskLocked || overrideLocked}
           onLock={setRelocationLocked}
         />
       )}
@@ -328,35 +347,37 @@ function PutawayTaskForm({
           </>
         ) : (
           <>
-            {can('warehouse.putaway.assign') && (manager || task.status === 'OPEN') && (
-              <div className="flex flex-wrap items-end gap-3">
-                {manager && (
-                  <div className="min-w-0 flex-1">
-                    <Select
-                      label={t('assignee')}
-                      value={assignee}
-                      onChange={(e) => setAssignee(e.target.value)}
-                      options={staff.map((s) => ({ value: s.id, label: s.fullName }))}
-                    />
-                  </div>
-                )}
-                <Button
-                  disabled={busy || disabled || (manager && !assignee)}
-                  onClick={() =>
-                    void send({
-                      kind: 'ASSIGN',
-                      input: {
-                        operationKey: crypto.randomUUID(),
-                        expectedVersion: task.version,
-                        assigneeId: manager ? assignee : (user?.userId ?? ''),
-                      },
-                    })
-                  }
-                >
-                  {t(manager ? 'assign' : 'claim')}
-                </Button>
-              </div>
-            )}
+            {can('warehouse.putaway.assign') &&
+              ['OPEN', 'ASSIGNED'].includes(task.status) &&
+              (manager || task.status === 'OPEN') && (
+                <div className="flex flex-wrap items-end gap-3">
+                  {manager && (
+                    <div className="min-w-0 flex-1">
+                      <Select
+                        label={t('assignee')}
+                        value={assignee}
+                        onChange={(e) => setAssignee(e.target.value)}
+                        options={staff.map((s) => ({ value: s.id, label: s.fullName }))}
+                      />
+                    </div>
+                  )}
+                  <Button
+                    disabled={busy || disabled || (manager && !assignee)}
+                    onClick={() =>
+                      void send({
+                        kind: 'ASSIGN',
+                        input: {
+                          operationKey: crypto.randomUUID(),
+                          expectedVersion: task.version,
+                          assigneeId: manager ? assignee : (user?.userId ?? ''),
+                        },
+                      })
+                    }
+                  >
+                    {t(manager ? 'assign' : 'claim')}
+                  </Button>
+                </div>
+              )}
             {confirmAllowed ? (
               <form
                 className="space-y-4"

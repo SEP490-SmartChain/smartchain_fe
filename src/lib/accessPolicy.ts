@@ -586,6 +586,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-40; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/discrepancies',
   ),
   capability(
+    'warehouse.putaway.overrideBin',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1304 / RP3 FU-22 UC-42: Manager overrides suggested bin with immutable audit; existing putaway.update scope',
+  ),
+  capability(
     'warehouse.putaway.assign',
     'warehouses',
     'PLATFORM',
