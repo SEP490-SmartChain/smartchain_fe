@@ -337,6 +337,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('orders.view', 'orders', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'orders.seller.read',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    'R3 FU-30/UC-65, own seller order read; GET /v1/orders',
+  ),
+  capability(
+    'orders.create',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'R3 UC-66/67 and D8 orders.create; POST /v1/orders and /import',
+  ),
+  capability(
     'orders.operate',
     'orders',
     'ANY',
