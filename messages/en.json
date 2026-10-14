@@ -917,6 +917,21 @@
     "only_letters_spaces": "Only letters and spaces are allowed"
   },
   "AdminTenants": {
+    "exportCsv": "Export CSV",
+    "exportDenied": "Your current role cannot export seller data.",
+    "exportEmpty": "There is no data to export.",
+    "exportSuccess": "The displayed seller page was downloaded as CSV.",
+    "exportHeaders": {
+      "id": "ID",
+      "name": "Seller name",
+      "slug": "Slug",
+      "email": "Owner email",
+      "plan": "Plan",
+      "status": "Status",
+      "used": "Orders used",
+      "total": "Order allowance",
+      "created": "Created date"
+    },
     "page_title": "Tenant Management (Workspaces)",
     "page_description": "Platform-wide control tower monitoring organization workspaces across ORCA.",
     "refresh": "Refresh",

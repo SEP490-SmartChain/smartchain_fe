@@ -50,6 +50,7 @@ const routes = {
   '/settings/profile': roles,
   '/settings/general': O,
   '/settings/api-keys': O,
+  '/settings/contract': O,
   '/settings/webhooks': O,
   '/audit': [],
   '/integration-errors': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
