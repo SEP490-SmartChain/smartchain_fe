@@ -2775,5 +2775,28 @@
       "codAmountVnd": "COD",
       "isCod": "Thu hộ COD"
     }
+  },
+  "PutawayBinOverride": {
+    "title": "Đổi bin lưu trữ được gợi ý",
+    "description": "Chọn bin phù hợp và ghi lý do. Hàng chỉ trở thành hàng bán được khi Staff quét thực tế và xác nhận task.",
+    "search": "Tìm bin theo mã hoặc mã vạch",
+    "find": "Tìm bin",
+    "loading": "Đang kiểm tra bin phù hợp…",
+    "more": "Đang hiển thị 100 bin đầu tiên. Hãy thu hẹp tìm kiếm.",
+    "empty": "Không có bin khác chứa đủ toàn bộ task. Kiểm tra sức chứa hoặc tìm lại.",
+    "bin": "Bin lưu trữ mới",
+    "reason": "Lý do đổi bin",
+    "binRequired": "Chọn bin lưu trữ phù hợp.",
+    "reasonRequired": "Nhập lý do từ 3–500 ký tự, không có khoảng trắng ở đầu hoặc cuối.",
+    "save": "Đổi bin",
+    "history": "Lịch sử đổi bin",
+    "noHistory": "Chưa có lần đổi bin nào.",
+    "audit": "Manager {actor} · {date}",
+    "loadError": "Không tải được bin phù hợp. Làm mới task rồi thử lại.",
+    "saveError": "Chưa xác minh được kết quả đổi bin.",
+    "unknown": "Chưa rõ kết quả. Hãy gửi lại đúng thao tác này trước khi thay đổi khác.",
+    "retry": "Gửi lại thao tác đổi bin",
+    "success": "Đã đổi bin lưu trữ; vẫn cần quét và xác nhận thực tế.",
+    "completedReadOnly": "Task đã kết thúc. Bạn có thể xem lịch sử; không thể đổi bin."
   }
 }
