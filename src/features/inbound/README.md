@@ -29,6 +29,12 @@ return the original receipt. Conflicts retain the confirmation dialog and offer
 reload; obsolete warehouse/identity responses do not populate the new view.
 UC-38 uses the receiving count dialog and the separate physical-count API.
 
+SS-1302 uses a strict warehouse-only directory DTO. Seller declarations and
+expected quantities are absent from this workspace; rows must belong to the
+selected warehouse. Arrival confirmation must match the requested ASN and
+warehouse and cannot contain private extra fields. See
+[`SS-1302-PERMISSION-AUDIT.md`](../../../docs/SS-1302-PERMISSION-AUDIT.md).
+
 ## Physical count (SS-1071 / FU-21 / UC-38)
 
 Staff opens an arrived receipt, selects an uncounted SKU and enters observed

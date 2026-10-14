@@ -12,12 +12,8 @@ import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { ReceiptCountForm } from './ReceiptCountForm';
-import {
-  receivingApi,
-  type AsnArrival,
-  type ReceivingWarehouse,
-  type WarehouseAsn,
-} from '../api/receivingApi';
+import { receivingApi, type AsnArrival, type ReceivingWarehouse } from '../api/receivingApi';
+import type { WarehouseAsn } from '../api/warehouseAsnSchema';
 import { asnCodeFromScan, asnScanSchema } from '../schemas/asnScanSchema';
 
 import type { AsnStatus } from '../types/asn.types';

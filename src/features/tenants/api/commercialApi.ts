@@ -195,10 +195,24 @@ export function validatedSigningUrl(value: string): string {
   return url.href;
 }
 
-const downloadSchema = z.object({
-  downloadUrl: z.string().url(),
-  expiresInSeconds: z.number().int().positive().max(300),
-});
+const downloadSchema = z
+  .object({
+    downloadUrl: z
+      .string()
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          !url.username &&
+          !url.password &&
+          (url.protocol === 'https:' ||
+            (url.protocol === 'http:' &&
+              ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))
+        );
+      }),
+    expiresInSeconds: z.number().int().positive().max(300),
+  })
+  .strict();
 export const commercialApi = {
   async finalizeClosure(
     tenantId: string,
@@ -503,11 +517,6 @@ export const commercialApi = {
       `/v1/commercial/signing-requests/${encodeURIComponent(id)}/signed-pdf`,
       { signal, silent: true },
     );
-    return z
-      .object({
-        downloadUrl: z.string().url(),
-        expiresInSeconds: z.number().int().positive().max(300),
-      })
-      .parse(data);
+    return downloadSchema.parse(data);
   },
 };
