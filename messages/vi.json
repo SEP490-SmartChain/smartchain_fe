@@ -2109,7 +2109,7 @@
   "RuleSimulator": {
     "title": "Mô phỏng rule",
     "description": "Thử đơn mẫu với các policy đã lưu và xem lý do khớp trước khi thay cấu hình vận hành.",
-    "readOnly": "Chỉ xem trước. Không publish rule, giữ tồn kho, tạo đơn hay đặt vận đơn.",
+    "readOnly": "Chỉ xem trước. Không áp dụng quy tắc, giữ tồn kho, tạo đơn hay đặt vận đơn.",
     "sellerId": "Mã seller của đơn mẫu",
     "provinceCode": "Mã tỉnh/thành (không bắt buộc)",
     "wardCode": "Mã phường/xã (không bắt buộc)",
@@ -2158,8 +2158,8 @@
       "SELECTED": "Được chọn theo ngoại lệ, ưu tiên và mã ổn định"
     },
     "pending": {
-      "ALLOCATION_PREVIEW": "Chọn kho, điều kiện FEFO và xem trước chia đơn đang chờ tích hợp planning. Kết quả này mới chọn policy.",
-      "CARRIER_QUOTE": "Báo giá và phiên bản biểu phí đang chờ tích hợp rating. Không tạo giá hoặc vận đơn."
+      "ALLOCATION_PREVIEW": "Kết quả hiện chỉ xác định quy tắc phân bổ. Chưa có kho đề xuất, đánh giá lô theo hạn sử dụng hoặc kết quả chia đơn.",
+      "CARRIER_QUOTE": "Kết quả hiện chỉ xác định thứ tự dịch vụ vận chuyển. Chưa có báo giá hoặc thông tin biểu phí cho lần mô phỏng này."
     },
     "fields": {
       "tenantId": "Seller",

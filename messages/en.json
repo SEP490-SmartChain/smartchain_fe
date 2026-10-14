@@ -2158,8 +2158,8 @@
       "SELECTED": "Selected by exception, priority and stable ID"
     },
     "pending": {
-      "ALLOCATION_PREVIEW": "Warehouse selection, FEFO eligibility and split preview await planning integration. This result selects a policy only.",
-      "CARRIER_QUOTE": "Carrier quote and tariff snapshot await rating integration. No price or waybill is generated."
+      "ALLOCATION_PREVIEW": "This preview identifies the allocation policy only. Warehouse recommendations, expiry eligibility and split-order results are unavailable.",
+      "CARRIER_QUOTE": "This preview identifies the carrier service order. Price estimates and tariff details are unavailable for this simulation."
     },
     "fields": {
       "tenantId": "Seller",
