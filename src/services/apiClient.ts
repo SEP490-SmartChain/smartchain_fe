@@ -126,7 +126,7 @@ class ApiClient {
     if (!response.ok) throw new Error(`Image storage rejected upload (${response.status})`);
   }
 
-  /** Public VietQR lookup: never send the SmartChain session or cookies to a third party. */
+  /** Public VietQR lookup: never send the orca session or cookies to a third party. */
   async lookupBusinessTaxId(
     taxId: string,
   ): Promise<{ name: string; address: string | null } | null> {
@@ -233,13 +233,13 @@ class ApiClient {
             ? parsed.data.error.message
             : forbidden
               ? this.message(
-                  'Bạn không có quyền thực hiện thao tác này.',
-                  'You do not have permission to perform this action.',
-                )
+                'Bạn không có quyền thực hiện thao tác này.',
+                'You do not have permission to perform this action.',
+              )
               : this.message(
-                  'Không thể gọi API. Vui lòng thử lại.',
-                  'Unable to reach the API. Please retry.',
-                ),
+                'Không thể gọi API. Vui lòng thử lại.',
+                'Unable to reach the API. Please retry.',
+              ),
           response.status,
           parsed.success ? parsed.data.error.code : forbidden ? 'AUTH.FORBIDDEN' : 'HTTP.ERROR',
           parsed.success ? parsed.data.error.details : undefined,
@@ -265,13 +265,13 @@ class ApiClient {
         error instanceof ApiError
           ? error
           : new ApiError(
-              this.message(
-                'Không thể kết nối máy chủ. Vui lòng thử lại.',
-                'Unable to connect to the server. Please retry.',
-              ),
-              0,
-              'NETWORK.ERROR',
-            );
+            this.message(
+              'Không thể kết nối máy chủ. Vui lòng thử lại.',
+              'Unable to connect to the server. Please retry.',
+            ),
+            0,
+            'NETWORK.ERROR',
+          );
       if (!silent && failure.code !== 'AUTH.SCOPE_CHANGED') toast.error(failure.message);
       throw failure;
     }

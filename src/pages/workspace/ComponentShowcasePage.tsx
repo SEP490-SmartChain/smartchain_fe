@@ -740,7 +740,7 @@ export default function ComponentShowcasePage() {
             </a>
             {' • '}
             <a
-              href="https://github.com/smartchain"
+              href="https://github.com/orca"
               className="hover:text-[#00E599] transition-colors"
             >
               Documentation

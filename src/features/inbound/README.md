@@ -76,7 +76,7 @@ Pending photos cannot be previewed. At ten visible intents the picker is disable
 the backend enforces the authoritative total including intents hidden from that user.
 
 The API contract and storage deployment requirements are documented in
-`smartchain_be/docs/SS-1071-RECEIPT-PHOTOS.md`. Classification and Manager disposition
+`orca_be/docs/SS-1071-RECEIPT-PHOTOS.md`. Classification and Manager disposition
 must be implemented before SS-1071/SS-1070 can be considered complete.
 
 ## Manager receipt review (SS-1071 / FU-21 / UC-41)
@@ -150,4 +150,4 @@ run through one another's pending forms. Obsolete identity/warehouse requests
 are aborted and their results discarded. Successful movement reloads actual
 positions without changing QC or reporting them as newly received stock.
 
-The backend contract is `smartchain_be/packages/inventory/BIN-RELOCATION.md`.
+The backend contract is `orca_be/packages/inventory/BIN-RELOCATION.md`.

@@ -1338,7 +1338,6 @@
     "orders_quota": "Orders Quota",
     "api_calls_quota": "API Calls Quota"
   },
-
   "AdminCarriers": {
     "page_title": "Global 3PL Carrier Catalog",
     "page_description": "Manage carriers and the shipping services supported by ORCA.",
@@ -1564,7 +1563,7 @@
     "infoSecurityTitle": "Security & SSRF Protection",
     "infoSecurityDesc": "Only public HTTPS endpoints with valid SSL certificates are permitted. Private networks are rejected.",
     "infoSignatureTitle": "HMAC-SHA256 Signatures",
-    "infoSignatureDesc": "Each payload is cryptographically signed with X-SmartChain-Signature and timestamp.",
+    "infoSignatureDesc": "Each payload is cryptographically signed with X-orca-Signature and timestamp.",
     "infoRetryTitle": "Retry Mechanism",
     "infoRetryDesc": "Automatic retries up to 5 times with exponential backoff on delivery failure.",
     "loadingWebhooks": "Loading webhooks...",
@@ -1637,7 +1636,7 @@
     "copied": "Copied!",
     "secretCopied": "Signing secret copied to clipboard.",
     "copyFailed": "Could not copy to clipboard. Please copy manually.",
-    "secretStorageAdvice": "Usage: Use this key to verify the HMAC signature header (X-SmartChain-Signature) for each webhook payload received from ORCA.",
+    "secretStorageAdvice": "Usage: Use this key to verify the HMAC signature header (X-orca-Signature) for each webhook payload received from ORCA.",
     "savedSecretConfirmation": "I have saved my secret key"
   },
   "ProductCatalog": {

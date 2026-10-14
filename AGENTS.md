@@ -1,6 +1,6 @@
 # ORCA Frontend Agent Rules
 
-Các quy tắc này áp dụng cho toàn bộ repository `smartchain_fe`. File
+Các quy tắc này áp dụng cho toàn bộ repository `orca_fe`. File
 `src/AGENTS.md` bổ sung quy tắc chặt hơn cho mọi thay đổi bên trong `src/`.
 
 Tên repository, import aliases, route và token `--sc-*` giữ nguyên trừ khi task yêu cầu đổi.
@@ -10,13 +10,13 @@ Baseline sản phẩm ORCA không tự đổi public contract hoặc cấu trúc
 
 Baseline làm việc từ 02/10/2026 là `Report3_Software Requirement Specification.docx`, đối chiếu
 Report 1/2; chưa xác minh độc lập trạng thái phê duyệt. Nguồn/hash, phân tích xung đột và mapping
-UC/BR/NFR nằm trong repo `smartchain_be`: `docs/SRS-SOURCE-MANIFEST.json`,
+UC/BR/NFR nằm trong repo `orca_be`: `docs/SRS-SOURCE-MANIFEST.json`,
 `docs/ORCA-SRS-CHANGE-ANALYSIS.md`, `docs/ORCA-SRS-TRACEABILITY.md`.
 
 - Policy/contract UI hiện hành theo [`docs/RBAC_UI_SCOPE.md`](docs/RBAC_UI_SCOPE.md) và source
   `src/lib/accessPolicy.ts`; đọc UC/BR liên quan khi triển khai feature, không dùng role/UC cũ.
 - Bản thiết kế DB đã có schema/migration ORCA trong BE từ 03/10/2026, mới kiểm thử disposable DB.
-  Đọc `smartchain_be/docs/ORCA-DB-IMPLEMENTATION-HANDOFF.md` khi thay API/data contract;
+  Đọc `orca_be/docs/ORCA-DB-IMPLEMENTATION-HANDOFF.md` khi thay API/data contract;
   không suy bảng mới đồng nghĩa API hoặc workflow đã có. Nếu BE ở checkout khác, xác định vị trí
   nguồn trước khi làm phần phụ thuộc vào nó.
 - Tài liệu và policy bảy role không chứng minh mọi grant/API/screen đã đáp ứng SRS mới. Capability
@@ -64,7 +64,7 @@ Riêng typography, `docs/DESIGN_SYSTEM.md` là nguồn chính thức: toàn ứn
 ## Quy tắc RBAC theo baseline ORCA
 
 Baseline làm việc cho tài liệu ngày 02/10/2026 là ORCA SRS cập nhật. Implementation hiện có đã có
-policy bảy role; doc không được bắt quay về mô hình SmartChain bốn role. Permission/action mới
+policy bảy role; doc không được bắt quay về mô hình orca bốn role. Permission/action mới
 chưa có contract phải ghi đề xuất và deny mặc định, không tự sửa source để coi như đã phê duyệt.
 
 1. Giai đoạn hiện tại dùng role và actor scope làm nguồn policy UI, ánh xạ capability tại `src/lib/accessPolicy.ts` theo `docs/RBAC_UI_SCOPE.md`.

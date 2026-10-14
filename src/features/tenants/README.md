@@ -40,7 +40,7 @@ Forms use RHF/Zod, Common controls, semantic tokens and en/vi resources. Enterpr
 needs negotiated inputs. The reference PDF has draft legal placeholders and needs
 approval before real contracts. Final signature is a human action.
 
-Backend handoff: `smartchain_be/docs/SS-990-IMPLEMENTATION-STATUS.md`. SePay (S53),
+Backend handoff: `orca_be/docs/SS-990-IMPLEMENTATION-STATUS.md`. SePay (S53),
 recurring/storage billing (S17), refunds/settlement (S16), notifications (S19/S52)
 and intake quota consumers are separate dependencies; no fake completion is shown.
 

@@ -40,4 +40,4 @@ Quality gate lượt này: FE **158/158 tests**, TypeScript/lint/format/build qu
 
 ## Payment breakdown — 09/10/2026
 
-Tách giá bán, giảm giá, tiền hàng đã trả và phí ship đã trả; tự tính số còn thu. Khoản đã trả là khai báo khi tạo đơn, chưa xác minh ngân hàng. Đơn legacy hiển thị chưa có breakdown thay vì tạo số giảm/cọc giả. Form có thông báo ngay tại khoản tiền vượt giá trị, bảng tổng hợp và chế độ đã trả đủ tự cập nhật theo tiền hàng sau giảm. Quy tắc/API/migration/test: `smartchain_be/docs/SPRINT4_PAYMENT_BREAKDOWN_REVIEW.md`. Đơn UI đã xác minh `UX-VERIFY-20261009-BREAKDOWN`: tổng thu 270.000đ. Ảnh `orders-payment-breakdown-verified.png`.
+Tách giá bán, giảm giá, tiền hàng đã trả và phí ship đã trả; tự tính số còn thu. Khoản đã trả là khai báo khi tạo đơn, chưa xác minh ngân hàng. Đơn legacy hiển thị chưa có breakdown thay vì tạo số giảm/cọc giả. Form có thông báo ngay tại khoản tiền vượt giá trị, bảng tổng hợp và chế độ đã trả đủ tự cập nhật theo tiền hàng sau giảm. Quy tắc/API/migration/test: `orca_be/docs/SPRINT4_PAYMENT_BREAKDOWN_REVIEW.md`. Đơn UI đã xác minh `UX-VERIFY-20261009-BREAKDOWN`: tổng thu 270.000đ. Ảnh `orders-payment-breakdown-verified.png`.

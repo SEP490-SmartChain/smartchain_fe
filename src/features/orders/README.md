@@ -22,7 +22,7 @@ API/Excel contracts and demo steps: BE `docs/SPRINT4_ORDER_INTAKE_HANDOFF.md`. S
 
 ## Payment breakdown — 09/10/2026
 
-Tách giá bán, giảm giá, tiền hàng đã trả và phí ship đã trả; tự tính số còn thu. Khoản đã trả là khai báo khi tạo đơn, chưa xác minh ngân hàng. Đơn legacy hiển thị chưa có breakdown thay vì tạo số giảm/cọc giả. Form có thông báo ngay tại khoản tiền vượt giá trị, bảng tổng hợp và chế độ đã trả đủ tự cập nhật theo tiền hàng sau giảm. Quy tắc/API/migration/test: `smartchain_be/docs/SPRINT4_PAYMENT_BREAKDOWN_REVIEW.md`. Đơn UI đã xác minh `UX-VERIFY-20261009-BREAKDOWN`: tổng thu 270.000đ. Ảnh `orders-payment-breakdown-verified.png`.
+Tách giá bán, giảm giá, tiền hàng đã trả và phí ship đã trả; tự tính số còn thu. Khoản đã trả là khai báo khi tạo đơn, chưa xác minh ngân hàng. Đơn legacy hiển thị chưa có breakdown thay vì tạo số giảm/cọc giả. Form có thông báo ngay tại khoản tiền vượt giá trị, bảng tổng hợp và chế độ đã trả đủ tự cập nhật theo tiền hàng sau giảm. Quy tắc/API/migration/test: `orca_be/docs/SPRINT4_PAYMENT_BREAKDOWN_REVIEW.md`. Đơn UI đã xác minh `UX-VERIFY-20261009-BREAKDOWN`: tổng thu 270.000đ. Ảnh `orders-payment-breakdown-verified.png`.
 
 ## PM review — 10/10/2026
 
@@ -38,4 +38,4 @@ Chi tiết dùng tên/SKU snapshot từ backend; đơn cũ có `identitySource: 
 
 The import dialog offers a separate, optional Google Sheets template download for Seller Owner. One order per row, up to three products; the seller-sheet n8n workflow and administrator Google OAuth setup are required. Downloading the workbook does not connect Google or submit orders. Existing scope cancellation, error handling and download guards apply. Manual orders and Excel upload remain independent.
 
-Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: smartchain_be PR #120; n8n setup and sample storefront: smartchain_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.
+Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: orca_be PR #120; n8n setup and sample storefront: orca_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.

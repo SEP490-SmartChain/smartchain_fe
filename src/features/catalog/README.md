@@ -17,7 +17,7 @@ forms reject impossible/duplicate dates and an empty weekday set. Stale edits
 retain the form and offer reload. The panel reports same-day eligibility without
 claiming an implemented SLA alert or changing existing work/bin labels.
 
-Backend contract: `smartchain_be/docs/SS-1305-WAREHOUSE-CALENDAR.md`.
+Backend contract: `orca_be/docs/SS-1305-WAREHOUSE-CALENDAR.md`.
 
 ## ORCA API response contract
 

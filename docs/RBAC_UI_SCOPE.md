@@ -1,6 +1,6 @@
 # Phạm vi giao diện và phân quyền ORCA
 
-Ngày 02/10/2026. Baseline làm việc: `Report3_Software Requirement Specification.docx` §2.1, §3.1.3, các UC và BR. Tài liệu thay mô tả SmartChain bốn role. Đây là đặc tả UI theo yêu cầu mới, **không phải tuyên bố các grant/API/screen đã triển khai hoặc được duyệt đầy đủ**.
+Ngày 02/10/2026. Baseline làm việc: `Report3_Software Requirement Specification.docx` §2.1, §3.1.3, các UC và BR. Tài liệu thay mô tả orca bốn role. Đây là đặc tả UI theo yêu cầu mới, **không phải tuyên bố các grant/API/screen đã triển khai hoặc được duyệt đầy đủ**.
 
 Policy hiện có ở `src/lib/accessPolicy.ts`; backend có core-auth action catalog riêng. Mọi gap được giữ rõ ở mục 8. Không viết policy code trong đợt tài liệu này. Ma trận screen không được dùng thay action-level API authorization.
 

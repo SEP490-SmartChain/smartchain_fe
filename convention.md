@@ -1,6 +1,6 @@
 # ORCA Frontend Code Conventions and Architecture Standard
 
-> **Tài liệu về chuẩn kiến trúc và quy ước code của ORCA Frontend (repository `smartchain_fe`).**
+> **Tài liệu về chuẩn kiến trúc và quy ước code của ORCA Frontend (repository `orca_fe`).**
 > Áp dụng bắt buộc cho toàn bộ source code trong `src/`, component, page, store, feature và cấu hình liên quan.
 
 Baseline nghiệp vụ làm việc từ 02/10/2026 là `Report3_Software Requirement Specification.docx`, đối chiếu
@@ -42,12 +42,12 @@ Khi có sự mâu thuẫn chỉ dẫn, áp dụng theo thứ tự ưu tiên:
 
 ## 3. Kiến Trúc Thư Mục (Feature-Sliced Design)
 
-Cấu trúc tầng hiện có được giữ. Report 4 còn mô tả SmartChain; không gọi các domain folder
+Cấu trúc tầng hiện có được giữ. Report 4 còn mô tả orca; không gọi các domain folder
 dưới đây là diagram ORCA đã chốt. FE/UC identifiers mới phải lấy từ Report 1/3 và WBS,
 không dùng dải FE cũ trong comment như requirement mapping mới.
 
 ```text
-smartchain_fe/
+orca_fe/
 ├── messages/                 # [10] Tài nguyên đa ngữ (en.json, vi.json) — Đặt NGOÀI src/
 └── src/
     ├── main.tsx              # [01] Application Entry — composition root, router, guard, provider
@@ -506,7 +506,7 @@ Senior FE **BẮT BUỘC** đảm bảo các điểm a11y tối thiểu (WCAG 2.
 
 ```tsx
 // ✅ img luôn có alt
-<img src={logo} alt="SmartChain logo" />
+<img src={logo} alt="orca logo" />
 <img src={decoration} alt="" aria-hidden="true" /> {/* Ảnh trang trí: alt="" */}
 
 // ✅ Icon-only button phải có aria-label
@@ -540,7 +540,7 @@ Senior FE **BẮT BUỘC** đảm bảo các điểm a11y tối thiểu (WCAG 2.
 Một tính năng hoặc thay đổi code chỉ được xem là hoàn tất khi:
 
 - [ ] Đúng 100% yêu cầu người dùng, không thừa/thiếu code ngoài phạm vi.
-- [ ] Mapping UC/BR theo ORCA mới; không trộn số FE/UC SmartChain cũ với WBS mới.
+- [ ] Mapping UC/BR theo ORCA mới; không trộn số FE/UC orca cũ với WBS mới.
 - [ ] Guard role/action/resource/scope; direct URL và action ngoài quyền bị chặn; field privacy ở DTO/API được kiểm tra.
 - [ ] Tái sử dụng tối đa component trong `src/components/Common/`.
 - [ ] Import thư mục Common chuẩn xác: `@/components/Common/...` (viết hoa C).
