@@ -119,6 +119,35 @@ test('warehouse ASN search sends scoped path, trimmed code, status and supplied 
   );
 });
 
+const physicalAsn = {
+  id,
+  warehouseId,
+  asnCode: arrival.asnCode,
+  status: 'RECEIVING',
+  receiptIds: [receiptId],
+  arrivedAt: arrival.arrivedAt,
+  version: 2,
+  lines: [{ id, lineNo: 1, sku: 'SKU', productName: 'Physical product', receivedQty: 7 }],
+};
+test('warehouse directory accepts operational counts without seller declarations', async () => {
+  globalThis.fetch = async () => ok([physicalAsn]);
+  assert.deepEqual((await api.list(warehouseId)).items, [physicalAsn]);
+});
+test('warehouse directory rejects declaration leaks, private fields and foreign warehouse data', async () => {
+  for (const changed of [
+    { ...physicalAsn, cartonCount: 9 },
+    { ...physicalAsn, createdByUserId: id },
+    { ...physicalAsn, lines: [{ ...physicalAsn.lines[0], declaredQty: 10 }] },
+    { ...physicalAsn, lines: [{ ...physicalAsn.lines[0], declaredLotCode: 'Expected lot' }] },
+    { ...physicalAsn, status: 'DRAFT' },
+  ]) {
+    globalThis.fetch = async () => ok([changed]);
+    await assert.rejects(api.list(warehouseId), { name: 'ZodError' });
+  }
+  globalThis.fetch = async () => ok([{ ...physicalAsn, warehouseId: receiptId }]);
+  await assert.rejects(api.list(warehouseId), /another warehouse/);
+});
+
 test('malformed warehouse ASN never enters the workspace', async () => {
   globalThis.fetch = async () => ok([{ id, status: 'ARRIVED', lines: [{ receivedQty: -1 }] }]);
   await assert.rejects(api.list(warehouseId), { name: 'ZodError' });

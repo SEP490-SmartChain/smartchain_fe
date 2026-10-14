@@ -141,7 +141,8 @@ export function ReceiptInspectionForm({
               ...previous,
               receiptVersion: Math.max(previous.receiptVersion, result.receiptVersion),
               qcState: 'REVIEW_REQUIRED',
-              items: [result],
+              lastDecision: null,
+              items: [...previous.items, result],
             }
           : previous,
       );

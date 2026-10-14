@@ -98,6 +98,12 @@ const expected = {
   'warehouse.asn.recordCount': S,
   'warehouse.asn.uploadPhoto': S,
   'warehouse.asn.inspect': S,
+  'warehouse.asn.reportDiscrepancy': S,
+  'warehouse.asn.review': M,
+  'warehouse.asn.postStock': S,
+  'warehouse.putaway.assign': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'warehouse.putaway.confirm': S,
+  'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
 };

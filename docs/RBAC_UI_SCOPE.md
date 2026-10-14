@@ -164,3 +164,17 @@ Staff and assigned Manager may read the matching GET projection. This proposal a
 does not grant Manager approval, discrepancy closure, putaway, inventory or financial writes.
 The form requires the actual count to be fully partitioned and only uses verified receipt
 photo IDs; it preserves the exact operation/payload after an uncertain response.
+
+UC-41 Manager receipt review: `warehouse.asn.review` is limited to a pure PLATFORM
+WAREHOUSE_MANAGER on the selected live assigned warehouse. The decision API is
+`POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/reviews`; its GET projection also
+permits assigned Staff. The decision covers exact current physical QC/report IDs and a
+receipt revision, with a mandatory reason. Staff cannot approve via a hidden button or
+an alternative route. The server/RLS checks grants again on replay. This capability does
+not grant product/lot metadata edits, inventory posting, billing or notification delivery.
+
+SS-1072 reviewed physical stock posting: `warehouse.asn.postStock` belongs only to pure
+PLATFORM WAREHOUSE_STAFF on the live assigned warehouse. It posts the selected actual record
+to `receiving/records/:recordId/stock` after Manager approval. Manager/Staff read the evidence,
+while Manager cannot perform the Staff stock effect. Quantities/Seller identity come from
+reviewed evidence; no generic inventory editing, metadata writes or finance access is granted.
