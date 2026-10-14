@@ -21,15 +21,20 @@ import { Card } from '@/components/Common/Card/Card';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
 
+import { useAccess } from '@/hooks/useAccess';
+import { useAuthStore } from '@/stores/authStore';
+
 import { PlatformDashboardOverview } from './PlatformDashboardOverview';
 import { TenantDetailModal } from './TenantDetailModal';
 import { TenantStatusModal } from './TenantStatusModal';
 import { useTenantManagement } from '../hooks/useTenantManagement';
+import { tenantCsvExport } from '../lib/tenantCsvExport';
 
 import type { TenantStatus, TenantSummary } from '../types/tenant.types';
 
 export function TenantDirectory() {
   const t = useTranslations('AdminTenants');
+  const { can } = useAccess();
   const {
     query,
     setQuery,
@@ -72,50 +77,49 @@ export function TenantDirectory() {
     setTimeout(() => setCopiedSlug(null), 2000);
   };
 
+  const displayedTenants = tenants.filter((tn) => {
+    if (selectedPlan === 'ALL') return true;
+    return (tn.subscription?.planCode || 'STANDARD') === selectedPlan;
+  });
+
   const handleExportCSV = () => {
-    if (tenants.length === 0) {
-      toast.error('Không có dữ liệu để xuất');
+    // Recheck the current principal at click time, including a just-revoked role.
+    const user = useAuthStore.getState().user;
+    if (!can('platform.tenants.manage') || !user) {
+      toast.error(t('exportDenied'));
+      return;
+    }
+    if (displayedTenants.length === 0) {
+      toast.error(t('exportEmpty'));
       return;
     }
     const headers = [
-      'ID',
-      'Tên Workspace',
-      'Slug',
-      'Email Admin',
-      'Gói cước',
-      'Trạng thái',
-      'Hạn mức đã dùng',
-      'Tổng hạn mức',
-      'Ngày tạo',
-    ];
-    const rows = tenants.map((tn) => [
-      tn.id,
-      `"${tn.name.replace(/"/g, '""')}"`,
-      tn.slug,
-      tn.adminEmail || '',
-      tn.subscription?.planCode || 'STANDARD',
-      tn.status,
-      tn.quota.ordersUsed,
-      tn.quota.ordersTotal,
-      new Date(tn.createdAt).toLocaleDateString('vi-VN'),
-    ]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+      'id',
+      'name',
+      'slug',
+      'email',
+      'plan',
+      'status',
+      'used',
+      'total',
+      'created',
+    ].map((key) => t(`exportHeaders.${key}`));
+    let csvContent: string;
+    try {
+      csvContent = tenantCsvExport(displayedTenants, user, headers);
+    } catch {
+      toast.error(t('exportDenied'));
+      return;
+    }
+    const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `orca-tenants-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Đã tải xuống danh sách doanh nghiệp (CSV)');
+    toast.success(t('exportSuccess'));
   };
-
-  const displayedTenants = tenants.filter((tn) => {
-    if (selectedPlan === 'ALL') return true;
-    return (tn.subscription?.planCode || 'STANDARD') === selectedPlan;
-  });
 
   const totalCount = overview?.tenants.total ?? tenants.length;
   const activeCount =
@@ -300,10 +304,12 @@ export function TenantDirectory() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download size={14} className="mr-1.5" />
-            Xuất CSV
-          </Button>
+          {can('platform.tenants.manage') && (
+            <Button variant="outline" size="sm" onClick={handleExportCSV}>
+              <Download size={14} className="mr-1.5" />
+              {t('exportCsv')}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
             <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
             {t('refresh')}

@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { CommercialQuotaAdmin } from '@/features/tenants';
 
 export default function QuotasPage() {
-  return <UnderConstruction />;
+  return <CommercialQuotaAdmin />;
 }

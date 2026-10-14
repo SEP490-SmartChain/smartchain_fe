@@ -67,30 +67,32 @@ Log group phải tách tiếp: UC-152 audit = Admin only; UC-153 API/scan = Admi
 
 ## 5. Action boundaries dễ nhầm
 
-| Hành động                                | Actor theo SRS                                       | Scope và điều kiện                                                                                      |
-| ---------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Gán platform role và warehouse           | Admin, UC-06/07                                      | Platform authority; Manager staff read không assignment write.                                          |
-| Seller staff role assignment             | Owner, UC-06/15                                      | Chỉ SELLER_STAFF trong own seller; không custom grants, không tự đổi Owner.                             |
-| Cập nhật own user profile                | Authenticated roles, UC-16                           | Own display name/contact phone; không thay role/owner/status/assignment.                                |
-| Standard agreement acceptance            | Owner, UC-08                                         | Version/evidence; không individual Admin approval; không tự activate.                                   |
-| Custom contract confirmation             | Admin, UC-08                                         | Signed offline evidence; Accountant xác minh tiền là action khác.                                       |
-| SKU create/edit/import                   | Owner, UC-26–UC-30                                   | Own SKU; history dimensions/cost snapshots không overwritten.                                           |
-| ASN draft/edit/submit/track              | Owner và Staff, UC-31–UC-35                          | Seller-selected eligible warehouse; không warehouse receive/QC execution.                               |
-| Receiving/QC/pick/pack/return inspection | Staff theo từng UC                                   | Assigned warehouse/task; Manager discrepancy/substitution/count/QC review; không finance.               |
-| Normal sales order create/import         | Owner hoặc scoped Sales Channel, UC-65–UC-69         | Không Staff; no seller warehouse/carrier selector; durable async acceptance.                            |
-| Risky COD confirmation                   | Owner, UC-71/72                                      | Own held order; không Staff hoặc warehouse actor.                                                       |
-| Withdrawal request                       | Owner, UC-79                                         | Seller chọn warehouse/lot; registered address; debt and service gate; no sales quota.                   |
-| Allocation/carrier rule activation       | Admin và Ops, UC-76/96/97                            | Platform-owned, assigned scope, versioned contract exceptions; no seller edits.                         |
-| Carrier credential management/test       | Admin, UC-92/93                                      | Encrypted/masked, per warehouse/account; không Ops manage secret do routing A.                          |
-| Return QC và restock                     | Staff/Manager theo UC-108/109                        | Manager confirms classification; staff physical restock only reviewed quantity/current lot eligibility. |
-| Disposal                                 | Manager/Staff, UC-56                                 | Consent hoặc authorized lot policy; no auto-dispose vì owner không trả lời.                             |
-| Claim investigation                      | Ops, UC-115                                          | Evidence và responsibility; không financial approval.                                                   |
-| Claim compensation approval              | Accountant, UC-116                                   | Contract cap/cost snapshot; unique posting.                                                             |
-| Carrier reconciliation                   | Accountant, UC-137–UC-143                            | Platform carrier batch có nhiều seller; Seller Owner không upload/match raw carrier file.               |
-| Invoice/ledger read                      | Owner own, Accountant; Admin scoped read theo screen | Staff và warehouse roles denied; cost/margins chỉ permitted ORCA roles.                                 |
-| Statement review/dispute                 | Owner, UC-131/132                                    | Own line/review window; eligible remainder vẫn được trả.                                                |
-| Payout approve/record transfer           | Accountant, UC-133/134                               | Positive confirmed eligible amount; actual transfer evidence mới PAID.                                  |
-| Optional assistant                       | Admin, Ops, Manager, Accountant, Owner, UC-165       | Read-only và existing field/data scope; Guest/Staff/WH Staff denied.                                    |
+| Hành động                                | Actor theo SRS                                       | Scope và điều kiện                                                                                                                                                                                                                            |
+| ---------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gán platform role và warehouse           | Admin, UC-06/07                                      | Platform authority; Manager staff read không assignment write.                                                                                                                                                                                |
+| Seller staff role assignment             | Owner, UC-06/15                                      | Chỉ SELLER_STAFF trong own seller; không custom grants, không tự đổi Owner.                                                                                                                                                                   |
+| Cập nhật own user profile                | Authenticated roles, UC-16                           | Own display name/contact phone; không thay role/owner/status/assignment.                                                                                                                                                                      |
+| Standard agreement acceptance            | Owner, UC-08                                         | Version/evidence; không individual Admin approval; không tự activate.                                                                                                                                                                         |
+| Custom contract confirmation             | Admin, UC-08                                         | Signed offline evidence; Accountant xác minh tiền là action khác.                                                                                                                                                                             |
+| SKU create/edit/import                   | Owner, UC-26–UC-30                                   | Own SKU; history dimensions/cost snapshots không overwritten.                                                                                                                                                                                 |
+| ASN draft/edit/submit/track              | Owner và Staff, UC-31–UC-35                          | Seller-selected eligible warehouse; không warehouse receive/QC execution.                                                                                                                                                                     |
+| ASN arrival check-in                     | Warehouse Staff, FU-21 / UC-37                       | `warehouse.asn.checkIn`; assigned warehouse; POST `/v1/warehouses/:warehouseId/asns/:id/arrival`; Manager read không grant check-in.                                                                                                          |
+| Receipt photo upload / confirmation      | Warehouse Staff, FU-21 / UC-39                       | `warehouse.asn.uploadPhoto`; live assigned warehouse and counted record; `asn_evidence.create/update` endpoints in the receipt photo contract. Manager reads verified photos only through `asn_evidence.read`; no QC approval or stock write. |
+| Receiving/QC/pick/pack/return inspection | Staff theo từng UC                                   | Assigned warehouse/task; Manager discrepancy/substitution/count/QC review; không finance.                                                                                                                                                     |
+| Normal sales order create/import         | Owner hoặc scoped Sales Channel, UC-65–UC-69         | Không Staff; no seller warehouse/carrier selector; durable async acceptance.                                                                                                                                                                  |
+| Risky COD confirmation                   | Owner, UC-71/72                                      | Own held order; không Staff hoặc warehouse actor.                                                                                                                                                                                             |
+| Withdrawal request                       | Owner, UC-79                                         | Seller chọn warehouse/lot; registered address; debt and service gate; no sales quota.                                                                                                                                                         |
+| Allocation/carrier rule activation       | Admin và Ops, UC-76/96/97                            | Platform-owned, assigned scope, versioned contract exceptions; no seller edits.                                                                                                                                                               |
+| Carrier credential management/test       | Admin, UC-92/93                                      | Encrypted/masked, per warehouse/account; không Ops manage secret do routing A.                                                                                                                                                                |
+| Return QC và restock                     | Staff/Manager theo UC-108/109                        | Manager confirms classification; staff physical restock only reviewed quantity/current lot eligibility.                                                                                                                                       |
+| Disposal                                 | Manager/Staff, UC-56                                 | Consent hoặc authorized lot policy; no auto-dispose vì owner không trả lời.                                                                                                                                                                   |
+| Claim investigation                      | Ops, UC-115                                          | Evidence và responsibility; không financial approval.                                                                                                                                                                                         |
+| Claim compensation approval              | Accountant, UC-116                                   | Contract cap/cost snapshot; unique posting.                                                                                                                                                                                                   |
+| Carrier reconciliation                   | Accountant, UC-137–UC-143                            | Platform carrier batch có nhiều seller; Seller Owner không upload/match raw carrier file.                                                                                                                                                     |
+| Invoice/ledger read                      | Owner own, Accountant; Admin scoped read theo screen | Staff và warehouse roles denied; cost/margins chỉ permitted ORCA roles.                                                                                                                                                                       |
+| Statement review/dispute                 | Owner, UC-131/132                                    | Own line/review window; eligible remainder vẫn được trả.                                                                                                                                                                                      |
+| Payout approve/record transfer           | Accountant, UC-133/134                               | Positive confirmed eligible amount; actual transfer evidence mới PAID.                                                                                                                                                                        |
+| Optional assistant                       | Admin, Ops, Manager, Accountant, Owner, UC-165       | Read-only và existing field/data scope; Guest/Staff/WH Staff denied.                                                                                                                                                                          |
 
 Đây là intended behavior theo SRS, chưa phải code permission names mới. Dùng exact API contract khi implement; capability chưa có seed không tự phát minh rồi grant.
 
@@ -130,14 +132,39 @@ UI dùng API client, React Hook Form/Zod, Common components và i18n hiện có;
 thành công sau server confirmation. Đổi identity/scope/role sẽ unmount, hủy request và
 xóa dữ liệu staff đang hiển thị. Các grant còn thiếu được liệt kê bên dưới thuộc đợt riêng.
 
-## 9. Gap implementation phải giải quyết ở đợt sau
+## 9. SS-1086: cấu hình routing rule
+
+Route `/rules` dùng `rules.view`; mọi thao tác cấu hình dùng capability trung tâm
+`routing.rule.set`. Cả hai chỉ cho PLATFORM `ORCA_ADMIN` và `OPS_DISPATCHER` theo
+UC-76/96/97, BR-42 và action/API SS-1084. Manager, warehouse staff, Accountant,
+Seller và identity legacy/mixed scope đều bị từ chối. Backend kiểm tra assignment
+hiện hành qua RLS cho rule/kho; metadata picker không trả carrier credentials và
+không mở quyền quản trị seller. Scope/role/identity thay đổi sẽ xóa form, dữ liệu
+và pending reads của màn hình. UI không cấp quyền SYSTEM worker hoặc đặt quyền
+cho các workflow allocation/booking của package khác.
 
 ### Sprint 4 tariff contract v1 (12/10/2026)
 
 `tariffs.manage` chỉ PLATFORM Admin/Accountant, theo UC-94/118 và API `/v1/platform/tariffs`. `/admin/tariffs` là tariff-only route; không mở generic `/admin/*` hay carrier credentials cho Accountant. `/admin/carriers` vẫn Admin và có tab bảng cước. Purchase/sell read, draft/create/update/publish/close dùng backend role gate + transaction-local resources `carrier_purchase`/`tariff`; không nhận tenant/actor từ body. Preview nội bộ ở endpoint này chỉ Admin vì warehouse metadata hiện chưa grant Accountant; không broaden warehouse access để mô phỏng cước. Tests `freight-tariffs.test.mjs` kiểm cả các route bị deny và mixed/unknown scopes. Migration/RLS integration trên DB disposable phải được xác minh trước rollout; code contract không chứng minh DB dự án đã cutover.
 
-Source hiện có đã có `actorScope` và ORCA role policy. Các grant được triển khai từ auth contract trước đây không hoàn toàn đồng bộ SRS cập nhật 02/10: backend core-auth audit grant còn rộng, contract read còn Seller Staff, contract approval còn Accountant; compatibility upload/reconciliation còn legacy groups. Frontend capabilities dựa screen matrix cũ cũng cần review action-level theo UC mới.
+## 10. Gap implementation phải giải quyết ở đợt sau
+
+SS-1090 simulator uses `rules.simulate.allocation` for PLATFORM Ops only (RP3
+FU-42/UC-77), and `rules.simulate.carrier` for PLATFORM Admin/Ops (FU-35/UC-98).
+The SS-1089 endpoint rechecks the actor and live database grants; sample seller
+references never authorize another tenant. Rules screen access is insufficient
+for Admin-only allocation simulation. Preview does not publish or perform stock,
+order, billing or booking effects; planning and price projections remain pending.
+
+Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Blind receiving dùng DTO kho riêng, không tải declaration/expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
 
 Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.
 
 Source/audit toàn bộ 165 UC/61 BR/20 NFR và target DB ở repo backend: `docs/ORCA-SRS-CHANGE-ANALYSIS.md`, `docs/ORCA-SRS-TRACEABILITY.md`, `db.md`. Các grant hoặc route đề xuất chưa có acceptance evidence vẫn PROPOSED.
+
+UC-39 QC proposal: `warehouse.asn.inspect` is a Staff-only, assigned-warehouse action
+for `POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/records/:recordId/inspections`.
+Staff and assigned Manager may read the matching GET projection. This proposal action
+does not grant Manager approval, discrepancy closure, putaway, inventory or financial writes.
+The form requires the actual count to be fully partitioned and only uses verified receipt
+photo IDs; it preserves the exact operation/payload after an uncertain response.

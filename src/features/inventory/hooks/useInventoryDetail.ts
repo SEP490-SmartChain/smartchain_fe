@@ -16,11 +16,13 @@ export function useInventoryDetail(
 ) {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.accessToken);
+  const scopeRevision = useAuthStore((state) => state.revision);
   const scopeKey = JSON.stringify([
     user?.userId,
     user?.actorScope,
     user?.tenantId,
     user?.roles,
+    scopeRevision,
     token,
   ]);
   const [state, setState] = useState<{

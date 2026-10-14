@@ -254,6 +254,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'inventory.expiry.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'Sprint5 UC-52: GET /v1/lots/near-expiry, own seller or assigned warehouse',
+  ),
+  capability(
+    'inventory.notifications.manage',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'Sprint5 UC-52: owner-managed notification thresholds and destinations',
+  ),
+  capability(
     'inventory.positions.view',
     'inventory',
     'ANY',
@@ -293,8 +309,32 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'APPROVED',
     R3_MATRIX,
   ),
+  capability(
+    'routing.rule.set',
+    'rules',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 UC-76/96/97, BR-42; SS-1084 /v1/rules action contract',
+  ),
   capability('rules.create_delete', 'rules', 'PLATFORM', ['ORCA_ADMIN'], 'APPROVED', R3_MATRIX),
   capability('rules.operate', 'rules', 'PLATFORM', ['OPS_DISPATCHER'], 'APPROVED', R3_MATRIX),
+  capability(
+    'rules.simulate.allocation',
+    'rules',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 FU-42 / UC-77; SS-1089 POST /v1/rules/simulate kind ALLOCATION',
+  ),
+  capability(
+    'rules.simulate.carrier',
+    'rules',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 FU-35 / UC-98; SS-1089 POST /v1/rules/simulate kind CARRIER',
+  ),
   capability('orders.view', 'orders', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
     'orders.operate',
@@ -426,6 +466,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     `${D8_PROPOSED}; ${CONTRACT_SECURITY}`,
   ),
   capability(
+    'contract.sign',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA Report 3 BR-59 / SS-990: Seller Owner accepts their standard agreement',
+  ),
+  capability(
     'cod.view',
     'finance',
     'ANY',
@@ -440,6 +488,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
     'APPROVED',
     D8_APPROVED,
+  ),
+  capability(
+    'invoice.bankReceipt.post',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-127 / SS-990: Accountant verifies bank evidence and posts once',
   ),
   capability(
     'apikey.manage',
@@ -480,6 +536,38 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
     'APPROVED',
     'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'warehouse.asn.checkIn',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-37; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/arrival',
+  ),
+  capability(
+    'warehouse.asn.recordCount',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-38; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/receiving/counts',
+  ),
+  capability(
+    'warehouse.asn.uploadPhoto',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-39; assigned warehouse, private receipt evidence presign/confirm',
+  ),
+  capability(
+    'warehouse.asn.inspect',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-39; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/records/:recordId/inspections',
   ),
   capability(
     'platform.warehouses.view',
@@ -550,6 +638,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/settings/general', capability: 'workspace.settings.manage' },
   { path: '/settings/api-keys', capability: 'apikey.manage' },
   { path: '/settings/webhooks', capability: 'workspace.settings.manage' },
+  { path: '/settings/contract', capability: 'contract.sign' },
   { path: '/audit', capability: 'audit.tenant.view' },
   { path: '/integration-errors', capability: 'integration.errors.view' },
   // Catalog phát triển: chỉ tồn tại khi DEV.
@@ -641,6 +730,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
       { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
+      { key: 'contract', href: '/settings/contract', capability: 'contract.sign' },
     ],
   },
 
@@ -737,6 +827,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' },
       { key: 'subscription_plans', href: '/admin/plans', capability: 'platform.plans.manage' },
+      { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
     ],
   },
   {

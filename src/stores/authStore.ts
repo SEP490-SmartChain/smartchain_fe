@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { ActorScope } from '@/lib/accessPolicy';
+import { getAuthScopeKey } from '@/lib/authScope';
 
 import { useTenantStore } from './tenantStore';
 
@@ -18,6 +19,8 @@ export interface AuthUser {
   actorScope?: ActorScope | null;
   roles: string[];
   permissions: string[];
+  /** Current assignments from the server profile; selected filters never grant access. */
+  warehouseIds?: readonly string[];
 }
 
 export interface AuthSession {
@@ -51,11 +54,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   status: 'initializing',
   setSession: ({ user, accessToken, expiresIn }) => {
     syncTenant(user);
-    set({ user, accessToken, expiresAt: Date.now() + expiresIn * 1000, status: 'authenticated' });
+    set((state) => ({
+      user,
+      accessToken,
+      expiresAt: Date.now() + expiresIn * 1000,
+      status: 'authenticated',
+      revision: state.revision + (getAuthScopeKey(state.user) === getAuthScopeKey(user) ? 0 : 1),
+    }));
   },
   setUser: (user) => {
     syncTenant(user);
-    set({ user });
+    set((state) => ({
+      user,
+      revision: state.revision + (getAuthScopeKey(state.user) === getAuthScopeKey(user) ? 0 : 1),
+    }));
   },
   clear: () => {
     syncTenant(null);

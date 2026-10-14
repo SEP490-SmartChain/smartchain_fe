@@ -57,6 +57,9 @@ const profileSchema = z.object({
   actorScope: actorScopeSchema,
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
+  warehouseIds: z
+    .array(z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i))
+    .optional(),
 });
 const sessionSchema = z.object({
   accessToken: z.string().min(1),
@@ -91,6 +94,36 @@ class ApiClient {
 
   private message(vi: string, en: string) {
     return useLocaleStore.getState().locale === 'en' ? en : vi;
+  }
+
+  /** Private object PUT: send only signed headers, never application cookies or bearer tokens. */
+  async uploadSignedImage(
+    url: string,
+    file: File,
+    headers: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const parsed = new URL(url);
+    if (
+      (parsed.protocol !== 'https:' &&
+        !(
+          parsed.protocol === 'http:' &&
+          ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
+        )) ||
+      parsed.username ||
+      parsed.password
+    ) {
+      throw new Error('Invalid image upload URL');
+    }
+    const response = await fetch(url, {
+      method: 'PUT',
+      body: file,
+      headers,
+      credentials: 'omit',
+      redirect: 'error',
+      signal: signal ?? AbortSignal.timeout(30000),
+    });
+    if (!response.ok) throw new Error(`Image storage rejected upload (${response.status})`);
   }
 
   /** Public VietQR lookup: never send the SmartChain session or cookies to a third party. */
@@ -137,7 +170,8 @@ class ApiClient {
     } = options;
     const url = `${this.baseURL}${endpoint}${params ? `?${new URLSearchParams(params)}` : ''}`;
     const requestHeaders = new Headers(headers);
-    requestHeaders.set('Content-Type', 'application/json');
+    if (config.body instanceof FormData) requestHeaders.delete('Content-Type');
+    else requestHeaders.set('Content-Type', 'application/json');
     requestHeaders.set('Accept-Language', useLocaleStore.getState().locale);
     if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
     return fetch(url, {
@@ -163,14 +197,12 @@ class ApiClient {
       // (contract v0.2 §5/§8; docs/RBAC_UI_SCOPE.md mục 10).
       if (requiresAuth && response.status === 401) {
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw this.scopeChanged();
         }
         // A parallel request may already have rotated this access token.
         if (useAuthStore.getState().accessToken === token) await this.refreshSession();
+        if (revision !== useAuthStore.getState().revision) throw this.scopeChanged();
         response = await this.send(endpoint, options, useAuthStore.getState().accessToken);
-        if (response.status === 401 && revision === useAuthStore.getState().revision) {
-          useAuthStore.getState().clear();
-        }
       }
       if (response.ok && options.responseMode === 'pdf') {
         if (response.headers.get('Content-Type')?.split(';')[0] !== 'application/pdf') {
@@ -187,6 +219,11 @@ class ApiClient {
         return blob as T;
       }
       const body: unknown = await response.json().catch(() => null);
+      // Responses from a previous seller/grant/assignment must never enter a new view/cache.
+      if (requiresAuth && revision !== useAuthStore.getState().revision) {
+        throw this.scopeChanged();
+      }
+      if (requiresAuth && response.status === 401) useAuthStore.getState().clear();
       if (!response.ok) {
         const parsed = errorSchema.safeParse(body);
         // 403 phải hiển thị là "thiếu quyền", không phải lỗi phiên/mạng.
@@ -235,9 +272,21 @@ class ApiClient {
               0,
               'NETWORK.ERROR',
             );
-      if (!silent) toast.error(failure.message);
+      if (!silent && failure.code !== 'AUTH.SCOPE_CHANGED') toast.error(failure.message);
       throw failure;
     }
+  }
+
+  private scopeChanged() {
+    return new ApiError(
+      this.message('Phạm vi truy cập đã thay đổi.', 'Your access scope has changed.'),
+      0,
+      'AUTH.SCOPE_CHANGED',
+    );
+  }
+
+  uploadForm<T>(endpoint: string, body: FormData, options: FetchOptions = {}): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
 
   refreshSession(): Promise<void> {
@@ -255,7 +304,7 @@ class ApiClient {
     )
       .then(({ data }) => {
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw this.scopeChanged();
         }
         useAuthStore.getState().setSession(sessionSchema.parse(data));
       })
