@@ -103,6 +103,7 @@ const expected = {
   'warehouse.asn.postStock': S,
   'warehouse.putaway.assign': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'warehouse.putaway.confirm': S,
+  'warehouse.putaway.overrideBin': M,
   'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],

@@ -2315,5 +2315,28 @@
       "codAmountVnd": "COD",
       "isCod": "COD flag"
     }
+  },
+  "PutawayBinOverride": {
+    "title": "Change suggested storage bin",
+    "description": "Choose a compatible bin and record the reason. Stock becomes sellable only after Staff physically scans and confirms the task.",
+    "search": "Find bin by code or barcode",
+    "find": "Find bins",
+    "loading": "Checking compatible bins…",
+    "more": "Only the first 100 bins are shown. Narrow the search.",
+    "empty": "No other bin fits the whole task. Check capacity or refine the search.",
+    "bin": "New storage bin",
+    "reason": "Reason for changing the bin",
+    "binRequired": "Choose a compatible storage bin.",
+    "reasonRequired": "Enter a reason of 3–500 characters without leading or trailing spaces.",
+    "save": "Change bin",
+    "history": "Bin decision history",
+    "noHistory": "No bin changes recorded.",
+    "audit": "Manager {actor} · {date}",
+    "loadError": "Unable to load compatible bins. Refresh the task and try again.",
+    "saveError": "The bin decision could not be verified.",
+    "unknown": "The result is uncertain. Keep this operation and retry it before making another change.",
+    "retry": "Retry this bin decision",
+    "success": "Storage bin changed; physical confirmation is still required.",
+    "completedReadOnly": "This task has ended. Decision history remains available; the bin cannot be changed."
   }
 }
