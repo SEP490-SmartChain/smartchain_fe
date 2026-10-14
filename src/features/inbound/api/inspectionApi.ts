@@ -21,6 +21,7 @@ export const inspectionStateSchema = z
     receivedQty: z.number().int().min(1).max(1_000_000),
     receiptVersion: z.number().int().positive(),
     qcState: z.enum(['PENDING', 'REVIEW_REQUIRED', 'APPROVED']),
+    lastDecision: z.enum(['APPROVE', 'RETURN']).nullable().optional(),
     items: z.array(inspectionSchema),
   })
   .strict()
@@ -34,7 +35,7 @@ export const inspectionStateSchema = z
           row.acceptedQty + row.quarantinedQty + row.rejectedQty !== value.receivedQty,
       ) ||
       new Set(value.items.map((row) => row.id)).size !== value.items.length ||
-      (value.qcState === 'PENDING' && value.items.length > 0)
+      (value.qcState === 'PENDING' && value.items.length > 0 && value.lastDecision !== 'RETURN')
     ) {
       context.addIssue({ code: 'custom', message: 'Inconsistent QC receipt history' });
     }

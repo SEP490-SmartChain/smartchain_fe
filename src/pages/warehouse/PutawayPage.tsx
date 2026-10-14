@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { PutawayWorkspace } from '@/features/inbound';
 
 export default function PutawayPage() {
-  return <UnderConstruction />;
+  return <PutawayWorkspace />;
 }
