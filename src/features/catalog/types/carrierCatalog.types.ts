@@ -1,4 +1,4 @@
-export type DeploymentEnvironment = 'SANDBOX' | 'STAGING' | 'PRODUCTION';
+export type DeploymentEnvironment = 'SANDBOX' | 'PRODUCTION';
 
 export type TransportMode = 'ROAD' | 'AIR' | 'SEA' | 'RAIL';
 
