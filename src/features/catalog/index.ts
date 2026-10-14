@@ -6,6 +6,7 @@
  */
 export { GlobalCarrierCatalog } from './components/GlobalCarrierCatalog';
 export { CarrierAccountManager } from './components/CarrierAccountManager';
+export { FreightTariffManager } from './components/FreightTariffManager';
 export { useCarrierCatalog } from './hooks/useCarrierCatalog';
 export type {
   CarrierSummary as GlobalCarrierSummary,

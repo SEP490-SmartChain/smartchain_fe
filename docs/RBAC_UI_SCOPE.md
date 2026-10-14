@@ -143,6 +143,10 @@ không mở quyền quản trị seller. Scope/role/identity thay đổi sẽ x�
 và pending reads của màn hình. UI không cấp quyền SYSTEM worker hoặc đặt quyền
 cho các workflow allocation/booking của package khác.
 
+### Sprint 4 tariff contract v1 (12/10/2026)
+
+`tariffs.manage` chỉ PLATFORM Admin/Accountant, theo UC-94/118 và API `/v1/platform/tariffs`. `/admin/tariffs` là tariff-only route; không mở generic `/admin/*` hay carrier credentials cho Accountant. `/admin/carriers` vẫn Admin và có tab bảng cước. Purchase/sell read, draft/create/update/publish/close dùng backend role gate + transaction-local resources `carrier_purchase`/`tariff`; không nhận tenant/actor từ body. Preview nội bộ ở endpoint này chỉ Admin vì warehouse metadata hiện chưa grant Accountant; không broaden warehouse access để mô phỏng cước. Tests `freight-tariffs.test.mjs` kiểm cả các route bị deny và mixed/unknown scopes. Migration/RLS integration trên DB disposable phải được xác minh trước rollout; code contract không chứng minh DB dự án đã cutover.
+
 ## 10. Gap implementation phải giải quyết ở đợt sau
 
 SS-1090 simulator uses `rules.simulate.allocation` for PLATFORM Ops only (RP3

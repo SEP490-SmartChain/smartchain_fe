@@ -534,7 +534,13 @@ test('sidebar derives from the same capability source for every role', () => {
       'account_heading',
     ],
     WAREHOUSE_STAFF: ['warehouse_ops_heading', 'account_heading'],
-    ORCA_ACCOUNTANT: ['finance_heading', 'monitoring_heading', 'account_heading'],
+    // UC-94/118 now have a tariff-only entry, without carrier credential grants.
+    ORCA_ACCOUNTANT: [
+      'shipping_heading',
+      'finance_heading',
+      'monitoring_heading',
+      'account_heading',
+    ],
     SELLER_OWNER: [
       'overview_heading',
       'goods_heading',
