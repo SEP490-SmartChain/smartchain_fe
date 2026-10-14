@@ -5,3 +5,4 @@
  * (FE dependency rule #2, SDD mục 1.2.1)
  */
 export {};
+export { SellerOrders } from './components/SellerOrders';

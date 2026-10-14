@@ -402,6 +402,9 @@ class ApiClient {
   post<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) });
   }
+  postForm<T>(endpoint: string, body: FormData, options?: FetchOptions) {
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
+  }
   put<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) });
   }
