@@ -157,3 +157,10 @@ Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu h
 Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.
 
 Source/audit toàn bộ 165 UC/61 BR/20 NFR và target DB ở repo backend: `docs/ORCA-SRS-CHANGE-ANALYSIS.md`, `docs/ORCA-SRS-TRACEABILITY.md`, `db.md`. Các grant hoặc route đề xuất chưa có acceptance evidence vẫn PROPOSED.
+
+UC-39 QC proposal: `warehouse.asn.inspect` is a Staff-only, assigned-warehouse action
+for `POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/records/:recordId/inspections`.
+Staff and assigned Manager may read the matching GET projection. This proposal action
+does not grant Manager approval, discrepancy closure, putaway, inventory or financial writes.
+The form requires the actual count to be fully partitioned and only uses verified receipt
+photo IDs; it preserves the exact operation/payload after an uncertain response.
