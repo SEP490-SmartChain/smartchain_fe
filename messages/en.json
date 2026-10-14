@@ -376,6 +376,9 @@
     "invalidPartnerCode": "The shop code may contain letters, digits, hyphens or underscores (max 50)."
   },
   "Orders": {
+    "sheetSetup": "Connect Google Sheets (optional)",
+    "sheet_hint": "For a sheet connected to ORCA by your administrator. One order per row, up to 3 products; open the template for instructions.",
+    "sheet_template": "Download Google Sheets template",
     "title": "Sales orders",
     "description": "Create, import and track your sales orders in one place.",
     "create": "Create order",

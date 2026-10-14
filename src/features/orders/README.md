@@ -33,3 +33,9 @@ Phân tích, nguồn đối chiếu, ma trận kiểm thử và giới hạn: [P
 ## Snapshot và nhập lại — 11/10/2026
 
 Chi tiết dùng tên/SKU snapshot từ backend; đơn cũ có `identitySource: CURRENT_CATALOG` hiển thị chú thích. Preview/confirm Excel nhận `existing: true` để hiển thị “Đơn đã tồn tại”, giữ nút “Xem đơn” và không cộng vào số tạo mới. Lỗi tiền hiển thị cột, số đã nhập và mức tối đa với phân nhóm hàng nghìn. Manual retry hỗ trợ `replayed` trong strict response schema. Migration và bằng chứng: BE `docs/SPRINT4_IDENTITY_IMPORT_REVIEW.md`.
+
+## Optional Google Sheets integration
+
+The import dialog offers a separate, optional Google Sheets template download for Seller Owner. One order per row, up to three products; the seller-sheet n8n workflow and administrator Google OAuth setup are required. Downloading the workbook does not connect Google or submit orders. Existing scope cancellation, error handling and download guards apply. Manual orders and Excel upload remain independent.
+
+Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: smartchain_be PR #120; n8n setup and sample storefront: smartchain_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.

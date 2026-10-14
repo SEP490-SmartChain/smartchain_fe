@@ -386,14 +386,17 @@ export const ordersApi = {
     );
     return importResultSchema.parse(data);
   },
-  async template(signal?: AbortSignal) {
-    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/orders/import-template', {
-      signal,
-      silent: true,
-    });
+  async template(signal?: AbortSignal, sheet = false) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      sheet ? '/v1/orders/sheet-template' : '/v1/orders/import-template',
+      {
+        signal,
+        silent: true,
+      },
+    );
     return z
       .object({
-        fileName: z.literal('orca-orders.xlsx'),
+        fileName: z.literal(sheet ? 'orca-google-sheet.xlsx' : 'orca-orders.xlsx'),
         contentBase64: z.string().max(2 * 1024 * 1024),
       })
       .strict()

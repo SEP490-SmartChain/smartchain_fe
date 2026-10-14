@@ -376,6 +376,9 @@
     "invalidPartnerCode": "Mã cửa hàng chỉ gồm chữ, số, gạch ngang hoặc gạch dưới (tối đa 50 ký tự)."
   },
   "Orders": {
+    "sheetSetup": "Kết nối Google Sheets (tùy chọn)",
+    "sheet_hint": "Mẫu Google Sheets dành cho bảng đã được quản trị viên kết nối ORCA. Mỗi dòng một đơn, tối đa 3 sản phẩm; mở mẫu để xem hướng dẫn.",
+    "sheet_template": "Tải mẫu Google Sheets",
     "title": "Đơn bán hàng",
     "description": "Tạo đơn, nhập đơn hàng loạt và theo dõi giao hàng trong một nơi.",
     "create": "Tạo đơn",
