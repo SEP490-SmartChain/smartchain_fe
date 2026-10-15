@@ -21,6 +21,7 @@ const formSchema = z.object({
   reason: z.string().trim().min(1).max(1000),
 });
 interface Props {
+  onPendingChange?: (key: string, locked: boolean) => void;
   warehouseId: string;
   asnId: string;
   receiptVersion: number;
@@ -28,6 +29,7 @@ interface Props {
   onSaved: () => void;
 }
 export function ReceiptDiscrepancyPanel({
+  onPendingChange,
   warehouseId,
   asnId,
   receiptVersion,
@@ -36,13 +38,17 @@ export function ReceiptDiscrepancyPanel({
 }: Props) {
   const t = useTranslations('Receiving');
   const owner = useAuthStore((s) => s.user);
-  const [expanded, setExpanded] = useState(false),
+  const [expanded, setExpanded] = useState(true),
     [state, setState] = useState<DiscrepancyState | null>(null);
   const [loading, setLoading] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [refresh, setRefresh] = useState(0),
     [attempt, setAttempt] = useState<{ input: DiscrepancyInput; qty: number } | null>(null);
+  useEffect(() => {
+    onPendingChange?.(`discrepancy:${asnId}`, busy || attempt !== null);
+    return () => onPendingChange?.(`discrepancy:${asnId}`, false);
+  }, [onPendingChange, asnId, busy, attempt]);
   const generation = useRef(0),
     active = useRef<AbortController | null>(null),
     operation = useRef(crypto.randomUUID());
@@ -113,13 +119,9 @@ export function ReceiptDiscrepancyPanel({
       qty: number;
       label: string;
     }[] = [];
-    if (
-      line.declaredQty !== null &&
-      line.receivedQty !== null &&
-      line.declaredQty !== line.receivedQty
-    ) {
-      const type = line.receivedQty < line.declaredQty ? 'SHORT' : 'OVER',
-        qty = Math.abs(line.receivedQty - line.declaredQty);
+    if (line.variance) {
+      const type = line.variance.discrepancyType,
+        qty = line.variance.qty;
       result.push({
         key: `${line.inboundLineId}:${type}`,
         inboundLineId: line.inboundLineId,
@@ -205,9 +207,10 @@ export function ReceiptDiscrepancyPanel({
                 <p className="text-sm" key={line.inboundLineId}>
                   {t('discrepancyComparison', {
                     line: line.lineNo,
-                    declared: line.declaredQty ?? '—',
                     actual: line.receivedQty ?? '—',
                   })}
+                  {line.variance &&
+                    ` · ${t('discrepancyVariance', { type: t(`discrepancy${line.variance.discrepancyType}`), qty: line.variance.qty })}`}
                 </p>
               ))}
               {state.items.map((item) => (
@@ -260,6 +263,19 @@ export function ReceiptDiscrepancyPanel({
                           ...candidates.map((c) => ({ value: c.key, label: c.label })),
                         ]}
                         {...register('source')}
+                        onChange={(event) => {
+                          const candidate = candidates.find(
+                            (item) => item.key === event.target.value,
+                          );
+                          const evidence = state.lines
+                            .flatMap((item) => item.exceptions)
+                            .find(
+                              (item) =>
+                                item.receivingRecordId === candidate?.receivingRecordId &&
+                                item.discrepancyType === candidate?.discrepancyType,
+                            );
+                          reset({ source: event.target.value, reason: evidence?.reason ?? '' });
+                        }}
                         error={errors.source ? t('discrepancySelect') : undefined}
                       />
                       <Input

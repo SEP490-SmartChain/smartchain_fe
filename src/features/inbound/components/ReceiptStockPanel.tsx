@@ -17,6 +17,7 @@ import {
   type ReceiptStockState,
 } from '../api/receiptStockApi';
 interface Props {
+  onPendingChange?: (key: string, locked: boolean) => void;
   warehouseId: string;
   asnId: string;
   recordId: string;
@@ -25,6 +26,7 @@ interface Props {
   onSaved: () => void;
 }
 export function ReceiptStockPanel({
+  onPendingChange,
   warehouseId,
   asnId,
   recordId,
@@ -47,6 +49,10 @@ export function ReceiptStockPanel({
     receipt: string;
     quantity: number;
   } | null>(null);
+  useEffect(() => {
+    onPendingChange?.(`stock:${recordId}`, busy || attempt !== null);
+    return () => onPendingChange?.(`stock:${recordId}`, false);
+  }, [onPendingChange, recordId, busy, attempt]);
   const generation = useRef(0),
     active = useRef<AbortController | null>(null);
   const {

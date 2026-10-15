@@ -71,6 +71,23 @@ export const reviewStateSchema = z
     ready: z.boolean(),
     canApprove: z.boolean(),
     unreportedDiscrepancies: z.number().int().nonnegative().max(5100),
+    blockers: z
+      .array(
+        z
+          .object({
+            code: z.enum([
+              'RECEIPT_NOT_OPEN',
+              'COUNT_REQUIRED',
+              'INSPECTION_REQUIRED',
+              'DISCREPANCY_REPORT_REQUIRED',
+            ]),
+            inboundLineId: z.string().uuid().nullable(),
+            receivingRecordId: z.string().uuid().nullable(),
+          })
+          .strict(),
+      )
+      .max(10101)
+      .optional(),
     inspectionIds: ids(5000),
     discrepancyIds: ids(5100),
     records: z.array(recordSchema).max(5000),
@@ -91,7 +108,13 @@ export const reviewStateSchema = z
         (v.status !== 'RECEIVING' ||
           !['RECEIVING', 'DISCREPANCY'].includes(v.asnStatus) ||
           v.records.some((r) => r.qcState !== 'REVIEW_REQUIRED' || !r.inspection))) ||
-      v.canApprove !== (v.ready && v.unreportedDiscrepancies === 0)
+      v.canApprove !== (v.ready && v.unreportedDiscrepancies === 0) ||
+      v.blockers?.some(
+        (b) =>
+          b.receivingRecordId !== null &&
+          !v.records.some((r) => r.receivingRecordId === b.receivingRecordId),
+      ) ||
+      (v.canApprove && v.blockers?.length !== undefined && v.blockers.length > 0)
     ) {
       c.addIssue({ code: 'custom', message: 'Inconsistent Manager review state' });
     }

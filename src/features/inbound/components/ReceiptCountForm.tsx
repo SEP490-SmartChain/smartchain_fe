@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useFieldArray, useForm } from 'react-hook-form';
 
@@ -29,6 +29,7 @@ interface Props {
   canWrite: boolean;
   onSaved: () => void;
   onReceiptChanged: () => void;
+  onNavigationLockChange?: (locked: boolean) => void;
 }
 
 export function ReceiptCountForm({
@@ -37,6 +38,7 @@ export function ReceiptCountForm({
   canWrite,
   onSaved,
   onReceiptChanged,
+  onNavigationLockChange,
 }: Props) {
   const t = useTranslations('Receiving');
   const { can } = useAccess();
@@ -47,6 +49,23 @@ export function ReceiptCountForm({
   const [loading, setLoading] = useState(true);
   const [uncertain, setUncertain] = useState(false);
   const [refresh, setRefresh] = useState(0);
+  const [photoRevision, setPhotoRevision] = useState(0);
+  const [activeLot, setActiveLot] = useState('');
+  const [pendingCommands, setPendingCommands] = useState<Record<string, boolean>>({});
+  const handlePending = useCallback((key: string, locked: boolean) => {
+    setPendingCommands((previous) =>
+      previous[key] === locked ? previous : { ...previous, [key]: locked },
+    );
+  }, []);
+  const isLocked = busy || uncertain || Object.values(pendingCommands).some(Boolean);
+  const otherPending = (key: string) =>
+    busy ||
+    uncertain ||
+    Object.entries(pendingCommands).some(([name, pending]) => pending && name !== key);
+  useEffect(() => {
+    onNavigationLockChange?.(isLocked);
+    return () => onNavigationLockChange?.(false);
+  }, [isLocked, onNavigationLockChange]);
   const operationKey = useRef(crypto.randomUUID());
   const lastAttempt = useRef<ReceiptCountInput | null>(null);
   const mounted = useRef(false);
@@ -91,6 +110,8 @@ export function ReceiptCountForm({
         )?.count;
         if (saved) {
           lastAttempt.current = null;
+          operationKey.current = crypto.randomUUID();
+          reset({ inboundLineId: result.lines.find((row) => !row.count)?.id ?? '', lots: [] });
           setUncertain(false);
           setError('');
         }
@@ -110,13 +131,26 @@ export function ReceiptCountForm({
   }, [warehouseId, asnId, owner, refresh, reset, t]);
 
   async function send(input: ReceiptCountInput) {
-    if (busy || !editable || owner !== useAuthStore.getState().user) return;
+    if (
+      busy ||
+      Object.values(pendingCommands).some(Boolean) ||
+      !editable ||
+      owner !== useAuthStore.getState().user
+    ) {
+      return;
+    }
     setBusy(true);
     setError('');
     lastAttempt.current = input;
     try {
       await receivingApi.recordCount(warehouseId, asnId, input);
-      if (mounted.current && owner === useAuthStore.getState().user) onSaved();
+      if (mounted.current && owner === useAuthStore.getState().user) {
+        lastAttempt.current = null;
+        operationKey.current = crypto.randomUUID();
+        setUncertain(false);
+        setRefresh((v) => v + 1);
+        onSaved();
+      }
     } catch (reason) {
       if (!mounted.current || owner !== useAuthStore.getState().user) return;
       setError(reason instanceof ApiError ? reason.message : t('countError'));
@@ -135,114 +169,20 @@ export function ReceiptCountForm({
       {loading && <p role="status">{t('loading')}</p>}
       {error && <Alert variant="error" title={error} />}
       {uncertain && <Alert variant="warning" title={t('countUncertain')} />}
-      {receipt?.lines
-        .filter((row) => row.count !== null)
-        .map((row) => (
-          <div key={row.id} className="rounded-lg border border-[var(--sc-border-default)] p-3">
-            <p className="font-medium">
-              {row.sku} · {row.productName}
-            </p>
-            <p>{t('countSaved', { quantity: row.count?.receivedQty ?? 0 })}</p>
-            {row.count?.lots.map((lot) => (
-              <div key={lot.recordId} className="mt-3 text-sm">
-                <p className="text-[var(--sc-text-secondary)]">
-                  {lot.lotCode} · {lot.receivedQty} · {lot.expiresOn ?? '—'} ·{' '}
-                  {lot.qcState === 'REVIEW_REQUIRED'
-                    ? t('qcReviewRequired')
-                    : lot.qcState === 'APPROVED'
-                      ? t('countQcApproved')
-                      : lot.quarantinedQty > 0
-                        ? t('countQuarantine')
-                        : t('countPendingQc')}
-                </p>
-                <ReceiptPhotos
-                  warehouseId={warehouseId}
-                  asnId={asnId}
-                  recordId={lot.recordId}
-                  canWrite={
-                    can('warehouse.asn.uploadPhoto') &&
-                    receipt.status === 'RECEIVING' &&
-                    ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus) &&
-                    lot.qcState !== 'APPROVED'
-                  }
-                />
-                <ReceiptInspectionForm
-                  key={`${lot.recordId}:${refresh}`}
-                  warehouseId={warehouseId}
-                  asnId={asnId}
-                  recordId={lot.recordId}
-                  receivedQty={lot.receivedQty}
-                  requiresQuarantine={
-                    lot.quarantinedQty > 0 || !['SELLABLE', 'NEAR_EXPIRY'].includes(lot.lotStatus)
-                  }
-                  canWrite={
-                    can('warehouse.asn.inspect') &&
-                    receipt.status === 'RECEIVING' &&
-                    ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus)
-                  }
-                  onSaved={(inspection) =>
-                    setReceipt((previous) =>
-                      previous
-                        ? {
-                            ...previous,
-                            version: Math.max(previous.version, inspection.receiptVersion),
-                            lines: previous.lines.map((item) => ({
-                              ...item,
-                              count: item.count
-                                ? {
-                                    ...item.count,
-                                    lots: item.count.lots.map((itemLot) =>
-                                      itemLot.recordId === lot.recordId
-                                        ? { ...itemLot, qcState: 'REVIEW_REQUIRED' }
-                                        : itemLot,
-                                    ),
-                                  }
-                                : null,
-                            })),
-                          }
-                        : previous,
-                    )
-                  }
-                />
-                <ReceiptStockPanel
-                  key={`stock:${lot.recordId}:${refresh}`}
-                  receiptId={receipt.receiptId}
-                  warehouseId={warehouseId}
-                  asnId={asnId}
-                  recordId={lot.recordId}
-                  canWrite={can('warehouse.asn.postStock')}
-                  onSaved={() => {
-                    setRefresh((v) => v + 1);
-                    onReceiptChanged();
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        ))}
       {receipt && (
-        <ReceiptReviewPanel
-          warehouseId={warehouseId}
-          asnId={asnId}
-          receiptVersion={receipt.version}
-          canWrite={can('warehouse.asn.review')}
-          onSaved={() => {
-            setRefresh((v) => v + 1);
-            onReceiptChanged();
-          }}
-        />
-      )}
-      {receipt && (
-        <ReceiptDiscrepancyPanel
-          warehouseId={warehouseId}
-          asnId={asnId}
-          receiptVersion={receipt.version}
-          canWrite={can('warehouse.asn.reportDiscrepancy')}
-          onSaved={() => {
-            setRefresh((v) => v + 1);
-            onReceiptChanged();
-          }}
-        />
+        <ol
+          aria-label={t('receiptSteps')}
+          className="grid gap-2 rounded-lg bg-[var(--sc-bg-secondary)] p-3 text-sm sm:grid-cols-3"
+        >
+          <li>
+            {t('stepCount', {
+              done: receipt.lines.filter((r) => r.count).length,
+              total: receipt.lines.length,
+            })}
+          </li>
+          <li>{t('stepInspect')}</li>
+          <li>{t('stepReview')}</li>
+        </ol>
       )}
       {editable && (
         <form
@@ -251,7 +191,7 @@ export function ReceiptCountForm({
             if (receipt) void send(countCommand(values, operationKey.current, receipt.version));
           })}
         >
-          <fieldset disabled={busy || uncertain || loading} className="space-y-4">
+          <fieldset disabled={isLocked || loading} className="space-y-4">
             <Select
               label={t('countLine')}
               options={openLines.map((row) => ({
@@ -316,18 +256,22 @@ export function ReceiptCountForm({
                     {...register(`lots.${index}.receivedQty`, { valueAsNumber: true })}
                     error={errors.lots?.[index]?.receivedQty ? t('countInvalid') : undefined}
                   />
-                  <Input
-                    label={t('countManufacture', { number: index + 1 })}
-                    type="date"
-                    {...register(`lots.${index}.manufacturedOn`)}
-                    error={errors.lots?.[index]?.manufacturedOn ? t('countInvalid') : undefined}
-                  />
-                  <Input
-                    label={t('countExpiry', { number: index + 1 })}
-                    type="date"
-                    {...register(`lots.${index}.expiresOn`)}
-                    error={errors.lots?.[index]?.expiresOn ? t('countInvalid') : undefined}
-                  />
+                  {line?.trackExpiry && (
+                    <Input
+                      label={t('countManufacture', { number: index + 1 })}
+                      type="date"
+                      {...register(`lots.${index}.manufacturedOn`)}
+                      error={errors.lots?.[index]?.manufacturedOn ? t('countInvalid') : undefined}
+                    />
+                  )}
+                  {line?.trackExpiry && (
+                    <Input
+                      label={t('countExpiry', { number: index + 1 })}
+                      type="date"
+                      {...register(`lots.${index}.expiresOn`)}
+                      error={errors.lots?.[index]?.expiresOn ? t('countInvalid') : undefined}
+                    />
+                  )}
                 </div>
                 <Button type="button" variant="ghost" onClick={() => remove(index)}>
                   {t('countRemoveLot', { number: index + 1 })}
@@ -362,12 +306,146 @@ export function ReceiptCountForm({
                 {t('countRetry')}
               </Button>
             ) : (
-              <Button type="submit" isLoading={busy} disabled={loading}>
+              <Button type="submit" isLoading={busy} disabled={loading || isLocked}>
                 {t('countSave')}
               </Button>
             )}
           </div>
         </form>
+      )}
+      {isLocked && <Alert variant="info" title={t('lockedWork')} />}
+      {receipt?.lines
+        .filter((row) => row.count !== null)
+        .map((row) => (
+          <div key={row.id} className="rounded-lg border border-[var(--sc-border-default)] p-3">
+            <p className="font-medium">
+              {row.sku} · {row.productName}
+            </p>
+            <p>{t('countSaved', { quantity: row.count?.receivedQty ?? 0 })}</p>
+            {row.count?.lots.map((lot) => (
+              <div key={lot.recordId} className="mt-3 text-sm">
+                <p className="text-[var(--sc-text-secondary)]">
+                  {lot.lotCode} · {lot.receivedQty} · {lot.expiresOn ?? '—'} ·{' '}
+                  {lot.qcState === 'REVIEW_REQUIRED'
+                    ? t('qcReviewRequired')
+                    : lot.qcState === 'APPROVED'
+                      ? t('countQcApproved')
+                      : lot.quarantinedQty > 0
+                        ? t('countQuarantine')
+                        : t('countPendingQc')}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isLocked}
+                  onClick={() => setActiveLot(lot.recordId)}
+                >
+                  {t('lotWork', { code: lot.lotCode })}
+                </Button>
+                {activeLot === lot.recordId && (
+                  <>
+                    <ReceiptPhotos
+                      warehouseId={warehouseId}
+                      asnId={asnId}
+                      recordId={lot.recordId}
+                      onPendingChange={handlePending}
+                      onUploaded={() => setPhotoRevision((v) => v + 1)}
+                      canWrite={
+                        !otherPending(`photo:${lot.recordId}`) &&
+                        can('warehouse.asn.uploadPhoto') &&
+                        receipt.status === 'RECEIVING' &&
+                        ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus) &&
+                        lot.qcState !== 'APPROVED'
+                      }
+                    />
+                    <ReceiptInspectionForm
+                      key={`${lot.recordId}:${refresh}`}
+                      warehouseId={warehouseId}
+                      asnId={asnId}
+                      recordId={lot.recordId}
+                      receivedQty={lot.receivedQty}
+                      photoRevision={photoRevision}
+                      onPendingChange={handlePending}
+                      requiresQuarantine={
+                        lot.quarantinedQty > 0 ||
+                        !['SELLABLE', 'NEAR_EXPIRY'].includes(lot.lotStatus)
+                      }
+                      canWrite={
+                        !otherPending(`qc:${lot.recordId}`) &&
+                        can('warehouse.asn.inspect') &&
+                        receipt.status === 'RECEIVING' &&
+                        ['ARRIVED', 'RECEIVING'].includes(receipt.asnStatus)
+                      }
+                      onSaved={(inspection) =>
+                        setReceipt((previous) =>
+                          previous
+                            ? {
+                                ...previous,
+                                version: Math.max(previous.version, inspection.receiptVersion),
+                                lines: previous.lines.map((item) => ({
+                                  ...item,
+                                  count: item.count
+                                    ? {
+                                        ...item.count,
+                                        lots: item.count.lots.map((itemLot) =>
+                                          itemLot.recordId === lot.recordId
+                                            ? { ...itemLot, qcState: 'REVIEW_REQUIRED' }
+                                            : itemLot,
+                                        ),
+                                      }
+                                    : null,
+                                })),
+                              }
+                            : previous,
+                        )
+                      }
+                    />
+                    <ReceiptStockPanel
+                      key={`stock:${lot.recordId}:${refresh}`}
+                      onPendingChange={handlePending}
+                      receiptId={receipt.receiptId}
+                      warehouseId={warehouseId}
+                      asnId={asnId}
+                      recordId={lot.recordId}
+                      canWrite={
+                        !otherPending(`stock:${lot.recordId}`) && can('warehouse.asn.postStock')
+                      }
+                      onSaved={() => {
+                        setRefresh((v) => v + 1);
+                        onReceiptChanged();
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      {receipt && (
+        <ReceiptDiscrepancyPanel
+          onPendingChange={handlePending}
+          warehouseId={warehouseId}
+          asnId={asnId}
+          receiptVersion={receipt.version}
+          canWrite={!otherPending(`discrepancy:${asnId}`) && can('warehouse.asn.reportDiscrepancy')}
+          onSaved={() => {
+            setRefresh((v) => v + 1);
+            onReceiptChanged();
+          }}
+        />
+      )}
+      {receipt && (
+        <ReceiptReviewPanel
+          onPendingChange={handlePending}
+          warehouseId={warehouseId}
+          asnId={asnId}
+          receiptVersion={receipt.version}
+          canWrite={!otherPending(`review:${asnId}`) && can('warehouse.asn.review')}
+          onSaved={() => {
+            setRefresh((v) => v + 1);
+            onReceiptChanged();
+          }}
+        />
       )}
       {!loading && receipt && !editable && openLines.length > 0 && (
         <Alert variant="info" title={t(canWrite ? 'countClosed' : 'countReadOnly')} />
@@ -375,7 +453,7 @@ export function ReceiptCountForm({
       <Button
         type="button"
         variant="outline"
-        disabled={busy || loading}
+        disabled={busy || loading || Object.values(pendingCommands).some(Boolean)}
         onClick={() => {
           setError('');
           setRefresh((value) => value + 1);
