@@ -193,6 +193,7 @@ export function ReceiptCountForm({
         >
           <fieldset disabled={isLocked || loading} className="space-y-4">
             <Select
+              aria-required
               label={t('countLine')}
               options={openLines.map((row) => ({
                 value: row.id,
@@ -216,6 +217,7 @@ export function ReceiptCountForm({
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
+                aria-required
                 label={t('countQuantity')}
                 type="number"
                 min={0}
@@ -242,12 +244,14 @@ export function ReceiptCountForm({
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input
+                    aria-required
                     label={t('countLot', { number: index + 1 })}
                     maxLength={100}
                     {...register(`lots.${index}.lotCode`)}
                     error={errors.lots?.[index]?.lotCode ? t('countInvalid') : undefined}
                   />
                   <Input
+                    aria-required
                     label={t('countLotQuantity', { number: index + 1 })}
                     type="number"
                     min={1}

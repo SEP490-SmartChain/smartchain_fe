@@ -2,6 +2,8 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 
+import { RequiredIndicator } from '../RequiredIndicator/RequiredIndicator';
+
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
@@ -23,7 +25,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
           >
             {label}
-            {props.required && <span className="ml-1 text-[var(--sc-error)]">*</span>}
+            <RequiredIndicator isRequired={props.required || props['aria-required']} />
           </label>
         )}
 

@@ -155,6 +155,7 @@ export function CarrierAccountModal({
         ) : (
           <>
             <Select
+              aria-required
               label={t('warehouse')}
               options={warehouses.map((row) => ({
                 value: row.id,
@@ -165,6 +166,7 @@ export function CarrierAccountModal({
               disabled={isSubmitting}
             />
             <Select
+              aria-required
               label={t('carrier')}
               options={carriers.map((row) => ({ value: row.id, label: row.name }))}
               {...register('carrierId')}
@@ -174,6 +176,7 @@ export function CarrierAccountModal({
           </>
         )}
         <Input
+          aria-required={!account}
           label={t('token')}
           type="password"
           autoComplete="new-password"
@@ -185,6 +188,7 @@ export function CarrierAccountModal({
         />
         {code === 'GHN' && (
           <Input
+            aria-required
             label={t('shopId')}
             maxLength={50}
             {...register('shopId')}
@@ -204,6 +208,7 @@ export function CarrierAccountModal({
         )}
         {code === 'GHTK' && (
           <Input
+            aria-required
             label={t('pickupAddressId')}
             helperText={t('pickupAddressHint')}
             {...register('pick_address_id')}

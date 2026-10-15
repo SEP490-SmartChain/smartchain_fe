@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/Common';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import AuthPageShell from '@/components/layout/AuthPageShell';
 import { cn } from '@/lib/utils';
 
@@ -79,7 +80,7 @@ export default function OtpPage() {
         </div>
         <fieldset>
           <legend className="mb-3 w-full text-center text-sm font-medium text-[var(--sc-text-primary)]">
-            {t('otp_code_label')}
+            {t('otp_code_label')} <RequiredIndicator isRequired />
           </legend>
           <div className="flex justify-center gap-2" onPaste={handlePaste}>
             {digits.map((digit, index) => (
@@ -93,6 +94,7 @@ export default function OtpPage() {
                 inputMode="numeric"
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}
                 aria-label={`${t('otp_code_label')} ${index + 1}`}
+                aria-required
                 value={digit}
                 maxLength={1}
                 className={cn(

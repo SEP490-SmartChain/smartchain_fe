@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { Select } from '@/components/Common/Select/Select';
 
 import type {
@@ -115,7 +116,7 @@ export function TenantStatusModal({
               htmlFor="suspension-reason-select"
               className="mb-1 block text-xs font-medium text-[var(--sc-text-secondary)]"
             >
-              {t('suspension_reason_label')} <span className="text-[var(--sc-error)]">*</span>
+              {t('suspension_reason_label')} <RequiredIndicator isRequired />
             </label>
             <Select
               id="suspension-reason-select"
@@ -128,7 +129,7 @@ export function TenantStatusModal({
           <div>
             <Input
               id="activation-reason-input"
-              label={`${t('activation_reason_label')} *`}
+              label={t('activation_reason_label')}
               placeholder={t('activation_reason_placeholder')}
               value={activationReason}
               onChange={(e) => setActivationReason(e.target.value)}

@@ -93,6 +93,7 @@ export function RuleCommand({
           </Alert>
         )}
         <Input
+          aria-required
           label={t('reason')}
           {...register('reason')}
           error={errors.reason?.message}

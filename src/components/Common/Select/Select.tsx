@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
+import { RequiredIndicator } from '../RequiredIndicator/RequiredIndicator';
+
 export interface SelectOption {
   value: string | number;
   label: string;
@@ -46,7 +48,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
           >
             {label}
-            {props.required && <span className="ml-1 text-[var(--sc-error)]">*</span>}
+            <RequiredIndicator isRequired={props.required || props['aria-required']} />
           </label>
         )}
 

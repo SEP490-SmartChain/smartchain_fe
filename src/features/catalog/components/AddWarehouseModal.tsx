@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -183,7 +184,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               htmlFor="warehouse-code"
               className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
             >
-              {t('code')} <span className="text-[var(--sc-error)]">*</span>
+              {t('code')} <RequiredIndicator isRequired />
             </label>
             <div className="relative">
               <Hash
@@ -191,6 +192,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
               />
               <Input
+                aria-required
                 id="warehouse-code"
                 {...register('code')}
                 readOnly={warehouse !== null}
@@ -205,7 +207,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               htmlFor="warehouse-name"
               className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
             >
-              {t('name')} <span className="text-[var(--sc-error)]">*</span>
+              {t('name')} <RequiredIndicator isRequired />
             </label>
             <div className="relative">
               <Building
@@ -213,6 +215,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
               />
               <Input
+                aria-required
                 id="warehouse-name"
                 {...register('name')}
                 placeholder={t('name')}
@@ -238,7 +241,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
             htmlFor="warehouse-address"
             className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
           >
-            {t('addressDetail')} <span className="text-[var(--sc-error)]">*</span>
+            {t('addressDetail')} <RequiredIndicator isRequired />
           </label>
           <div className="relative">
             <MapPin
@@ -246,6 +249,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
             />
             <Input
+              aria-required
               id="warehouse-address"
               {...register('address')}
               placeholder={t('addressDetailPlaceholder')}
@@ -288,9 +292,10 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               htmlFor="warehouse-latitude"
               className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
             >
-              {t('latitude')} <span className="text-[var(--sc-error)]">*</span>
+              {t('latitude')} <RequiredIndicator isRequired />
             </label>
             <Input
+              aria-required
               type="number"
               step="any"
               id="warehouse-latitude"
@@ -303,9 +308,10 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               htmlFor="warehouse-longitude"
               className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
             >
-              {t('longitude')} <span className="text-[var(--sc-error)]">*</span>
+              {t('longitude')} <RequiredIndicator isRequired />
             </label>
             <Input
+              aria-required
               type="number"
               step="any"
               id="warehouse-longitude"
@@ -318,7 +324,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               htmlFor="warehouse-dailyCapacity"
               className="mb-1.5 block text-sm font-medium text-[var(--sc-text-primary)]"
             >
-              {t('dailyCapacity')} <span className="text-[var(--sc-error)]">*</span>
+              {t('dailyCapacity')} <RequiredIndicator isRequired />
             </label>
             <div className="relative">
               <Activity
@@ -326,6 +332,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
               />
               <Input
+                aria-required
                 type="number"
                 id="warehouse-dailyCapacity"
                 {...register('dailyCapacity', { valueAsNumber: true })}
@@ -350,6 +357,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
               </label>
             ) : (
               <Select
+                aria-required
                 {...register('region')}
                 label={t('region')}
                 options={(['NORTH', 'CENTRAL', 'SOUTH'] as const).map((value) => ({

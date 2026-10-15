@@ -226,6 +226,7 @@ export function ReceiptStockPanel({
                 >
                   <fieldset disabled={busy || loading} className="space-y-3">
                     <Select
+                      aria-required
                       label={t('stockBin')}
                       {...register('binId')}
                       options={state.bins.map((b) => ({
@@ -236,6 +237,7 @@ export function ReceiptStockPanel({
                     />
                     <Select
                       label={t('stockQuarantineBin')}
+                      aria-required={state.acceptedQty > 0 && state.quarantinedQty > 0}
                       {...register('quarantineBinId', { setValueAs: (v) => v || undefined })}
                       options={[
                         { value: '', label: t('stockNoQuarantineBin') },

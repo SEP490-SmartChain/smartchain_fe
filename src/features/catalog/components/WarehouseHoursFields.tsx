@@ -34,6 +34,7 @@ export function WarehouseHoursFields({ control, errors, start, end, cutoff }: Pr
           name="operatingStartMinute"
           render={({ field }) => (
             <Input
+              aria-required
               type="time"
               label={t('operatingStartLabel')}
               value={minuteToTime(field.value)}
@@ -52,6 +53,7 @@ export function WarehouseHoursFields({ control, errors, start, end, cutoff }: Pr
             render={({ field }) => (
               <>
                 <Input
+                  aria-required={!endOfDay}
                   type="time"
                   label={t('operatingEndLabel')}
                   value={endOfDay ? '' : minuteToTime(field.value)}
@@ -78,6 +80,7 @@ export function WarehouseHoursFields({ control, errors, start, end, cutoff }: Pr
           name="cutoffMinute"
           render={({ field }) => (
             <Input
+              aria-required
               type="time"
               label={t('cutoffLabel')}
               value={minuteToTime(field.value)}

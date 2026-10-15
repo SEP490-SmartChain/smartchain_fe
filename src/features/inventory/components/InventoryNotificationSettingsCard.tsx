@@ -145,6 +145,7 @@ export function InventoryNotificationSettingsCard() {
           }
         />
         <Input
+          aria-required
           type="number"
           min={0}
           max={365}
@@ -154,6 +155,7 @@ export function InventoryNotificationSettingsCard() {
           onChange={(event) => set('transitDays', Number(event.target.value))}
         />
         <Input
+          aria-required
           type="number"
           min={0}
           max={365}
@@ -165,6 +167,7 @@ export function InventoryNotificationSettingsCard() {
         <Input
           type="email"
           label={t('emailRecipient')}
+          aria-required={form.channels.includes('EMAIL')}
           value={form.emailRecipient ?? ''}
           disabled={loading || saving}
           onChange={(event) => set('emailRecipient', event.target.value || null)}
@@ -172,6 +175,7 @@ export function InventoryNotificationSettingsCard() {
         <Input
           type="tel"
           label={t('zaloRecipient')}
+          aria-required={form.channels.includes('ZALO')}
           value={form.zaloRecipient ?? ''}
           disabled={loading || saving}
           onChange={(event) => set('zaloRecipient', event.target.value || null)}

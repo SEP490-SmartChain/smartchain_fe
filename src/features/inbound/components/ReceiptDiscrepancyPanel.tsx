@@ -257,6 +257,7 @@ export function ReceiptDiscrepancyPanel({
                   >
                     <fieldset className="space-y-3" disabled={busy || loading || Boolean(attempt)}>
                       <Select
+                        aria-required
                         label={t('discrepancySource')}
                         options={[
                           { value: '', label: t('discrepancySelect') },
@@ -279,6 +280,7 @@ export function ReceiptDiscrepancyPanel({
                         error={errors.source ? t('discrepancySelect') : undefined}
                       />
                       <Input
+                        aria-required
                         label={t('discrepancyReason')}
                         maxLength={1000}
                         {...register('reason')}

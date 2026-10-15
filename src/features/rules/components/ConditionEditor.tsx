@@ -66,6 +66,7 @@ export function ConditionEditor({
         <div className="flex flex-wrap gap-3">
           <div className="min-w-44 flex-1">
             <Select
+              aria-required
               label={t('conditionMode')}
               value={value.kind}
               options={modes}
@@ -165,6 +166,7 @@ export function ConditionEditor({
   return (
     <div className="space-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-3">
       <Select
+        aria-required
         label={t('conditionMode')}
         value="PREDICATE"
         options={modes}
@@ -173,6 +175,7 @@ export function ConditionEditor({
       />
       <div className="grid gap-3 sm:grid-cols-3">
         <Select
+          aria-required
           label={t('field')}
           value={value.field}
           options={FIELDS.map((f) => ({ value: f, label: t(`fields.${f}`) }))}
@@ -190,6 +193,7 @@ export function ConditionEditor({
           }}
         />
         <Select
+          aria-required
           label={t('operator')}
           value={value.operator}
           options={operators.map((op) => ({ value: op, label: t(`operators.${op}`) }))}
@@ -199,6 +203,7 @@ export function ConditionEditor({
         {value.operator !== 'EXISTS' &&
           (RULE_FIELDS[value.field] === 'BOOLEAN' && 'value' in value ? (
             <Select
+              aria-required
               label={t('value')}
               value={text}
               options={[
@@ -210,6 +215,7 @@ export function ConditionEditor({
             />
           ) : value.field === 'warehouseId' && 'value' in value ? (
             <Select
+              aria-required
               label={t('value')}
               value={text}
               options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
@@ -218,6 +224,7 @@ export function ConditionEditor({
             />
           ) : (
             <Input
+              aria-required
               label={t('value')}
               value={text}
               disabled={disabled}

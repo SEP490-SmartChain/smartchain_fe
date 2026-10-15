@@ -44,12 +44,14 @@ export function ZoneForm({
     <Modal isOpen onClose={onClose} title={t(zone ? 'editZone' : 'createZone')}>
       <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(onSave)(event)}>
         <Input
+          aria-required
           label={t('code')}
           readOnly={zone !== null}
           {...register('code')}
           error={errors.code ? t('invalid') : undefined}
         />
         <Select
+          aria-required
           label={t('zoneType')}
           {...register('zoneType')}
           options={(['RECEIVING', 'STORAGE', 'PACKING', 'QUARANTINE'] as const).map((value) => ({
@@ -109,6 +111,7 @@ export function BinForm({
       <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(onSave)(event)}>
         {!bin && storage && (
           <Select
+            aria-required
             label={t('mode')}
             {...register('mode')}
             options={[
@@ -119,6 +122,7 @@ export function BinForm({
         )}
         {mode === 'single' ? (
           <Input
+            aria-required
             label={t('code')}
             readOnly={bin !== null}
             {...register('code')}
@@ -139,6 +143,7 @@ export function BinForm({
                 ] as const
               ).map((field) => (
                 <Input
+                  aria-required
                   key={field}
                   type="number"
                   min={1}
@@ -152,12 +157,14 @@ export function BinForm({
           </>
         )}
         <Input
+          aria-required
           label={t('maxWeightG')}
           inputMode="numeric"
           {...register('maxWeightG')}
           error={errors.maxWeightG ? t('invalid') : undefined}
         />
         <Input
+          aria-required
           label={t('maxVolumeM3')}
           inputMode="decimal"
           {...register('maxVolumeM3')}

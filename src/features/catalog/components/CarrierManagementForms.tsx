@@ -70,6 +70,7 @@ export function CarrierEditor({
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNotice message={error} />}
         <Input
+          aria-required
           label={t('carrierCode')}
           {...register('code')}
           readOnly={!!current}
@@ -77,6 +78,7 @@ export function CarrierEditor({
           disabled={isSubmitting}
         />
         <Input
+          aria-required
           label={t('carrierName')}
           {...register('name')}
           error={errors.name ? t('invalidName') : undefined}
@@ -163,6 +165,7 @@ export function CarrierServiceEditor({
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNotice message={error} />}
         <Input
+          aria-required
           label={t('service_code')}
           {...register('code')}
           readOnly={!!current}
@@ -171,12 +174,14 @@ export function CarrierServiceEditor({
           helperText={t('serviceCodeHint')}
         />
         <Input
+          aria-required
           label={t('service_name')}
           {...register('name')}
           error={errors.name ? t('invalidService') : undefined}
           disabled={isSubmitting}
         />
         <Select
+          aria-required
           label={t('mode')}
           {...register('transportMode')}
           options={['ROAD', 'AIR', 'SEA', 'RAIL'].map((value) => ({
@@ -186,6 +191,7 @@ export function CarrierServiceEditor({
           disabled={isSubmitting}
         />
         <Input
+          aria-required
           type="number"
           label={t('volumetric')}
           {...register('volumetricDivisor', { valueAsNumber: true })}

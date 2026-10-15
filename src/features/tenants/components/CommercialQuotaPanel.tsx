@@ -216,6 +216,7 @@ export function CommercialQuotaPanel({ tenantId }: { tenantId?: string }) {
           >
             <h3 className="text-base font-semibold">{t('requestChange')}</h3>
             <Select
+              aria-required
               label={t('newPlan')}
               placeholder={t('choose')}
               options={plans
@@ -238,6 +239,7 @@ export function CommercialQuotaPanel({ tenantId }: { tenantId?: string }) {
           >
             <h3 className="text-base font-semibold">{t('requestClose')}</h3>
             <Input
+              aria-required
               label={t('reason')}
               error={close.formState.errors.reason ? t('invalid') : undefined}
               {...close.register('reason')}

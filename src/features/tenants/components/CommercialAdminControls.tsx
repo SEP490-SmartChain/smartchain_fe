@@ -129,6 +129,7 @@ export function CommercialAdminControls({
         <form onSubmit={setStatus} className="space-y-3">
           <h3 className="text-base font-semibold">{t('serviceControl')}</h3>
           <Input
+            aria-required
             label={t('reason')}
             error={service.formState.errors.reason ? t('invalid') : undefined}
             {...service.register('reason')}
@@ -143,6 +144,7 @@ export function CommercialAdminControls({
           <h3 className="text-base font-semibold">{t('finalizeClosure')}</h3>
           <p className="text-sm">{t('closureGuardHint')}</p>
           <Input
+            aria-required
             label={t('reason')}
             error={closure.formState.errors.reason ? t('invalid') : undefined}
             {...closure.register('reason')}
@@ -158,6 +160,7 @@ export function CommercialAdminControls({
           <p className="text-sm">{t('reconcileHint')}</p>
           <p className="break-all text-xs">ORCA-{request.id}</p>
           <Input
+            aria-required
             label={t('providerDocument')}
             error={reconcile.formState.errors.documentId ? t('invalid') : undefined}
             {...reconcile.register('documentId')}

@@ -239,12 +239,14 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
+            aria-required
             label={t('name')}
             {...register('name')}
             error={errors.name?.message}
             disabled={busy}
           />
           <Select
+            aria-required
             label={t('type')}
             {...register('kind')}
             options={['ALLOCATION', 'CARRIER'].map((v) => ({ value: v, label: t(`types.${v}`) }))}
@@ -267,6 +269,7 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
             error={errors.exceptionTenantId?.message}
           />
           <Input
+            aria-required
             label={t('priority')}
             type="number"
             min="0"
@@ -335,6 +338,7 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
           <h3 className="font-semibold text-[var(--sc-text-primary)]">{t('thenAction')}</h3>
           {ruleKind === 'ALLOCATION' ? (
             <Select
+              aria-required
               label={t('strategy')}
               {...register('strategy')}
               options={['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST'].map((v) => ({
@@ -346,6 +350,7 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
           ) : (
             <div className="space-y-3">
               <Select
+                aria-required
                 label={t('primaryService')}
                 {...register('carrierServiceId')}
                 options={serviceOptions}
@@ -405,6 +410,7 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
           )}
         </section>
         <Input
+          aria-required
           label={t('reason')}
           {...register('reason')}
           error={errors.reason?.message}

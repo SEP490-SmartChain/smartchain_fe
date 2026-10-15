@@ -62,6 +62,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
         <div className="grid gap-4 sm:grid-cols-2">
           {PROFILE_FIELDS.map((field) => (
             <Input
+              aria-required={plan.requiresBusinessProfile && field !== 'registrationNumber'}
               key={field}
               label={t(`profile.${field}`)}
               {...form.register(field)}
@@ -75,6 +76,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
         {t('preview')}
       </Button>
       <Checkbox
+        aria-required
         {...form.register('hasReviewedTerms')}
         disabled={busy}
         label={t('reviewedTerms')}

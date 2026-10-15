@@ -157,6 +157,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
+            aria-required
             label={t('warehouse')}
             placeholder={t('selectWarehouse')}
             options={warehouses.map((warehouse) => ({
@@ -179,6 +180,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
             error={errors.expectedArrivalAt ? t('invalidForm') : undefined}
           />
           <Input
+            aria-required
             label={t('cartons')}
             type="number"
             min={1}
@@ -197,6 +199,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <Select
+                aria-required
                 label={t('sku')}
                 placeholder={t('selectSku')}
                 disabled={loading}
@@ -208,6 +211,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
                 error={errors.lines?.[index]?.productId ? t('invalidForm') : undefined}
               />
               <Input
+                aria-required
                 label={t('quantity')}
                 type="number"
                 min={1}

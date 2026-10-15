@@ -183,6 +183,7 @@ export function CommercialPlanAdmin() {
         <h2 className="text-lg font-semibold">{t('newPlan')}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <Select
+            aria-required
             label={t('planCode')}
             options={['BASIC', 'STANDARD', 'ENTERPRISE'].map((value) => ({ value, label: value }))}
             {...plan.register('code', {
@@ -204,14 +205,21 @@ export function CommercialPlanAdmin() {
               },
             })}
           />
-          <Input label={t('planName')} error={fields('name')} {...plan.register('name')} />
           <Input
+            aria-required
+            label={t('planName')}
+            error={fields('name')}
+            {...plan.register('name')}
+          />
+          <Input
+            aria-required
             label={t('monthlyFee')}
             inputMode="numeric"
             error={fields('monthlyFeeVnd')}
             {...plan.register('monthlyFeeVnd')}
           />
           <Input
+            aria-required
             label={t('warehouseAllowance')}
             type="number"
             min={1}
@@ -219,6 +227,7 @@ export function CommercialPlanAdmin() {
             {...plan.register('warehouseAllowance', { valueAsNumber: true })}
           />
           <Input
+            aria-required
             label={t('ordersAllowance')}
             type="number"
             min={0}
@@ -226,6 +235,7 @@ export function CommercialPlanAdmin() {
             {...plan.register('salesOrderAllowance', { valueAsNumber: true })}
           />
           <Input
+            aria-required
             label={t('storageAllowance')}
             inputMode="decimal"
             helperText={t('storageHint')}
@@ -239,6 +249,7 @@ export function CommercialPlanAdmin() {
             {...plan.register('includedServices')}
           />
           <Input
+            aria-required
             label={t('effectiveFrom')}
             type="date"
             error={fields('effectiveFrom')}
@@ -256,6 +267,7 @@ export function CommercialPlanAdmin() {
         )}
         <div className="grid gap-4 md:grid-cols-2">
           <Select
+            aria-required
             label={t('planVersion')}
             error={agreementError('planVersionId')}
             placeholder={t('choose')}
@@ -270,11 +282,13 @@ export function CommercialPlanAdmin() {
             {...agreement.register('planVersionId')}
           />
           <Input
+            aria-required
             label={t('agreementVersion')}
             error={agreementError('versionRef')}
             {...agreement.register('versionRef')}
           />
           <Select
+            aria-required
             label={t('serviceTariff')}
             error={agreementError('serviceTariffVersionId')}
             placeholder={t('choose')}
@@ -287,6 +301,7 @@ export function CommercialPlanAdmin() {
             {...agreement.register('serviceTariffVersionId')}
           />
           <Select
+            aria-required
             label={t('freightTariff')}
             error={agreementError('freightTariffVersionId')}
             placeholder={t('choose')}
@@ -299,24 +314,28 @@ export function CommercialPlanAdmin() {
             {...agreement.register('freightTariffVersionId')}
           />
           <Input
+            aria-required
             label={t('deposit')}
             inputMode="numeric"
             error={agreementError('depositRequiredVnd')}
             {...agreement.register('depositRequiredVnd')}
           />
           <Input
+            aria-required
             label={t('creditLimit')}
             inputMode="numeric"
             error={agreementError('creditLimitVnd')}
             {...agreement.register('creditLimitVnd')}
           />
           <Input
+            aria-required
             label={t('claimCap')}
             inputMode="numeric"
             error={agreementError('claimCapVnd')}
             {...agreement.register('claimCapVnd')}
           />
           <Input
+            aria-required
             label={t('signerRole')}
             error={agreementError('signerRole')}
             {...agreement.register('signerRole')}
@@ -328,6 +347,7 @@ export function CommercialPlanAdmin() {
             {...agreement.register('templateId')}
           />
           <Select
+            aria-required
             label={t('templateLayout')}
             options={[
               { value: 'ORCA_REFERENCE_16_V1', label: t('referenceLayout') },

@@ -211,6 +211,7 @@ export function EditProductModal({ product, onClose, onChanged }: EditProductMod
         </dl>
 
         <Select
+          aria-required
           label={t('fieldStatus')}
           disabled={product?.isActive}
           options={[

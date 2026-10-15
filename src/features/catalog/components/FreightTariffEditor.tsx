@@ -192,6 +192,7 @@ export function FreightTariffEditor({
           {kind === 'purchase' ? (
             <>
               <Select
+                aria-required
                 label={t('service')}
                 options={services.map((s) => ({
                   value: s.id,
@@ -204,8 +205,9 @@ export function FreightTariffEditor({
                   },
                 })}
               />
-              <Input label={t('zone')} {...bindField('zone')} />
+              <Input aria-required label={t('zone')} {...bindField('zone')} />
               <Input
+                aria-required
                 label={t('volumeMin')}
                 type="number"
                 {...bindField('volumeTierMin', numberOptions)}
@@ -218,35 +220,45 @@ export function FreightTariffEditor({
             </>
           ) : (
             <>
-              <Input label={t('code')} {...bindField('code')} />
+              <Input aria-required label={t('code')} {...bindField('code')} />
               <Input
+                aria-required
                 label={t('versionNo')}
                 type="number"
                 {...bindField('versionNo', numberOptions)}
               />
               <Input
+                aria-required
                 label={t('referenceSource')}
                 className="md:col-span-2"
                 {...bindField('referenceSource')}
               />
             </>
           )}
-          <Input label={t('effectiveFrom')} type="datetime-local" {...bindField('effectiveFrom')} />
+          <Input
+            aria-required
+            label={t('effectiveFrom')}
+            type="datetime-local"
+            {...bindField('effectiveFrom')}
+          />
           <Input label={t('effectiveTo')} type="datetime-local" {...bindField('effectiveTo')} />
           {kind === 'purchase' && (
             <>
               <Input
+                aria-required
                 label={t('divisor')}
                 type="number"
                 {...bindField('policy.divisor', numberOptions)}
               />
               <Input
+                aria-required
                 label={t('rounding')}
                 type="number"
                 {...bindField('policy.roundingGram', numberOptions)}
               />
-              <Input label={t('returnFee')} {...bindField('policy.returnFeeVnd')} />
+              <Input aria-required label={t('returnFee')} {...bindField('policy.returnFeeVnd')} />
               <Input
+                aria-required
                 label={t('declaredFee')}
                 type="number"
                 {...bindField('policy.declaredValuePpm', numberOptions)}
@@ -267,6 +279,7 @@ export function FreightTariffEditor({
               {kind === 'sell' && (
                 <>
                   <Select
+                    aria-required
                     label={t('direction')}
                     options={['OUTBOUND', 'RETURN'].map((value) => ({
                       value,
@@ -275,6 +288,7 @@ export function FreightTariffEditor({
                     {...bindField(`bands.${index}.direction`)}
                   />
                   <Select
+                    aria-required
                     label={t('lane')}
                     options={['INTRA_PROVINCE', 'INTRA_REGION', 'INTER_REGION'].map((value) => ({
                       value,
@@ -285,6 +299,7 @@ export function FreightTariffEditor({
                 </>
               )}
               <Input
+                aria-required
                 label={t('minWeight')}
                 type="number"
                 {...bindField(`bands.${index}.minWeightG`, numberOptions)}
@@ -295,43 +310,59 @@ export function FreightTariffEditor({
                 {...bindField(`bands.${index}.maxWeightG`, nullableOptions)}
               />
               <Input
+                aria-required
                 label={t('includedWeight')}
                 type="number"
                 {...bindField(`bands.${index}.includedWeightG`, numberOptions)}
               />
               <Input
+                aria-required
                 label={t('stepWeight')}
                 type="number"
                 {...bindField(`bands.${index}.stepWeightG`, numberOptions)}
               />
-              <Input label={t('basePrice')} {...bindField(`bands.${index}.basePriceVnd`)} />
-              <Input label={t('stepPrice')} {...bindField(`bands.${index}.stepPriceVnd`)} />
+              <Input
+                aria-required
+                label={t('basePrice')}
+                {...bindField(`bands.${index}.basePriceVnd`)}
+              />
+              <Input
+                aria-required
+                label={t('stepPrice')}
+                {...bindField(`bands.${index}.stepPriceVnd`)}
+              />
               {kind === 'sell' && (
                 <>
                   <Input
+                    aria-required
                     label={t('divisor')}
                     type="number"
                     {...bindField(`bands.${index}.policy.divisor`, numberOptions)}
                   />
                   <Input
+                    aria-required
                     label={t('rounding')}
                     type="number"
                     {...bindField(`bands.${index}.policy.roundingGram`, numberOptions)}
                   />
                   <Input
+                    aria-required
                     label={t('returnFee')}
                     {...bindField(`bands.${index}.policy.returnFeeVnd`)}
                   />
                   <Input
+                    aria-required
                     label={t('declaredFee')}
                     type="number"
                     {...bindField(`bands.${index}.policy.declaredValuePpm`, numberOptions)}
                   />
                   <Input
+                    aria-required
                     label={t('referenceBase')}
                     {...bindField(`bands.${index}.referenceBaseVnd`)}
                   />
                   <Input
+                    aria-required
                     label={t('referenceStep')}
                     {...bindField(`bands.${index}.referenceStepVnd`)}
                   />

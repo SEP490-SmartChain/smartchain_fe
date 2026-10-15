@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/apiClient';
 
@@ -29,6 +30,7 @@ function OtpInput({
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const tAuth = useTranslations('Auth');
   const fieldIds = ['otp-1', 'otp-2', 'otp-3', 'otp-4', 'otp-5', 'otp-6'] as const;
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const digits = fieldIds.map((_, index) => value[index] || '');
@@ -99,6 +101,8 @@ function OtpInput({
       {fieldIds.map((fieldId, idx) => (
         <input
           key={fieldId}
+          aria-required
+          aria-label={`${tAuth('otp_code_label')} ${idx + 1}`}
           ref={(el) => {
             refs.current[idx] = el;
           }}
@@ -261,7 +265,12 @@ function StepOtp({
         <p className="text-sm text-[var(--sc-text-secondary)]">{tAuth('otp_hint', { email })}</p>
       </div>
 
-      <OtpInput value={otp} onChange={setOtp} disabled={isVerifying} />
+      <fieldset>
+        <legend className="mb-3 w-full text-center text-sm font-medium text-[var(--sc-text-primary)]">
+          {tAuth('otp_code_label')} <RequiredIndicator isRequired />
+        </legend>
+        <OtpInput value={otp} onChange={setOtp} disabled={isVerifying} />
+      </fieldset>
 
       <Button
         onClick={handleVerify}
@@ -443,10 +452,11 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           htmlFor="password"
           className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
         >
-          {tAuth('password_label')} <span className="text-[#EF4444]">*</span>
+          {tAuth('password_label')} <RequiredIndicator isRequired />
         </label>
         <div className="relative">
           <input
+            aria-required
             id="password"
             type={showPassword ? 'text' : 'password'}
             className={cn(
@@ -479,10 +489,11 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           htmlFor="confirmPassword"
           className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
         >
-          {tAuth('confirm_password_label')} <span className="text-[#EF4444]">*</span>
+          {tAuth('confirm_password_label')} <RequiredIndicator isRequired />
         </label>
         <div className="relative">
           <input
+            aria-required
             id="confirmPassword"
             type={showConfirmPassword ? 'text' : 'password'}
             className={cn(
@@ -515,6 +526,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
 
       {/* Terms Agreement */}
       <Checkbox
+        aria-required
         label={tAuth('agree_to_terms_label')}
         {...register('agreeToTerms')}
         error={errors.agreeToTerms?.message}

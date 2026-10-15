@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Checkbox, Input, Select } from '@/components/Common';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -220,6 +221,7 @@ export function ReceiptInspectionForm({
                 {requiresQuarantine && <Alert variant="warning" title={t('qcAcceptanceBlocked')} />}
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Input
+                    aria-required
                     label={t('qcAccepted')}
                     type="number"
                     min={0}
@@ -237,6 +239,7 @@ export function ReceiptInspectionForm({
                     }
                   />
                   <Input
+                    aria-required
                     label={t('qcQuarantined')}
                     type="number"
                     min={0}
@@ -246,6 +249,7 @@ export function ReceiptInspectionForm({
                     error={errors.quarantinedQty ? t('qcInvalid') : undefined}
                   />
                   <Input
+                    aria-required
                     label={t('qcRejected')}
                     type="number"
                     min={0}
@@ -259,11 +263,13 @@ export function ReceiptInspectionForm({
                   {t('qcPartition', { count: classified, actual: receivedQty })}
                 </p>
                 <Select
+                  aria-required
                   label={t('qcReasonCode')}
                   options={qcReasons.map((value) => ({ value, label: t(`qcReason${value}`) }))}
                   {...register('reasonCode')}
                 />
                 <Input
+                  aria-required={values.quarantinedQty + values.rejectedQty > 0}
                   label={t('qcReason')}
                   maxLength={1000}
                   {...register('reason')}
@@ -274,7 +280,10 @@ export function ReceiptInspectionForm({
                   name="photoIds"
                   render={({ field }) => (
                     <div className="space-y-2">
-                      <p className="font-medium">{t('qcPhotos')}</p>
+                      <p className="font-medium">
+                        {t('qcPhotos')}{' '}
+                        <RequiredIndicator isRequired={values.reasonCode === 'DAMAGED'} />
+                      </p>
                       {!photos.length && <p className="text-sm">{t('qcNoPhotos')}</p>}
                       {photos.map((photo, index) => (
                         <Checkbox

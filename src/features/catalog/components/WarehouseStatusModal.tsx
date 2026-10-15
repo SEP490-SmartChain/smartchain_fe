@@ -7,6 +7,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -93,8 +94,9 @@ export function WarehouseStatusModal({
         </Alert>
       )}
       <label>
-        {t('reason')}
+        {t('reason')} <RequiredIndicator isRequired />
         <Input
+          aria-required
           value={reason}
           minLength={3}
           maxLength={500}

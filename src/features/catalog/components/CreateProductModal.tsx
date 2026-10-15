@@ -84,6 +84,7 @@ export function CreateProductModal({ isOpen, onClose, onChanged }: Props) {
         onSubmit={(event) => void handleSubmit(handleCreate)(event)}
       >
         <Input
+          aria-required
           label={t('fieldSku')}
           {...register('sku')}
           error={errors.sku?.message ? validation(errors.sku.message) : undefined}
@@ -104,6 +105,7 @@ export function CreateProductModal({ isOpen, onClose, onChanged }: Props) {
           }
         />
         <Input
+          aria-required
           label={t('fieldName')}
           {...register('name')}
           error={errors.name?.message ? validation(errors.name.message) : undefined}
@@ -112,6 +114,7 @@ export function CreateProductModal({ isOpen, onClose, onChanged }: Props) {
           {(['weightKg', 'lengthCm', 'widthCm', 'heightCm', 'declaredValue'] as const).map(
             (field) => (
               <Input
+                aria-required
                 key={field}
                 label={t(`field${field[0].toUpperCase()}${field.slice(1)}`)}
                 type="number"

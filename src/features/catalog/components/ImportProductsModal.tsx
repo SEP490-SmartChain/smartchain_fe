@@ -66,6 +66,7 @@ export function ImportProductsModal({ isOpen, onClose, onChanged }: Props) {
           {t('downloadTemplate')}
         </a>
         <Input
+          aria-required
           label={t('workbookFile')}
           type="file"
           accept=".xlsx"

@@ -10,6 +10,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -113,7 +114,9 @@ export function WarehouseCalendarPanel({
         <>
           <form onSubmit={save} className="space-y-3">
             <fieldset disabled={!canEdit || isSubmitting} className="space-y-2">
-              <legend>{t('workingDays')}</legend>
+              <legend>
+                {t('workingDays')} <RequiredIndicator isRequired />
+              </legend>
               <div className="flex flex-wrap gap-4">
                 {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                   <Checkbox

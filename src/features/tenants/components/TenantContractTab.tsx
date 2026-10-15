@@ -213,6 +213,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
           <h3 className="text-base font-semibold">{t('customDraft')}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <Select
+              aria-required
               label={t('planVersion')}
               placeholder={t('choose')}
               error={invalid('planVersionId')}
@@ -225,11 +226,13 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
               {...custom.register('planVersionId')}
             />
             <Input
+              aria-required
               label={t('customVersion')}
               error={invalid('agreementVersionRef')}
               {...custom.register('agreementVersionRef')}
             />
             <Select
+              aria-required
               label={t('serviceTariff')}
               placeholder={t('choose')}
               error={invalid('serviceTariffVersionId')}
@@ -242,6 +245,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
               {...custom.register('serviceTariffVersionId')}
             />
             <Select
+              aria-required
               label={t('freightTariff')}
               placeholder={t('choose')}
               error={invalid('freightTariffVersionId')}
@@ -254,24 +258,28 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
               {...custom.register('freightTariffVersionId')}
             />
             <Input
+              aria-required
               label={t('effectiveFrom')}
               type="date"
               error={invalid('effectiveFrom')}
               {...custom.register('effectiveFrom')}
             />
             <Input
+              aria-required
               label={t('deposit')}
               error={invalid('depositRequiredVnd')}
               inputMode="numeric"
               {...custom.register('depositRequiredVnd')}
             />
             <Input
+              aria-required
               label={t('creditLimit')}
               error={invalid('creditLimitVnd')}
               inputMode="numeric"
               {...custom.register('creditLimitVnd')}
             />
             <Input
+              aria-required
               label={t('claimCap')}
               error={invalid('claimCapVnd')}
               inputMode="numeric"
@@ -299,6 +307,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
             <>
               <form onSubmit={upload} className="space-y-3">
                 <Input
+                  aria-required
                   label={t('signedPdf')}
                   type="file"
                   accept="application/pdf"
@@ -311,6 +320,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
               </form>
               <form onSubmit={confirm} className="space-y-3">
                 <Input
+                  aria-required
                   label={t('reason')}
                   error={confirmation.formState.errors.reason ? t('invalid') : undefined}
                   {...confirmation.register('reason')}

@@ -10,6 +10,7 @@ export { Card, CardHeader, CardContent, CardFooter } from './Card/Card';
 export { Button } from './Button/Button';
 export type { ButtonProps } from './Button/Button';
 export { Input } from './Input/Input';
+export { RequiredIndicator } from './RequiredIndicator/RequiredIndicator';
 export type { InputProps } from './Input/Input';
 export { Checkbox } from './Checkbox/Checkbox';
 export type { CheckboxProps } from './Checkbox/Checkbox';

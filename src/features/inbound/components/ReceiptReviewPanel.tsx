@@ -277,6 +277,7 @@ export function ReceiptReviewPanel({
             >
               <fieldset disabled={busy || loading || !!attempt} className="space-y-3">
                 <Select
+                  aria-required
                   label={t('reviewDecision')}
                   {...register('decision')}
                   options={[
@@ -285,6 +286,7 @@ export function ReceiptReviewPanel({
                   ]}
                 />
                 <Input
+                  aria-required
                   label={t('reviewReason')}
                   {...register('reason')}
                   maxLength={1000}
@@ -294,6 +296,7 @@ export function ReceiptReviewPanel({
                   <>
                     <Alert variant="warning" title={t('reviewReturnWarning')} />
                     <Checkbox
+                      aria-required
                       label={t('reviewReturnConfirm')}
                       checked={returnConfirmed}
                       onChange={(event) => setReturnConfirmed(event.target.checked)}

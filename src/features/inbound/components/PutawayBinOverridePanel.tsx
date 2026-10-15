@@ -175,6 +175,7 @@ export function PutawayBinOverridePanel({
                   <form className="space-y-4" onSubmit={handleSubmit((input) => void send(input))}>
                     <fieldset disabled={locked} className="space-y-4">
                       <Select
+                        aria-required
                         label={t('bin')}
                         options={bins.map((b) => ({ value: b.id, label: b.code }))}
                         {...register('toBinId')}

@@ -323,6 +323,7 @@ export default function ProfileSettings() {
         <form onSubmit={handleSaveProfile} className="p-3.5 sm:p-4 sm:px-6">
           <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3.5">
             <Input
+              aria-required
               label={t('fullName')}
               value={fullNameInput}
               placeholder="Nguyễn Văn A"

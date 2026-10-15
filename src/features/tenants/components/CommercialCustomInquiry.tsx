@@ -133,6 +133,7 @@ export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: 
       {allowSubmit && !loading && !error && inquiries.length === 0 && (
         <form onSubmit={submit} className="space-y-3">
           <Input
+            aria-required
             label={t('inquiryMessage')}
             error={form.formState.errors.message ? t('inquiryInvalid') : undefined}
             {...form.register('message')}

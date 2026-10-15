@@ -125,12 +125,7 @@ export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAcc
               placeholder={t('lastNamePlaceholder')}
               required
             />
-            <Input
-              name="username"
-              label={t('username')}
-              placeholder={t('usernamePlaceholder')}
-              required
-            />
+            <Input name="username" label={t('username')} placeholder={t('usernamePlaceholder')} />
             <Input
               name="email"
               type="email"
@@ -145,9 +140,8 @@ export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAcc
               label={t('contactNumber')}
               placeholder={t('contactNumberPlaceholder')}
               leftIcon={<Phone aria-hidden="true" size={16} />}
-              required
             />
-            <Input name="joiningDate" type="date" label={t('joiningDate')} required />
+            <Input name="joiningDate" type="date" label={t('joiningDate')} />
 
             <div className="sm:col-span-2">
               <label
@@ -155,13 +149,11 @@ export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAcc
                 className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
               >
                 {t('address')}
-                <span className="ml-1 text-[var(--sc-error)]">*</span>
               </label>
               <textarea
                 id="staff-address"
                 name="address"
                 rows={4}
-                required
                 placeholder={t('addressPlaceholder')}
                 className="w-full resize-y rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 py-2.5 text-sm text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-[var(--sc-text-tertiary)] hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]"
               />

@@ -185,6 +185,7 @@ export function RuleSimulator({ kind, rules }: { kind: RuleKind; rules: RuleReco
           />
           {values.ruleId && (
             <Input
+              aria-required
               label={t('savedVersion')}
               inputMode="numeric"
               {...register('ruleVersion')}

@@ -64,6 +64,7 @@ export function FreightTariffClose({
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('closeHelp')}</p>
         {error && <Alert variant="error">{t('saveError')}</Alert>}
         <Input
+          aria-required
           label={t('effectiveTo')}
           type="datetime-local"
           error={form.formState.errors.end ? t('validation') : undefined}

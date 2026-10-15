@@ -4,6 +4,8 @@ import { Check } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
+import { RequiredIndicator } from '../RequiredIndicator/RequiredIndicator';
+
 export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
   error?: string;
@@ -42,6 +44,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             )}
           >
             {label}
+            <RequiredIndicator isRequired={props.required || props['aria-required']} />
           </span>
         )}
       </label>

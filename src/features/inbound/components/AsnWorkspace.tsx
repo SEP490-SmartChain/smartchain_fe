@@ -327,6 +327,7 @@ function AsnCommand({
         <p className="text-sm">{t(action === 'submit' ? 'submitConfirm' : 'cancelConfirm')}</p>
         {action === 'cancel' && (
           <Input
+            aria-required
             label={t('cancelReason')}
             {...register('reason')}
             error={errors.reason ? t('invalidReason') : undefined}

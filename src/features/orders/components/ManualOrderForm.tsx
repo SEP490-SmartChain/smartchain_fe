@@ -502,6 +502,7 @@ export function ManualOrderForm({
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select
+                aria-required
                 label={t('payment_method')}
                 value={paymentMode}
                 onChange={(event) => {
@@ -516,6 +517,7 @@ export function ManualOrderForm({
                 ]}
               />
               <Select
+                aria-required
                 label={t('fields.shippingFeePayer')}
                 {...form.register('shippingFeePayer', {
                   onChange: (event: { target: { value: string } }) => {
@@ -533,6 +535,7 @@ export function ManualOrderForm({
               {paymentMode === 'PARTIAL' && (
                 <Input
                   label={t('goods_paid')}
+                  aria-required
                   {...form.register('paymentBreakdown.goodsPaidAmount', {
                     setValueAs: normalizeOrderMoneyInput,
                   })}
@@ -548,6 +551,7 @@ export function ManualOrderForm({
               )}
               <Input
                 label={t('discount')}
+                aria-required
                 inputMode="numeric"
                 {...form.register('paymentBreakdown.discountAmount', {
                   setValueAs: normalizeOrderMoneyInput,
@@ -564,6 +568,7 @@ export function ManualOrderForm({
                 <>
                   <Input
                     label={t('shipping_charge')}
+                    aria-required
                     inputMode="numeric"
                     {...form.register('paymentBreakdown.shippingChargeAmount', {
                       setValueAs: normalizeOrderMoneyInput,
@@ -578,6 +583,7 @@ export function ManualOrderForm({
                   />
                   <Input
                     label={t('shipping_paid')}
+                    aria-required
                     inputMode="numeric"
                     {...form.register('paymentBreakdown.shippingPaidAmount', {
                       setValueAs: normalizeOrderMoneyInput,

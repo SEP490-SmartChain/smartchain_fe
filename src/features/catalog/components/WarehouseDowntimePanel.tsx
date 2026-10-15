@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -140,7 +141,7 @@ export function WarehouseDowntimePanel({
       {can('warehouses.downtime.manage') && warehouse.status === 'ACTIVE' && (
         <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
           <label>
-            {t('startAt')} ({warehouse.timeZone})
+            {t('startAt')} <RequiredIndicator isRequired /> ({warehouse.timeZone})
             <Input
               type="datetime-local"
               value={start}
@@ -152,7 +153,7 @@ export function WarehouseDowntimePanel({
             />
           </label>
           <label>
-            {t('endAt')}
+            {t('endAt')} <RequiredIndicator isRequired />
             <Input
               type="datetime-local"
               value={end}
@@ -164,7 +165,7 @@ export function WarehouseDowntimePanel({
             />
           </label>
           <label>
-            {t('reason')}
+            {t('reason')} <RequiredIndicator isRequired />
             <Input
               value={reason}
               minLength={3}

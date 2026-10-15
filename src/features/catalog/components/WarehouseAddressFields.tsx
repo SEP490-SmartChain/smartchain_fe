@@ -144,6 +144,7 @@ export function WarehouseAddressFields({
     <div className="flex flex-col gap-3">
       <div className="grid gap-5 sm:grid-cols-2">
         <Select
+          aria-required
           label={t('province')}
           placeholder={provinceState === 'loading' ? t('loading') : t('selectProvince')}
           options={provinceOptions}
@@ -152,6 +153,7 @@ export function WarehouseAddressFields({
           error={errors.provinceCode?.message}
         />
         <Select
+          aria-required
           label={t('ward')}
           placeholder={wardState === 'loading' ? t('loading') : t('selectWard')}
           options={wardOptions}

@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button, Checkbox, Input, Switch } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 
 import { createWebhookFormSchema, type CreateWebhookFormData } from '../schemas/webhook.schemas';
 import { WEBHOOK_EVENT_TOPICS, type WebhookEndpoint } from '../types/webhook.types';
@@ -165,7 +166,7 @@ export function WebhookFormModal({
             <div>
               <label className="block text-sm font-semibold text-[var(--sc-text-primary)]">
                 {t('eventTopicsLabel')}
-                <span className="ml-1 text-[var(--sc-error)]">*</span>
+                <RequiredIndicator isRequired />
               </label>
               <p className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">
                 {t('eventTopicsHelper')}

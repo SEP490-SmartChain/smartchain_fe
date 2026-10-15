@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { Select } from '@/components/Common/Select/Select';
 
 import { apiKeyApi } from '../api/apiKeyApi';
@@ -81,7 +82,7 @@ export function ApiKeyCreateModal({ isOpen, onClose, onCreated }: ApiKeyCreateMo
 
         <fieldset className="space-y-2">
           <legend className="mb-1 text-sm font-medium text-[var(--sc-text-primary)]">
-            {t('fieldScopes')}
+            {t('fieldScopes')} <RequiredIndicator isRequired />
           </legend>
           <Controller
             control={control}
@@ -114,6 +115,7 @@ export function ApiKeyCreateModal({ isOpen, onClose, onCreated }: ApiKeyCreateMo
         </fieldset>
 
         <Select
+          aria-required
           label={t('fieldExpiry')}
           options={API_KEY_EXPIRY_OPTIONS.map((option) => ({
             value: option,

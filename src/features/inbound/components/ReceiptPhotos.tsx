@@ -253,6 +253,7 @@ export function ReceiptPhotos({
                 control={control}
                 render={({ field }) => (
                   <Input
+                    aria-required
                     key={fileRevision}
                     type="file"
                     label={t('photoSelect')}

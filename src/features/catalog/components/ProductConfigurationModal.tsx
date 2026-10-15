@@ -89,6 +89,7 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
             ] as const
           ).map((field) => (
             <Input
+              aria-required={field !== 'shelfLifeDays'}
               key={field}
               label={t(field)}
               type="number"

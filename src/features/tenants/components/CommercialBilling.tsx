@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { RequiredIndicator } from '@/components/Common/RequiredIndicator/RequiredIndicator';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -128,23 +129,27 @@ function BankReceiptForm({
       {notice && <Alert variant="success">{notice}</Alert>}
       <div className="grid gap-4 md:grid-cols-2">
         <Input
+          aria-required
           label={t('bankReference')}
           error={invalid('bankReference')}
           {...form.register('bankReference')}
         />
         <Input
+          aria-required
           label={t('receivedAmount')}
           inputMode="numeric"
           error={invalid('amountVnd')}
           {...form.register('amountVnd')}
         />
         <Input
+          aria-required
           label={t('receivedAt')}
           type="datetime-local"
           error={invalid('receivedAt')}
           {...form.register('receivedAt')}
         />
         <Input
+          aria-required
           label={t('bankPdf')}
           type="file"
           accept="application/pdf"
@@ -153,8 +158,8 @@ function BankReceiptForm({
         />
       </div>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" {...form.register('verified')} />
-        {t('verifyBank')}
+        <input aria-required type="checkbox" {...form.register('verified')} />
+        {t('verifyBank')} <RequiredIndicator isRequired />
       </label>
       {form.formState.errors.verified && (
         <p className="text-sm text-[var(--sc-error)]">{t('invalid')}</p>
