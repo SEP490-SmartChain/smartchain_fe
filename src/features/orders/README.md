@@ -36,6 +36,8 @@ Chi tiết dùng tên/SKU snapshot từ backend; đơn cũ có `identitySource: 
 
 ## Optional Google Sheets integration
 
-The import dialog offers a separate, optional Google Sheets template download for Seller Owner. One order per row, up to three products; the seller-sheet n8n workflow and administrator Google OAuth setup are required. Downloading the workbook does not connect Google or submit orders. Existing scope cancellation, error handling and download guards apply. Manual orders and Excel upload remain independent.
+Seller Owner has one Google Sheets entry in the Orders header. The Excel import dialog contains only Excel actions. GET `/v1/orders/sheet-connection` returns the own-seller connection and automatic setup availability. When enabled by ORCA, POST to the same route creates a private managed sheet, grants the authenticated owner's email edit access and activates its scoped feed. The seller submits no URL, tenant, OAuth credential or API key. Loading, in-progress/retry states, double-click protection and session/scope cancellation are supported. The dialog validates the canonical Google URL before opening it.
+
+Each row contains one product; equal order codes form one order, with recipient/payment details and Send order confirmation on the first row only. Template download is secondary inside the Google Sheets dialog and does not itself connect Google or submit orders. CONFIGURED confirms saved setup, not continuous OAuth/n8n health. The timestamp is the latest received Google Sheets source order. Manual orders and Excel upload remain independent. Platform setup and deployment prerequisites: BE `docs/MANAGED_GOOGLE_SHEETS_SETUP.md`.
 
 Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: orca_be PR #120; n8n setup and sample storefront: orca_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.

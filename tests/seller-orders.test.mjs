@@ -690,3 +690,68 @@ test('split delivery retains SKU identifiers for variants that share a product n
   assert.ok(delivery.includes('BLUE-M'));
   assert.ok(delivery.includes('BLUE-L'));
 });
+
+test('Google Sheets binding uses own session and rejects unsafe links or contradictory states', async () => {
+  const value = {
+    status: 'CONFIGURED',
+    spreadsheetUrl:
+      'https://docs.google.com/spreadsheets/d/test_document_identifier_12345/edit#gid=123',
+    name: 'Orders',
+    pollIntervalSeconds: 60,
+    lastOrderReceivedAt: null,
+  };
+  assert.equal(orders.sheetConnectionSchema.parse(value).status, 'CONFIGURED');
+  for (const patch of [
+    { spreadsheetUrl: 'https://evil.example.test/' },
+    { spreadsheetUrl: 'javascript:alert(1)' },
+    {
+      spreadsheetUrl:
+        'https://docs.google.com.evil.test/spreadsheets/d/test_document_identifier_12345/edit#gid=123',
+    },
+    { status: 'NOT_CONFIGURED' },
+    { credential: 'secret' },
+    { lastOrderReceivedAt: 'not-a-date' },
+  ])
+    assert.equal(orders.sheetConnectionSchema.safeParse({ ...value, ...patch }).success, false);
+  const controller = new AbortController();
+  globalThis.fetch = async (url, options) => {
+    assert.equal(
+      new URL(url, 'https://app.example.test').pathname,
+      '/api/v1/orders/sheet-connection',
+    );
+    assert.equal(options.headers.get('Authorization'), 'Bearer seller-test-token');
+    assert.equal(options.signal, controller.signal);
+    return ok(value);
+  };
+  assert.deepEqual(await orders.ordersApi.sheetConnection(controller.signal), value);
+});
+
+test('managed Sheets setup sends no seller-controlled binding or credential', async () => {
+  const value = {
+    status: 'NOT_CONFIGURED',
+    spreadsheetUrl: null,
+    name: null,
+    pollIntervalSeconds: null,
+    lastOrderReceivedAt: null,
+    setupAvailable: true,
+    setupState: 'PREPARING',
+  };
+  assert.equal(orders.sheetConnectionSchema.parse(value).setupState, 'PREPARING');
+  assert.equal(
+    orders.sheetConnectionSchema.safeParse({ ...value, setupState: 'CONNECTED' }).success,
+    false,
+  );
+  const controller = new AbortController();
+  globalThis.fetch = async (url, options) => {
+    assert.equal(
+      new URL(url, 'https://app.example.test').pathname,
+      '/api/v1/orders/sheet-connection',
+    );
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers.get('Authorization'), 'Bearer seller-test-token');
+    assert.equal(options.signal, controller.signal);
+    assert.deepEqual(JSON.parse(options.body), {});
+    return ok(value);
+  };
+  assert.deepEqual(await orders.ordersApi.createSheet(controller.signal), value);
+});
