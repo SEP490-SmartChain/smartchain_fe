@@ -37,6 +37,7 @@ export function ManualOrderForm({
   onBusyChange: (busy: boolean) => void;
 }) {
   const t = useTranslations('Orders');
+  const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
@@ -201,7 +202,14 @@ export function ManualOrderForm({
   const itemGroupError =
     form.formState.errors.items?.root?.message || form.formState.errors.items?.message;
   const submit = form.handleSubmit(async (draft) => {
-    if (running.current || orderScope() !== scope || !sellerOrderAccess().create) return;
+    if (
+      running.current ||
+      orderScope() !== scope ||
+      !sellerOrderAccess().create ||
+      !sellerOrderAccess().intake
+    ) {
+      return;
+    }
     let input;
     try {
       input = completeManualDraft(draft, automaticCode.current);
@@ -637,6 +645,7 @@ export function ManualOrderForm({
               type="submit"
               isLoading={form.formState.isSubmitting}
               disabled={
+                !canIntake ||
                 paymentError ||
                 products.isLoading ||
                 addresses.loading ||

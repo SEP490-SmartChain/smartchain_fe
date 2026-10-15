@@ -283,7 +283,22 @@
       "phone": "Contact phone"
     },
     "samplePdfHelp": "This template is for reading the terms. Enter contracting party details in ORCA during preparation; they will be filled and locked in the agreement before signing. This PDF is read-only.",
-    "preparedPdfHelp": "This agreement contains the Seller’s frozen details. Review all content before opening electronic signing."
+    "preparedPdfHelp": "This agreement contains the Seller’s frozen details. Review all content before opening electronic signing.",
+    "inquiryLoading": "Loading submitted requests…",
+    "inquiryLoadFailed": "Unable to load your request history. Select Refresh to retry.",
+    "inquiryHistory": "Submitted requests",
+    "inquirySentAt": "Submitted at",
+    "noInquiries": "You have not submitted a custom-plan request.",
+    "inquiryPending": "Your request is awaiting discussion with ORCA. No additional request is needed.",
+    "manageService": "View service plan and contract",
+    "contactOwner": "Contact your seller account owner to complete activation or resolve the service status.",
+    "serviceUnavailable": "Service status could not be verified",
+    "serviceUnavailableHelp": "Select Refresh to check the status before creating new orders or ASNs.",
+    "serviceHelp": {
+      "PENDING_ACTIVATION": "Service is not active. Complete the contract and verification of the initial fee and deposit before creating new orders or ASNs.",
+      "SUSPENDED": "Service is suspended. New orders and ASNs are unavailable. You can still view and handle previously accepted work.",
+      "CLOSED": "Service is closed. Contact ORCA before resuming service."
+    }
   },
   "WarehouseDirectory": {
     "loadError": "Could not load warehouses.",
@@ -2388,7 +2403,42 @@
     "print": "Print labels",
     "cartonNumber": "Carton {number}/{total}",
     "discrepancies": "Discrepancy references",
-    "noDiscrepancies": "No discrepancies recorded."
+    "noDiscrepancies": "No discrepancies recorded.",
+    "detailTitle": "Inbound shipment details",
+    "yourReference": "Your shipment reference",
+    "noExternalReference": "No custom reference",
+    "actualArrival": "Arrived at warehouse",
+    "notArrived": "Arrival not confirmed by the warehouse",
+    "receivingSummary": "Receiving summary",
+    "declaredQuantity": "Planned units",
+    "receivedQuantity": "Actual received",
+    "qualityAccepted": "QC accepted",
+    "qualityAcceptedHint": "QC accepted means the units passed quality review, not that they are available for sale. Check Inventory for their location and fulfillment eligibility.",
+    "productsAndQuantities": "Products and receiving results",
+    "product": "Product / SKU",
+    "notDeclared": "Not declared",
+    "cartonLabelsTitle": "Carton labels",
+    "cartonLabelsHint": "{count} labels for the warehouse to scan at receiving.",
+    "receiptDocuments": "Receiving documents",
+    "receiptCount": "{count} receiving documents recorded.",
+    "discrepancyDocuments": "Discrepancy reports",
+    "discrepancyCount": "{count} discrepancy reports recorded.",
+    "lookupCodes": "View lookup codes and document references",
+    "copyCode": "Copy ASN code",
+    "codeCopied": "ASN code copied.",
+    "copyCodeError": "Could not copy. You can select and copy the code directly.",
+    "inventoryLookupHint": "Search by SKU in Inventory to see the current locations and units available for sale.",
+    "viewInventory": "View actual inventory",
+    "statusHelp": {
+      "DRAFT": "This notice has not been submitted. You can edit it before sending it to the warehouse.",
+      "SUBMITTED": "The notice was submitted. Arrival is not confirmed and declared units have not been posted as stock.",
+      "ARRIVED": "The warehouse confirmed arrival. Actual quantities and quality still require separate checks.",
+      "RECEIVING": "The warehouse is recording actual quantities and inspecting the goods.",
+      "DISCREPANCY": "A discrepancy is being reviewed. Check actual quantities and the reports below.",
+      "READY_FOR_PUTAWAY": "Receiving results have been approved. Check Inventory for the actual locations and sale eligibility.",
+      "COMPLETED": "This notice is complete. Check Inventory for current stock balances and locations.",
+      "CANCELLED": "This notice was cancelled. Do not use its labels to receive goods."
+    }
   },
   "Shipments": {
     "title": "Shipments",

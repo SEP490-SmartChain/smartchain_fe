@@ -71,7 +71,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
           ))}
         </div>
       )}
-      <Button variant="outline" onClick={onPreview} disabled={busy}>
+      <Button type="button" variant="outline" onClick={onPreview} disabled={busy}>
         {t('preview')}
       </Button>
       <Checkbox

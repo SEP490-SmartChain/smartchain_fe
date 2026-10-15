@@ -739,10 +739,7 @@ export default function ComponentShowcasePage() {
               Login to Dashboard
             </a>
             {' • '}
-            <a
-              href="https://github.com/orca"
-              className="hover:text-[#00E599] transition-colors"
-            >
+            <a href="https://github.com/orca" className="hover:text-[#00E599] transition-colors">
               Documentation
             </a>
           </p>

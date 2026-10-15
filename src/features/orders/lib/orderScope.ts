@@ -1,4 +1,5 @@
 import { getEffectiveRoles, can } from '@/lib/accessPolicy';
+import { canStartSellerIntake } from '@/lib/sellerService';
 import { useAuthStore } from '@/stores/authStore';
 
 export function orderScope() {
@@ -11,6 +12,7 @@ export function orderScope() {
     user?.actorScope,
     user?.roles,
     user?.permissions,
+    user?.serviceStatus,
   ]);
 }
 export function sellerOrderAccess() {
@@ -19,5 +21,6 @@ export function sellerOrderAccess() {
   return {
     read: !!user?.tenantId && can(roles, 'orders.seller.read'),
     create: !!user?.tenantId && can(roles, 'orders.create'),
+    intake: canStartSellerIntake(user),
   };
 }

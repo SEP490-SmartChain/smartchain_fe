@@ -24,6 +24,20 @@ Historical FE identifiers below are not the SS-990 requirement mapping.
   revisions/unmount cancel pending work. Signing URLs stay in memory;
   ReturnUrl cannot accept a contract or credit payment.
 
+The seller shell reads live service status from the allowlisted auth profile and
+shows pending/suspended/closed instructions across seller pages. New order/import
+and ASN create/submit controls require ACTIVE service; read, profile, contract,
+payment and eligible cancellation remain available. Backend gates are authoritative.
+Navigation, browser focus and the status refresh action recheck the profile.
+
+Custom inquiries load their persisted own-seller history from
+`GET /v1/commercial/custom-inquiries`, including after a page reload and after a
+contract is created. A pending inquiry replaces the new-request form with its
+history. Dates use Asia/Ho_Chi_Minh; failed loads show a retry without enabling an
+unverified duplicate request. The API serializes concurrent fresh references.
+Regression coverage: `tests/seller-subscription.test.mjs`, plus backend PostgreSQL
+custom-inquiry concurrency and ASN service-state integration suites.
+
 HTTP, localhost and IP-address deployments use the separate signing window so
 the provider's return navigation does not hit local-network iframe restrictions.
 Public HTTPS deployments retain the embedded view and window fallback. In both

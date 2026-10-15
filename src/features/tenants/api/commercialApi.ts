@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
+const serviceStatusSchema = z.enum(['PENDING_ACTIVATION', 'ACTIVE', 'SUSPENDED', 'CLOSED']);
 const planSchema = z.object({
   id: z.string().uuid(),
   planId: z.string().uuid(),
@@ -56,7 +57,7 @@ const contractsSchema = z.object({
   currentContractId: z.string().uuid().nullable(),
   contracts: z.array(contractSchema),
   signingRequests: z.array(signingSchema),
-  serviceStatus: z.string(),
+  serviceStatus: serviceStatusSchema,
   serviceVersion: z.number().int().nonnegative(),
 });
 const invoicesSchema = z.object({
@@ -487,9 +488,11 @@ export const commercialApi = {
       })
       .parse(data);
   },
-  async inquiries(tenantId: string, signal?: AbortSignal) {
+  async inquiries(tenantId?: string, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
-      `/v1/commercial/tenants/${encodeURIComponent(tenantId)}/custom-inquiries`,
+      tenantId
+        ? `/v1/commercial/tenants/${encodeURIComponent(tenantId)}/custom-inquiries`
+        : '/v1/commercial/custom-inquiries',
       { signal, silent: true },
     );
     return z
