@@ -27,17 +27,26 @@ const formSchema = z.object({
   ),
 });
 interface Props {
+  onPendingChange?: (key: string, locked: boolean) => void;
   warehouseId: string;
   asnId: string;
   recordId: string;
   canWrite: boolean;
+  onUploaded?: () => void;
 }
 interface Attempt {
   file: File;
   input: EvidenceIntentInput;
 }
 
-export function ReceiptPhotos({ warehouseId, asnId, recordId, canWrite }: Props) {
+export function ReceiptPhotos({
+  warehouseId,
+  asnId,
+  recordId,
+  canWrite,
+  onUploaded,
+  onPendingChange,
+}: Props) {
   const t = useTranslations('Receiving');
   const owner = useAuthStore((state) => state.user);
   const [expanded, setExpanded] = useState(false);
@@ -49,6 +58,10 @@ export function ReceiptPhotos({ warehouseId, asnId, recordId, canWrite }: Props)
   const [refresh, setRefresh] = useState(0);
   const [fileRevision, setFileRevision] = useState(0);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
+  useEffect(() => {
+    onPendingChange?.(`photo:${recordId}`, busy || attempt !== null);
+    return () => onPendingChange?.(`photo:${recordId}`, false);
+  }, [onPendingChange, recordId, busy, attempt]);
   const generation = useRef(0);
   const active = useRef<AbortController | null>(null);
   const {
@@ -143,6 +156,7 @@ export function ReceiptPhotos({ warehouseId, asnId, recordId, canWrite }: Props)
         reset();
         setFileRevision((value) => value + 1);
         setRefresh((value) => value + 1);
+        onUploaded?.();
       }
     } catch (reason) {
       if (controller.signal.aborted || !current(revision)) return;

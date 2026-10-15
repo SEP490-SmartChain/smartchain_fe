@@ -27,7 +27,7 @@ Arrival displays the server timestamp and receipt reference after confirmation;
 it does not increment received, accepted or sellable quantities. Repeated scans
 return the original receipt. Conflicts retain the confirmation dialog and offer
 reload; obsolete warehouse/identity responses do not populate the new view.
-UC-38 uses the receiving count dialog and the separate physical-count API.
+UC-38 uses the standalone receipt workspace and the separate physical-count API.
 
 SS-1302 uses a strict warehouse-only directory DTO. Seller declarations and
 expected quantities are absent from this workspace; rows must belong to the
@@ -43,7 +43,7 @@ declarations or expected quantities. Explicit zero creates no lot. Lot quantitie
 must total the observed count, codes must be unique and dates must be real.
 Warehouse-local shelf-life and existing provenance are validated by the backend.
 
-The dialog reads `GET /v1/warehouses/:warehouseId/asns/:id/receiving` and posts
+The workspace reads `GET /v1/warehouses/:warehouseId/asns/:id/receiving` and posts
 `POST /v1/warehouses/:warehouseId/asns/:id/receiving/counts` with the receipt
 revision and operation UUID. An uncertain result freezes the attempted count and
 offers replay with the same UUID or a read to check saved evidence. Saved counts
@@ -81,7 +81,7 @@ must be implemented before SS-1071/SS-1070 can be considered complete.
 
 ## Manager receipt review (SS-1071 / FU-21 / UC-41)
 
-The physical receipt dialog shows current lot QC partitions, missing discrepancy reports
+The standalone receipt workspace shows current lot QC partitions, missing discrepancy reports
 and immutable Manager decisions. Assigned Staff reads the history; only assigned Manager
 has `warehouse.asn.review` and sees APPROVE/RETURN with a required reason. A decision binds
 the complete current evidence IDs and receipt revision. Approval is disabled until all
@@ -151,3 +151,42 @@ are aborted and their results discarded. Successful movement reloads actual
 positions without changing QC or reporting them as newly received stock.
 
 The backend contract is `orca_be/packages/inventory/BIN-RELOCATION.md`.
+
+## Receiving UX update (SS-1071, 15 October 2026)
+
+`/warehouse/inbound` now opens the real receiving directory filtered to SUBMITTED ASNs.
+The copy calls these “Chờ nhận hàng”: Seller-submitted notices awaiting physical arrival,
+not carrier tracking. Expected arrival is nullable operational metadata. Draft notices
+remain Seller-only. Directory rows expand their already-fetched safe product summaries.
+
+An entirely fetched one-warehouse directory auto-selects that warehouse. Multiple assigned
+warehouses still require an explicit selection with an explanation; the proposed global
+assigned-work endpoint, global pagination and RLS design are separate work. Empty assignment
+and failed directory reads have different messages. Filters do not grant warehouse access.
+
+The receipt stays open after counts are saved. A count/inspect/review guide precedes the
+form; packaging dates appear only for expiry-tracked products. Select one saved physical
+lot to work on its photos, QC and stock section, avoiding a detail request per lot on open.
+Verified photo uploads refresh QC photo choices without clearing the QC form. Discrepancy
+reporting reuses server evidence, photo IDs and the selected QC reason. No new submission
+state or automatic Manager approval is introduced.
+
+Manager review summarizes physical partitions and server-projected readiness blockers.
+Older review responses without blockers receive general guidance only. Readiness is a
+snapshot, not a promise that the next write succeeds. RETURN needs explicit confirmation
+that every lot is sent for reinspection; original counts and history remain intact. Known
+decision conflicts refresh evidence and retain the user's reason; uncertain responses freeze
+the exact command. Pending photo/QC/report/review/stock work locks receipt Back, lot switching,
+count writes and parent reload so those controls cannot discard a pending retry.
+
+Discrepancy responses now keep `declaredQty` null permanently and expose only a server-derived
+variance after complete count/QC. Strict adapters reject raw declarations. Release the
+backend and frontend together: old strict clients reject the added variance/date fields,
+and the new discrepancy client rejects the old raw-declaration response. This change does
+not add permissions or bypass server role, assignment, evidence or version checks.
+
+Run the isolated visual harness with `node tests/ss-1071-ux-browser.mjs`, then open
+`http://127.0.0.1:24371/`. Role/scenario selectors exercise the real application against
+synthetic local transport, without .env or external providers. These browser checks are
+separate from the backend's restricted PostgreSQL integration tests; they are not evidence
+of a live provider or production end-to-end workflow.

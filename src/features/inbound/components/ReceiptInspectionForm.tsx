@@ -19,6 +19,7 @@ import {
 } from '../schemas/receiptInspectionSchema';
 
 interface Props {
+  onPendingChange?: (key: string, locked: boolean) => void;
   warehouseId: string;
   asnId: string;
   recordId: string;
@@ -26,8 +27,10 @@ interface Props {
   requiresQuarantine: boolean;
   canWrite: boolean;
   onSaved: (row: ReceiptInspection) => void;
+  photoRevision?: number;
 }
 export function ReceiptInspectionForm({
+  onPendingChange,
   warehouseId,
   asnId,
   recordId,
@@ -35,10 +38,11 @@ export function ReceiptInspectionForm({
   requiresQuarantine,
   canWrite,
   onSaved,
+  photoRevision = 0,
 }: Props) {
   const t = useTranslations('Receiving');
   const owner = useAuthStore((state) => state.user);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [state, setState] = useState<InspectionState | null>(null);
   const [photos, setPhotos] = useState<ReceiptEvidence[]>([]);
   const [error, setError] = useState('');
@@ -47,6 +51,10 @@ export function ReceiptInspectionForm({
   const [refresh, setRefresh] = useState(0);
   const [attempt, setAttempt] = useState<InspectionInput | null>(null);
   const [saved, setSaved] = useState<ReceiptInspection | null>(null);
+  useEffect(() => {
+    onPendingChange?.(`qc:${recordId}`, busy || attempt !== null);
+    return () => onPendingChange?.(`qc:${recordId}`, false);
+  }, [onPendingChange, recordId, busy, attempt]);
   const generation = useRef(0);
   const active = useRef<AbortController | null>(null);
   const operation = useRef(crypto.randomUUID());
@@ -115,7 +123,7 @@ export function ReceiptInspectionForm({
         if (!controller.signal.aborted && current(revision)) setLoading(false);
       });
     return () => controller.abort();
-  }, [expanded, warehouseId, asnId, recordId, receivedQty, refresh, current, t]);
+  }, [expanded, warehouseId, asnId, recordId, receivedQty, refresh, photoRevision, current, t]);
   async function send(input: InspectionInput) {
     if (busy || !canWrite || (!editable && !attempt) || owner !== useAuthStore.getState().user) {
       return;

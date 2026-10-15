@@ -10,6 +10,7 @@ export const warehouseAsnSchema = z
     asnCode: z.string().min(1),
     status: asnSchema.shape.status.exclude(['DRAFT']),
     arrivedAt: z.string().datetime().nullable(),
+    expectedArrivalAt: z.string().datetime().nullable().optional(),
     receiptIds: z.array(z.string().uuid()),
     version: z.number().int().positive(),
     lines: z

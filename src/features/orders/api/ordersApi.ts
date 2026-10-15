@@ -313,7 +313,49 @@ export interface OrderFilters {
   from: string;
   to: string;
 }
+export const sheetConnectionSchema = z
+  .object({
+    status: z.enum(['NOT_CONFIGURED', 'CONFIGURED']),
+    spreadsheetUrl: z
+      .string()
+      .regex(
+        /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]{20,150}\/edit#gid=\d{1,12}$/,
+      )
+      .nullable(),
+    name: z.string().min(1).max(150).nullable(),
+    pollIntervalSeconds: z.literal(60).nullable(),
+    lastOrderReceivedAt: z.string().datetime().nullable(),
+    setupAvailable: z.boolean().optional(),
+    setupState: z.enum(['NONE', 'PREPARING', 'FAILED']).optional(),
+  })
+  .strict()
+  .refine((value) =>
+    value.status === 'CONFIGURED'
+      ? Boolean(value.spreadsheetUrl && value.name && value.pollIntervalSeconds)
+      : [
+          value.spreadsheetUrl,
+          value.name,
+          value.pollIntervalSeconds,
+          value.lastOrderReceivedAt,
+        ].every((field) => field === null),
+  );
+export type SheetConnection = z.infer<typeof sheetConnectionSchema>;
 export const ordersApi = {
+  async createSheet(signal?: AbortSignal) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      '/v1/orders/sheet-connection',
+      {},
+      { signal, silent: true },
+    );
+    return sheetConnectionSchema.parse(data);
+  },
+  async sheetConnection(signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/orders/sheet-connection', {
+      signal,
+      silent: true,
+    });
+    return sheetConnectionSchema.parse(data);
+  },
   async locations(signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/orders/locations', {
       signal,
