@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { warehouseApi } from '@/features/catalog';
+import { canStartSellerIntake } from '@/lib/sellerService';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -103,6 +104,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
   }, [user, reload]);
   const save = async (values: AsnFormValues) => {
     const principal = useAuthStore.getState().user;
+    if (!draft && !canStartSellerIntake(principal)) return;
     const payload = {
       warehouseId: values.warehouseId,
       cartonCount: values.cartonCount,
@@ -248,7 +250,11 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           <Button type="button" variant="ghost" disabled={isSubmitting} onClick={onClose}>
             {t('close')}
           </Button>
-          <Button type="submit" disabled={loading || loadFailed} isLoading={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={loading || loadFailed || (!draft && !canStartSellerIntake(user))}
+            isLoading={isSubmitting}
+          >
             {t('saveDraft')}
           </Button>
         </div>

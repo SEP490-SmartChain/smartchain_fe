@@ -46,6 +46,10 @@ export function useSellerCommercial() {
         setPlans(catalog.plans);
         setConfigured(catalog.signingConfigured);
         setState(next);
+        const user = useAuthStore.getState().user;
+        if (user && user.serviceStatus !== next.serviceStatus) {
+          useAuthStore.getState().setUser({ ...user, serviceStatus: next.serviceStatus });
+        }
         setInvoices(bills);
         setError(null);
         if (

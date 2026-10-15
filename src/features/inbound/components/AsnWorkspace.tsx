@@ -9,11 +9,12 @@ import { toast } from 'sonner';
 import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { canStartSellerIntake } from '@/lib/sellerService';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { AsnDetail } from './AsnDetail';
 import { AsnForm } from './AsnForm';
-import { AsnLabels } from './AsnLabels';
 import { asnApi } from '../api/asnApi';
 import { cancelAsnSchema } from '../schemas/asnSchema';
 
@@ -30,11 +31,11 @@ const statuses: AsnStatus[] = [
   'CANCELLED',
 ];
 function tone(status: AsnStatus): 'success' | 'warning' | 'error' | 'info' | 'default' {
-  return status === 'COMPLETED' || status === 'READY_FOR_PUTAWAY'
+  return status === 'COMPLETED'
     ? 'success'
     : status === 'CANCELLED'
       ? 'error'
-      : status === 'DISCREPANCY'
+      : status === 'DISCREPANCY' || status === 'READY_FOR_PUTAWAY'
         ? 'warning'
         : status === 'DRAFT'
           ? 'default'
@@ -130,7 +131,11 @@ export function AsnWorkspace() {
           <h1 className="text-xl font-semibold text-[var(--sc-text-primary)]">{t('title')}</h1>
           <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
         </div>
-        {canWrite && <Button onClick={() => setForm({ draft: null })}>{t('create')}</Button>}
+        {canWrite && (
+          <Button disabled={!canStartSellerIntake(user)} onClick={() => setForm({ draft: null })}>
+            {t('create')}
+          </Button>
+        )}
       </header>
       <div className="space-y-5 overflow-auto p-6">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -206,7 +211,11 @@ export function AsnWorkspace() {
                           >
                             {t('editDraft')}
                           </Button>
-                          <Button size="sm" onClick={() => setCommand({ asn, action: 'submit' })}>
+                          <Button
+                            size="sm"
+                            disabled={!canStartSellerIntake(user)}
+                            onClick={() => setCommand({ asn, action: 'submit' })}
+                          >
                             {t('submit')}
                           </Button>
                         </>
@@ -246,86 +255,11 @@ export function AsnWorkspace() {
         />
       )}
       {selected && (
-        <Modal isOpen onClose={() => setSelected(null)} title={selected.asnCode} width="1000px">
-          <div className="space-y-4">
-            <Badge status={tone(selected.status)} label={t(`status.${selected.status}`)} />
-            <p className="text-sm text-[var(--sc-text-secondary)]">{t('declaredHint')}</p>
-            <p>
-              {t('arrival')}:{' '}
-              {selected.expectedArrivalAt
-                ? new Date(selected.expectedArrivalAt).toLocaleString(locale)
-                : '—'}
-            </p>
-            {selected.cancellationReason && (
-              <p>
-                {t('cancelReason')}: {selected.cancellationReason}
-              </p>
-            )}
-            <div className="overflow-auto">
-              <table aria-label={t('lines')} className="w-full text-left text-sm">
-                <thead>
-                  <tr>
-                    {[
-                      'sku',
-                      'quantity',
-                      'lot',
-                      'expiry',
-                      'received',
-                      'accepted',
-                      'quarantined',
-                      'rejected',
-                    ].map((key) => (
-                      <th key={key} className="p-2">
-                        {t(key)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.lines.map((line) => (
-                    <tr key={line.id} className="border-t border-[var(--sc-border-default)]">
-                      <td className="p-2">{line.sku}</td>
-                      <td className="p-2">{line.declaredQty}</td>
-                      <td className="p-2">{line.declaredLotCode || '—'}</td>
-                      <td className="p-2">{line.declaredExpiryOn?.slice(0, 10) || '—'}</td>
-                      {(
-                        ['receivedQty', 'acceptedQty', 'quarantinedQty', 'rejectedQty'] as const
-                      ).map((field) => (
-                        <td className="p-2" key={field}>
-                          {line[field]}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <h3 className="font-medium">{t('labels')}</h3>
-            {selected.cartonLabelRefs.length > 0 && selected.status !== 'CANCELLED' && (
-              <AsnLabels asn={selected} />
-            )}
-            {selected.cartonLabelRefs.length ? (
-              <ul className="space-y-2">
-                {selected.cartonLabelRefs.map((label) => (
-                  <li
-                    className="break-all rounded-lg border border-[var(--sc-border-default)] p-3 font-mono text-sm"
-                    key={label}
-                  >
-                    {label}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>{t('labelsPending')}</p>
-            )}
-            <h3 className="font-medium">{t('receipts')}</h3>
-            <p className="break-all text-sm">{selected.receiptIds.join(', ') || t('noReceipts')}</p>
-            <h3 className="font-medium">{t('discrepancies')}</h3>
-            <p className="break-all text-sm">
-              {selected.discrepancyIds.join(', ') || t('noDiscrepancies')}
-            </p>
-          </div>
-        </Modal>
+        <AsnDetail
+          asn={selected}
+          statusTone={tone(selected.status)}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
@@ -354,6 +288,7 @@ function AsnCommand({
   async function run(reason = '') {
     if (busy) return;
     const principal = useAuthStore.getState().user;
+    if (action === 'submit' && !canStartSellerIntake(principal)) return;
     setBusy(true);
     try {
       if (action === 'submit') await asnApi.submit(asn.id, asn.version);

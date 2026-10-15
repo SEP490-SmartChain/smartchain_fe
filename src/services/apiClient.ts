@@ -55,6 +55,7 @@ const profileSchema = z.object({
   phone: z.string().nullable().optional(),
   avatarUrl: z.string().nullable().optional(),
   actorScope: actorScopeSchema,
+  serviceStatus: z.enum(['PENDING_ACTIVATION', 'ACTIVE', 'SUSPENDED', 'CLOSED']).nullish(),
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
   warehouseIds: z
@@ -233,13 +234,13 @@ class ApiClient {
             ? parsed.data.error.message
             : forbidden
               ? this.message(
-                'Bạn không có quyền thực hiện thao tác này.',
-                'You do not have permission to perform this action.',
-              )
+                  'Bạn không có quyền thực hiện thao tác này.',
+                  'You do not have permission to perform this action.',
+                )
               : this.message(
-                'Không thể gọi API. Vui lòng thử lại.',
-                'Unable to reach the API. Please retry.',
-              ),
+                  'Không thể gọi API. Vui lòng thử lại.',
+                  'Unable to reach the API. Please retry.',
+                ),
           response.status,
           parsed.success ? parsed.data.error.code : forbidden ? 'AUTH.FORBIDDEN' : 'HTTP.ERROR',
           parsed.success ? parsed.data.error.details : undefined,
@@ -265,13 +266,13 @@ class ApiClient {
         error instanceof ApiError
           ? error
           : new ApiError(
-            this.message(
-              'Không thể kết nối máy chủ. Vui lòng thử lại.',
-              'Unable to connect to the server. Please retry.',
-            ),
-            0,
-            'NETWORK.ERROR',
-          );
+              this.message(
+                'Không thể kết nối máy chủ. Vui lòng thử lại.',
+                'Unable to connect to the server. Please retry.',
+              ),
+              0,
+              'NETWORK.ERROR',
+            );
       if (!silent && failure.code !== 'AUTH.SCOPE_CHANGED') toast.error(failure.message);
       throw failure;
     }
@@ -385,10 +386,10 @@ class ApiClient {
     return this.logoutPromise;
   }
 
-  async currentUser() {
+  async currentUser(signal?: AbortSignal) {
     const revision = useAuthStore.getState().revision;
-    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me');
-    if (revision === useAuthStore.getState().revision) {
+    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me', { signal });
+    if (!signal?.aborted && revision === useAuthStore.getState().revision) {
       useAuthStore.getState().setUser(profileSchema.parse(data));
     }
   }

@@ -283,7 +283,22 @@
       "phone": "Điện thoại liên hệ"
     },
     "samplePdfHelp": "Đây là mẫu để đọc điều khoản. Thông tin bên ký được nhập ở bước chuẩn bị trên ORCA và sẽ được điền, khóa trong bản chờ ký; không điền trực tiếp trên PDF này.",
-    "preparedPdfHelp": "Đây là bản đã khóa thông tin của Seller. Kiểm tra toàn bộ nội dung trước khi mở ký điện tử."
+    "preparedPdfHelp": "Đây là bản đã khóa thông tin của Seller. Kiểm tra toàn bộ nội dung trước khi mở ký điện tử.",
+    "inquiryLoading": "Đang tải yêu cầu đã gửi…",
+    "inquiryLoadFailed": "Không tải được lịch sử yêu cầu. Bấm Cập nhật để thử lại.",
+    "inquiryHistory": "Yêu cầu đã gửi",
+    "inquirySentAt": "Thời gian gửi",
+    "noInquiries": "Bạn chưa gửi yêu cầu gói custom.",
+    "inquiryPending": "Bạn đã có yêu cầu đang chờ ORCA trao đổi. Không cần gửi thêm yêu cầu.",
+    "manageService": "Xem gói dịch vụ và hợp đồng",
+    "contactOwner": "Liên hệ chủ tài khoản seller để hoàn tất kích hoạt hoặc xử lý trạng thái dịch vụ.",
+    "serviceUnavailable": "Chưa xác minh được trạng thái dịch vụ",
+    "serviceUnavailableHelp": "Bấm Cập nhật để kiểm tra trạng thái trước khi tạo đơn hàng hoặc ASN mới.",
+    "serviceHelp": {
+      "PENDING_ACTIVATION": "Dịch vụ chưa được kích hoạt. Hoàn tất hợp đồng và xác minh đủ phí ban đầu, tiền cọc để tạo đơn hàng và ASN mới.",
+      "SUSPENDED": "Dịch vụ đang tạm ngừng. Không thể tạo đơn hàng hoặc ASN mới. Bạn vẫn có thể xem và xử lý công việc đã được tiếp nhận.",
+      "CLOSED": "Dịch vụ đã đóng. Liên hệ ORCA trước khi bắt đầu sử dụng lại."
+    }
   },
   "WarehouseDirectory": {
     "loadError": "Không thể tải danh sách kho.",
@@ -2388,7 +2403,42 @@
     "print": "In nhãn",
     "cartonNumber": "Thùng {number}/{total}",
     "discrepancies": "Tham chiếu báo cáo chênh lệch",
-    "noDiscrepancies": "Chưa có báo cáo chênh lệch."
+    "noDiscrepancies": "Chưa có báo cáo chênh lệch.",
+    "detailTitle": "Chi tiết phiếu gửi hàng",
+    "yourReference": "Mã phiếu của bạn",
+    "noExternalReference": "Chưa đặt mã riêng",
+    "actualArrival": "Hàng đến kho lúc",
+    "notArrived": "Kho chưa xác nhận hàng đến",
+    "receivingSummary": "Tóm tắt nhận hàng",
+    "declaredQuantity": "Dự kiến gửi",
+    "receivedQuantity": "Thực nhận",
+    "qualityAccepted": "QC đạt",
+    "qualityAcceptedHint": "QC đạt là số hàng được duyệt về chất lượng, chưa phải số bán được. Xem Tồn kho để biết vị trí và lượng có thể cấp bán.",
+    "productsAndQuantities": "Hàng hóa và kết quả nhận",
+    "product": "Sản phẩm / SKU",
+    "notDeclared": "Chưa khai báo",
+    "cartonLabelsTitle": "Nhãn thùng",
+    "cartonLabelsHint": "Có {count} nhãn để kho quét khi nhận hàng.",
+    "receiptDocuments": "Phiếu nhận hàng",
+    "receiptCount": "Đã ghi nhận {count} phiếu nhận hàng.",
+    "discrepancyDocuments": "Báo cáo chênh lệch",
+    "discrepancyCount": "Đã ghi nhận {count} báo cáo chênh lệch.",
+    "lookupCodes": "Xem mã tra cứu và chứng từ",
+    "copyCode": "Sao chép mã ASN",
+    "codeCopied": "Đã sao chép mã ASN.",
+    "copyCodeError": "Chưa sao chép được. Bạn có thể chọn và sao chép mã trực tiếp.",
+    "inventoryLookupHint": "Tìm theo mã SKU trong Tồn kho để xem hàng đang ở đâu và số lượng có thể bán.",
+    "viewInventory": "Xem tồn kho thực tế",
+    "statusHelp": {
+      "DRAFT": "Phiếu chưa gửi đến kho. Bạn có thể sửa thông tin trước khi gửi.",
+      "SUBMITTED": "Phiếu đã gửi. Kho chưa xác nhận hàng đến; số khai báo chưa được ghi nhận thành tồn.",
+      "ARRIVED": "Kho đã xác nhận hàng đến. Số lượng thực nhận và chất lượng cần được kiểm tra riêng.",
+      "RECEIVING": "Kho đang ghi nhận số lượng thực tế và kiểm tra chất lượng hàng.",
+      "DISCREPANCY": "Phiếu có chênh lệch đang được xử lý. Xem số thực nhận và các báo cáo bên dưới.",
+      "READY_FOR_PUTAWAY": "Kết quả nhận hàng đã được duyệt. Xem Tồn kho để kiểm tra vị trí thực tế và lượng bán được.",
+      "COMPLETED": "Phiếu đã hoàn tất. Xem Tồn kho để kiểm tra số dư và vị trí hàng hiện tại.",
+      "CANCELLED": "Phiếu đã hủy. Không dùng nhãn của phiếu này để nhận hàng."
+    }
   },
   "Shipments": {
     "title": "Vận đơn",

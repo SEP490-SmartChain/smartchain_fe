@@ -159,35 +159,35 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
 
       <div className="flex flex-col gap-4 p-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-md">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
-            />
+          <div className="w-full sm:max-w-md">
             <Input
               type="text"
               placeholder={t('searchPlaceholder')}
               aria-label={t('searchLabel')}
+              leftIcon={<Search size={18} aria-hidden="true" />}
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-              className="pl-10"
             />
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="w-full shrink-0 sm:w-60">
             <div className="flex items-center gap-2">
-              <Filter size={16} className="text-[var(--sc-text-secondary)]" />
+              <Filter
+                size={16}
+                aria-hidden="true"
+                className="shrink-0 text-[var(--sc-text-secondary)]"
+              />
               <Select
                 aria-label={t('statusFilter')}
+                placeholder={t('allStatuses')}
+                isPlaceholderDisabled={false}
                 value={filters.status}
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, status: e.target.value as WarehouseStatus | '' }))
                 }
                 options={[
-                  { label: t('allStatuses'), value: '' },
                   { label: t('active'), value: 'ACTIVE' },
                   { label: t('inactive'), value: 'INACTIVE' },
                 ]}
-                className="w-[140px]"
               />
             </div>
           </div>
@@ -249,9 +249,13 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
                             aria-label={t('toggleDetails', { code: warehouse.code })}
                             aria-expanded={isExpanded}
                             onClick={() => setExpandedId(isExpanded ? null : warehouse.id)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-text-tertiary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] transition-colors"
+                            className="h-8 w-8 shrink-0 rounded-md p-0 text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
                           >
-                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            {isExpanded ? (
+                              <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
+                            ) : (
+                              <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
+                            )}
                           </Button>
                         </td>
                         <td className="px-4 py-3.5 font-medium text-[var(--sc-text-primary)]">
@@ -283,12 +287,12 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
                               type="button"
                               aria-label={t('changeStatus', { code: warehouse.code })}
                               onClick={() => setSelectedWarehouse(warehouse)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
+                              className="h-8 w-8 shrink-0 p-0 text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
                             >
                               {warehouse.status === 'ACTIVE' ? (
-                                <ToggleRight size={17} />
+                                <ToggleRight size={17} aria-hidden="true" className="shrink-0" />
                               ) : (
-                                <ToggleLeft size={17} />
+                                <ToggleLeft size={17} aria-hidden="true" className="shrink-0" />
                               )}
                             </Button>
                           )}

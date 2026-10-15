@@ -21,6 +21,8 @@ export interface AuthUser {
   permissions: string[];
   /** Current assignments from the server profile; selected filters never grant access. */
   warehouseIds?: readonly string[];
+  /** Server-owned service state, refreshed independently of role permissions. */
+  serviceStatus?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | null;
 }
 
 export interface AuthSession {

@@ -41,6 +41,7 @@ export function SellerOrders() {
 }
 
 function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }) {
+  const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
   const t = useTranslations('Orders');
   const locale = useLocale();
   const [draftFilters, setDraftFilters] = useState<OrderFilters>({
@@ -77,7 +78,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
     if (
       running.current ||
       orderScope() !== scope ||
-      !(write ? sellerOrderAccess().create : sellerOrderAccess().read)
+      !(write ? sellerOrderAccess().create && sellerOrderAccess().intake : sellerOrderAccess().read)
     ) {
       return;
     }
@@ -218,6 +219,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             <>
               <Button
                 variant="secondary"
+                disabled={!canIntake}
                 onClick={() => {
                   setError(null);
                   setModal('import');
@@ -227,6 +229,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
                 {t('import')}
               </Button>
               <Button
+                disabled={!canIntake}
                 onClick={() => {
                   setError(null);
                   setModal('manual');

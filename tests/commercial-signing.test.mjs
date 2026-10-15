@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { NextIntlClientProvider } from 'next-intl';
 import { createServer } from 'vite';
 
 let server,
@@ -10,7 +14,8 @@ let server,
   safeUrl,
   profileSchema,
   shouldUseSigningWindow,
-  launchSigningSession;
+  launchSigningSession,
+  PreparationForm;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const agreementId = '00000000-0000-4000-8000-000000000002';
@@ -48,6 +53,36 @@ before(async () => {
   ({ shouldUseSigningWindow, launchSigningSession } = await server.ssrLoadModule(
     '/src/features/tenants/lib/signingPresentation.ts',
   ));
+  ({ CommercialPreparationForm: PreparationForm } = await server.ssrLoadModule(
+    '/src/features/tenants/components/CommercialPreparationForm.tsx',
+  ));
+});
+
+test('reading sample terms never submits the contract preparation form', () => {
+  const messages = JSON.parse(
+    readFileSync(new URL('../messages/vi.json', import.meta.url), 'utf8'),
+  );
+  for (const requiresBusinessProfile of [true, false]) {
+    const html = renderToStaticMarkup(
+      createElement(
+        NextIntlClientProvider,
+        { locale: 'vi', timeZone: 'Asia/Ho_Chi_Minh', messages },
+        createElement(PreparationForm, {
+          plan: { requiresBusinessProfile },
+          busy: false,
+          onPreview: () => {},
+          onSubmit: async () => {},
+        }),
+      ),
+    );
+    const buttons = [...html.matchAll(/<button\b([^>]*)>(.*?)<\/button>/gs)];
+    const preview = buttons.find(([, , text]) => text === messages.Commercial.preview);
+    const prepare = buttons.find(([, , text]) => text === messages.Commercial.confirmPrepare);
+    assert.ok(preview, 'sample preview action must be present');
+    assert.match(preview[1], /\btype="button"/, 'sample preview must not submit the form');
+    assert.ok(prepare, 'explicit preparation action must be present');
+    assert.match(prepare[1], /\btype="submit"/);
+  }
 });
 after(async () => {
   globalThis.fetch = originalFetch;
