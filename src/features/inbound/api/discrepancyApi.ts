@@ -94,7 +94,14 @@ export const discrepancyStateSchema = z
           .object({
             inboundLineId: z.string().uuid(),
             lineNo: z.number().int().positive(),
-            declaredQty: z.number().int().nonnegative().max(1_000_000).nullable(),
+            declaredQty: z.null(),
+            variance: z
+              .object({
+                discrepancyType: z.enum(['SHORT', 'OVER']),
+                qty: z.number().int().positive().max(1_000_000),
+              })
+              .strict()
+              .nullable(),
             receivedQty: z.number().int().nonnegative().max(1_000_000).nullable(),
             exceptions: z.array(exceptionSchema).max(50),
           })
@@ -111,9 +118,7 @@ export const discrepancyStateSchema = z
       new Set(value.items.map((i) => i.id)).size !== value.items.length ||
       value.lines.some(
         (l) =>
-          (value.ready
-            ? l.declaredQty === null || l.receivedQty === null
-            : l.declaredQty !== null) ||
+          (value.ready ? l.receivedQty === null : l.variance !== null) ||
           l.exceptions.reduce((sum, q) => sum + q.qty, 0) > (l.receivedQty ?? 0) ||
           new Set(l.exceptions.map((q) => q.receivingRecordId)).size !== l.exceptions.length,
       ) ||

@@ -32,7 +32,16 @@ const state = {
   asnId: id,
   asnStatus: 'DISCREPANCY',
   ready: true,
-  lines: [{ inboundLineId: line, lineNo: 1, declaredQty: 10, receivedQty: 7, exceptions: [] }],
+  lines: [
+    {
+      inboundLineId: line,
+      lineNo: 1,
+      declaredQty: null,
+      variance: { discrepancyType: 'SHORT', qty: 3 },
+      receivedQty: 7,
+      exceptions: [],
+    },
+  ],
   items: [report],
 };
 const ok = (data) => Response.json({ success: true, data, meta: {} });
@@ -101,17 +110,24 @@ for (const changed of [
     globalThis.fetch = async () => ok({ ...state, ...changed });
     await assert.rejects(api.get(warehouse, id));
   });
-test('withholds declarations before complete count/QC, including explicitly counted zero', () => {
+test('never accepts raw declarations and withholds server variance before complete count/QC', () => {
   assert.equal(
     schemas.discrepancyStateSchema.safeParse({
       ...state,
       ready: false,
       items: [],
-      lines: [{ ...state.lines[0], declaredQty: null }],
+      lines: [{ ...state.lines[0], variance: null }],
     }).success,
     true,
   );
   assert.equal(schemas.discrepancyStateSchema.safeParse({ ...state, ready: false }).success, false);
+  assert.equal(
+    schemas.discrepancyStateSchema.safeParse({
+      ...state,
+      lines: [{ ...state.lines[0], declaredQty: 10 }],
+    }).success,
+    false,
+  );
   assert.equal(
     schemas.discrepancyStateSchema.safeParse({
       ...state,

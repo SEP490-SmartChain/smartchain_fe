@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
-import { Alert, Button, Input, Select } from '@/components/Common';
+import { Alert, Button, Checkbox, Input, Select } from '@/components/Common';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -19,6 +19,7 @@ import {
 import type { z } from 'zod';
 
 interface Props {
+  onPendingChange?: (key: string, locked: boolean) => void;
   warehouseId: string;
   asnId: string;
   receiptVersion: number;
@@ -26,6 +27,7 @@ interface Props {
   onSaved: () => void;
 }
 export function ReceiptReviewPanel({
+  onPendingChange,
   warehouseId,
   asnId,
   receiptVersion,
@@ -34,7 +36,7 @@ export function ReceiptReviewPanel({
 }: Props) {
   const t = useTranslations('Receiving');
   const owner = useAuthStore((s) => s.user);
-  const [expanded, setExpanded] = useState(false),
+  const [expanded, setExpanded] = useState(true),
     [state, setState] = useState<ReviewState | null>(null);
   const [loading, setLoading] = useState(false),
     [busy, setBusy] = useState(false),
@@ -42,6 +44,10 @@ export function ReceiptReviewPanel({
     [success, setSuccess] = useState('');
   const [refresh, setRefresh] = useState(0),
     [attempt, setAttempt] = useState<{ input: ReviewInput; receiptId: string } | null>(null);
+  useEffect(() => {
+    onPendingChange?.(`review:${asnId}`, busy || attempt !== null);
+    return () => onPendingChange?.(`review:${asnId}`, false);
+  }, [onPendingChange, asnId, busy, attempt]);
   const generation = useRef(0),
     active = useRef<AbortController | null>(null),
     operation = useRef(crypto.randomUUID());
@@ -56,6 +62,8 @@ export function ReceiptReviewPanel({
     defaultValues: { decision: 'APPROVE', reason: '' },
   });
   const decision = watch('decision');
+  const [returnConfirmed, setReturnConfirmed] = useState(false);
+  const [decisionError, setDecisionError] = useState('');
   const current = useCallback(
     (version: number) => version === generation.current && owner === useAuthStore.getState().user,
     [owner],
@@ -69,6 +77,8 @@ export function ReceiptReviewPanel({
     setBusy(false);
     setError('');
     setSuccess('');
+    setDecisionError('');
+    setReturnConfirmed(false);
     operation.current = crypto.randomUUID();
     reset({ decision: 'APPROVE', reason: '' });
     return () => {
@@ -104,6 +114,7 @@ export function ReceiptReviewPanel({
     if (
       busy ||
       !canWrite ||
+      (input.decision === 'RETURN' && !returnConfirmed) ||
       (!attempt && (!state?.ready || (input.decision === 'APPROVE' && !state.canApprove)))
     ) {
       return;
@@ -113,6 +124,7 @@ export function ReceiptReviewPanel({
     setBusy(true);
     setError('');
     setSuccess('');
+    setDecisionError('');
     try {
       const result = await reviewApi.decide(
         warehouseId,
@@ -125,14 +137,24 @@ export function ReceiptReviewPanel({
       setAttempt(null);
       operation.current = crypto.randomUUID();
       reset({ decision: 'APPROVE', reason: '' });
+      setReturnConfirmed(false);
       setSuccess(t(result.decision === 'APPROVE' ? 'reviewApproved' : 'reviewReturned'));
       setRefresh((v) => v + 1);
       onSaved();
     } catch (reason: unknown) {
       if (!current(version)) return;
-      setError(reason instanceof ApiError ? reason.message : t('reviewSubmitError'));
+      setDecisionError(
+        reason instanceof ApiError && [400, 403, 404, 409, 422].includes(reason.status)
+          ? t(
+              reason.status === 403 || reason.status === 404
+                ? 'reviewAccessChanged'
+                : 'reviewEvidenceChanged',
+            )
+          : t('reviewSubmitError'),
+      );
       if (reason instanceof ApiError && [400, 403, 404, 409, 422].includes(reason.status)) {
         setAttempt(null);
+        setReturnConfirmed(false);
         operation.current = crypto.randomUUID();
         setState(null);
         setRefresh((v) => v + 1);
@@ -149,15 +171,59 @@ export function ReceiptReviewPanel({
         aria-expanded={expanded}
         onClick={() => setExpanded((v) => !v)}
       >
-        {t('reviewTitle')}
+        {t(canWrite ? 'reviewTitle' : 'reviewHistoryTitle')}
       </Button>
       {expanded && (
         <>
           <p className="text-sm text-[var(--sc-text-secondary)]">{t('reviewHelp')}</p>
           {loading && <p role="status">{t('loading')}</p>}
           {error && <Alert variant="error" title={error} />}
+          {decisionError && <Alert variant="error" title={decisionError} />}
           {success && <Alert variant="success" title={success} />}
           {attempt && <Alert variant="warning" title={t('reviewUncertain')} />}
+          {state && (
+            <p role="status" className="font-medium">
+              {t(
+                state.status === 'APPROVED' || state.status === 'COMPLETED'
+                  ? 'receiptApproved'
+                  : state.canApprove
+                    ? 'receiptAwaitingReview'
+                    : 'receiptIncomplete',
+              )}
+            </p>
+          )}
+          {state && (
+            <p className="text-sm">
+              {t(
+                'reviewTotals',
+                state.records.reduce(
+                  (sum, r) => ({
+                    actual: sum.actual + r.receivedQty,
+                    accepted: sum.accepted + (r.inspection?.acceptedQty ?? 0),
+                    quarantine: sum.quarantine + (r.inspection?.quarantinedQty ?? 0),
+                    rejected: sum.rejected + (r.inspection?.rejectedQty ?? 0),
+                  }),
+                  { actual: 0, accepted: 0, quarantine: 0, rejected: 0 },
+                ),
+              )}
+            </p>
+          )}
+          {state?.blockers && state.status === 'RECEIVING' && (
+            <ul
+              className="list-inside list-disc space-y-1 text-sm"
+              aria-label={t('reviewBlockers')}
+            >
+              {(
+                ['COUNT_REQUIRED', 'INSPECTION_REQUIRED', 'DISCREPANCY_REPORT_REQUIRED'] as const
+              ).map((code) => {
+                const count = state.blockers?.filter((b) => b.code === code).length ?? 0;
+                return count > 0 ? <li key={code}>{t(`blocker${code}`, { count })}</li> : null;
+              })}
+            </ul>
+          )}
+          {state && !state.ready && !state.blockers && state.status === 'RECEIVING' && (
+            <Alert variant="info" title={t('reviewIncompleteFallback')} />
+          )}
           {state?.records.map((r) => (
             <div key={r.receivingRecordId} className="space-y-1 text-sm">
               <p className="font-medium">
@@ -224,12 +290,22 @@ export function ReceiptReviewPanel({
                   maxLength={1000}
                   error={errors.reason ? t('reviewReasonRequired') : undefined}
                 />
+                {decision === 'RETURN' && (
+                  <>
+                    <Alert variant="warning" title={t('reviewReturnWarning')} />
+                    <Checkbox
+                      label={t('reviewReturnConfirm')}
+                      checked={returnConfirmed}
+                      onChange={(event) => setReturnConfirmed(event.target.checked)}
+                    />
+                  </>
+                )}
                 <Button
                   type="submit"
-                  disabled={decision === 'APPROVE' && !state.canApprove}
+                  disabled={decision === 'APPROVE' ? !state.canApprove : !returnConfirmed}
                   isLoading={busy}
                 >
-                  {t('reviewSubmit')}
+                  {t(decision === 'APPROVE' ? 'reviewApproveChoice' : 'reviewReturnChoice')}
                 </Button>
               </fieldset>
             </form>
