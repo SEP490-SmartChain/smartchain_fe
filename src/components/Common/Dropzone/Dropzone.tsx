@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
+import { RequiredIndicator } from '../RequiredIndicator/RequiredIndicator';
+
 export interface DropzoneProps {
   files: File[];
   onFilesChange: (files: File[]) => void;
@@ -12,6 +14,7 @@ export interface DropzoneProps {
   multiple?: boolean;
   maxSizeMb?: number;
   disabled?: boolean;
+  isRequired?: boolean;
   className?: string;
 }
 
@@ -28,6 +31,7 @@ export function Dropzone({
   multiple = true,
   maxSizeMb = 10,
   disabled = false,
+  isRequired = false,
   className,
 }: DropzoneProps) {
   const inputId = useId();
@@ -68,6 +72,7 @@ export function Dropzone({
         accept={accept}
         multiple={multiple}
         disabled={disabled}
+        aria-required={isRequired}
         onChange={(event) => {
           if (event.target.files) addFiles(event.target.files);
           event.target.value = '';
@@ -101,6 +106,7 @@ export function Dropzone({
         </span>
         <span className="text-sm font-medium text-[var(--sc-text-primary)]">
           {t('dropzone_title')}
+          <RequiredIndicator isRequired={isRequired} />
         </span>
         <span className="mt-1 text-xs leading-4 text-[var(--sc-text-secondary)]">
           {t('dropzone_hint', { size: maxSizeMb })}

@@ -414,6 +414,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             </Button>
           </div>
           <Dropzone
+            isRequired
             files={files}
             onFilesChange={(next) => {
               setFiles(next);
