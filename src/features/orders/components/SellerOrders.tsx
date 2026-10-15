@@ -17,6 +17,7 @@ import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTab
 import Modal from '@/components/Common/Modal/Modal';
 import { useAuthStore } from '@/stores/authStore';
 
+import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
 import { OrderDetail } from './OrderDetail';
 import {
@@ -52,7 +53,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
   });
   const [filters, setFilters] = useState(draftFilters);
   const orders = useOrders(scope, filters, owner);
-  const [modal, setModal] = useState<'manual' | 'import' | 'detail' | null>(null);
+  const [modal, setModal] = useState<'manual' | 'import' | 'detail' | 'sheet' | null>(null);
   const [detail, setDetail] = useState<SellerOrderDetail | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -222,6 +223,15 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
                 disabled={!canIntake}
                 onClick={() => {
                   setError(null);
+                  setModal('sheet');
+                }}
+              >
+                {t('sheetConnect')}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setError(null);
                   setModal('import');
                 }}
               >
@@ -340,6 +350,22 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
           </div>
         )}
       </Card>
+      {owner && (
+        <Modal
+          isOpen={modal === 'sheet'}
+          title={t('sheetConnect')}
+          width="640px"
+          onClose={() => {
+            if (!busy) setModal(null);
+          }}
+        >
+          {modal === 'sheet' && (
+            <GoogleSheetConnection scope={scope} onTemplate={() => downloadTemplate(true)} />
+          )}
+          {busy && <p role="status">{t('loading')}</p>}
+          {error && <Alert variant="error">{error}</Alert>}
+        </Modal>
+      )}
       {/* Keep the form mounted across dialog closes; scope changes remount this session. */}
       {owner && (
         <ManualOrderForm
@@ -387,15 +413,6 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
               {t('template')}
             </Button>
           </div>
-          <details className="rounded-lg border border-[var(--sc-border-default)] p-3 text-sm">
-            <summary className="rounded font-medium focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
-              {t('sheetSetup')}
-            </summary>
-            <p className="mt-2 text-[var(--sc-text-secondary)]">{t('sheet_hint')}</p>
-            <Button variant="ghost" isLoading={busy} onClick={() => downloadTemplate(true)}>
-              {t('sheet_template')}
-            </Button>
-          </details>
           <Dropzone
             files={files}
             onFilesChange={(next) => {

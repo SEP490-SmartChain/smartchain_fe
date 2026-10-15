@@ -391,8 +391,6 @@
     "invalidPartnerCode": "The shop code may contain letters, digits, hyphens or underscores (max 50)."
   },
   "Orders": {
-    "sheetSetup": "Connect Google Sheets (optional)",
-    "sheet_hint": "For a sheet connected to ORCA by your administrator. One order per row, up to 3 products; open the template for instructions.",
     "sheet_template": "Download Google Sheets template",
     "title": "Sales orders",
     "description": "Create, import and track your sales orders in one place.",
@@ -580,7 +578,10 @@
       "date_range": "The start date must be on or before the end date.",
       "cursor": "The list has changed. Refresh it.",
       "money_limit": "The total exceeds the limit. Check quantities and prices.",
-      "invalid_payment_breakdown": "Check amounts: discount cannot exceed merchandise; payments cannot exceed net merchandise or shipping; totals must stay within the supported range."
+      "invalid_payment_breakdown": "Check amounts: discount cannot exceed merchandise; payments cannot exceed net merchandise or shipping; totals must stay within the supported range.",
+      "sheet_setup_unavailable": "ORCA has not enabled automatic sheet setup. Contact ORCA; no technical setup is required from you.",
+      "sheet_setup_in_progress": "ORCA is preparing or verifying the sheet. Refresh the status in a few minutes.",
+      "sheet_setup_not_confirmed": "Sheet setup was not confirmed. Refresh its status; retrying uses the same setup."
     },
     "search_code": "Search order code",
     "items_section": "2. Products",
@@ -650,7 +651,23 @@
       "INCONSISTENT": "{field}: use nonnegative whole VND; lines sharing an order code must have matching payment details or leave later lines blank.",
       "INVALID": "{field}: check the value and lines sharing this order code. Keep column headings unchanged.",
       "MISSING_PRICE": "No valid selling price: enter a line price or correct the SKU’s default price in San pham (one row per SKU). Prices must be non-negative whole VND amounts; enter 0 only when explicitly offering the item for free."
-    }
+    },
+    "sheetConnect": "Connect Google Sheets",
+    "sheetConfigured": "Configured",
+    "sheetOpen": "Open order sheet",
+    "sheetSendInstructions": "Enter one product per row and use the same order code for all products in an order. When complete, set Send order = Yes on its first row. The connector checks about once a minute; results appear in the sheet.",
+    "sheetRuntimeHint": "A configured sheet does not guarantee live Google or n8n availability. If no result appears after a few minutes, preserve the order code and contact ORCA to check the connection.",
+    "sheetLastOrder": "Latest order received from Google Sheets",
+    "sheetNoOrders": "No orders recorded",
+    "sheetRefresh": "Refresh status",
+    "sheetTemplateOnly": "Downloading the template creates an Excel file; it does not connect a new sheet. Submit orders using the sheet under Open order sheet.",
+    "sheetCreate": "Create order sheet",
+    "sheetRetrySetup": "Retry sheet setup",
+    "sheetCreateHint": "ORCA creates a private sheet for your shop with its products and order instructions. No technical configuration is required.",
+    "sheetCreateConsent": "ORCA manages the sheet and grants edit access to the shop owner email: {email}. Select Create order sheet to begin.",
+    "sheetPreparing": "ORCA is preparing or verifying your sheet. Keep the same request and refresh its status in a few minutes.",
+    "sheetSetupRetryHint": "Connection setup has not been confirmed. Retrying checks the same setup to avoid creating another sheet.",
+    "sheetPlatformUnavailable": "ORCA has not enabled automatic sheet setup on this installation. You do not need to configure Google or n8n; contact ORCA support."
   },
   "Sidebar": {
     "freight_tariffs": "Freight tariffs",

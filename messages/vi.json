@@ -391,8 +391,6 @@
     "invalidPartnerCode": "Mã cửa hàng chỉ gồm chữ, số, gạch ngang hoặc gạch dưới (tối đa 50 ký tự)."
   },
   "Orders": {
-    "sheetSetup": "Kết nối Google Sheets (tùy chọn)",
-    "sheet_hint": "Mẫu Google Sheets dành cho bảng đã được quản trị viên kết nối ORCA. Mỗi dòng một đơn, tối đa 3 sản phẩm; mở mẫu để xem hướng dẫn.",
     "sheet_template": "Tải mẫu Google Sheets",
     "title": "Đơn bán hàng",
     "description": "Tạo đơn, nhập đơn hàng loạt và theo dõi giao hàng trong một nơi.",
@@ -580,7 +578,10 @@
       "date_range": "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.",
       "cursor": "Danh sách đã thay đổi. Làm mới để tải lại.",
       "money_limit": "Tổng giá trị vượt giới hạn. Kiểm tra số lượng và đơn giá.",
-      "invalid_payment_breakdown": "Kiểm tra các khoản tiền: giảm giá không vượt tổng tiền hàng; tiền đã trả không vượt tiền hàng sau giảm hoặc phí giao hàng; tổng tiền phải nằm trong giới hạn hỗ trợ."
+      "invalid_payment_breakdown": "Kiểm tra các khoản tiền: giảm giá không vượt tổng tiền hàng; tiền đã trả không vượt tiền hàng sau giảm hoặc phí giao hàng; tổng tiền phải nằm trong giới hạn hỗ trợ.",
+      "sheet_setup_unavailable": "ORCA chưa bật dịch vụ tạo bảng tự động. Hãy liên hệ ORCA; bạn không cần tự cấu hình.",
+      "sheet_setup_in_progress": "ORCA đang chuẩn bị hoặc kiểm tra bảng. Hãy làm mới trạng thái sau ít phút.",
+      "sheet_setup_not_confirmed": "Chưa xác nhận tạo bảng xong. Hãy làm mới trạng thái; thử lại sẽ dùng cùng yêu cầu."
     },
     "search_code": "Tìm theo mã đơn",
     "items_section": "2. Sản phẩm",
@@ -650,7 +651,23 @@
       "INCONSISTENT": "{field}: nhập số VND nguyên không âm; các dòng cùng mã đơn phải có cùng thông tin thanh toán hoặc để trống dòng tiếp theo.",
       "INVALID": "{field}: kiểm tra giá trị và các dòng cùng mã đơn. Giữ nguyên tiêu đề cột.",
       "MISSING_PRICE": "Chưa có giá bán hợp lệ: nhập giá tại dòng đơn hoặc sửa Giá bán mặc định của SKU trong sheet San pham (mỗi SKU chỉ một dòng). Giá phải là số VND nguyên không âm; nhập 0 chỉ khi shop chủ động miễn phí."
-    }
+    },
+    "sheetConnect": "Kết nối Google Sheets",
+    "sheetConfigured": "Đã cấu hình",
+    "sheetOpen": "Mở bảng đơn hàng",
+    "sheetSendInstructions": "Điền mỗi sản phẩm trên một dòng; các dòng cùng mã đơn thuộc một đơn. Sau khi điền đủ, chọn Gửi đơn = Có ở dòng đầu. Hệ thống kiểm tra khoảng mỗi phút; xem kết quả ngay trong bảng.",
+    "sheetRuntimeHint": "Cấu hình bảng không bảo đảm kết nối Google và n8n luôn hoạt động. Nếu chưa thấy kết quả sau vài phút, giữ nguyên mã đơn và liên hệ ORCA kiểm tra kết nối.",
+    "sheetLastOrder": "ORCA nhận đơn từ Google Sheets gần nhất",
+    "sheetNoOrders": "Chưa ghi nhận đơn",
+    "sheetRefresh": "Làm mới trạng thái",
+    "sheetTemplateOnly": "Tải mẫu chỉ tạo file Excel, không tự kết nối một bảng mới. Bảng gửi đơn là bảng ở nút Mở bảng đơn hàng.",
+    "sheetCreate": "Tạo bảng đơn hàng",
+    "sheetRetrySetup": "Thử tạo lại bảng",
+    "sheetCreateHint": "ORCA sẽ tạo bảng riêng cho shop, có sẵn sản phẩm và hướng dẫn nhập đơn. Bạn không cần cấu hình kỹ thuật.",
+    "sheetCreateConsent": "Bảng do ORCA quản lý và cấp quyền chỉnh sửa cho email chủ shop: {email}. Bấm Tạo bảng đơn hàng để bắt đầu.",
+    "sheetPreparing": "ORCA đang chuẩn bị hoặc xác minh bảng. Giữ nguyên yêu cầu và làm mới trạng thái sau ít phút.",
+    "sheetSetupRetryHint": "Chưa xác nhận hoàn tất kết nối. ORCA sẽ kiểm tra lại cùng yêu cầu khi bạn thử lại, tránh tạo thêm bảng.",
+    "sheetPlatformUnavailable": "ORCA chưa bật tính năng tự tạo bảng trên hệ thống này. Bạn không cần cấu hình Google hay n8n; hãy liên hệ ORCA để được hỗ trợ."
   },
   "Sidebar": {
     "freight_tariffs": "Bảng cước",
