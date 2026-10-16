@@ -45,6 +45,13 @@ a revoked role cannot issue a download. `tests/ss-1302-csv-export.test.mjs`
 covers seven roles, mixed/unknown authority, formula/control characters, CSV
 escaping and private extra fields. Only the displayed authorized page is exported.
 
+The following describes the 14 October audit. On 16 October 2026, the receiving
+receipt contract was updated at the user’s request to expose `declaredQty` and
+`cartonCount` to assigned Staff and Manager for comparison. The directory retains
+its minimal allowlist; receipt reads still exclude financial, secret, recipient
+and seller lot/expiry fields. This supersedes the earlier blind-receiving behavior
+for receipt comparison only. Blind inventory counts remain separate.
+
 The warehouse directory previously parsed the seller ASN DTO and displayed
 `declaredQty`. That failed on the backend's minimal warehouse projection and
 conflicted with blind receiving. `warehouseAsnSchema` now strictly accepts only

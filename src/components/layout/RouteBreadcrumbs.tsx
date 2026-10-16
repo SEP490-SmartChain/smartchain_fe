@@ -6,6 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useAccess } from '@/hooks/useAccess';
+import { WAREHOUSE_INBOUND_TABS } from '@/lib/accessPolicy';
 
 interface BreadcrumbItem {
   label: string;
@@ -73,7 +74,10 @@ export default function RouteBreadcrumbs() {
   } else if (primaryPath === '/warehouse') {
     const sub = pathname.split('/').filter(Boolean)[1] ?? 'inbound';
     items.push({ label: sidebar('warehouse_ops_heading') });
-    items.push({ label: sidebar(`warehouse_${sub}` as any) });
+    if (WAREHOUSE_INBOUND_TABS.some((tab) => tab.href === pathname)) {
+      items.push({ label: sidebar('warehouse_intake'), href: '/warehouse/inbound' });
+    }
+    items.push({ label: sidebar(`warehouse_${sub}`) });
   } else if (primaryPath === '/settings') {
     const settingTab = pathname.split('/').filter(Boolean)[1] ?? 'profile';
     items.push({
@@ -89,7 +93,6 @@ export default function RouteBreadcrumbs() {
     items.push({ label: sidebar('workspace_settings_heading') });
     items.push({ label: sidebar('usage') });
   } else {
-    items.push({ label: sidebar('workspace_heading') });
     items.push({ label: pageLabels[primaryPath] ?? topbar('default_title') });
   }
 

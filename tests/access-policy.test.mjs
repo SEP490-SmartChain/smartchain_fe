@@ -571,18 +571,54 @@ test('every visible nav/search href is route-allowed for that role (single sourc
   }
 });
 
-test('component catalog is dev-only and never grants production access', () => {
-  const admin = effective(ADMIN, PLATFORM);
-  assert.equal(
-    policy.getVisibleNavGroups(admin, false).some((group) => group.key === 'ui_heading'),
-    false,
-  );
-  assert.equal(
-    policy.getVisibleNavGroups(admin, true).some((group) => group.key === 'ui_heading'),
-    true,
-  );
-  assert.equal(policy.isRouteAllowed(admin, '/components/buttons', true), true);
-  assert.equal(policy.isRouteAllowed(admin, '/components/buttons', false), false);
+test('inbound stages share one sidebar/search entry and keep their route guards', () => {
+  const paths = ['/warehouse/inbound', '/warehouse/receiving', '/warehouse/putaway'];
+  for (const [role, scope] of ALL_ROLES) {
+    const roles = effective([role], scope);
+    const allowed = role === 'WAREHOUSE_MANAGER' || role === 'WAREHOUSE_STAFF';
+    const items = policy
+      .getVisibleNavGroups(roles, false)
+      .flatMap((group) => group.items)
+      .filter((item) => paths.includes(item.href));
+    assert.equal(items.length, allowed ? 1 : 0, role);
+    assert.equal(
+      policy.getSearchLinks(roles, false).filter((item) => paths.includes(item.href)).length,
+      allowed ? 1 : 0,
+      role,
+    );
+    for (const pathname of paths) {
+      assert.equal(policy.isRouteAllowed(roles, pathname), allowed, `${role} ${pathname}`);
+      if (allowed) {
+        assert.equal(policy.isNavItemActive(items[0], pathname), true, pathname);
+        assert.equal(policy.isNavItemActive(items[0], `${pathname}/`), true, pathname);
+      }
+    }
+    if (allowed) {
+      assert.equal(items[0].key, 'warehouse_intake');
+      assert.equal(policy.isNavItemActive(items[0], '/warehouse/picking'), false);
+      assert.equal(policy.isNavItemActive(items[0], '/warehouse/receiving-other'), false);
+    }
+  }
+});
+
+test('component catalog is omitted from navigation and search for every role', () => {
+  for (const [role, scope] of ALL_ROLES) {
+    const resolved = effective([role], scope);
+    for (const isDev of [false, true]) {
+      assert.equal(
+        policy.getVisibleNavGroups(resolved, isDev).some((group) => group.key === 'ui_heading'),
+        false,
+        `${role} must not see the component catalog in navigation`,
+      );
+      assert.equal(
+        policy.getSearchLinks(resolved, isDev).some((link) => link.href.startsWith('/components')),
+        false,
+        `${role} must not find the component catalog in search`,
+      );
+    }
+    assert.equal(policy.isRouteAllowed(resolved, '/components/buttons', true), true);
+    assert.equal(policy.isRouteAllowed(resolved, '/components/buttons', false), false);
+  }
 });
 
 test('unknown capabilities are denied by default', () => {
