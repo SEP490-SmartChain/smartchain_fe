@@ -5,6 +5,7 @@
 
 // Layout
 export { Card, CardHeader, CardContent, CardFooter } from './Card/Card';
+export { PageHeader } from './PageHeader/PageHeader';
 
 // Forms
 export { Button } from './Button/Button';

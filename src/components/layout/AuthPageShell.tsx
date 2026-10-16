@@ -24,7 +24,7 @@ export default function AuthPageShell({ heading, subheading, children }: AuthPag
               </span>
               <span className="text-xl font-semibold">ORCA</span>
             </div>
-            <h1 className="m-0 text-[40px] font-medium leading-[44px] text-[var(--sc-text-primary)]">
+            <h1 className="m-0 text-balance text-[32px] font-medium leading-[38px] text-[var(--sc-text-primary)] min-[900px]:text-[40px] min-[900px]:leading-[44px]">
               {heading}
             </h1>
             <p className="mb-0 mt-3 text-base leading-5 text-[var(--sc-text-secondary)]">
