@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import type { ActorScope } from '@/lib/accessPolicy';
+import { signedStorageUrl } from '@/lib/signedStorageUrl';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -104,19 +105,8 @@ class ApiClient {
     headers: Record<string, string>,
     signal?: AbortSignal,
   ): Promise<void> {
-    const parsed = new URL(url);
-    if (
-      (parsed.protocol !== 'https:' &&
-        !(
-          parsed.protocol === 'http:' &&
-          ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
-        )) ||
-      parsed.username ||
-      parsed.password
-    ) {
-      throw new Error('Invalid image upload URL');
-    }
-    const response = await fetch(url, {
+    const destination = signedStorageUrl(url);
+    const response = await fetch(destination, {
       method: 'PUT',
       body: file,
       headers,

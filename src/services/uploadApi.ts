@@ -35,14 +35,23 @@ export interface AvatarDownloadResult {
   expiresInSeconds: number;
 }
 
+export class UploadStorageConnectionError extends Error {
+  constructor() {
+    super('Unable to connect to the signed upload URL.');
+    this.name = 'UploadStorageConnectionError';
+  }
+}
+
 export function avatarObjectKey(reference?: string | null): string | null {
   if (!reference) return null;
-  if (reference.startsWith('tenants/')) return reference;
+  if (reference.startsWith('tenants/') || reference.startsWith('platform/users/')) {
+    return reference;
+  }
 
   try {
     const pathname = new URL(reference).pathname;
-    const tenantPathIndex = pathname.indexOf('/tenants/');
-    return tenantPathIndex >= 0 ? pathname.slice(tenantPathIndex + 1) : null;
+    const objectPathIndex = pathname.search(/\/(?:tenants\/|platform\/users\/)/);
+    return objectPathIndex >= 0 ? pathname.slice(objectPathIndex + 1) : null;
   } catch {
     return null;
   }
@@ -69,11 +78,10 @@ export const uploadApi = {
   },
 
   async presign(input: PresignUploadInput): Promise<PresignUploadResult> {
-    const { data } = await apiClient.post<ApiResponse<PresignUploadResult>>(
-      '/v1/uploads/presign',
-      input,
-    );
-    return data;
+    const { data } = await apiClient.post<ApiResponse<unknown>>('/v1/uploads/presign', input, {
+      silent: true,
+    });
+    return presignSchema.parse(data);
   },
 
   async uploadDirect(
@@ -81,16 +89,14 @@ export const uploadApi = {
     file: File,
     headers?: Record<string, string>,
   ): Promise<void> {
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: {
+    try {
+      await apiClient.uploadSignedImage(uploadUrl, file, {
         'Content-Type': file.type,
         ...headers,
-      },
-      body: file,
-    });
-    if (!response.ok) {
-      throw new Error(`Upload to storage failed with status ${response.status}`);
+      });
+    } catch (error) {
+      if (error instanceof TypeError) throw new UploadStorageConnectionError();
+      throw error;
     }
   },
 
