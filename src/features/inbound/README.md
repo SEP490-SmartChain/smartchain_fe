@@ -1,5 +1,44 @@
 # Inbound ASN
 
+## Web receiving media and SKU policy (16 October 2026)
+
+Starting arrival opens the receipt workspace immediately. Receipt-level photos,
+MP4/WebM videos and observation notes can be saved before counting, including when
+zero units arrive. Camera capture has a local preview and file-picker fallback;
+recording is silent and stops at 60 seconds. Images are limited to 5 MiB and videos
+to 50 MiB. Draft camera/files and unknown uploads protect receipt navigation;
+retry keeps the same file, metadata and operation reference. LAN HTTP uses native
+capture/file selection and SHA-256 fallback. The Vite development storage proxy
+removes app credentials and preserves signed object requests, avoiding CORS and
+phone-localhost failures; production keeps direct signed HTTPS storage URLs.
+Only the original uploader can remove their receipt-level media while the receipt
+is open. Removal is confirmed in the UI and retried safely if object cleanup is
+interrupted; counted-lot QC photos remain attached to their inspection history.
+
+Count validation uses the selected SKU's `trackLot`, `manufactureRequired`,
+`trackExpiry` and duration. Staff never types a lot code; the server creates an
+internal receiving reference. Date
+labels indicate conditional requirements and preview expiry derived from physical
+manufacture plus configured duration. Missing required dates block submission;
+SKUs without expiry tracking never require an expiry date. Manufacture is a
+separate SKU policy. Required count fields use the shared red asterisk, including
+conditional date requirements; expiry becomes optional when it can be derived.
+The form explains the current SKU policy and a missing duration without showing
+an empty duration as a number of days.
+The receipt evidence note can record an unreadable or missing label without
+inventing a date. Manager approval requires at least one verified receipt or lot
+evidence item; the server returns an actionable `EVIDENCE_REQUIRED` blocker.
+
+Backend contract and required migration:
+`smartchain_be/docs/RECEIVING-WEB-MEDIA.md`. Release the API and web together.
+Manager RETURN starts a new receiving round. Staff sees the return reason and
+must capture new media, recount each line, submit new QC and report current
+exceptions. Previous counts, media and reports remain in history and cannot be
+reused to complete the new round. The workspace refreshes on focus and checks
+for server changes every 15 seconds while no command is pending.
+Existing counted-lot damage photos retain their original QC contract. Counts,
+Manager review, stock recognition and sellable putaway remain separate effects.
+
 The ASN feature owns the seller-side draft, submit, track and cancel workflow
 for SS-1063. Requests go through the shared API client so session refresh and
 403 handling remain consistent with the rest of the frontend.
@@ -17,6 +56,13 @@ separate P2 tasks. This screen never fabricates available stock or receiving res
 
 ## Warehouse arrival (SS-1071 / FU-21 / UC-37)
 
+The sidebar has one **Inbound / Nhập kho** entry. Its arrival, receiving/QC and putaway
+tabs retain their existing URLs under one shared layout and one assigned-warehouse selector.
+The directory is loaded once for the layout; a single assigned warehouse is selected
+automatically. Tab changes retain the selected warehouse. A warehouse or identity change
+unmounts the previous work and aborts its pending reads. Pending receipt/putaway commands
+lock the shared selector and tabs until the existing retry flow resolves them.
+
 `/warehouse/receiving` lists ASNs in the selected assigned warehouse. Warehouse
 Staff can enter an ASN code or scan the seller's carton reference, then confirm
 physical arrival. Manager can read the directory but cannot check in without a
@@ -30,7 +76,7 @@ reload; obsolete warehouse/identity responses do not populate the new view.
 UC-38 uses the standalone receipt workspace and the separate physical-count API.
 
 SS-1302 uses a strict warehouse-only directory DTO. Seller declarations and
-expected quantities are absent from this workspace; rows must belong to the
+expected quantities are absent from the directory; rows must belong to the
 selected warehouse. Arrival confirmation must match the requested ASN and
 warehouse and cannot contain private extra fields. See
 [`SS-1302-PERMISSION-AUDIT.md`](../../../docs/SS-1302-PERMISSION-AUDIT.md).
@@ -38,16 +84,18 @@ warehouse and cannot contain private extra fields. See
 ## Physical count (SS-1071 / FU-21 / UC-38)
 
 Staff opens an arrived receipt, selects an uncounted SKU and enters observed
-total plus lot breakdown and packaging dates. The form starts without seller
-declarations or expected quantities. Explicit zero creates no lot. Lot quantities
-must total the observed count, codes must be unique and dates must be real.
+total plus any required date-specific quantity rows. The server generates lot
+codes when the seller has not supplied packaging codes. Staff and Manager see a compact
+comparison table with seller-declared `declaredQty`, saved actuals and variance,
+plus the seller-declared `cartonCount`. The actual-count input starts blank.
+Explicit zero creates no lot. Lot quantities must total the observed count and dates must be real.
 Warehouse-local shelf-life and existing provenance are validated by the backend.
 
 The workspace reads `GET /v1/warehouses/:warehouseId/asns/:id/receiving` and posts
 `POST /v1/warehouses/:warehouseId/asns/:id/receiving/counts` with the receipt
 revision and operation UUID. An uncertain result freezes the attempted count and
 offers replay with the same UUID or a read to check saved evidence. Saved counts
-are immutable through this initial-count form. Manager sees actual counts only;
+are immutable through this initial-count form. Manager reads the same comparison;
 current role/assignment and writes remain server enforced.
 
 Response schemas reject mismatched receipt/line/quantity, invalid lot totals and
@@ -94,16 +142,16 @@ Known validation/permission/conflict responses reload evidence. Warehouse, ASN o
 changes abort requests and clear obsolete state. Saved decisions refresh both the receipt
 and ASN directory so the current operational status appears immediately.
 
-An approved receipt does not itself create stock. The UI explicitly shows Seller notification
-as pending integration; a durable outbox intent is not proof of delivery. Original discrepancy
+An approved receipt does not itself create stock. Seller notification delivery remains
+pending integration; a durable outbox intent is not proof of delivery. Original discrepancy
 reports remain immutable OPEN submissions; Manager history describes their disposition.
 SS-1072 receive, SS-1073 billing/webhooks and actual Seller notification delivery remain
 outstanding. Do not mark the entire SS-1070/1071 task complete based on these screens.
 
 ## Reviewed stock recognition (SS-1072 / FU-21)
 
-Each physical lot has a stock-recognition section. Assigned Staff searches by receiving-bin
-code/barcode, chooses receiving/quarantine locations and submits only operation, receipt
+Each physical lot has a stock-recognition section. Assigned Staff chooses an area followed
+by a receiving/quarantine bin and submits only operation, receipt
 revision and bin references. Manager reads physical recognition history without a write form.
 The backend derives quantities from Manager-approved QC and delegates stock effects to P3.
 Rejected units are excluded; receiving/quarantine stock is not sellable before confirmed putaway.
@@ -111,7 +159,13 @@ Rejected units are excluded; receiving/quarantine stock is not sellable before c
 Strict response schemas check record/receipt identity, physical partitions, selected bins and
 actual source quantities. Unknown replies preserve the same command and operation for retry;
 confirmed conflicts reload evidence. Scope/identity changes abort requests and clear old data.
-The list offers a bounded server search; it never loads unrelated Seller inventory or finance.
+The bounded list shows SKU dimensions and unit weight, total receiving weight/volume,
+and each bin's remaining/maximum weight and volume. Server-provided blockers disable
+insufficient or incompatible bins and the submit action. Shelf-life quarantine uses
+the effective server partition. Capacity is checked again under server locks; a
+capacity conflict remains visible after the list refreshes. Manager sees the same
+physical measurements with read-only recognition evidence. Occupancy identities and
+unrelated Seller inventory/finance are never exposed. API and web must be released together.
 
 ## Assigned putaway (SS-1078 / FU-22 / UC-42/43)
 
@@ -121,6 +175,25 @@ and scans receiving bin, storage bin, SKU, lot and the observed whole task quant
 The form starts blank. Wrong quantity is rejected locally and the server remains
 authoritative for scans, version, current assignment, lot eligibility and capacity.
 Manager reads outcomes without a physical-confirmation form.
+
+The same tab also reads `/putaway/waiting` through the existing assigned `asn.read`
+scope. It shows current approved quantities that have not been planned, even when
+there are no tasks yet: product, source bin, unplanned units, total kg/m³ and a short
+reason (stock recognition, suitable storage capacity, planning, quarantine or blocked
+source/lot). ASN and lot references are collapsed. It never presents a capacity
+exception as an empty warehouse, uses no historical outbox flag, and never schedules
+or posts stock from a read. Waiting rows have independent pagination. When waiting
+rows are visible, the idle page refreshes every 30 seconds and on focus; selected or
+pending task forms stop that refresh. Failed or malformed reads remain errors.
+For capacity-blocked rows, Managers open **Arrange putaway** in this same workspace.
+It resolves the exact assigned platform warehouse from the paginated directory and
+reuses catalog layout commands, filtered to STORAGE zones. Managers can add or edit
+the physical bins, then recheck tasks; existing worker planning remains authoritative
+and no synthetic task or capacity is created. Open layout forms lock scope and pause
+inbound reads until closed or saved. Staff sees a disabled claim and a compact blocker.
+Task cards name the assigned worker when available and expose
+Assign, Claim or Put away according to role, task state and assignee. Opening one
+focuses its form; Staff cannot operate another worker's assigned task.
 
 Strict adapters reject private/unrelated fields, inconsistent task states and
 mismatched task/actor/revision/quantity replies. Unknown transport results retain
@@ -179,8 +252,9 @@ decision conflicts refresh evidence and retain the user's reason; uncertain resp
 the exact command. Pending photo/QC/report/review/stock work locks receipt Back, lot switching,
 count writes and parent reload so those controls cannot discard a pending retry.
 
-Discrepancy responses now keep `declaredQty` null permanently and expose only a server-derived
-variance after complete count/QC. Strict adapters reject raw declarations. Release the
+Discrepancy responses keep `declaredQty` null and expose only a server-derived
+variance after complete count/QC. Its adapter rejects raw declarations; receipt reads
+separately allow per-line declarations for comparison. Release the
 backend and frontend together: old strict clients reject the added variance/date fields,
 and the new discrepancy client rejects the old raw-declaration response. This change does
 not add permissions or bypass server role, assignment, evidence or version checks.
@@ -190,3 +264,15 @@ Run the isolated visual harness with `node tests/ss-1071-ux-browser.mjs`, then o
 synthetic local transport, without .env or external providers. These browser checks are
 separate from the backend's restricted PostgreSQL integration tests; they are not evidence
 of a live provider or production end-to-end workflow.
+
+## Receiving comparison (16 October 2026)
+
+Receipt reads add seller-declared cartons and per-SKU units for both assigned Staff
+and Manager. The compact table shows declared, saved actual and signed variance;
+uncounted values remain `—`, including on a fresh reinspection round. Actual zero
+remains an explicit saved count. These fields never prefill a count or post stock.
+The directory, financial/privacy restrictions and action grants are unchanged.
+
+The UI uses short labels, compact blockers and collapsed decision history. Release
+frontend and backend together: the strict receipt schema requires `cartonCount` and
+`declaredQty`; an older backend response fails validation rather than showing zero.

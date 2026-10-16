@@ -124,6 +124,7 @@ const physicalAsn = {
   warehouseId,
   asnCode: arrival.asnCode,
   status: 'RECEIVING',
+  reinspectionRequired: true,
   receiptIds: [receiptId],
   arrivedAt: arrival.arrivedAt,
   version: 2,
@@ -268,9 +269,12 @@ const countInput = {
 const receiptState = {
   asnId: id,
   asnCode: arrival.asnCode,
+  cartonCount: 20,
   asnStatus: 'RECEIVING',
   receiptId,
   version: 2,
+  receivingRound: 1,
+  lastReview: null,
   status: 'RECEIVING',
   lines: [
     {
@@ -278,6 +282,9 @@ const receiptState = {
       lineNo: 1,
       sku: 'OBS-01',
       productName: 'Observed SKU',
+      declaredQty: 10,
+      trackLot: true,
+      manufactureRequired: false,
       trackExpiry: false,
       shelfLifeDays: null,
       minInboundShelfLifePct: 50,
@@ -285,6 +292,26 @@ const receiptState = {
     },
   ],
 };
+test('returned receipts expose the Manager reason and a fresh uncounted round to Staff', async () => {
+  const returned = {
+    ...receiptState,
+    version: 5,
+    receivingRound: 2,
+    lastReview: {
+      id,
+      decision: 'RETURN',
+      reason: 'Recount the sealed package',
+      receiptVersion: 5,
+      reviewedAt: '2026-10-16T08:00:00.000Z',
+    },
+    lines: receiptState.lines.map((line) => ({ ...line, count: null })),
+  };
+  globalThis.fetch = async () => ok(returned);
+  assert.deepEqual(await api.receipt(warehouseId, id), returned);
+  globalThis.fetch = async () =>
+    ok({ ...returned, lastReview: { ...returned.lastReview, receiptVersion: 6 } });
+  await assert.rejects(api.receipt(warehouseId, id), { name: 'ZodError' });
+});
 test('physical count submits the same operation reference on a repeated attempt', async () => {
   const attempts = [];
   globalThis.fetch = async (url, options) => {
@@ -303,6 +330,7 @@ test('receipt lookup keeps uncounted distinct from an observed zero', async () =
   globalThis.fetch = async () =>
     ok({ ...receiptState, lines: [{ ...receiptState.lines[0], count: null }] });
   assert.equal((await api.receipt(warehouseId, id)).lines[0].count, null);
+  assert.equal((await api.receipt(warehouseId, id)).lines[0].declaredQty, 10);
   globalThis.fetch = async () =>
     ok({
       ...receiptState,
@@ -361,6 +389,91 @@ test('physical count form trims codes, omits blank dates and never copies a decl
   assert.equal(
     countForm.receiptCountFormSchema.safeParse({ inboundLineId: lineId, receivedQty: 0, lots: [] })
       .success,
+    true,
+  );
+});
+
+test('receiving form requires packaging dates according to the selected SKU', () => {
+  const values = {
+    inboundLineId: lineId,
+    receivedQty: 2,
+    lots: [{ lotCode: 'PACKAGING-LOT', receivedQty: 2, manufacturedOn: '', expiresOn: '' }],
+  };
+  const controlled = {
+    trackLot: true,
+    trackExpiry: true,
+    manufactureRequired: false,
+    shelfLifeDays: 100,
+  };
+  assert.equal(countForm.receiptCountSchemaFor(controlled).safeParse(values).success, false);
+  const expiryOnly = { ...values, lots: [{ ...values.lots[0], expiresOn: '2027-01-01' }] };
+  assert.equal(countForm.receiptCountSchemaFor(controlled).safeParse(expiryOnly).success, true);
+  assert.equal(
+    countForm
+      .receiptCountSchemaFor({ ...controlled, manufactureRequired: true })
+      .safeParse(expiryOnly).success,
+    false,
+  );
+  assert.equal(
+    countForm.receiptCountSchemaFor({ ...controlled, shelfLifeDays: null }).safeParse(expiryOnly)
+      .success,
+    false,
+  );
+  const manufactureOnly = {
+    ...values,
+    lots: [{ ...values.lots[0], manufacturedOn: '2026-10-01' }],
+  };
+  assert.equal(
+    countForm.receiptCountSchemaFor(controlled).safeParse(manufactureOnly).success,
+    true,
+  );
+  assert.equal(countForm.derivedReceiptExpiry('2026-10-01', 100), '2027-01-09');
+  assert.equal(countForm.derivedReceiptExpiry('2026-02-30', 100), null);
+});
+
+test('untracked SKU sends observed units without asking the operator to invent a lot', () => {
+  const sku = {
+    trackLot: false,
+    trackExpiry: false,
+    manufactureRequired: false,
+    shelfLifeDays: null,
+  };
+  const values = { inboundLineId: lineId, receivedQty: 5, lots: [] };
+  const command = countForm.countCommand(values, countId, 1, sku);
+  assert.equal(command.receivedQty, 5);
+  assert.deepEqual(command.lots, []);
+  const tracked = { ...sku, trackLot: true };
+  assert.equal(countForm.receiptCountSchemaFor(tracked).safeParse(values).success, true);
+  assert.equal(countForm.countCommand(values, countId, 1, tracked).generateLotCodes, true);
+  assert.equal(
+    countForm
+      .receiptCountSchemaFor({ ...sku, trackLot: true })
+      .safeParse({ ...values, receivedQty: 0 }).success,
+    true,
+  );
+});
+
+test('lot-tracked goods without expiry accept blank dates; manufacture can be required independently', () => {
+  const sku = {
+    trackLot: true,
+    trackExpiry: false,
+    manufactureRequired: false,
+    shelfLifeDays: null,
+  };
+  const values = {
+    inboundLineId: lineId,
+    receivedQty: 2,
+    lots: [{ lotCode: 'STATIONERY-LOT', receivedQty: 2, manufacturedOn: '', expiresOn: '' }],
+  };
+  const command = countForm.countCommand(values, countId, 1, sku);
+  assert.deepEqual(command.lots, [{ lotCode: 'STATIONERY-LOT', receivedQty: 2 }]);
+  const manufactureOnly = { ...sku, manufactureRequired: true };
+  assert.equal(countForm.receiptCountSchemaFor(manufactureOnly).safeParse(values).success, false);
+  assert.equal(
+    countForm.receiptCountSchemaFor(manufactureOnly).safeParse({
+      ...values,
+      lots: [{ ...values.lots[0], manufacturedOn: '2026-10-01' }],
+    }).success,
     true,
   );
 });

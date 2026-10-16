@@ -10,6 +10,7 @@ import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { warehouseApi } from '@/features/catalog';
 import { canStartSellerIntake } from '@/lib/sellerService';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -26,7 +27,7 @@ interface Props {
 }
 export function AsnForm({ draft, onClose, onSaved }: Props) {
   const t = useTranslations('Asns');
-  const creationKey = useRef(crypto.randomUUID());
+  const creationKey = useRef(createUuid());
   const user = useAuthStore((state) => state.user);
   const [products, setProducts] = useState<AsnSkuOption[]>([]);
   const [warehouses, setWarehouses] = useState<Array<{ id: string; code: string; name: string }>>(
@@ -159,6 +160,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           <Select
             label={t('warehouse')}
             placeholder={t('selectWarehouse')}
+            required
             options={warehouses.map((warehouse) => ({
               value: warehouse.id,
               label: `${warehouse.code} — ${warehouse.name}`,
@@ -181,6 +183,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           <Input
             label={t('cartons')}
             type="number"
+            required
             min={1}
             max={1000}
             {...register('cartonCount', { valueAsNumber: true })}
@@ -199,6 +202,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
               <Select
                 label={t('sku')}
                 placeholder={t('selectSku')}
+                required
                 disabled={loading}
                 options={products.map((product) => ({
                   value: product.id,
@@ -210,6 +214,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
               <Input
                 label={t('quantity')}
                 type="number"
+                required
                 min={1}
                 max={1000000}
                 {...register(`lines.${index}.declaredQty`, { valueAsNumber: true })}

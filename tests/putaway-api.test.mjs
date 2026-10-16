@@ -44,6 +44,21 @@ after(async () => {
 
 
 test('reads a minimal putaway task projection within the selected warehouse',async()=>{globalThis.fetch=async(url,opts)=>{assert.equal(new URL(url,'https://example.test').pathname,`/api/v1/warehouses/${warehouse}/putaway`);assert.ok(opts.signal);return ok(state);};assert.deepEqual(await api.list(warehouse,null,new AbortController().signal),state);});
+test('reads unplanned receipt quantities without requiring an existing task',async()=>{
+  const waiting={receivingRecordId:id,asnCode:'ASN-TEST',sku:'SKU-01',productName:'Test product',lotCode:'LOT-01',quantity:10,weightG:'50000',volumeM3:'8.640000',fromBinCode:'RC-01',reason:'CAPACITY_REQUIRED'};
+  globalThis.fetch=async(url,opts)=>{assert.equal(new URL(url,'https://example.test').pathname,`/api/v1/warehouses/${warehouse}/putaway/waiting`);assert.ok(opts.signal);return ok({items:[waiting],nextCursor:null});};
+  assert.deepEqual(await api.waiting(warehouse,null,new AbortController().signal),{items:[waiting],nextCursor:null});
+  globalThis.fetch=async()=>ok({items:[{...waiting,volumeM3:'0.000000',reason:'INELIGIBLE'}],nextCursor:null});
+  assert.equal((await api.waiting(warehouse,null)).items[0].reason,'INELIGIBLE');
+  for(const change of [{tenantId:id},{reason:'UNKNOWN'},{quantity:0},{weightG:'-1'},{volumeM3:'Infinity'},{volumeM3:'0'},{codAmount:'100'}]){
+    globalThis.fetch=async()=>ok({items:[{...waiting,...change}],nextCursor:null});
+    await assert.rejects(api.waiting(warehouse,null));
+  }
+  for(const change of [{items:[waiting,waiting]},{nextCursor:id}]){
+    globalThis.fetch=async()=>ok({items:[waiting],nextCursor:null,...change});
+    await assert.rejects(api.waiting(warehouse,null));
+  }
+});
 test('posts actual scan intent only and verifies task/actor/version/quantity result',async()=>{globalThis.fetch=async(url,opts)=>{assert.equal(new URL(url,'https://example.test').pathname,`/api/v1/warehouses/${warehouse}/putaway/${id}/confirmation`);assert.deepEqual(JSON.parse(opts.body),input);return ok(result);};assert.deepEqual(await api.confirm(warehouse,task,id,input),result);});
 test('preserves exact scans and operation after unknown transport failure',async()=>{const commands=[];globalThis.fetch=async(url,opts)=>{commands.push(JSON.parse(opts.body));if(commands.length===1)throw new TypeError('Lost reply');return ok(result);};await assert.rejects(api.confirm(warehouse,task,id,input));assert.deepEqual(await api.confirm(warehouse,task,id,input),result);assert.deepEqual(commands,[input,input]);});
 for(const [name,change] of Object.entries({task:{taskId:warehouse},actor:{assigneeId:warehouse},version:{version:2},quantity:{confirmedQty:6},status:{status:'ASSIGNED'},privacy:{tenantId:id},balance:{onHandQty:7}}))test(`rejects mismatched ${name} confirmation result`,async()=>{globalThis.fetch=async()=>ok({...result,...change});await assert.rejects(api.confirm(warehouse,task,id,input));});

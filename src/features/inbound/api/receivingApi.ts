@@ -45,6 +45,7 @@ export const receiptCountSchema = z
             recordId: z.string().uuid(),
             lotId: z.string().uuid(),
             lotCode: z.string().min(1),
+            lotCodeSource: z.enum(['UNSPECIFIED', 'PACKAGING', 'RECEIVING']).optional(),
             receivedQty: z.number().int().positive(),
             quarantinedQty: z.number().int().nonnegative(),
             qcState: z.enum(['PENDING', 'REVIEW_REQUIRED', 'APPROVED']),
@@ -76,9 +77,21 @@ export const receivingStateSchema = z
   .object({
     receiptId: z.string().uuid(),
     version: z.number().int().positive(),
+    receivingRound: z.number().int().positive(),
+    lastReview: z
+      .object({
+        id: z.string().uuid(),
+        decision: z.enum(['APPROVE', 'RETURN']),
+        reason: z.string().min(1).max(1000),
+        receiptVersion: z.number().int().positive(),
+        reviewedAt: z.string().datetime(),
+      })
+      .strict()
+      .nullable(),
     status: z.enum(['RECEIVING', 'APPROVED', 'COMPLETED', 'CANCELLED']),
     asnId: z.string().uuid(),
     asnCode: z.string(),
+    cartonCount: z.number().int().min(1).max(1000),
     asnStatus: asnSchema.shape.status,
     lines: z.array(
       z
@@ -87,6 +100,9 @@ export const receivingStateSchema = z
           lineNo: z.number().int().positive(),
           sku: z.string(),
           productName: z.string(),
+          declaredQty: z.number().int().min(1).max(1_000_000),
+          trackLot: z.boolean(),
+          manufactureRequired: z.boolean(),
           trackExpiry: z.boolean(),
           shelfLifeDays: z.number().int().positive().nullable(),
           minInboundShelfLifePct: z.number().min(0).max(100),
@@ -98,6 +114,7 @@ export const receivingStateSchema = z
   .strict()
   .superRefine((value, context) => {
     if (
+      (value.lastReview && value.lastReview.receiptVersion > value.version) ||
       value.lines.some(
         (line) =>
           line.count &&

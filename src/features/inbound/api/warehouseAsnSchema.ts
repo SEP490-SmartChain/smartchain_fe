@@ -2,13 +2,14 @@ import { z } from 'zod';
 
 import { asnSchema } from './asnApi';
 
-/** UC-37/38 blind receiving contract: no seller declarations or financial fields. */
+/** Warehouse ASN directory allowlist; declared quantities belong to the receipt workspace. */
 export const warehouseAsnSchema = z
   .object({
     id: z.string().uuid(),
     warehouseId: z.string().uuid(),
     asnCode: z.string().min(1),
     status: asnSchema.shape.status.exclude(['DRAFT']),
+    reinspectionRequired: z.boolean().optional(),
     arrivedAt: z.string().datetime().nullable(),
     expectedArrivalAt: z.string().datetime().nullable().optional(),
     receiptIds: z.array(z.string().uuid()),

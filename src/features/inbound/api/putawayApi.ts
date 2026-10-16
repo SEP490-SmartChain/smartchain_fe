@@ -50,6 +50,41 @@ export const putawayTaskSchema = z
       (v.status !== 'OPEN' || (v.assigneeId === null && v.confirmedQty === 0)),
   );
 export type PutawayTask = z.infer<typeof putawayTaskSchema>;
+const waitingItemSchema = z
+  .object({
+    receivingRecordId: z.string().uuid(),
+    asnCode: z.string().min(1).max(128),
+    sku: scan,
+    productName: z.string().min(1).max(255),
+    lotCode: scan,
+    quantity: version,
+    weightG: z.string().regex(/^[1-9]\d{0,24}$/),
+    volumeM3: z.string().regex(/^(?:0|[1-9]\d{0,24})(?:\.\d{1,6})?$/),
+    fromBinCode: scan.nullable(),
+    reason: z.enum([
+      'STOCK_REQUIRED',
+      'CAPACITY_REQUIRED',
+      'PLANNING',
+      'QUARANTINED',
+      'INELIGIBLE',
+      'SOURCE_UNAVAILABLE',
+    ]),
+  })
+  .strict()
+  .refine((v) => v.reason === 'INELIGIBLE' || Number(v.volumeM3) > 0);
+export type PutawayWaitingItem = z.infer<typeof waitingItemSchema>;
+const waitingSchema = z
+  .object({
+    items: z.array(waitingItemSchema).max(100),
+    nextCursor: z.string().uuid().nullable(),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      new Set(v.items.map((i) => i.receivingRecordId)).size === v.items.length &&
+      (v.nextCursor === null ||
+        (v.items.length === 100 && v.nextCursor === v.items.at(-1)?.receivingRecordId)),
+  );
 const listSchema = z
   .object({
     items: z.array(putawayTaskSchema).max(100),
@@ -79,6 +114,13 @@ const staffSchema = z
   .refine((v) => new Set(v.map((i) => i.id)).size === v.length);
 const path = (w: string) => `/v1/warehouses/${encodeURIComponent(w)}/putaway`;
 export const putawayApi = {
+  async waiting(w: string, cursor: string | null, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `${path(w)}/waiting${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+      { signal, silent: true },
+    );
+    return waitingSchema.parse(data);
+  },
   async list(w: string, cursor: string | null, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       `${path(w)}${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,

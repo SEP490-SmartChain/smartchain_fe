@@ -38,6 +38,7 @@ export const reviewSchema = reviewValuesSchema
     id: z.string().uuid(),
     receiptId: z.string().uuid(),
     receiptVersion: z.number().int().min(2),
+    receivingRound: z.number().int().positive(),
     inspectionIds: ids(5000),
     discrepancyIds: ids(5100),
     reviewedAt: z.string().datetime(),
@@ -65,6 +66,7 @@ export const reviewStateSchema = z
   .object({
     receiptId: z.string().uuid(),
     receiptVersion: z.number().int().positive(),
+    receivingRound: z.number().int().positive(),
     asnId: z.string().uuid(),
     asnStatus: z.enum(['ARRIVED', 'RECEIVING', 'DISCREPANCY', 'READY_FOR_PUTAWAY', 'COMPLETED']),
     status: z.enum(['RECEIVING', 'APPROVED', 'COMPLETED', 'CANCELLED']),
@@ -77,6 +79,7 @@ export const reviewStateSchema = z
           .object({
             code: z.enum([
               'RECEIPT_NOT_OPEN',
+              'EVIDENCE_REQUIRED',
               'COUNT_REQUIRED',
               'INSPECTION_REQUIRED',
               'DISCREPANCY_REPORT_REQUIRED',
@@ -99,7 +102,12 @@ export const reviewStateSchema = z
     if (
       new Set(v.records.map((r) => r.receivingRecordId)).size !== v.records.length ||
       new Set(v.items.map((r) => r.id)).size !== v.items.length ||
-      v.items.some((r) => r.receiptId !== v.receiptId || r.receiptVersion > v.receiptVersion) ||
+      v.items.some(
+        (r) =>
+          r.receiptId !== v.receiptId ||
+          r.receiptVersion > v.receiptVersion ||
+          r.receivingRound > v.receivingRound,
+      ) ||
       !sameIds(
         v.inspectionIds,
         v.records.flatMap((r) => (r.inspection ? [r.inspection.id] : [])),
@@ -108,7 +116,10 @@ export const reviewStateSchema = z
         (v.status !== 'RECEIVING' ||
           !['RECEIVING', 'DISCREPANCY'].includes(v.asnStatus) ||
           v.records.some((r) => r.qcState !== 'REVIEW_REQUIRED' || !r.inspection))) ||
-      v.canApprove !== (v.ready && v.unreportedDiscrepancies === 0) ||
+      v.canApprove !==
+        (v.ready &&
+          v.unreportedDiscrepancies === 0 &&
+          !v.blockers?.some((b) => b.code === 'EVIDENCE_REQUIRED')) ||
       v.blockers?.some(
         (b) =>
           b.receivingRecordId !== null &&

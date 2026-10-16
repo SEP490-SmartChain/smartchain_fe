@@ -39,16 +39,22 @@ const count = {
 const receipt = {
   receiptId: foreignId,
   version: 2,
+  receivingRound: 1,
+  lastReview: null,
   status: 'RECEIVING',
   asnId: id,
   asnCode: 'ASN-TEST',
   asnStatus: 'RECEIVING',
+  cartonCount: 20,
   lines: [
     {
       id,
       lineNo: 1,
       sku: 'SKU-TEST',
       productName: 'Test goods',
+      declaredQty: 10,
+      trackLot: true,
+      manufactureRequired: false,
       trackExpiry: false,
       shelfLifeDays: null,
       minInboundShelfLifePct: 80,
@@ -113,10 +119,26 @@ for (const field of ['asnId', 'warehouseId']) {
     await assert.rejects(api.checkIn(warehouseId, id, 1), /another ASN or warehouse/);
   });
 }
-test('SS-1302: physical receipt accepts only the operational response shape', async () => {
+test('physical receipt exposes declared quantities and cartons for warehouse comparison', async () => {
   globalThis.fetch = async () => ok(receipt);
   assert.deepEqual(await api.receipt(warehouseId, id), receipt);
+  assert.equal(receipt.lines[0].declaredQty, 10);
+  assert.equal(receipt.lines[0].count.receivedQty, 2);
 });
+for (const invalid of [undefined, null, 0, -1, 1.5, 1000001, '10']) {
+  test(`physical receipt rejects invalid declared quantity ${String(invalid)}`, async () => {
+    const data = structuredClone(receipt);
+    data.lines[0].declaredQty = invalid;
+    globalThis.fetch = async () => ok(data);
+    await assert.rejects(api.receipt(warehouseId, id), { name: 'ZodError' });
+  });
+}
+for (const invalid of [undefined, null, 0, -1, 1.5, 1001, '20']) {
+  test(`physical receipt rejects invalid carton count ${String(invalid)}`, async () => {
+    globalThis.fetch = async () => ok({ ...receipt, cartonCount: invalid });
+    await assert.rejects(api.receipt(warehouseId, id), { name: 'ZodError' });
+  });
+}
 for (const level of ['header', 'line', 'count', 'lot']) {
   for (const field of [
     'codAmount',
@@ -126,7 +148,7 @@ for (const level of ['header', 'line', 'count', 'lot']) {
     'recipientPhone',
     'declaredQty',
   ]) {
-    test(`SS-1302: physical receipt rejects ${level}.${field}`, async () => {
+    test(`SS-1302: physical receipt rejects invalid or private ${level}.${field}`, async () => {
       const data = structuredClone(receipt);
       const target =
         level === 'header'

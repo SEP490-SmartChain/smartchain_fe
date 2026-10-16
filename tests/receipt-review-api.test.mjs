@@ -23,12 +23,14 @@ const review = {
   inspectionIds: [line],
   discrepancyIds: [],
   receiptVersion: 5,
+  receivingRound: 1,
   reviewedAt: '2026-10-12T09:00:00.000Z',
   notificationState: 'PENDING',
 };
 const state = {
   receiptId: id,
   receiptVersion: 4,
+  receivingRound: 1,
   asnId: id,
   asnStatus: 'RECEIVING',
   status: 'RECEIVING',
@@ -56,6 +58,19 @@ const state = {
   ],
   items: [],
 };
+test('a completed count still needs new receiving evidence before approval', async () => {
+  const missingEvidence = {
+    ...state,
+    canApprove: false,
+    blockers: [{ code: 'EVIDENCE_REQUIRED', inboundLineId: null, receivingRecordId: null }],
+  };
+  globalThis.fetch = async () => ok(missingEvidence);
+  assert.deepEqual(await api.get(warehouse, id), missingEvidence);
+  assert.equal(
+    schemas.reviewStateSchema.safeParse({ ...missingEvidence, canApprove: true }).success,
+    false,
+  );
+});
 const ok = (data) => Response.json({ success: true, data, meta: {} });
 before(async () => {
   server = await createServer({

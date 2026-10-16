@@ -3,12 +3,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown, ChevronUp, ClipboardCheck, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Alert, Button, Checkbox, Input, Select } from '@/components/Common';
+import { Alert, Badge, Button, Card, Checkbox, Input, Select } from '@/components/Common';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import styles from './ReceiptWorkspace.module.css';
 import { evidenceApi, type ReceiptEvidence } from '../api/evidenceApi';
 import { inspectionApi, type InspectionState, type ReceiptInspection } from '../api/inspectionApi';
 import {
@@ -57,7 +60,7 @@ export function ReceiptInspectionForm({
   }, [onPendingChange, recordId, busy, attempt]);
   const generation = useRef(0);
   const active = useRef<AbortController | null>(null);
-  const operation = useRef(crypto.randomUUID());
+  const operation = useRef(createUuid());
   const schema = useMemo(
     () => inspectionFormSchema(receivedQty, requiresQuarantine),
     [receivedQty, requiresQuarantine],
@@ -74,7 +77,8 @@ export function ReceiptInspectionForm({
     defaultValues: { reasonCode: 'NONE', reason: '', photoIds: [] },
   });
   const values = watch();
-  const editable = canWrite && state?.qcState === 'PENDING' && !saved;
+  const editable =
+    canWrite && state?.qcState === 'PENDING' && state.lastDecision !== 'RETURN' && !saved;
   const current = useCallback(
     (revision: number) => revision === generation.current && owner === useAuthStore.getState().user,
     [owner],
@@ -89,7 +93,7 @@ export function ReceiptInspectionForm({
     setAttempt(null);
     setSaved(null);
     setBusy(false);
-    operation.current = crypto.randomUUID();
+    operation.current = createUuid();
     reset({ reasonCode: 'NONE', reason: '', photoIds: [] });
     return () => {
       generation.current = revision + 1;
@@ -160,7 +164,7 @@ export function ReceiptInspectionForm({
       setError(reason instanceof ApiError ? reason.message : t('qcSubmitError'));
       if (reason instanceof ApiError && [400, 403, 404, 409, 422].includes(reason.status)) {
         setAttempt(null);
-        operation.current = crypto.randomUUID();
+        operation.current = createUuid();
         setState(null);
         setRefresh((value) => value + 1);
       } else setAttempt(input);
@@ -172,35 +176,81 @@ export function ReceiptInspectionForm({
     (sum, value) => sum + (Number.isFinite(value) ? value : 0),
     0,
   );
+  const panelId = `qc-${recordId}`;
   return (
-    <section className="mt-3 space-y-3 rounded-lg border border-[var(--sc-border-default)] p-3">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setExpanded((value) => !value)}
-        aria-expanded={expanded}
-      >
-        {t('qcTitle')}
-      </Button>
+    <Card padding="none" className={styles.panel}>
+      <div className={styles.actionPanelHeader}>
+        <h3 className={styles.actionPanelHeading}>
+          <Button
+            type="button"
+            variant="ghost"
+            className={styles.actionPanelToggle}
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+            aria-controls={panelId}
+          >
+            <ClipboardCheck size={20} aria-hidden="true" className={styles.panelIcon} />
+            <span>{t('qcTitle')}</span>
+            {state?.qcState === 'APPROVED' && (
+              <span className={styles.approvedBadge}>
+                <Badge status="success" label={t('countQcApproved')} />
+              </span>
+            )}
+            {expanded ? (
+              <ChevronUp size={16} aria-hidden="true" className={styles.chevron} />
+            ) : (
+              <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />
+            )}
+          </Button>
+        </h3>
+        {expanded && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={styles.actionPanelRefresh}
+            aria-label={t('reload')}
+            disabled={busy || loading}
+            onClick={() => setRefresh((value) => value + 1)}
+          >
+            <RefreshCw size={14} aria-hidden="true" />
+            {t('reload')}
+          </Button>
+        )}
+      </div>
       {expanded && (
-        <>
-          <p className="text-sm text-[var(--sc-text-secondary)]">{t('qcHelp')}</p>
+        <div id={panelId} className={styles.actionPanelBody}>
+          {state?.qcState !== 'APPROVED' && (
+            <p className="text-sm leading-6 text-[var(--sc-text-secondary)]">{t('qcHelp')}</p>
+          )}
           {loading && <p role="status">{t('loading')}</p>}
           {error && <Alert variant="error" title={error} />}
           {saved && <Alert variant="success" title={t('qcSaved')} />}
           {attempt && <Alert variant="warning" title={t('qcUncertain')} />}
+          {state?.lastDecision === 'RETURN' && (
+            <Alert variant="warning" title={t('reinspectionHistoryOnly')} />
+          )}
           {state?.items.map((row) => (
-            <div key={row.id} className="space-y-1 text-sm">
-              <p className="font-medium">{t('qcReviewRequired')}</p>
-              <p>
-                {t('qcSummary', {
-                  accepted: row.acceptedQty,
-                  quarantine: row.quarantinedQty,
-                  rejected: row.rejectedQty,
-                })}
+            <div key={row.id} className={styles.record}>
+              <p className="font-medium">{t('qcRecorded')}</p>
+              <dl className={styles.inspectionMetrics}>
+                {(
+                  [
+                    { key: 'accepted', label: 'qcAccepted', quantity: row.acceptedQty },
+                    { key: 'quarantine', label: 'qcQuarantined', quantity: row.quarantinedQty },
+                    { key: 'rejected', label: 'qcRejected', quantity: row.rejectedQty },
+                  ] as const
+                ).map((item) => (
+                  <div key={item.key} className={styles.inspectionMetric}>
+                    <dt>{t(item.label)}</dt>
+                    <dd>{item.quantity.toLocaleString()}</dd>
+                  </div>
+                ))}
+              </dl>
+              {row.reason && <p className="mt-3 break-words">{row.reason}</p>}
+              <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">
+                {t('qcAttached', { count: row.photoIds.length })}
               </p>
-              {row.reason && <p className="break-words">{row.reason}</p>}
-              <p>{t('qcAttached', { count: row.photoIds.length })}</p>
             </div>
           ))}
           {editable && (
@@ -310,16 +360,8 @@ export function ReceiptInspectionForm({
               {t('qcRetry')}
             </Button>
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={busy || loading}
-            onClick={() => setRefresh((value) => value + 1)}
-          >
-            {t('reload')}
-          </Button>
-        </>
+        </div>
       )}
-    </section>
+    </Card>
   );
 }

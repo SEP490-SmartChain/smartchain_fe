@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert, Button, Card, CardContent, Input, Select } from '@/components/Common';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -54,7 +55,7 @@ export function PutawayBinOverridePanel({
   } = useForm<PutawayBinOverrideInput>({
     resolver: zodResolver(putawayBinOverrideSchema),
     defaultValues: {
-      operationKey: crypto.randomUUID(),
+      operationKey: createUuid(),
       expectedVersion: task.version,
       toBinId: '',
       reason: '',

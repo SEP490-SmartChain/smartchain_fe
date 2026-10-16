@@ -64,6 +64,60 @@ after(async () => {
   globalThis.fetch = originalFetch;
   await server?.close();
 });
+
+test('receipt-level video uploads are available before any counted lot exists', async () => {
+  const media = {
+    ...photo,
+    receivingRecordId: null,
+    receiptId: record,
+    contentType: 'video/mp4',
+    fileSizeBytes: 6 * 1024 * 1024,
+  };
+  globalThis.fetch = async (url) => {
+    assert.equal(
+      new URL(url, 'https://example.test').pathname,
+      `/api/v1/warehouses/${warehouse}/asns/${id}/receiving/evidence`,
+    );
+    return ok({ items: [media] });
+  };
+  assert.deepEqual(await api.list(warehouse, id, null), [media]);
+  globalThis.fetch = async () => ok({ items: [{ ...media, receiptId: undefined }] });
+  await assert.rejects(api.list(warehouse, id, null));
+});
+
+test('media limits retain 5 MB for images and allow video up to 50 MB', async () => {
+  const video = new File([new Uint8Array(6 * 1024 * 1024)], 'unpacking.webm', {
+    type: 'video/webm',
+  });
+  const intent = await imageIntent(video, id);
+  assert.equal(intent.contentType, 'video/webm');
+  assert.equal(intent.fileSizeBytes, video.size);
+  await assert.rejects(
+    imageIntent(
+      new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'large.jpg', { type: 'image/jpeg' }),
+      id,
+    ),
+  );
+  await assert.rejects(
+    imageIntent(
+      new File([new Uint8Array(50 * 1024 * 1024 + 1)], 'large.mp4', { type: 'video/mp4' }),
+      id,
+    ),
+  );
+});
+
+test('LAN HTTP upload computes the same SHA-256 when WebCrypto is unavailable', async () => {
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  try {
+    Object.defineProperty(globalThis, 'crypto', { configurable: true, value: {} });
+    const bytes = new TextEncoder().encode('receipt-evidence-on-lan');
+    const intent = await imageIntent(new File([bytes], 'receipt.jpg', { type: 'image/jpeg' }), id);
+    const { createHash } = await import('node:crypto');
+    assert.equal(intent.sha256, createHash('sha256').update(bytes).digest('hex'));
+  } finally {
+    if (cryptoDescriptor) Object.defineProperty(globalThis, 'crypto', cryptoDescriptor);
+  }
+});
 test('photo list requires scoped record identity and excludes internal fields', async () => {
   globalThis.fetch = async (url) => {
     assert.equal(
