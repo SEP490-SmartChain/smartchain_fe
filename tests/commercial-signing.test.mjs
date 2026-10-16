@@ -343,3 +343,33 @@ test('a pending PDF preview cannot return a private link after the auth scope ch
 
   await assert.rejects(pending, (error) => error.code === 'AUTH.SCOPE_CHANGED');
 });
+
+test('mock payment posts only the contract reference and reads authoritative service status', async () => {
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), method: options.method, body: JSON.parse(options.body) });
+    return ok({ contractId: id, serviceStatus: 'ACTIVE', serviceVersion: 2 });
+  };
+  assert.deepEqual(await api.mockPayment(id), {
+    contractId: id,
+    serviceStatus: 'ACTIVE',
+    serviceVersion: 2,
+  });
+  assert.deepEqual(calls, [
+    { url: '/api/v1/commercial/mock-payments', method: 'POST', body: { contractId: id } },
+  ]);
+});
+
+test('mock payment cannot confirm a malformed backend status or survive an auth scope change', async () => {
+  globalThis.fetch = async () => ok({ contractId: id, serviceStatus: 'FAKE', serviceVersion: 2 });
+  await assert.rejects(api.mockPayment(id));
+  let finish;
+  globalThis.fetch = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const pending = api.mockPayment(id);
+  store.getState().clear();
+  finish(ok({ contractId: id, serviceStatus: 'ACTIVE', serviceVersion: 2 }));
+  await assert.rejects(pending, (error) => error.code === 'AUTH.SCOPE_CHANGED');
+});

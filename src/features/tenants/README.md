@@ -86,3 +86,13 @@ khi user/tenant/scope đổi để xóa secret trong memory; request list cũ kh
 component sau unmount. Mockup import được vào Figma:
 [API Keys Sprint 3](../../../docs/design/sprint-3-api-keys.svg). Chưa xuất bản Figma
 khi chưa có file đích.
+
+## Demo payment after signing
+
+The user-requested “Paid (mock)” action calls `POST /v1/commercial/mock-payments`
+with the current contract ID. It appears only when the server catalog enables mock
+payments and the contract is signed/confirmed. Backend receipt allocation and activation
+are authoritative; the hook reloads invoices, service status and the auth profile state
+after success. Errors remain visible and do not show a local success. Refreshing retains
+the state saved by the backend. No real money transfer occurs. The backend switch defaults
+to enabled in every environment, including production; set it false to hide and disable it.

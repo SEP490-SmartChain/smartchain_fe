@@ -29,6 +29,8 @@ export function SellerContractOnboarding() {
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const contract = flow.state?.contracts.find((item) => item.id === flow.state?.currentContractId);
   const request = flow.state?.signingRequests.find((item) => item.contractId === contract?.id);
+  const contractAccepted = contract?.status === 'ACCEPTED' || contract?.status === 'CONFIRMED';
+  const paid = flow.state?.serviceStatus === 'ACTIVE';
   const style = 'rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5';
 
   return (
@@ -236,6 +238,31 @@ export function SellerContractOnboarding() {
             >
               {t('download')}
             </Button>
+          )}
+          {flow.mockPaymentsEnabled && contractAccepted && (
+            <div className="my-4 space-y-3 border-t border-[var(--sc-border-default)] pt-4">
+              <Button
+                type="button"
+                disabled={
+                  flow.loading ||
+                  !!flow.error ||
+                  paid ||
+                  flow.state?.serviceStatus !== 'PENDING_ACTIVATION'
+                }
+                isLoading={flow.busy}
+                onClick={() => {
+                  void flow.mockPayment(contract.id);
+                }}
+              >
+                {t('mockPaid')}
+              </Button>
+              <p className="text-xs text-[var(--sc-text-secondary)]">{t('mockPaymentHelp')}</p>
+              {paid && (
+                <div role="status">
+                  <Alert variant="success">{t('mockPaymentConfirmed')}</Alert>
+                </div>
+              )}
+            </div>
           )}
           {request?.status === 'UNKNOWN' && <Alert variant="warning">{t('unknownHelp')}</Alert>}
           {request?.errorCode && <p className="mt-2 text-xs">{request.errorCode}</p>}

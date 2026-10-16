@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
 import {
@@ -16,6 +17,7 @@ export function useSellerCommercial() {
   const [plans, setPlans] = useState<CommercialPlan[]>([]);
   const [state, setState] = useState<SellerCommercialState | null>(null);
   const [invoices, setInvoices] = useState<OnboardingInvoice[]>([]);
+  const [mockPaymentsEnabled, setMockPaymentsEnabled] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -45,6 +47,7 @@ export function useSellerCommercial() {
         if (!isCurrent() || signal?.aborted) return;
         setPlans(catalog.plans);
         setConfigured(catalog.signingConfigured);
+        setMockPaymentsEnabled(catalog.mockPaymentsEnabled);
         setState(next);
         const user = useAuthStore.getState().user;
         if (user && user.serviceStatus !== next.serviceStatus) {
@@ -106,7 +109,7 @@ export function useSellerCommercial() {
     setBusy(true);
     setError(null);
     if (operation.current?.agreementId !== plan.agreementId) {
-      operation.current = { agreementId: plan.agreementId, key: crypto.randomUUID() };
+      operation.current = { agreementId: plan.agreementId, key: createUuid() };
     }
     try {
       await commercialApi.start(
@@ -151,6 +154,21 @@ export function useSellerCommercial() {
       if (isCurrent()) setBusy(false);
     }
   };
+  const mockPayment = async (contractId: string) => {
+    if (busy || !mockPaymentsEnabled) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await commercialApi.mockPayment(contractId, controller.current?.signal);
+      if (isCurrent()) await reload(controller.current?.signal);
+    } catch (failure) {
+      if (isCurrent()) {
+        setError(failure instanceof Error ? failure : new Error('COMMERCIAL.MOCK_PAYMENT_FAILED'));
+      }
+    } finally {
+      if (isCurrent()) setBusy(false);
+    }
+  };
   const download = async (id: string) => {
     try {
       const evidence = await commercialApi.evidence(id, controller.current?.signal);
@@ -180,6 +198,8 @@ export function useSellerCommercial() {
     state,
     invoices,
     configured,
+    mockPaymentsEnabled,
+    mockPayment,
     loading,
     busy,
     error,
