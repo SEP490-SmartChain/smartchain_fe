@@ -1,35 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  Camera,
-  CheckCircle2,
-  ExternalLink,
-  Key,
-  LogOut,
-  Save,
-  Shield,
-  ShieldCheck,
-  Trash2,
-  User,
-} from 'lucide-react';
+import { Camera, CheckCircle2, Key, Save, Shield, ShieldCheck, Trash2, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import googleLogo from '@/assets/images/settings/google.svg';
-import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Avatar, Button, Card, Input, Select } from '@/components/Common';
+import { usePasswordResetRequest } from '@/features/auth';
 import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
 import { useAccess } from '@/hooks/useAccess';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import type { OrcaRole } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
-import { uploadApi } from '@/services/uploadApi';
-import { useAuthStore } from '@/stores';
+import { uploadApi, UploadStorageConnectionError } from '@/services/uploadApi';
+import { useAuthStore, useLocaleStore } from '@/stores';
 
 interface SettingsSectionHeaderProps {
   title: string;
   description: string;
   icon?: React.ReactNode;
+}
+
+interface ProfileSettingsProps {
+  children?: React.ReactNode;
 }
 
 function SettingsSectionHeader({ title, description, icon }: SettingsSectionHeaderProps) {
@@ -52,13 +44,16 @@ function SettingsSectionHeader({ title, description, icon }: SettingsSectionHead
   );
 }
 
-export default function ProfileSettings() {
+export default function ProfileSettings({ children }: ProfileSettingsProps) {
   const t = useTranslations('Settings');
   const user = useAuthStore((state) => state.user);
-  const email = user?.email || 'admin@orca.vn';
-  const displayName = user?.fullName?.trim() || 'ORCA Admin';
+  const email = user?.email || '';
+  const displayName = user?.fullName?.trim() || email;
   const persistedPhotoSrc = useAvatarUrl(user?.avatarUrl);
   const { roles } = useAccess();
+  const locale = useLocaleStore((state) => state.locale);
+  const setLocale = useLocaleStore((state) => state.setLocale);
+  const { requestReset } = usePasswordResetRequest();
 
   const roleConfig: Record<
     OrcaRole,
@@ -109,28 +104,26 @@ export default function ProfileSettings() {
   };
 
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const [photoSrc, setPhotoSrc] = useState(profileAvatar);
+  const [photoSrc, setPhotoSrc] = useState<string | undefined>(persistedPhotoSrc);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
   const [photoChanged, setPhotoChanged] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
+  const [isRequestingPasswordReset, setIsRequestingPasswordReset] = useState(false);
 
   // Form input state
   const [fullNameInput, setFullNameInput] = useState(user?.fullName || '');
   const [phoneInput, setPhoneInput] = useState(user?.phone || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // Sync state when user prop updates
+  // Sync state when the signed-in account changes.
   useEffect(() => {
-    if (user) {
-      setFullNameInput(user.fullName || '');
-      setPhoneInput(user.phone || '');
-      if (!photoChanged) {
-        setPhotoSrc(persistedPhotoSrc || profileAvatar);
-      }
+    setFullNameInput(user?.fullName || '');
+    setPhoneInput(user?.phone || '');
+    if (!photoChanged) {
+      setPhotoSrc(persistedPhotoSrc);
     }
   }, [user, photoChanged, persistedPhotoSrc]);
-
-  const notifyAction = (action: string) => toast.success(t('actionReady', { action }));
 
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -153,7 +146,8 @@ export default function ProfileSettings() {
   };
 
   const savePhoto = async () => {
-    if (!selectedPhotoFile) return;
+    if (!selectedPhotoFile || isUploadingPhoto || isRemovingPhoto) return;
+    const revision = useAuthStore.getState().revision;
     setIsUploadingPhoto(true);
 
     try {
@@ -167,20 +161,69 @@ export default function ProfileSettings() {
       await uploadApi.uploadDirect(presigned.uploadUrl, selectedPhotoFile, presigned.headers);
       const { downloadUrl } = await uploadApi.avatarDownloadUrl(presigned.objectKey);
 
-      await staffAccountApi.updateProfile('me', { avatarUrl: presigned.objectKey });
-      if (user) {
-        useAuthStore.getState().setUser({ ...user, avatarUrl: presigned.objectKey });
-      }
+      if (useAuthStore.getState().revision !== revision) return;
+      const updatedUser = await staffAccountApi.updateProfile('me', {
+        avatarUrl: presigned.objectKey,
+      });
+      const current = useAuthStore.getState();
+      if (current.revision !== revision || !current.user) return;
+      current.setUser({
+        ...current.user,
+        avatarUrl: updatedUser.avatarUrl ?? presigned.objectKey,
+      });
 
       setPhotoSrc(downloadUrl);
       setPhotoChanged(false);
       setSelectedPhotoFile(null);
       toast.success(t('photoSaved'));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Tải ảnh lên thất bại';
+      const message =
+        err instanceof UploadStorageConnectionError
+          ? t('uploadStorageFailed')
+          : err instanceof Error
+            ? err.message
+            : t('photoSaveFailed');
       toast.error(message);
     } finally {
       setIsUploadingPhoto(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    if (!photoSrc || isRemovingPhoto) return;
+
+    setIsRemovingPhoto(true);
+    try {
+      if (user?.avatarUrl) {
+        const updatedUser = await staffAccountApi.updateProfile('me', { avatarUrl: null });
+        useAuthStore.getState().setUser({
+          ...user,
+          avatarUrl: updatedUser.avatarUrl ?? null,
+        });
+      }
+
+      setPhotoSrc(undefined);
+      setSelectedPhotoFile(null);
+      setPhotoChanged(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      toast.success(t('photoRemoved'));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : t('photoRemoveFailed'));
+    } finally {
+      setIsRemovingPhoto(false);
+    }
+  };
+
+  const handlePasswordResetRequest = async () => {
+    if (!email || isRequestingPasswordReset) return;
+
+    setIsRequestingPasswordReset(true);
+    try {
+      if (await requestReset(email)) {
+        toast.success(t('passwordResetSent', { email }));
+      }
+    } finally {
+      setIsRequestingPasswordReset(false);
     }
   };
 
@@ -229,83 +272,94 @@ export default function ProfileSettings() {
 
   return (
     <div className="space-y-2 sm:space-y-2.5">
-      {/* SaaSable Banner Card */}
       <Card
         padding="none"
         className="overflow-hidden border border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]"
       >
-        <div className="h-16 w-full bg-gradient-to-r from-[var(--sc-primary-darker)] via-[var(--sc-primary)] to-[var(--sc-accent)] sm:h-20" />
-
-        <div className="relative px-4 pb-3 pt-0 sm:px-6 sm:pb-3.5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-              <div className="relative -mt-8 inline-block sm:-mt-10">
-                <Avatar
-                  src={photoSrc}
-                  alt={fullNameInput || 'User'}
-                  fallback={fullNameInput || 'User'}
-                  size="xl"
-                  className="h-18 w-18 rounded-2xl border-4 border-[var(--sc-bg-surface)] bg-[var(--sc-bg-surface)] shadow-md sm:h-20 sm:w-20"
-                />
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:px-6 sm:py-5">
+          <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
+            <div className="group relative shrink-0">
+              <Avatar
+                src={photoSrc}
+                alt={displayName || email}
+                fallback={fullNameInput.trim() || displayName || email}
+                size="xl"
+                className="h-18 w-18 rounded-2xl border-2 border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-sm sm:h-20 sm:w-20"
+              />
+              <button
+                type="button"
+                aria-label={t('changePhoto')}
+                title={t('changePhoto')}
+                disabled={isUploadingPhoto || isRemovingPhoto}
+                onClick={() => photoInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-primary)] text-white shadow-sm transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:h-7 sm:w-7"
+              >
+                <Camera size={13} aria-hidden="true" />
+              </button>
+              {photoSrc && (
                 <button
                   type="button"
-                  aria-label={t('changePhoto')}
-                  onClick={() => photoInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-primary)] text-white shadow-sm transition-transform hover:scale-110 active:scale-95 sm:h-7 sm:w-7"
+                  aria-label={t('removePhoto')}
+                  title={t('removePhoto')}
+                  disabled={isUploadingPhoto || isRemovingPhoto}
+                  onClick={() => void removePhoto()}
+                  className="absolute -right-1 -top-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-error)] text-white opacity-100 shadow-sm transition-opacity hover:bg-[var(--sc-error-dark)] group-focus-within:opacity-100 disabled:cursor-not-allowed sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
-                  <Camera size={13} aria-hidden="true" />
+                  <Trash2 size={13} aria-hidden="true" />
                 </button>
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  onChange={handlePhotoChange}
-                />
-              </div>
-
-              <div className="space-y-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="m-0 text-base font-bold leading-5 text-[var(--sc-text-primary)] sm:text-lg sm:leading-6">
-                    {fullNameInput || displayName}
-                  </h1>
-                  {/* Hiển thị TOÀN BỘ role ORCA hiệu lực (contract §8); phiên
-                      thiếu actorScope/role lạ ⇒ không badge, không nhãn legacy. */}
-                  {roles.map((roleCode) => {
-                    const config = roleConfig[roleCode];
-                    const RoleIcon = config.icon;
-                    return (
-                      <span
-                        key={roleCode}
-                        className={cn(
-                          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold shadow-xs transition-colors',
-                          config.colorClass,
-                        )}
-                      >
-                        <RoleIcon size={12} className="shrink-0" aria-hidden="true" />
-                        <span>{config.label}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">{email}</p>
-              </div>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                onChange={handlePhotoChange}
+              />
             </div>
 
-            {photoChanged && (
-              <Button
-                type="button"
-                size="sm"
-                variant="primary"
-                isLoading={isUploadingPhoto}
-                onClick={savePhoto}
-                className="self-start sm:self-auto"
-              >
-                <Save size={14} className="mr-1.5" />
-                {t('savePhoto')}
-              </Button>
-            )}
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="m-0 max-w-full break-words text-lg font-bold leading-6 text-[var(--sc-text-primary)] sm:text-xl sm:leading-7">
+                  {displayName}
+                </h1>
+                {/* Hiển thị TOÀN BỘ role ORCA hiệu lực (contract §8); phiên
+                    thiếu actorScope/role lạ ⇒ không badge, không nhãn legacy. */}
+                {roles.map((roleCode) => {
+                  const config = roleConfig[roleCode];
+                  const RoleIcon = config.icon;
+                  return (
+                    <span
+                      key={roleCode}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-xs transition-colors',
+                        config.colorClass,
+                      )}
+                    >
+                      <RoleIcon size={12} className="shrink-0" aria-hidden="true" />
+                      <span>{config.label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+              <p className="m-0 break-words text-sm leading-5 text-[var(--sc-text-secondary)]">
+                {email}
+              </p>
+            </div>
           </div>
+
+          {photoChanged && (
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              isLoading={isUploadingPhoto}
+              onClick={savePhoto}
+              className="self-start sm:self-center"
+            >
+              <Save size={14} className="mr-1.5" />
+              {t('savePhoto')}
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -374,6 +428,8 @@ export default function ProfileSettings() {
         </form>
       </Card>
 
+      {children}
+
       {/* Security & Authentication */}
       <Card
         padding="none"
@@ -404,132 +460,33 @@ export default function ProfileSettings() {
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => notifyAction(t('changePassword'))}
+              isLoading={isRequestingPasswordReset}
+              disabled={!email || isRequestingPasswordReset}
+              onClick={() => void handlePasswordResetRequest()}
             >
-              {t('changePassword')}
-            </Button>
-          </div>
-
-          <div className="flex flex-col justify-between gap-2.5 p-2.5 sm:flex-row sm:items-center sm:px-6 sm:py-2.5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)] sm:h-8 sm:w-8">
-                <LogOut size={14} />
-              </div>
-              <div>
-                <p className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
-                  {t('logout')}
-                </p>
-                <p className="m-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
-                  {t('logoutDescription')}
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => notifyAction(t('logout'))}
-            >
-              {t('logout')}
-            </Button>
-          </div>
-
-          <div className="flex flex-col justify-between gap-2.5 bg-[var(--sc-error-bg)]/25 p-2.5 sm:flex-row sm:items-center sm:px-6 sm:py-2.5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-error-bg)] text-[var(--sc-error)] sm:h-8 sm:w-8">
-                <Trash2 size={14} />
-              </div>
-              <div>
-                <p className="m-0 text-sm font-medium text-[var(--sc-error-dark)]">
-                  {t('deleteAccount')}
-                </p>
-                <p className="m-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
-                  {t('deleteAccountDescription')}
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="danger"
-              onClick={() => notifyAction(t('deleteAccount'))}
-            >
-              {t('deleteAccount')}
+              {t('sendPasswordReset')}
             </Button>
           </div>
         </div>
       </Card>
 
-      {/* Connected Accounts */}
-      <Card
-        padding="none"
-        className="overflow-hidden border border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]"
-      >
-        <SettingsSectionHeader
-          title={t('loginService')}
-          description={t('loginServiceDescription')}
-        />
-
-        <div className="flex flex-col gap-2.5 p-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-2.5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-primary-alpha-08)]">
-              <img src={googleLogo} alt="Google" className="h-4 w-4 sm:h-5 sm:w-5" />
-            </span>
-            <div>
-              <p className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
-                {t('googleLogin')}
-              </p>
-              <p className="mb-0 mt-0.5 flex flex-wrap items-center gap-1 text-xs text-[var(--sc-text-secondary)]">
-                {t('connectedTo')}
-                <a
-                  href={`mailto:${email}`}
-                  className="inline-flex items-center gap-1 font-semibold text-[var(--sc-primary)] hover:underline"
-                >
-                  {email}
-                  <ExternalLink size={11} aria-hidden="true" />
-                </a>
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="self-end text-[var(--sc-primary)] hover:bg-[var(--sc-primary-alpha-08)] sm:self-auto"
-            onClick={() => notifyAction(t('disconnect'))}
-          >
-            {t('disconnect')}
-          </Button>
-        </div>
-      </Card>
-
-      {/* Preferences (Language & Timezone) */}
+      {/* Display preferences */}
       <Card
         padding="none"
         className="overflow-hidden border border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]"
       >
         <SettingsSectionHeader title={t('preferences')} description={t('preferencesDescription')} />
 
-        <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 sm:gap-3.5 sm:p-4 sm:px-6">
+        <div className="p-2.5 sm:p-4 sm:px-6">
           <Select
             label={t('language')}
-            defaultValue="vi"
+            value={locale}
+            onChange={(event) => setLocale(event.target.value)}
             options={[
-              { value: 'vi', label: 'Tiếng Việt' },
-              { value: 'en', label: 'English' },
+              { value: 'vi', label: t('languageVietnamese') },
+              { value: 'en', label: t('languageEnglish') },
             ]}
             helperText={t('preferredLanguageHint')}
-          />
-
-          <Select
-            label={t('timezone')}
-            defaultValue="asia-ho-chi-minh"
-            options={[
-              { value: 'asia-ho-chi-minh', label: '(GMT+07:00) Ho Chi Minh City' },
-              { value: 'asia-bangkok', label: '(GMT+07:00) Bangkok' },
-              { value: 'asia-singapore', label: '(GMT+08:00) Singapore' },
-            ]}
-            helperText={t('timezoneHint')}
           />
         </div>
       </Card>
