@@ -96,16 +96,43 @@ export const warehouseApi = {
     );
     return downtimeSchema.parse(data);
   },
-  async list(filters: WarehouseFilters, cursor?: string): Promise<WarehousePage> {
+  async list(
+    filters: WarehouseFilters,
+    cursor?: string,
+    signal?: AbortSignal,
+  ): Promise<WarehousePage> {
     const params: Record<string, string> = { limit: '50' };
     if (filters.search.trim()) params.search = filters.search.trim();
     if (filters.status) params.status = filters.status;
     if (cursor) params.cursor = cursor;
     const { data, meta } = await apiClient.get<ApiResponse<unknown>>('/v1/warehouses', {
       params,
+      signal,
       silent: true,
     });
     return warehousePageSchema.parse({ items: data, pagination: meta.pagination });
+  },
+
+  async assigned(id: string, code: string, signal?: AbortSignal): Promise<Warehouse | null> {
+    let cursor: string | undefined;
+    const seen = new Set<string>();
+    do {
+      signal?.throwIfAborted();
+      const page = await warehouseApi.list({ search: code, status: '' }, cursor, signal);
+      const warehouse = page.items.find((item) => item.id === id);
+      if (warehouse) {
+        if (warehouse.code !== code || warehouse.tenantId !== null) {
+          throw new Error('Warehouse does not match the assigned platform scope');
+        }
+        return warehouse;
+      }
+      if (!page.pagination.hasNext) return null;
+      const next = page.pagination.nextCursor;
+      if (!next || seen.has(next)) throw new Error('Invalid warehouse pagination');
+      seen.add(next);
+      cursor = next;
+    } while (cursor);
+    return null;
   },
 
   async update(

@@ -20,10 +20,12 @@ import type { Bin, Zone } from '../api/warehouseLayoutApi';
 
 export function ZoneForm({
   zone,
+  fixedType,
   onClose,
   onSave,
 }: {
   readonly zone: Zone | null;
+  readonly fixedType?: Zone['zoneType'];
   readonly onClose: () => void;
   readonly onSave: (values: ZoneFormValues) => Promise<void>;
 }) {
@@ -36,12 +38,18 @@ export function ZoneForm({
     resolver: zodResolver(zoneFormSchema),
     defaultValues: {
       code: zone?.code ?? '',
-      zoneType: zone?.zoneType ?? 'STORAGE',
+      zoneType: fixedType ?? zone?.zoneType ?? 'STORAGE',
       isActive: zone?.isActive ?? true,
     },
   });
   return (
-    <Modal isOpen onClose={onClose} title={t(zone ? 'editZone' : 'createZone')}>
+    <Modal
+      isOpen
+      onClose={() => {
+        if (!isSubmitting) onClose();
+      }}
+      title={t(zone ? 'editZone' : 'createZone')}
+    >
       <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(onSave)(event)}>
         <Input
           label={t('code')}
@@ -52,7 +60,10 @@ export function ZoneForm({
         <Select
           label={t('zoneType')}
           {...register('zoneType')}
-          options={(['RECEIVING', 'STORAGE', 'PACKING', 'QUARANTINE'] as const).map((value) => ({
+          options={(fixedType
+            ? [fixedType]
+            : (['RECEIVING', 'STORAGE', 'PACKING', 'QUARANTINE'] as const)
+          ).map((value) => ({
             value,
             label: t(`types.${value}`),
           }))}
@@ -105,7 +116,14 @@ export function BinForm({
   });
   const mode = watch('mode');
   return (
-    <Modal isOpen onClose={onClose} title={t(bin ? 'editBin' : 'createBin')} width="560px">
+    <Modal
+      isOpen
+      onClose={() => {
+        if (!isSubmitting) onClose();
+      }}
+      title={t(bin ? 'editBin' : 'createBin')}
+      width="560px"
+    >
       <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(onSave)(event)}>
         {!bin && storage && (
           <Select

@@ -31,6 +31,7 @@ const productSchema = z.object({
   updatedAt: z.string().datetime(),
   trackLot: z.boolean().optional(),
   trackExpiry: z.boolean().optional(),
+  manufactureRequired: z.boolean().optional(),
   shelfLifeDays: z.number().int().positive().nullable().optional(),
   minInboundShelfLifePct: z.string().optional(),
   minOutboundDays: z.number().int().nonnegative().optional(),

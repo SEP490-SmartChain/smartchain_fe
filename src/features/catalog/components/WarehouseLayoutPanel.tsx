@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { Boxes, MapPin, Plus, Search } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert } from '@/components/Common/Alert/Alert';
+import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
@@ -12,14 +14,39 @@ import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { BinLabels } from './BinLabels';
+import styles from './WarehouseDetails.module.css';
 import { ZoneForm, BinForm } from './WarehouseLayoutForms';
 import { warehouseLayoutApi, type Bin, type Zone } from '../api/warehouseLayoutApi';
 
 import type { BinFormValues, ZoneFormValues } from '../schemas/warehouseLayoutSchema';
 import type { Warehouse } from '../types/warehouse';
 
-export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Warehouse }) {
+function formatCapacity(value: string, locale: string, decimalSeparator: string): string {
+  const [integerPart, fractionPart] = value.split('.');
+  if (!/^\d+$/.test(integerPart) || (fractionPart !== undefined && !/^\d+$/.test(fractionPart))) {
+    return value;
+  }
+  const integer = BigInt(integerPart).toLocaleString(locale);
+  const fraction = fractionPart?.replace(/0+$/, '');
+  return fraction ? `${integer}${decimalSeparator}${fraction}` : integer;
+}
+
+export function WarehouseLayoutPanel({
+  warehouse,
+  zoneType,
+  onEditingChange,
+  onSaved,
+}: {
+  readonly warehouse: Warehouse;
+  readonly zoneType?: Zone['zoneType'];
+  readonly onEditingChange?: (editing: boolean) => void;
+  readonly onSaved?: () => void;
+}) {
   const t = useTranslations('WarehouseLayout');
+  const locale = useLocale();
+  const decimalSeparator =
+    new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === 'decimal')
+      ?.value ?? '.';
   const { can } = useAccess();
   const principal = useAuthStore((state) => state.user);
   const canManage = can('warehouses.layout.manage');
@@ -40,6 +67,10 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
   const [error, setError] = useState<string | null>(null);
   const [zoneForm, setZoneForm] = useState<{ zone: Zone | null } | null>(null);
   const [binForm, setBinForm] = useState<{ bin: Bin | null } | null>(null);
+  useEffect(() => {
+    onEditingChange?.(zoneForm !== null || binForm !== null);
+    return () => onEditingChange?.(false);
+  }, [zoneForm, binForm, onEditingChange]);
   const revision = useRef(0);
   const binRevision = useRef(0);
   const zoneRevision = useRef(0);
@@ -61,13 +92,14 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
       try {
         const page = await warehouseLayoutApi.zones(warehouse.id, cursor);
         if (token !== zoneRevision.current || scopeToken !== revision.current) return;
-        setZones((current) => (cursor ? [...current, ...page.items] : page.items));
+        const items = page.items.filter((zone) => !zoneType || zone.zoneType === zoneType);
+        setZones((current) => (cursor ? [...current, ...items] : items));
         setZoneCursor(page.pagination.nextCursor);
         if (!cursor) {
           setZoneId((current) =>
-            page.items.some((zone) => zone.id === current) ? current : (page.items[0]?.id ?? ''),
+            items.some((zone) => zone.id === current) ? current : (items[0]?.id ?? ''),
           );
-        }
+        } else setZoneId((current) => current || items[0]?.id || '');
       } catch (failure) {
         if (token === zoneRevision.current && scopeToken === revision.current) {
           setError(failure instanceof ApiError ? failure.message : t('loadError'));
@@ -78,7 +110,7 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
         }
       }
     },
-    [warehouse.id, t],
+    [warehouse.id, zoneType, t],
   );
   const loadBins = useCallback(
     async (cursor?: string) => {
@@ -138,6 +170,7 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
       setZoneForm(null);
       await loadZones();
       toast.success(t('saved'));
+      onSaved?.();
     } catch (failure) {
       if (token === revision.current) {
         toast.error(failure instanceof ApiError ? failure.message : t('saveError'));
@@ -176,6 +209,7 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
       setBinForm(null);
       await loadBins();
       toast.success(t('saved'));
+      onSaved?.();
     } catch (failure) {
       if (token === revision.current) {
         toast.error(failure instanceof ApiError ? failure.message : t('saveError'));
@@ -183,15 +217,24 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
     }
   };
   return (
-    <section className="mt-5 space-y-4 text-[var(--sc-text-primary)]" aria-label={t('title')}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">{t('title')}</h2>
-        {canManage && warehouse.status === 'ACTIVE' && (
-          <Button variant="outline" onClick={() => setZoneForm({ zone: null })}>
-            {t('createZone')}
-          </Button>
-        )}
-      </div>
+    <section className={styles.panel} aria-label={t('title')}>
+      {!zoneType && (
+        <div className={styles.panelHeader}>
+          <div>
+            <h2 className={styles.panelTitle}>
+              <Boxes size={20} className={styles.icon} aria-hidden="true" />
+              {t('title')}
+            </h2>
+            <p className={`${styles.copy} mt-2`}>{t('layoutHelp')}</p>
+          </div>
+          {canManage && warehouse.status === 'ACTIVE' && (
+            <Button variant="outline" onClick={() => setZoneForm({ zone: null })}>
+              <Plus size={16} aria-hidden="true" />
+              {t('createZone')}
+            </Button>
+          )}
+        </div>
+      )}
       {error && (
         <Alert variant="error" title={error}>
           <Button
@@ -205,20 +248,28 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
           </Button>
         </Alert>
       )}
-      <div className="flex flex-wrap items-end gap-3">
-        <Select
-          label={t('zone')}
-          value={zoneId}
-          disabled={loading || !zones.length}
-          onChange={(event) => {
-            setBinForm(null);
-            setZoneId(event.target.value);
-          }}
-          options={zones.map((zone) => ({
-            value: zone.id,
-            label: `${zone.code} · ${t(`types.${zone.zoneType}`)} · ${t(zone.isActive ? 'active' : 'inactive')}`,
-          }))}
-        />
+      <div className={styles.toolbar}>
+        {zoneType && canManage && warehouse.status === 'ACTIVE' && (
+          <Button variant="outline" onClick={() => setZoneForm({ zone: null })}>
+            <Plus size={16} aria-hidden="true" />
+            {t('createZone')}
+          </Button>
+        )}
+        <div className={styles.zonePicker}>
+          <Select
+            label={t('zone')}
+            value={zoneId}
+            disabled={loading || !zones.length}
+            onChange={(event) => {
+              setBinForm(null);
+              setZoneId(event.target.value);
+            }}
+            options={zones.map((zone) => ({
+              value: zone.id,
+              label: `${zone.code} · ${t(`types.${zone.zoneType}`)} · ${t(zone.isActive ? 'active' : 'inactive')}`,
+            }))}
+          />
+        </div>
         {zoneCursor && (
           <Button variant="outline" disabled={loading} onClick={() => void loadZones(zoneCursor)}>
             {t('moreZones')}
@@ -230,58 +281,128 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
           </Button>
         )}
         {canManage && selectedZone?.isActive && warehouse.status === 'ACTIVE' && (
-          <Button onClick={() => setBinForm({ bin: null })}>{t('createBin')}</Button>
+          <Button onClick={() => setBinForm({ bin: null })}>
+            <Plus size={16} aria-hidden="true" />
+            {t('createBin')}
+          </Button>
         )}
       </div>
-      <Input
-        value={search}
-        aria-label={t('binFilter')}
-        placeholder={t('binFilter')}
-        maxLength={100}
-        onChange={(event) => setSearch(event.target.value)}
-      />
-      {!zones.length && !loading && <p>{t('noZones')}</p>}
-      {loading && <p role="status">{t('loading')}</p>}
-      <div className="overflow-auto">
-        <table className="w-full text-left text-sm" aria-label={t('bins')}>
-          <thead>
-            <tr>
-              {['code', 'barcode', 'maxWeightG', 'maxVolumeM3', 'status', 'actions'].map((key) => (
-                <th className="px-3 py-2" key={key}>
-                  {t(key)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {bins.map((bin) => (
-              <tr key={bin.id} className="border-t border-[var(--sc-border-default)]">
-                <td className="px-3 py-2">{bin.code}</td>
-                <td className="px-3 py-2 font-mono">{bin.barcode}</td>
-                <td className="px-3 py-2">{bin.maxWeightG}</td>
-                <td className="px-3 py-2">{bin.maxVolumeM3}</td>
-                <td className="px-3 py-2">{t(bin.isActive ? 'active' : 'inactive')}</td>
-                <td className="px-3 py-2">
-                  {canManage && (
-                    <Button
-                      variant="ghost"
-                      aria-label={t('editCode', { code: bin.code })}
-                      onClick={() => setBinForm({ bin })}
-                    >
-                      {t('edit')}
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {!!bins.length && (
-        <BinLabels key={`${warehouse.id}:${zoneId}`} bins={bins} warehouseCode={warehouse.code} />
+      {selectedZone && (
+        <div className={styles.binHeader}>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className={styles.subtitle}>{t('bins')}</h3>
+            <Badge status="default" label={t('loadedBins', { count: bins.length })} />
+          </div>
+          <div className="w-full sm:max-w-xs">
+            <Input
+              value={search}
+              aria-label={t('binFilter')}
+              placeholder={t('binFilter')}
+              maxLength={100}
+              leftIcon={<Search size={16} aria-hidden="true" />}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        </div>
       )}
-      {!!zoneId && !bins.length && !loading && <p>{t('noBins')}</p>}
-      {binCursor && (
+      {!zones.length && !zoneCursor && !loading && !error && (
+        <div className={styles.empty}>
+          <Boxes size={28} aria-hidden="true" />
+          <p>{t('noZones')}</p>
+          <p>{t('noZonesHelp')}</p>
+        </div>
+      )}
+      {loading && <p role="status">{t('loading')}</p>}
+      {!!bins.length && (
+        <div className={styles.tableFrame}>
+          <table className={styles.table} aria-label={t('bins')}>
+            <colgroup>
+              <col className={canManage ? styles.manageCodeColumn : styles.codeColumn} />
+              <col className={canManage ? styles.manageBarcodeColumn : styles.barcodeColumn} />
+              <col className={canManage ? styles.manageWeightColumn : styles.weightColumn} />
+              <col className={canManage ? styles.manageVolumeColumn : styles.volumeColumn} />
+              <col className={canManage ? styles.manageStatusColumn : styles.statusColumn} />
+              {canManage && <col className={styles.actionColumn} />}
+            </colgroup>
+            <thead>
+              <tr>
+                {[
+                  'code',
+                  'barcode',
+                  'maxWeightG',
+                  'maxVolumeM3',
+                  'status',
+                  ...(canManage ? ['actions'] : []),
+                ].map((key) => (
+                  <th
+                    className={
+                      key === 'maxWeightG' || key === 'maxVolumeM3' ? styles.numeric : undefined
+                    }
+                    key={key}
+                  >
+                    {t(key)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bins.map((bin) => (
+                <tr key={bin.id} className="border-t border-[var(--sc-border-default)]">
+                  <td className={styles.binCode}>{bin.code}</td>
+                  <td>
+                    <span className={styles.barcodeValue} title={bin.barcode}>
+                      {bin.barcode}
+                    </span>
+                  </td>
+                  <td className={styles.numeric}>
+                    {formatCapacity(bin.maxWeightG, locale, decimalSeparator)}
+                  </td>
+                  <td className={styles.numeric}>
+                    {formatCapacity(bin.maxVolumeM3, locale, decimalSeparator)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Badge
+                      status={bin.isActive ? 'success' : 'default'}
+                      label={t(bin.isActive ? 'active' : 'inactive')}
+                    />
+                  </td>
+                  {canManage && (
+                    <td className={styles.rowAction}>
+                      <Button
+                        variant="ghost"
+                        aria-label={t('editCode', { code: bin.code })}
+                        onClick={() => setBinForm({ bin })}
+                      >
+                        {t('edit')}
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {!!bins.length && (
+        <div className={styles.tableFooter}>
+          <BinLabels key={`${warehouse.id}:${zoneId}`} bins={bins} warehouseCode={warehouse.code} />
+          {binCursor && (
+            <Button variant="outline" disabled={loading} onClick={() => void loadBins(binCursor)}>
+              {t('moreBins')}
+            </Button>
+          )}
+        </div>
+      )}
+      {!!zoneId && !bins.length && !loading && !error && (
+        <div className={styles.empty}>
+          <MapPin size={28} aria-hidden="true" />
+          <p className="font-medium text-[var(--sc-text-primary)]">
+            {search.trim() ? t('noMatchingBins') : t('noBins')}
+          </p>
+          <p>{search.trim() ? t('changeBinSearch') : t('noBinsHelp')}</p>
+        </div>
+      )}
+      {!bins.length && binCursor && (
         <Button variant="outline" disabled={loading} onClick={() => void loadBins(binCursor)}>
           {t('moreBins')}
         </Button>
@@ -290,6 +411,7 @@ export function WarehouseLayoutPanel({ warehouse }: { readonly warehouse: Wareho
         <ZoneForm
           key={zoneForm.zone?.id ?? 'new-zone'}
           zone={zoneForm.zone}
+          fixedType={zoneType}
           onClose={() => setZoneForm(null)}
           onSave={saveZone}
         />

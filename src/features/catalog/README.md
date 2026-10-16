@@ -4,6 +4,21 @@ Carrier catalogue management UI (UC-91): create/edit carrier metadata and create
 
 Seller SKU, platform warehouse/carrier catalogue, ORCA-owned carrier accounts/ping và purchase/sell tariff UI. Report3 UC-91–95/118/119; không BYOA. Tariff contract và role/state mapping ở `docs/SS-1246-RATE-CARDS.md`.
 
+## Warehouse directory interaction
+
+Warehouse details expand beneath the selected row; the directory, filters and
+pagination remain visible. The collapse action returns focus to its trigger.
+Overview, layout, calendar and downtime stay in one detail region. Saving refreshes
+the current cursor page in the background, preserving the selected tab; previous
+pages can be fetched again after invalidating the cache.
+
+The public `WarehouseStorageSetup` entry reuses layout management in inbound putaway.
+Only assigned Managers can open it. It resolves the exact warehouse ID and code through
+the existing paginated directory, aborts obsolete identity/scope reads, and filters the
+layout to STORAGE zones. It reports open forms to the parent navigation lock. Changes
+use existing versioned catalog commands; physical fit and task creation remain server
+responsibilities.
+
 ## ORCA warehouse calendar (SS-1305)
 
 The platform warehouse directory includes the current business calendar,

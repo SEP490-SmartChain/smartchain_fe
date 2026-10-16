@@ -9,6 +9,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -106,55 +107,49 @@ export function GlobalCarrierCatalog() {
   if (!can('platform.carriers.manage')) return null;
   return (
     <Card className="space-y-5 p-5">
-      {/* Top Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="m-0 text-2xl font-normal leading-7 text-[var(--sc-text-primary)]">
-            {t('page_title')}
-          </h1>
-          <p className="mb-0 mt-1 text-xs leading-4 text-[var(--sc-text-tertiary)]">
-            {t('page_description')}
-          </p>
-        </div>
+      <PageHeader
+        title={t('page_title')}
+        description={t('page_description')}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* View mode toggle */}
+            <div className="flex items-center rounded-xl bg-[var(--sc-bg-secondary)] p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-medium transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-primary)] shadow-[var(--sc-shadow-button)]'
+                    : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
+                }`}
+                title={t('gridView')}
+              >
+                <LayoutGrid size={15} />
+                <span>{t('gridView')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-medium transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-primary)] shadow-[var(--sc-shadow-button)]'
+                    : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
+                }`}
+                title={t('tableView')}
+              >
+                <List size={15} />
+                <span>{t('tableView')}</span>
+              </button>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex items-center rounded-xl bg-[var(--sc-bg-secondary)] p-1 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-medium transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-primary)] shadow-[var(--sc-shadow-button)]'
-                  : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
-              }`}
-              title={t('gridView')}
-            >
-              <LayoutGrid size={15} />
-              <span>{t('gridView')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-medium transition-all ${
-                viewMode === 'table'
-                  ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-primary)] shadow-[var(--sc-shadow-button)]'
-                  : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
-              }`}
-              title={t('tableView')}
-            >
-              <List size={15} />
-              <span>{t('tableView')}</span>
-            </button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
+              <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+              {t('refresh')}
+            </Button>
+            <Button onClick={() => setCreating(true)}>{t('createCarrier')}</Button>
           </div>
-
-          <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
-            <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
-            {t('refresh')}
-          </Button>
-          <Button onClick={() => setCreating(true)}>{t('createCarrier')}</Button>
-        </div>
-      </div>
+        }
+      />
 
       {error && (
         <Alert variant="error" title={t('loadError')}>

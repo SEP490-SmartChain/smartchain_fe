@@ -8,6 +8,7 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -143,21 +144,21 @@ export function ProductCatalogTable() {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
-          {t('title')}
-        </h1>
-        {canManageProducts && (
-          <div className="flex gap-2">
-            <Button type="button" onClick={() => setIsCreating(true)}>
-              {t('create')}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setIsImporting(true)}>
-              {t('import')}
-            </Button>
-          </div>
-        )}
-      </header>
+      <PageHeader
+        title={t('title')}
+        actions={
+          canManageProducts && (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" onClick={() => setIsCreating(true)}>
+                {t('create')}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsImporting(true)}>
+                {t('import')}
+              </Button>
+            </div>
+          )
+        }
+      />
 
       {error ? (
         <Alert variant="error" title={t('loadError')}>
