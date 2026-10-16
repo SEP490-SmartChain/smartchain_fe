@@ -10,6 +10,7 @@ import {
   Card,
   Dropzone,
   Input,
+  PageHeader,
   Select,
   UnderConstruction,
 } from '@/components/Common';
@@ -202,56 +203,56 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
   ];
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1>{t('title')}</h1>
-          <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="secondary"
-            isLoading={orders.loading}
-            onClick={() => void orders.reload()}
-          >
-            <RefreshCw size={16} />
-            {t('refresh')}
-          </Button>
-          {owner && (
-            <>
-              <Button
-                variant="secondary"
-                disabled={!canIntake}
-                onClick={() => {
-                  setError(null);
-                  setModal('sheet');
-                }}
-              >
-                {t('sheetConnect')}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setError(null);
-                  setModal('import');
-                }}
-              >
-                <Upload size={16} />
-                {t('import')}
-              </Button>
-              <Button
-                disabled={!canIntake}
-                onClick={() => {
-                  setError(null);
-                  setModal('manual');
-                }}
-              >
-                <Plus size={16} />
-                {t('create')}
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              isLoading={orders.loading}
+              onClick={() => void orders.reload()}
+            >
+              <RefreshCw size={16} />
+              {t('refresh')}
+            </Button>
+            {owner && (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={!canIntake}
+                  onClick={() => {
+                    setError(null);
+                    setModal('sheet');
+                  }}
+                >
+                  {t('sheetConnect')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setError(null);
+                    setModal('import');
+                  }}
+                >
+                  <Upload size={16} />
+                  {t('import')}
+                </Button>
+                <Button
+                  disabled={!canIntake}
+                  onClick={() => {
+                    setError(null);
+                    setModal('manual');
+                  }}
+                >
+                  <Plus size={16} />
+                  {t('create')}
+                </Button>
+              </>
+            )}
+          </div>
+        }
+      />
       {accepted && (
         <Alert variant="success" onClose={() => setAccepted(null)}>
           {t('accepted_hint')}
@@ -269,13 +270,13 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
           </Button>
         </Alert>
       )}
-      <Card>
+      <Card padding="none" className="@container overflow-hidden">
         <form
           onSubmit={(event) => {
             event.preventDefault();
             setFilters({ ...draftFilters });
           }}
-          className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-5"
+          className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-5 @[68rem]:grid-cols-[repeat(5,minmax(0,1fr))_max-content] @[68rem]:gap-3"
         >
           <Input
             label={t('order_code')}
@@ -315,20 +316,22 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             min={draftFilters.from || undefined}
             onChange={(event) => setDraftFilters({ ...draftFilters, to: event.target.value })}
           />
-          <Button type="submit" className="self-end" disabled={orders.loading}>
-            {t('filter')}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              const empty = { status: '', channel: '', from: '', to: '' };
-              setDraftFilters(empty);
-              setFilters(empty);
-            }}
-          >
-            {t('reset_filters')}
-          </Button>
+          <div className="col-span-full flex flex-wrap items-end gap-2 @[68rem]:col-span-1 @[68rem]:flex-nowrap">
+            <Button type="submit" className="self-end" disabled={orders.loading}>
+              {t('filter')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                const empty = { status: '', channel: '', from: '', to: '' };
+                setDraftFilters(empty);
+                setFilters(empty);
+              }}
+            >
+              {t('reset_filters')}
+            </Button>
+          </div>
         </form>
         <DataTable
           ariaLabel={t('title')}

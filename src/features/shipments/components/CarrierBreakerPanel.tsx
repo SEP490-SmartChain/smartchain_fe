@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useTranslations } from 'next-intl';
 
-import { Alert, Badge, Button, Card } from '@/components/Common';
+import { Alert, Badge, Button, Card, PageHeader } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -49,15 +49,15 @@ function Panel() {
   }, [revision]);
   return (
     <section className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--sc-text-primary)]">{t('title')}</h1>
-          <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('subtitle')}</p>
-        </div>
-        <Button variant="secondary" disabled={loading} onClick={() => setRevision((v) => v + 1)}>
-          {t('reload')}
-        </Button>
-      </header>
+      <PageHeader
+        title={t('title')}
+        description={t('subtitle')}
+        actions={
+          <Button variant="secondary" disabled={loading} onClick={() => setRevision((v) => v + 1)}>
+            {t('reload')}
+          </Button>
+        }
+      />
       {error && <Alert variant="error">{t('error')}</Alert>}
       <Card>
         <DataTable

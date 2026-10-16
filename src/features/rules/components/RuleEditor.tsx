@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -137,7 +138,7 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
     try {
       if (current) await ruleApi.edit(current, toDefinition(values), values.reason);
       else {
-        operationKey.current ??= crypto.randomUUID();
+        operationKey.current ??= createUuid();
         await ruleApi.create(operationKey.current, toDefinition(values), values.reason);
       }
       if (identity === useAuthStore.getState().user) onSaved();
