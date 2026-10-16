@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+import { createUuid } from '@/lib/uuid';
 
 import {
   RULE_FIELDS,
@@ -45,10 +46,10 @@ export function ConditionEditor({
   const t = useTranslations('Rules');
   const childCount = 'conditions' in value ? value.conditions.length : 0;
   const [childKeys, setChildKeys] = useState(() =>
-    Array.from({ length: childCount }, () => crypto.randomUUID()),
+    Array.from({ length: childCount }, () => createUuid()),
   );
   if (childKeys.length !== childCount) {
-    setChildKeys(Array.from({ length: childCount }, () => crypto.randomUUID()));
+    setChildKeys(Array.from({ length: childCount }, () => createUuid()));
   }
   const changeKind = (kind: string) =>
     onChange(
@@ -78,7 +79,7 @@ export function ConditionEditor({
             variant="outline"
             disabled={disabled || depth >= 8 || value.conditions.length >= 50}
             onClick={() => {
-              setChildKeys((keys) => [...keys, crypto.randomUUID()]);
+              setChildKeys((keys) => [...keys, createUuid()]);
               onChange({ ...value, conditions: [...value.conditions, { ...DEFAULT }] });
             }}
           >

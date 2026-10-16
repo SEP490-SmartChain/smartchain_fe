@@ -56,7 +56,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
   );
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form noValidate onSubmit={submit} className="space-y-4">
       <p className="text-sm text-[var(--sc-text-secondary)]">{t('profileHelp')}</p>
       {plan.requiresBusinessProfile && (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -64,6 +64,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
             <Input
               key={field}
               label={t(`profile.${field}`)}
+              required={field !== 'registrationNumber'}
               {...form.register(field)}
               disabled={busy}
               error={form.formState.errors[field] ? t('profileInvalid') : undefined}
@@ -76,6 +77,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
       </Button>
       <Checkbox
         {...form.register('hasReviewedTerms')}
+        required
         disabled={busy}
         label={t('reviewedTerms')}
         error={form.formState.errors.hasReviewedTerms ? t('reviewRequired') : undefined}

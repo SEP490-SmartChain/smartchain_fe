@@ -19,3 +19,4 @@ export type {
 } from './types/inventoryStock.types';
 export { NearExpiryPanel } from './components/NearExpiryPanel';
 export { InventoryNotificationSettingsCard } from './components/InventoryNotificationSettingsCard';
+export { InventoryWorkspace } from './components/InventoryWorkspace';

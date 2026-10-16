@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useProducts } from '@/features/catalog';
+import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
 import { OrderPaymentSummary } from './OrderPaymentSummary';
@@ -59,7 +60,7 @@ export function ManualOrderForm({
     ]);
   }, [products.products]);
   const automaticCode = useRef(
-    `ORCA-${crypto.randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`,
+    `ORCA-${createUuid().replaceAll('-', '').slice(0, 12).toUpperCase()}`,
   );
   const operation = useRef<{ payload: string; key: string } | null>(null);
   const running = useRef(false);
@@ -103,7 +104,7 @@ export function ManualOrderForm({
   const lines = useFieldArray({ control: form.control, name: 'items' });
   const resetDraft = () => {
     form.reset();
-    automaticCode.current = `ORCA-${crypto.randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`;
+    automaticCode.current = `ORCA-${createUuid().replaceAll('-', '').slice(0, 12).toUpperCase()}`;
     operation.current = null;
     setError(null);
     setSearch('');
@@ -223,7 +224,7 @@ export function ManualOrderForm({
     setError(null);
     const payload = JSON.stringify(input);
     if (operation.current?.payload !== payload) {
-      operation.current = { payload, key: `manual.${crypto.randomUUID()}` };
+      operation.current = { payload, key: `manual.${createUuid()}` };
     }
     try {
       const accepted = await ordersApi.create(

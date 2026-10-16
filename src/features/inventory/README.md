@@ -15,3 +15,15 @@ UC-47 immutable movement ledger. SS-1118 extends the existing Inventory page.
 
 Dependency: matching backend `feat/SS-1118-inventory-detail-api` and its parent branches.
 Contract tests: `node --test tests/inventory-detail.test.mjs`. Full gate follows AGENTS.md.
+
+## Inventory workspace UI
+
+`InventoryWorkspace` composes role-specific tabs and one shared warehouse selector.
+`inventory.stocks.view` is tenant-only, matching the existing aggregate controller;
+`inventory.view` remains the route capability. Manager/Ops start on their first supported
+view. Scope changes discard reader state. Failed reads never become empty inventory.
+
+Design decisions, state matrix, verification and limits:
+[Inventory UI review](../../../docs/INVENTORY-UI-REVIEW.md).
+Local visual fixture: `node tests/inventory-ui-browser.mjs`. Role/render regressions:
+`node --test tests/inventory-ui.test.mjs`.

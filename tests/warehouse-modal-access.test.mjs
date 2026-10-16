@@ -9,7 +9,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
-let server, Modal, access, messages;
+let server, Modal, Details, ZoneForm, access, messages;
 before(async () => {
   messages = JSON.parse(await readFile(new URL('../messages/en.json', import.meta.url), 'utf8'));
   server = await createServer({
@@ -50,10 +50,34 @@ before(async () => {
   ({ AddWarehouseModal: Modal } = await server.ssrLoadModule(
     '/src/features/catalog/components/AddWarehouseModal.tsx',
   ));
+  ({ WarehouseDetails: Details } = await server.ssrLoadModule(
+    '/src/features/catalog/components/WarehouseDetails.tsx',
+  ));
+  ({ ZoneForm } = await server.ssrLoadModule(
+    '/src/features/catalog/components/WarehouseLayoutForms.tsx',
+  ));
   access = await server.ssrLoadModule('\0test-warehouse-access');
 });
 after(async () => {
   await server?.close();
+});
+
+test('inbound storage setup cannot create a receiving or quarantine zone by mistake', () => {
+  const markup = renderToStaticMarkup(
+    createElement(
+      NextIntlClientProvider,
+      { locale: 'en', timeZone: 'Asia/Ho_Chi_Minh', messages },
+      createElement(ZoneForm, {
+        zone: null,
+        fixedType: 'STORAGE',
+        onClose() {},
+        async onSave() {},
+      }),
+    ),
+  );
+  // RHF attaches the selected value through its client ref; SSR verifies the available choices.
+  const types = [...markup.matchAll(/<option[^>]*value="([A-Z]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(types, ['STORAGE']);
 });
 
 function render(roles, warehouse) {
@@ -68,7 +92,10 @@ function render(roles, warehouse) {
 }
 
 test('Manager can open the edit form while warehouse creation stays denied', () => {
-  const markup = render(['WAREHOUSE_MANAGER'], { id: '00000000-0000-4000-8000-000000000001' });
+  const markup = render(['WAREHOUSE_MANAGER'], {
+    id: '00000000-0000-4000-8000-000000000001',
+    region: 'CENTRAL',
+  });
   assert.match(markup, /Edit warehouse/);
   assert.match(markup, /Save changes/);
   assert.match(markup, /id="warehouse-code"[^>]*readOnly/);
@@ -92,5 +119,56 @@ test('seller and warehouse staff cannot open either warehouse mutation form', ()
   for (const role of ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_STAFF']) {
     assert.equal(render([role], null), '');
     assert.equal(render([role], { id: '00000000-0000-4000-8000-000000000001' }), '');
+  }
+});
+
+test('warehouse detail navigation preserves Manager, Admin and Ops action boundaries', () => {
+  const warehouse = {
+    id: '00000000-0000-4000-8000-000000000001',
+    code: 'WH-DN-01',
+    name: 'Da Nang warehouse',
+    address: 'Da Nang',
+    region: 'CENTRAL',
+    latitude: 16,
+    longitude: 108,
+    dailyCapacity: 100,
+    timeZone: 'Asia/Ho_Chi_Minh',
+    operatingStartMinute: 480,
+    operatingEndMinute: 1440,
+    cutoffMinute: 840,
+    status: 'ACTIVE',
+  };
+  for (const role of ['WAREHOUSE_MANAGER', 'ORCA_ADMIN', 'OPS_DISPATCHER']) {
+    access.setRoles([role]);
+    const markup = renderToStaticMarkup(
+      createElement(
+        NextIntlClientProvider,
+        { locale: 'en', timeZone: 'Asia/Ho_Chi_Minh', messages },
+        createElement(Details, {
+          id: 'warehouse-details-test',
+          warehouse,
+          onClose() {},
+          onEdit() {},
+          onSaved() {},
+        }),
+      ),
+    );
+    assert.doesNotMatch(markup, /Warehouse directory|aria-label="Back/);
+    assert.match(markup, /Warehouse details · WH-DN-01/);
+    assert.match(markup, /Collapse details for warehouse WH-DN-01/);
+    assert.match(
+      markup,
+      /<section[^>]*id="warehouse-details-test"[^>]*aria-labelledby="warehouse-details-test-title"/,
+    );
+    assert.match(markup, /Business calendar/);
+    assert.match(markup, /Downtime schedule/);
+    assert.equal(markup.includes('Edit warehouse'), role === 'WAREHOUSE_MANAGER');
+    assert.equal(markup.includes('Storage areas'), role !== 'OPS_DISPATCHER');
+    assert.match(markup, /role="tablist"/);
+    assert.match(markup, /role="tab"[^>]*id="[^"]+-overview"[^>]*aria-selected="true"/);
+    assert.match(markup, /role="tab"[^>]*id="[^"]+-calendar"[^>]*aria-selected="false"/);
+    assert.match(markup, /role="tabpanel"[^>]*aria-labelledby="[^"]+-overview"[^>]*tabindex="0">/);
+    assert.match(markup, /24:00/);
+    assert.doesNotMatch(markup, /NaN|Invalid Date/);
   }
 });

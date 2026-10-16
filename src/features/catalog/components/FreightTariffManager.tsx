@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useTranslations } from 'next-intl';
 
-import { Alert, Badge, Button, Card } from '@/components/Common';
+import { Alert, Badge, Button, Card, PageHeader } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
@@ -84,20 +84,24 @@ function Manager() {
   return (
     <section className="space-y-5">
       <Card className="space-y-4 p-5">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-[var(--sc-text-primary)]">{t('title')}</h1>
-            <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('subtitle')}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" disabled={loading} onClick={() => setRevision((v) => v + 1)}>
-              {t('reload')}
-            </Button>
-            <Button disabled={loading || error} onClick={() => setEditing(null)}>
-              {t('create')}
-            </Button>
-          </div>
-        </header>
+        <PageHeader
+          title={t('title')}
+          description={t('subtitle')}
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                disabled={loading}
+                onClick={() => setRevision((v) => v + 1)}
+              >
+                {t('reload')}
+              </Button>
+              <Button disabled={loading || error} onClick={() => setEditing(null)}>
+                {t('create')}
+              </Button>
+            </div>
+          }
+        />
         <Tabs
           tabs={[
             { id: 'purchase', label: t('purchase') },

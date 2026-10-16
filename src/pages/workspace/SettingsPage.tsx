@@ -9,20 +9,13 @@ import ProfileSettings from '@/features/settings/components/ProfileSettings';
 import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
 import { ApiKeyManager, WebhookManager, SellerContractOnboarding } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
+import { getSettingsNavigation } from '@/lib/accessPolicy';
 import { useAuthStore } from '@/stores/authStore';
 
-const ALL_SETTING_TABS = ['profile', 'general', 'api-keys', 'webhooks', 'contract'] as const;
-type SettingTab = (typeof ALL_SETTING_TABS)[number];
-const WORKSPACE_TABS: readonly { id: SettingTab; capability: string }[] = [
-  { id: 'general', capability: 'workspace.settings.manage' },
-  { id: 'api-keys', capability: 'apikey.manage' },
-  { id: 'webhooks', capability: 'workspace.settings.manage' },
-  { id: 'contract', capability: 'contract.sign' },
-];
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const navigate = useNavigate();
-  const { can } = useAccess();
+  const { can, roles } = useAccess();
   const keyContext = useAuthStore((state) =>
     [
       state.revision,
@@ -33,22 +26,11 @@ export default function SettingsPage() {
     ].join(':'),
   );
   const { tab } = useParams<{ tab?: string }>();
-  const requestedTab: SettingTab = ALL_SETTING_TABS.includes(tab as SettingTab)
-    ? (tab as SettingTab)
-    : 'profile';
-
-  const visibleTabs: SettingTab[] = [
-    'profile',
-    ...WORKSPACE_TABS.filter(({ capability }) => can(capability)).map(({ id }) => id),
-  ];
-  const activeTab: SettingTab = visibleTabs.includes(requestedTab) ? requestedTab : 'profile';
+  const { tabs: visibleTabs, activeTab, redirectTo } = getSettingsNavigation(roles, tab);
 
   useEffect(() => {
-    const isInvalidTab = tab && !ALL_SETTING_TABS.includes(tab as SettingTab);
-    if (isInvalidTab || (tab && activeTab !== requestedTab)) {
-      navigate('/settings/profile', { replace: true });
-    }
-  }, [activeTab, navigate, requestedTab, tab]);
+    if (redirectTo) navigate(redirectTo, { replace: true });
+  }, [navigate, redirectTo]);
 
   const tabs = visibleTabs.map((id) => ({ id, label: t(id) }));
 
@@ -62,9 +44,11 @@ export default function SettingsPage() {
         className="gap-7 border-b-0 sm:gap-8"
       />
 
-      {activeTab === 'profile' && <ProfileSettings />}
-
-      {activeTab === 'general' && <WorkspaceGeneralSettings />}
+      {activeTab === 'profile' && (
+        <ProfileSettings key={keyContext}>
+          {can('workspace.settings.manage') && <WorkspaceGeneralSettings />}
+        </ProfileSettings>
+      )}
 
       {activeTab === 'api-keys' && <ApiKeyManager key={keyContext} />}
 

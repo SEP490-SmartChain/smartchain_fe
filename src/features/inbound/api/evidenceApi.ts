@@ -1,5 +1,7 @@
+import { sha256 } from '@noble/hashes/sha2.js';
 import { z } from 'zod';
 
+import { signedStorageUrl } from '@/lib/signedStorageUrl';
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 const privateUrl = z
@@ -17,17 +19,25 @@ const privateUrl = z
 export const evidenceSchema = z
   .object({
     id: z.string().uuid(),
-    receivingRecordId: z.string().uuid(),
-    contentType: z.enum(['image/png', 'image/jpeg', 'image/webp']),
+    receivingRecordId: z.string().uuid().nullable(),
+    receiptId: z.string().uuid().optional(),
+    note: z.string().max(1000).optional(),
+    contentType: z.enum(['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm']),
     fileSizeBytes: z
       .number()
       .int()
       .min(12)
-      .max(5 * 1024 * 1024),
+      .max(50 * 1024 * 1024),
     createdAt: z.string().datetime(),
     verifiedAt: z.string().datetime().nullable(),
+    canDelete: z.boolean().optional(),
   })
   .strict()
+  .refine(
+    (value) =>
+      value.fileSizeBytes <= (value.contentType.startsWith('video/') ? 50 : 5) * 1024 * 1024,
+  )
+  .refine((value) => value.receivingRecordId !== null || Boolean(value.receiptId))
   .refine(
     (value) => !value.verifiedAt || Date.parse(value.verifiedAt) >= Date.parse(value.createdAt),
   );
@@ -39,7 +49,13 @@ const signedSchema = z
     expiresInSeconds: z.number().int().min(1).max(900),
     headers: z
       .object({
-        'Content-Type': z.enum(['image/png', 'image/jpeg', 'image/webp']),
+        'Content-Type': z.enum([
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'video/mp4',
+          'video/webm',
+        ]),
         'x-amz-checksum-sha256': z.string().regex(/^[A-Za-z0-9+/]{43}=$/),
       })
       .strict(),
@@ -50,29 +66,39 @@ const intentSchema = z
   .strict();
 export interface EvidenceIntentInput {
   operationKey: string;
-  contentType: 'image/png' | 'image/jpeg' | 'image/webp';
+  note?: string;
+  expectedRound?: number;
+  contentType: 'image/png' | 'image/jpeg' | 'image/webp' | 'video/mp4' | 'video/webm';
   fileSizeBytes: number;
   sha256: string;
 }
-const path = (warehouse: string, asn: string, record: string) =>
-  `/v1/warehouses/${encodeURIComponent(warehouse)}/asns/${encodeURIComponent(asn)}/receiving/records/${encodeURIComponent(record)}/evidence`;
-function sameRecord(photo: ReceiptEvidence, record: string) {
-  if (photo.receivingRecordId !== record) {
+const path = (warehouse: string, asn: string, record: string | null) =>
+  `/v1/warehouses/${encodeURIComponent(warehouse)}/asns/${encodeURIComponent(asn)}/receiving${record === null ? '' : `/records/${encodeURIComponent(record)}`}/evidence`;
+function sameRecord(photo: ReceiptEvidence, record: string | null) {
+  if (
+    photo.receivingRecordId !== record ||
+    (record !== null && photo.contentType.startsWith('video/'))
+  ) {
     throw new Error('Image belongs to another receiving record');
   }
   return photo;
 }
 export async function imageIntent(file: File, operationKey: string): Promise<EvidenceIntentInput> {
   if (
-    !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
+    !['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'].includes(file.type) ||
     file.size < 12 ||
-    file.size > 5 * 1024 * 1024
+    file.size > (file.type.startsWith('video/') ? 50 : 5) * 1024 * 1024
   ) {
     throw new Error('Invalid receipt image');
   }
-  const contentType = z.enum(['image/png', 'image/jpeg', 'image/webp']).parse(file.type);
+  const contentType = z
+    .enum(['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'])
+    .parse(file.type);
   const bytes = await file.arrayBuffer();
-  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  // WebCrypto is unavailable on LAN HTTP origins; use the same SHA-256 with a vetted implementation.
+  const hash = globalThis.crypto?.subtle
+    ? new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+    : sha256(new Uint8Array(bytes));
   return {
     operationKey,
     contentType,
@@ -81,7 +107,7 @@ export async function imageIntent(file: File, operationKey: string): Promise<Evi
   };
 }
 export const evidenceApi = {
-  async list(warehouse: string, asn: string, record: string, signal?: AbortSignal) {
+  async list(warehouse: string, asn: string, record: string | null, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(path(warehouse, asn, record), {
       silent: true,
       signal,
@@ -98,7 +124,7 @@ export const evidenceApi = {
   async presign(
     warehouse: string,
     asn: string,
-    record: string,
+    record: string | null,
     input: EvidenceIntentInput,
     signal?: AbortSignal,
   ) {
@@ -111,6 +137,7 @@ export const evidenceApi = {
     sameRecord(result.evidence, record);
     if (
       result.evidence.contentType !== input.contentType ||
+      (record === null && (result.evidence.note ?? '') !== (input.note?.trim() ?? '')) ||
       result.evidence.fileSizeBytes !== input.fileSizeBytes ||
       (result.upload === null && !result.evidence.verifiedAt) ||
       (result.upload !== null && result.evidence.verifiedAt !== null) ||
@@ -127,7 +154,13 @@ export const evidenceApi = {
     }
     return result;
   },
-  async confirm(warehouse: string, asn: string, record: string, id: string, signal?: AbortSignal) {
+  async confirm(
+    warehouse: string,
+    asn: string,
+    record: string | null,
+    id: string,
+    signal?: AbortSignal,
+  ) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `${path(warehouse, asn, record)}/${encodeURIComponent(id)}/confirm`,
       {},
@@ -137,7 +170,13 @@ export const evidenceApi = {
     if (result.id !== id || !result.verifiedAt) throw new Error('Image confirmation is incomplete');
     return result;
   },
-  async download(warehouse: string, asn: string, record: string, id: string, signal?: AbortSignal) {
+  async download(
+    warehouse: string,
+    asn: string,
+    record: string | null,
+    id: string,
+    signal?: AbortSignal,
+  ) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       `${path(warehouse, asn, record)}/${encodeURIComponent(id)}/download`,
       { silent: true, signal },
@@ -151,6 +190,24 @@ export const evidenceApi = {
       .strict()
       .parse(data);
     if (result.id !== id) throw new Error('Image download belongs to another photo');
+    return { ...result, downloadUrl: signedStorageUrl(result.downloadUrl) };
+  },
+  async remove(
+    warehouse: string,
+    asn: string,
+    record: string | null,
+    id: string,
+    signal?: AbortSignal,
+  ) {
+    const { data } = await apiClient.delete<ApiResponse<unknown>>(
+      `${path(warehouse, asn, record)}/${encodeURIComponent(id)}`,
+      { silent: true, signal },
+    );
+    const result = z
+      .object({ id: z.string().uuid(), deletedAt: z.string().datetime() })
+      .strict()
+      .parse(data);
+    if (result.id !== id) throw new Error('Deleted evidence belongs to another photo');
     return result;
   },
 };

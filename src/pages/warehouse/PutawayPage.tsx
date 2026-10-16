@@ -1,5 +1,8 @@
-import { PutawayWorkspace } from '@/features/inbound';
+import { useOutletContext } from 'react-router-dom';
+
+import { PutawayWorkspace, type InboundWarehouseScope } from '@/features/inbound';
 
 export default function PutawayPage() {
-  return <PutawayWorkspace />;
+  const scope = useOutletContext<InboundWarehouseScope>();
+  return <PutawayWorkspace {...scope} />;
 }

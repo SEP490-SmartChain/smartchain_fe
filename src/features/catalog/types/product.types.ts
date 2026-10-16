@@ -14,6 +14,7 @@ export interface Product {
   updatedAt: string;
   trackLot?: boolean;
   trackExpiry?: boolean;
+  manufactureRequired?: boolean;
   shelfLifeDays?: number | null;
   minInboundShelfLifePct?: string;
   minOutboundDays?: number;
@@ -52,6 +53,7 @@ export type CreateProductInput = Omit<UpdateProductInput, 'expectedUpdatedAt'> &
 export interface ProductConfigurationInput {
   trackLot: boolean;
   trackExpiry: boolean;
+  manufactureRequired: boolean;
   shelfLifeDays: number | null;
   minInboundShelfLifePct: number;
   minOutboundDays: number;

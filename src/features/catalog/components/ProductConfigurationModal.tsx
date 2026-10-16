@@ -40,6 +40,7 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
       reset({
         trackLot: product.trackLot ?? true,
         trackExpiry: product.trackExpiry ?? false,
+        manufactureRequired: product.manufactureRequired ?? false,
         shelfLifeDays: product.shelfLifeDays ?? null,
         minInboundShelfLifePct: Number(product.minInboundShelfLifePct ?? 50),
         minOutboundDays: product.minOutboundDays ?? 30,
@@ -79,6 +80,7 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
           error={errors.trackLot ? t('expiryRequiresLot') : undefined}
         />
         <Checkbox label={t('trackExpiry')} {...register('trackExpiry')} />
+        <Checkbox label={t('manufactureRequired')} {...register('manufactureRequired')} />
         <div className="grid gap-4 sm:grid-cols-2">
           {(
             [

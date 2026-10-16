@@ -52,6 +52,8 @@ const expected = {
   'catalog.products.view': O,
   'catalog.products.manage': O,
   'inventory.view': roles,
+  // GET /v1/inventory/stocks and /summary are tenant-only at the backend controller.
+  'inventory.stocks.view': ['SELLER_OWNER', 'SELLER_STAFF'],
   'inventory.expiry.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
   'inventory.notifications.manage': O,
   'inventory.positions.view': ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_MANAGER'],

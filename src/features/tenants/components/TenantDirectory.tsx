@@ -20,6 +20,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -292,30 +293,24 @@ export function TenantDirectory() {
 
   return (
     <div className="space-y-6">
-      {/* Header section with Clean SaaSable Pro typography */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="m-0 text-2xl font-normal leading-7 text-[var(--sc-text-primary)]">
-            {t('page_title')}
-          </h1>
-          <p className="mb-0 mt-1 text-xs leading-4 text-[var(--sc-text-tertiary)]">
-            {t('page_description')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {can('platform.tenants.manage') && (
-            <Button variant="outline" size="sm" onClick={handleExportCSV}>
-              <Download size={14} className="mr-1.5" />
-              {t('exportCsv')}
+      <PageHeader
+        title={t('page_title')}
+        description={t('page_description')}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {can('platform.tenants.manage') && (
+              <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                <Download size={14} className="mr-1.5" />
+                {t('exportCsv')}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
+              <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+              {t('refresh')}
             </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
-            <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
-            {t('refresh')}
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {error && (
         <Alert variant="error" title="Lỗi tải dữ liệu">

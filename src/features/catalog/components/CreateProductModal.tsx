@@ -77,52 +77,93 @@ export function CreateProductModal({ isOpen, onClose, onChanged }: Props) {
     }
   };
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('createTitle')} width="560px">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('createTitle')} width="760px">
       <form
-        className="space-y-4"
+        className="space-y-6"
         noValidate
         onSubmit={(event) => void handleSubmit(handleCreate)(event)}
       >
-        <Input
-          label={t('fieldSku')}
-          {...register('sku')}
-          error={errors.sku?.message ? validation(errors.sku.message) : undefined}
-        />
-        <Input
-          label={t('fieldBarcode')}
-          maxLength={128}
-          {...register('barcode')}
-          error={errors.barcode?.message ? validation(errors.barcode.message) : undefined}
-        />
-        <Input
-          label={t('fieldDeclaredCost')}
-          inputMode="numeric"
-          maxLength={20}
-          {...register('declaredCostVnd')}
-          error={
-            errors.declaredCostVnd?.message ? validation(errors.declaredCostVnd.message) : undefined
-          }
-        />
-        <Input
-          label={t('fieldName')}
-          {...register('name')}
-          error={errors.name?.message ? validation(errors.name.message) : undefined}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(['weightKg', 'lengthCm', 'widthCm', 'heightCm', 'declaredValue'] as const).map(
-            (field) => (
+        <section className="min-w-0 rounded-xl border border-[var(--sc-border-default)] p-4 sm:p-5">
+          <h4 className="mb-4 mt-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+            {t('identitySection')}
+          </h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label={t('fieldSku')}
+              required
+              maxLength={100}
+              {...register('sku')}
+              error={errors.sku?.message ? validation(errors.sku.message) : undefined}
+            />
+            <Input
+              label={t('fieldBarcode')}
+              maxLength={128}
+              {...register('barcode')}
+              error={errors.barcode?.message ? validation(errors.barcode.message) : undefined}
+            />
+            <div className="sm:col-span-2">
+              <Input
+                label={t('fieldName')}
+                required
+                maxLength={255}
+                {...register('name')}
+                error={errors.name?.message ? validation(errors.name.message) : undefined}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="min-w-0 rounded-xl border border-[var(--sc-border-default)] p-4 sm:p-5">
+          <h4 className="mb-4 mt-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+            {t('shippingSection')}
+          </h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(['weightKg', 'lengthCm', 'widthCm', 'heightCm'] as const).map((field) => (
               <Input
                 key={field}
                 label={t(`field${field[0].toUpperCase()}${field.slice(1)}`)}
                 type="number"
-                step={field === 'weightKg' ? '0.001' : field === 'declaredValue' ? '1' : '0.01'}
+                required
+                step={field === 'weightKg' ? '0.001' : '0.01'}
                 {...register(field, { valueAsNumber: true })}
                 error={errors[field]?.message ? validation(errors[field].message) : undefined}
               />
-            ),
-          )}
-        </div>
-        <div className="flex justify-end gap-3">
+            ))}
+          </div>
+        </section>
+
+        <section className="min-w-0 rounded-xl border border-[var(--sc-border-default)] p-4 sm:p-5">
+          <h4 className="mb-4 mt-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+            {t('valuationSection')}
+          </h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label={t('fieldDeclaredCost')}
+              inputMode="numeric"
+              maxLength={20}
+              {...register('declaredCostVnd')}
+              error={
+                errors.declaredCostVnd?.message
+                  ? validation(errors.declaredCostVnd.message)
+                  : undefined
+              }
+            />
+            <Input
+              label={t('fieldDeclaredValue')}
+              type="number"
+              inputMode="numeric"
+              step="1"
+              min={0}
+              required
+              {...register('declaredValue', { valueAsNumber: true })}
+              error={
+                errors.declaredValue?.message ? validation(errors.declaredValue.message) : undefined
+              }
+            />
+          </div>
+        </section>
+
+        <div className="flex justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             {t('discard')}
           </Button>

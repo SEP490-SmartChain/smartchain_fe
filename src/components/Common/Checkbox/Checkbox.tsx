@@ -42,6 +42,11 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
             )}
           >
             {label}
+            {props.required && (
+              <span aria-hidden="true" className="ml-1 text-[var(--sc-error)]">
+                *
+              </span>
+            )}
           </span>
         )}
       </label>

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 
 import { tenantManagementApi } from '../api/tenantManagementApi';
 
@@ -95,22 +96,16 @@ export function PlatformHealthView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="m-0 text-2xl font-normal leading-7 text-[var(--sc-text-primary)]">
-            {t('page_title')}
-          </h1>
-          <p className="mb-0 mt-1 text-xs leading-4 text-[var(--sc-text-tertiary)]">
-            {t('page_description')}
-          </p>
-        </div>
-
-        <Button variant="outline" size="sm" onClick={fetchHealth} isLoading={isLoading}>
-          <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
-          {t('refresh')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('page_title')}
+        description={t('page_description')}
+        actions={
+          <Button variant="outline" size="sm" onClick={fetchHealth} isLoading={isLoading}>
+            <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+            {t('refresh')}
+          </Button>
+        }
+      />
 
       {/* Hero Health Banner with ORCA tokens */}
       <Card className="p-6">

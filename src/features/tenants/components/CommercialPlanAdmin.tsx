@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { Select } from '@/components/Common/Select/Select';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -163,20 +164,20 @@ export function CommercialPlanAdmin() {
     'space-y-4 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5';
   return (
     <div className="space-y-5">
-      <div className="flex justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{t('title')}</h1>
-          <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={() => {
-            void reload(controller.current?.signal);
-          }}
-        >
-          {t('refresh')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => {
+              void reload(controller.current?.signal);
+            }}
+          >
+            {t('refresh')}
+          </Button>
+        }
+      />
       {error && <Alert variant="error">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
       <form onSubmit={savePlan} className={section}>

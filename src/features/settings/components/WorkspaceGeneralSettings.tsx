@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Building2, CheckCircle2, Copy, ImagePlus, Save, Trash2, Undo2 } from 'lucide-react';
+import { Building2, Camera, CheckCircle2, Copy, Save, Trash2, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Button, Input } from '@/components/Common';
-import { uploadApi } from '@/services/uploadApi';
+import { uploadApi, UploadStorageConnectionError } from '@/services/uploadApi';
 
 import { SettingsMatrixCard } from './SettingsMatrixCard';
 import { workspaceSettingsApi, type WorkspaceSettings } from '../api/workspaceSettingsApi';
@@ -136,8 +136,12 @@ export default function WorkspaceGeneralSettings() {
       setPreviewUrl(null);
       setImageError(false);
       toast.success(t('workspaceSaved'));
-    } catch {
-      toast.error(t('workspaceSaveFailed'));
+    } catch (error) {
+      toast.error(
+        error instanceof UploadStorageConnectionError
+          ? t('uploadStorageFailed')
+          : t('workspaceSaveFailed'),
+      );
     } finally {
       setSaving(false);
     }
@@ -172,25 +176,49 @@ export default function WorkspaceGeneralSettings() {
   return (
     <div className="space-y-7">
       <SettingsMatrixCard title={t('generalTitle')} description={t('generalDescription')}>
-        {/* Row 1: Logo Workspace */}
-        <div className="flex min-h-[146px] flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 sm:py-6">
-          <div className="flex items-center gap-5">
-            <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] shadow-[var(--sc-shadow-section)] transition-colors duration-150 sm:h-24 sm:w-24">
-              {displayedLogo && !imageError ? (
-                <img
-                  src={displayedLogo}
-                  alt={t('workspaceLogoAlt')}
-                  className="h-full w-full object-cover"
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
-                  <Building2 size={36} strokeWidth={1.75} />
-                </div>
+        {/* Seller logo and store name share one row so their relationship is clear. */}
+        <div className="grid gap-5 p-5 sm:px-7 sm:py-5 md:grid-cols-2 md:items-center">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="group relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
+              <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]">
+                {displayedLogo && !imageError ? (
+                  <img
+                    src={displayedLogo}
+                    alt={t('workspaceLogoAlt')}
+                    className="h-full w-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                    <Building2 size={24} strokeWidth={1.75} />
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-label={t('changeWorkspaceLogo')}
+                title={t('changeWorkspaceLogo')}
+                disabled={loading || saving}
+                onClick={() => fileInput.current?.click()}
+                className="absolute -bottom-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-primary)] text-white shadow-sm transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:h-7 sm:w-7"
+              >
+                <Camera size={13} aria-hidden="true" />
+              </button>
+              {(displayedLogo || logoKey) && (
+                <button
+                  type="button"
+                  aria-label={t('removeWorkspaceLogo')}
+                  title={t('removeWorkspaceLogo')}
+                  disabled={saving}
+                  onClick={removeLogo}
+                  className="absolute -right-1 -top-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-error)] text-white opacity-100 shadow-sm transition-opacity hover:bg-[var(--sc-error-dark)] group-focus-within:opacity-100 disabled:cursor-not-allowed sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                </button>
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1">
               <p className="m-0 text-sm font-semibold text-[var(--sc-text-primary)]">
                 {t('workspaceLogo')}
               </p>
@@ -207,53 +235,25 @@ export default function WorkspaceGeneralSettings() {
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 self-end sm:self-auto">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
+          <div className="min-w-0">
+            <Input
+              label={t('workspaceName')}
+              value={name}
+              minLength={3}
+              maxLength={150}
+              required
               disabled={loading || saving}
-              onClick={() => fileInput.current?.click()}
-            >
-              <ImagePlus size={15} />
-              {t('changeWorkspaceLogo')}
-            </Button>
-
-            {(displayedLogo || logoKey) && (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={saving}
-                onClick={removeLogo}
-                className="text-[var(--sc-error)] hover:bg-[var(--sc-error-bg)] hover:text-[var(--sc-error-dark)]"
-              >
-                <Trash2 size={15} />
-                {t('removeWorkspaceLogo')}
-              </Button>
-            )}
+              error={nameError}
+              helperText={t('workspaceNameHint')}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (nameError) setNameError('');
+              }}
+            />
           </div>
-        </div>
-
-        {/* Row 2: Tên Workspace */}
-        <div className="border-t border-[var(--sc-border-default)] p-5 sm:px-7 sm:py-6">
-          <Input
-            label={t('workspaceName')}
-            value={name}
-            minLength={3}
-            maxLength={150}
-            required
-            disabled={loading || saving}
-            error={nameError}
-            helperText={t('workspaceNameHint')}
-            onChange={(event) => {
-              setName(event.target.value);
-              if (nameError) setNameError('');
-            }}
-          />
 
           {saved?.tenantId && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs md:col-span-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-[var(--sc-text-secondary)]">
                   {t('workspaceId')}:

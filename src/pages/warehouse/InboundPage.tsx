@@ -1,5 +1,8 @@
-import { ReceivingWorkspace } from '@/features/inbound/components/ReceivingWorkspace';
+import { useOutletContext } from 'react-router-dom';
+
+import { ReceivingWorkspace, type InboundWarehouseScope } from '@/features/inbound';
 
 export default function InboundPage() {
-  return <ReceivingWorkspace initialStatus="SUBMITTED" />;
+  const scope = useOutletContext<InboundWarehouseScope>();
+  return <ReceivingWorkspace {...scope} initialStatus="SUBMITTED" />;
 }

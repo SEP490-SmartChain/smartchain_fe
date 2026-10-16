@@ -31,6 +31,42 @@ const resultBase = z
       .max(2),
   })
   .strict();
+const stockZoneSchema = z
+  .object({
+    id: z.string().uuid(),
+    code: z.string().min(1),
+    zoneType: z.enum(['RECEIVING', 'QUARANTINE']),
+  })
+  .strict();
+const physicalDecimal = z.string().regex(/^(0|[1-9]\d{0,19})(\.\d{1,6})?$/);
+const positivePhysicalDecimal = physicalDecimal.refine((value) => Number(value) > 0);
+const weightString = z.string().regex(/^(0|[1-9]\d{0,19})$/);
+const binBlockerSchema = z.enum(['WEIGHT', 'VOLUME', 'OWNER', 'ZONE']).nullable();
+const stockLoadSchema = z
+  .object({
+    unitWeightG: z.number().int().positive().max(2147483647),
+    lengthCm: positivePhysicalDecimal,
+    widthCm: positivePhysicalDecimal,
+    heightCm: positivePhysicalDecimal,
+    unitVolumeM3: positivePhysicalDecimal,
+    primaryQty: z.number().int().nonnegative().max(1000000),
+    quarantineQty: z.number().int().nonnegative().max(1000000),
+    primaryRequiresQuarantine: z.boolean(),
+  })
+  .strict();
+function capacityWithinLimit(available: string, maximum: string): boolean {
+  if (
+    !physicalDecimal.safeParse(available).success ||
+    !physicalDecimal.safeParse(maximum).success
+  ) {
+    return false;
+  }
+  const scaled = (value: string) => {
+    const [whole, fraction = ''] = value.split('.');
+    return BigInt(whole) * BigInt(1000000) + BigInt(fraction.padEnd(6, '0'));
+  };
+  return scaled(available) <= scaled(maximum);
+}
 export const receiptStockResultSchema = resultBase.superRefine((v, c) => {
   if (
     v.items.reduce((sum, i) => sum + i.quantity, 0) !== v.recognizedQty ||
@@ -61,6 +97,7 @@ export const receiptStockStateSchema = resultBase
     quarantinedQty: z.number().int().nonnegative(),
     rejectedQty: z.number().int().nonnegative(),
     canPost: z.boolean(),
+    load: stockLoadSchema,
     moreBins: z.boolean(),
     bins: z
       .array(
@@ -68,11 +105,19 @@ export const receiptStockStateSchema = resultBase
           .object({
             id: z.string().uuid(),
             code: z.string().min(1),
+            zoneId: z.string().uuid(),
             zoneType: z.enum(['RECEIVING', 'QUARANTINE']),
+            maxWeightG: weightString.refine((value) => Number(value) > 0),
+            maxVolumeM3: positivePhysicalDecimal,
+            availableWeightG: weightString,
+            availableVolumeM3: physicalDecimal,
+            primaryBlocker: binBlockerSchema,
+            quarantineBlocker: binBlockerSchema,
           })
           .strict(),
       )
       .max(500),
+    zones: z.array(stockZoneSchema),
   })
   .strict()
   .superRefine((v, c) => {
@@ -85,6 +130,16 @@ export const receiptStockStateSchema = resultBase
         v.acceptedQty + v.quarantinedQty + v.rejectedQty !== v.receivedQty) ||
       v.recognizedQty > v.receivedQty - v.rejectedQty ||
       new Set(v.bins.map((b) => b.id)).size !== v.bins.length ||
+      new Set(v.zones.map((zone) => zone.id)).size !== v.zones.length ||
+      v.bins.some(
+        (bin) =>
+          !v.zones.some((zone) => zone.id === bin.zoneId && zone.zoneType === bin.zoneType) ||
+          !capacityWithinLimit(bin.availableWeightG, bin.maxWeightG) ||
+          !capacityWithinLimit(bin.availableVolumeM3, bin.maxVolumeM3),
+      ) ||
+      v.load.primaryQty + v.load.quarantineQty !== v.acceptedQty + v.quarantinedQty ||
+      (v.load.primaryRequiresQuarantine && v.load.quarantineQty !== 0) ||
+      (!v.load.primaryRequiresQuarantine && v.load.primaryQty !== v.acceptedQty) ||
       (v.canPost &&
         (v.qcState !== 'APPROVED' ||
           v.recognizedQty !== 0 ||

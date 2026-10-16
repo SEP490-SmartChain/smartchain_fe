@@ -32,11 +32,11 @@ ORCA_ADMIN và ORCA_ACCOUNTANT có all-warehouse scope theo policy hiện có; a
 
 ## 3. Ba portal và định hướng route
 
-| Portal     | Role                                       | Screen groups                                                                                                             | Giới hạn                                                                                                                 |
-| ---------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Seller     | Owner, Staff                               | Order/stock dashboard, SKU theo Owner, ASN, invoices/payment/statement theo Owner, channel keys/staff theo Owner          | Staff không nhận financial payload. Seller không có routing/carrier admin/warehouse execution.                           |
-| Warehouse  | Manager, Staff                             | Assigned warehouse tasks, receiving/QC/putaway, pick/pack/label/handover, return inspection, count                        | Approval actions của Manager tách Staff; blind count không tải expected qty. Recipient dữ liệu chỉ task/label cần thiết. |
-| Operations | Admin, Ops, Manager, Accountant theo quyền | Seller contracts, warehouse master, rule/exception, carrier configuration, reconciliation, finance, scoped analytics/logs | Một shell không có nghĩa mọi role thấy mọi module; manager/ops theo assignment.                                          |
+| Portal     | Role                                       | Screen groups                                                                                                             | Giới hạn                                                                                                                                                          |
+| ---------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Seller     | Owner, Staff                               | Order/stock dashboard, SKU theo Owner, ASN, invoices/payment/statement theo Owner, channel keys/staff theo Owner          | Staff không nhận financial payload. Seller không có routing/carrier admin/warehouse execution.                                                                    |
+| Warehouse  | Manager, Staff                             | Assigned warehouse tasks, receiving/QC/putaway, pick/pack/label/handover, return inspection, count                        | Approval actions của Manager tách Staff; receiving cho đối chiếu khai gửi; kiểm kê tồn kho mù không tải expected qty. Recipient dữ liệu chỉ task/label cần thiết. |
+| Operations | Admin, Ops, Manager, Accountant theo quyền | Seller contracts, warehouse master, rule/exception, carrier configuration, reconciliation, finance, scoped analytics/logs | Một shell không có nghĩa mọi role thấy mọi module; manager/ops theo assignment.                                                                                   |
 
 Các prefix `/seller/*`, `/warehouse/*`, `/ops/*` chỉ là đề xuất tổ chức route nếu nhóm muốn chuyển URL; không phải contract đã tạo. Existing `/orders`, `/inventory`, `/admin/*`, `/settings/*` có thể map portal-compatible khi review từng route. Tránh bật một route rộng rồi chỉ ẩn menu. Post-login destination dựa scope + granted capabilities; multi-role cùng scope chọn default hợp lệ qua function thuần, không chỉ `roles[0]`.
 
@@ -100,7 +100,7 @@ Log group phải tách tiếp: UC-152 audit = Admin only; UC-153 API/scan = Admi
 
 - API projections loại field không được phép; frontend không cache payload thừa rồi chỉ hide cột. Search/export/print/file download và AI sources dùng cùng scope/field privacy.
 - Warehouse Staff không order money/COD/invoice/API key. Seller Staff không bất kỳ financial metrics/exports, API keys, staff config hoặc contract detail.
-- Draft ASN, receiving actual, quarantine và sellable hiển thị riêng; unavailable stock không ngầm treat as allocatable. Blind count expected qty không được tải xuống browser của counter.
+- Draft ASN, receiving actual, quarantine và sellable hiển thị riêng; unavailable stock không ngầm treat as allocatable. Receipt receiving trả `declaredQty` và `cartonCount` cho Staff/Manager trong kho được phân công để đối chiếu. Kiểm kê tồn kho mù không tải expected qty xuống browser.
 - Async state `202`, BACKORDER, ON_HOLD, LABEL_VERIFYING, CANCEL_UNKNOWN, return awaiting QC và payout APPROVED có explanation/next allowed action. Không hiển thị unknown là success.
 - 401 refresh/session lifecycle; 403 giữ session và show denied; 409 stale version giữ draft và reload. Debt/payment-required không xử lý như logout.
 - User/role/warehouse switch invalidates cached queries và pending responses để tránh data scope cũ xuất hiện. Refresh grants không tự widen authority.
@@ -114,7 +114,7 @@ Log group phải tách tiếp: UC-152 audit = Admin only; UC-153 API/scan = Admi
 - Route/sidebar/global search/action visibility cùng policy; URL trực tiếp denied vẫn 403.
 - Seller foreign ID; platform warehouse ngoài assignment; assignment revoke có hiệu lực request sau.
 - Manager approval và Staff operation tách; own profile không staff administration; Seller Staff ASN write vẫn không SKU/order/finance write.
-- DTO/export/label/cache/AI privacy; count expected quantity không ở response; recipient chỉ permitted task.
+- DTO/export/label/cache/AI privacy; receipt receiving chỉ thêm `declaredQty`/`cartonCount`, kiểm kê tồn kho mù không trả expected qty; recipient chỉ permitted task.
 - Async 202/unknown booking/cancel/QC/payment/payout display; replay và stale form không auto grant/complete.
 - 403 không logout, 401 refresh unavailable mới login; no role fallback/permission union.
 - Chạy quality gate theo AGENTS khi sửa code. Đợt Markdown này chỉ format/diff/link/source verification.
@@ -156,7 +156,7 @@ references never authorize another tenant. Rules screen access is insufficient
 for Admin-only allocation simulation. Preview does not publish or perform stock,
 order, billing or booking effects; planning and price projections remain pending.
 
-Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Blind receiving dùng DTO kho riêng, không tải declaration/expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
+Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Directory ASN dùng DTO kho riêng. Từ 16/10/2026, receipt receiving trả `declaredQty`/`cartonCount` cho Staff/Manager để đối chiếu; kiểm kê tồn kho mù giữ giới hạn expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
 
 Việc sửa tài liệu không đổi effective grants. Không tự bật permission mới chỉ vì matrix này có chữ R/W/A. Khi implementation, lập exact action matrix với source, diff consumer/API/DTO, migrate role/reference dữ liệu rồi chạy tests; legacy cutoff có contract version. Shared warehouse/RLS migration chưa hoàn tất thì không tuyên bố ORCA auth end-to-end đã xong.
 

@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useRef, useState, Fragment, type ReactNode } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
 import {
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
   Filter,
   LoaderCircle,
   MapPin,
@@ -18,6 +26,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
@@ -25,9 +34,7 @@ import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { AddWarehouseModal } from './AddWarehouseModal';
-import { WarehouseCalendarPanel } from './WarehouseCalendarPanel';
-import { WarehouseDowntimePanel } from './WarehouseDowntimePanel';
-import { WarehouseLayoutPanel } from './WarehouseLayoutPanel';
+import { WarehouseDetails } from './WarehouseDetails';
 import { WarehouseStatusModal } from './WarehouseStatusModal';
 import { warehouseApi } from '../api/warehouseApi';
 
@@ -42,6 +49,19 @@ interface WarehouseDirectoryProps {
   headerAction?: ReactNode;
 }
 
+function subscribeToViewport(onChange: () => void) {
+  window.addEventListener('resize', onChange);
+  return () => window.removeEventListener('resize', onChange);
+}
+
+function getVisibleColumnCount() {
+  return 2 + [640, 768, 1024, 1280].filter((width) => window.innerWidth >= width).length;
+}
+
+function getServerColumnCount() {
+  return 6;
+}
+
 export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {}) {
   const t = useTranslations('Warehouses');
   const locale = useLocale();
@@ -49,23 +69,30 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
   const canManage = can('warehouses.manage');
   const canUpdate = can('warehouses.update');
   const principal = useAuthStore((state) => state.user);
+  const visibleColumnCount = useSyncExternalStore(
+    subscribeToViewport,
+    getVisibleColumnCount,
+    getServerColumnCount,
+  );
   const [filters, setFilters] = useState<WarehouseFilters>({ search: '', status: '' });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestRevision = useRef(0);
+  const detailTrigger = useRef<HTMLButtonElement | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
   const cache = useRef<Record<number, WarehousePage>>({});
+  const pageCursors = useRef<Record<number, string | undefined>>({});
 
   const invalidateRequests = useCallback(() => {
     requestRevision.current++;
@@ -79,10 +106,10 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
   }, [filters.search]);
 
   const fetchWarehouses = useCallback(
-    async (cursor?: string, page = 1) => {
+    async (cursor?: string, page = 1, background = false) => {
       const revision = ++requestRevision.current;
       try {
-        setIsLoading(true);
+        if (!background) setIsLoading(true);
         setError(null);
         const activeFilters = {
           search: debouncedSearch,
@@ -96,6 +123,7 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
         setHasNextPage(result.pagination.hasNext);
         setNextCursor(result.pagination.nextCursor);
         cache.current[page] = result;
+        pageCursors.current[page] = cursor;
       } catch (failure) {
         if (revision === requestRevision.current) {
           setWarehouses([]);
@@ -112,9 +140,10 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
 
   useEffect(() => {
     cache.current = {};
+    pageCursors.current = {};
     setCurrentPage(1);
     setWarehouses([]);
-    setExpandedId(null);
+    setDetailId(null);
     setAddModalOpen(false);
     setEditingWarehouse(null);
     setSelectedWarehouse(null);
@@ -124,6 +153,7 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
 
   const handlePageChange = (page: number) => {
     if (page === currentPage) return;
+    setDetailId(null);
     if (cache.current[page]) {
       invalidateRequests();
       setWarehouses(cache.current[page].items);
@@ -134,30 +164,48 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
       setCurrentPage(page);
     } else if (page > currentPage && nextCursor) {
       void fetchWarehouses(nextCursor, page);
+    } else if (page in pageCursors.current) {
+      void fetchWarehouses(pageCursors.current[page], page);
     }
+  };
+
+  const closeDetails = () => {
+    setDetailId(null);
+    detailTrigger.current?.focus();
+  };
+
+  const toggleDetails = (id: string, trigger: HTMLButtonElement) => {
+    if (detailId === id) {
+      closeDetails();
+      return;
+    }
+    detailTrigger.current = trigger;
+    setDetailId(id);
+  };
+
+  const refreshWarehouses = () => {
+    cache.current = {};
+    void fetchWarehouses(pageCursors.current[currentPage], currentPage, true);
   };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[var(--sc-bg-primary)]">
-      <header className="flex flex-col gap-5 border-b border-[var(--sc-border-default)] px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-[var(--sc-text-primary)]">
-            {t('title')}
-          </h1>
-          <p className="mt-1.5 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          {canManage &&
-            (headerAction ?? (
-              <Button variant="primary" onClick={() => setAddModalOpen(true)}>
-                <Plus size={16} />
-                {t('addWarehouse')}
-              </Button>
-            ))}
-        </div>
-      </header>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actionsClassName="shrink-0"
+        actions={
+          canManage &&
+          (headerAction ?? (
+            <Button variant="primary" onClick={() => setAddModalOpen(true)}>
+              <Plus size={16} />
+              {t('addWarehouse')}
+            </Button>
+          ))
+        }
+      />
 
-      <div className="flex flex-col gap-4 p-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full sm:max-w-md">
             <Input
@@ -218,62 +266,68 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
           </p>
         </div>
       ) : (
-        <section className="flex min-h-0 flex-1 flex-col justify-between overflow-hidden sm:px-6 lg:px-8">
+        <section className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 overflow-auto rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-sm">
-            <table aria-label={t('tableLabel')} className="w-full min-w-[800px] text-left text-sm">
+            <table aria-label={t('tableLabel')} className="w-full table-fixed text-left text-sm">
               <thead className="sticky top-0 z-10 bg-[var(--sc-bg-elevated)] text-[13px] font-medium text-[var(--sc-text-secondary)] shadow-[0_1px_0_var(--sc-border-default)]">
                 <tr>
-                  <th className="w-12 px-2 py-3.5 pl-4 sm:pl-5" />
-                  <th className="px-4 py-3.5">{t('columnCode')}</th>
+                  <th className="hidden w-36 px-4 py-3.5 sm:table-cell">{t('columnCode')}</th>
                   <th className="px-4 py-3.5">{t('columnName')}</th>
-                  <th className="px-4 py-3.5">{t('columnAddress')}</th>
-                  <th className="px-4 py-3.5">{t('columnCapacity')}</th>
-                  <th className="px-4 py-3.5">{t('columnStatus')}</th>
-                  <th className="w-16 px-4 py-3.5 text-right" />
+                  <th className="hidden px-4 py-3.5 lg:table-cell">{t('columnAddress')}</th>
+                  <th className="hidden w-40 px-4 py-3.5 xl:table-cell">{t('columnCapacity')}</th>
+                  <th className="hidden w-36 px-4 py-3.5 md:table-cell">{t('columnStatus')}</th>
+                  <th className="w-36 px-4 py-3.5 text-right sm:w-48">{t('columnActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--sc-border-default)]">
                 {warehouses.map((warehouse) => {
-                  const isExpanded = expandedId === warehouse.id;
+                  const isExpanded = detailId === warehouse.id;
+                  const detailsId = `warehouse-details-${warehouse.id}`;
                   return (
                     <Fragment key={warehouse.id}>
                       <tr
-                        className={`group transition-colors hover:bg-[var(--sc-bg-secondary)] ${
-                          isExpanded ? 'bg-[var(--sc-bg-secondary)]' : ''
-                        }`}
+                        className={
+                          isExpanded
+                            ? 'bg-[var(--sc-primary-alpha-08)]'
+                            : 'transition-colors hover:bg-[var(--sc-bg-secondary)]'
+                        }
                       >
-                        <td className="px-2 py-3.5 pl-4 sm:pl-5">
-                          <Button
-                            variant="ghost"
-                            type="button"
-                            aria-label={t('toggleDetails', { code: warehouse.code })}
-                            aria-expanded={isExpanded}
-                            onClick={() => setExpandedId(isExpanded ? null : warehouse.id)}
-                            className="h-8 w-8 shrink-0 rounded-md p-0 text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
-                          >
-                            {isExpanded ? (
-                              <ChevronDown size={16} aria-hidden="true" className="shrink-0" />
-                            ) : (
-                              <ChevronRight size={16} aria-hidden="true" className="shrink-0" />
-                            )}
-                          </Button>
-                        </td>
-                        <td className="px-4 py-3.5 font-medium text-[var(--sc-text-primary)]">
+                        <td className="hidden px-4 py-3.5 font-medium text-[var(--sc-text-primary)] sm:table-cell">
                           {warehouse.code}
                         </td>
                         <td className="px-4 py-3.5 text-[var(--sc-text-primary)]">
-                          {warehouse.name}
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            aria-expanded={isExpanded}
+                            aria-controls={detailsId}
+                            onClick={(event) => toggleDetails(warehouse.id, event.currentTarget)}
+                            className="h-auto justify-start whitespace-normal p-0 text-left text-[var(--sc-primary-dark)] hover:translate-y-0 hover:bg-transparent hover:underline"
+                          >
+                            {warehouse.name}
+                          </Button>
+                          <p className="mt-1 text-xs text-[var(--sc-text-secondary)] sm:hidden">
+                            {warehouse.code}
+                          </p>
+                          <span className="mt-2 inline-block md:hidden">
+                            <Badge
+                              status={warehouse.status === 'ACTIVE' ? 'success' : 'neutral'}
+                              label={t(warehouse.status === 'ACTIVE' ? 'active' : 'inactive')}
+                            />
+                          </span>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="hidden px-4 py-3.5 lg:table-cell">
                           <div className="flex items-center gap-1.5 text-[var(--sc-text-secondary)]">
                             <MapPin size={14} className="shrink-0" />
-                            <span className="truncate max-w-[200px]">{warehouse.address}</span>
+                            <span className="truncate" title={warehouse.address}>
+                              {warehouse.address}
+                            </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-[var(--sc-text-primary)]">
+                        <td className="hidden px-4 py-3.5 text-[var(--sc-text-primary)] xl:table-cell">
                           {warehouse.dailyCapacity.toLocaleString(locale)}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="hidden px-4 py-3.5 md:table-cell">
                           <Badge
                             status={warehouse.status === 'ACTIVE' ? 'success' : 'neutral'}
                             label={t(warehouse.status === 'ACTIVE' ? 'active' : 'inactive')}
@@ -281,83 +335,54 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
                           />
                         </td>
                         <td className="px-3 py-3.5 text-right">
-                          {canManage && (
+                          <div className="flex items-center justify-end gap-2">
                             <Button
-                              variant="ghost"
+                              variant="outline"
+                              size="sm"
                               type="button"
-                              aria-label={t('changeStatus', { code: warehouse.code })}
-                              onClick={() => setSelectedWarehouse(warehouse)}
-                              className="h-8 w-8 shrink-0 p-0 text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
+                              aria-label={t(isExpanded ? 'collapseWarehouse' : 'viewDetails', {
+                                code: warehouse.code,
+                              })}
+                              aria-expanded={isExpanded}
+                              aria-controls={detailsId}
+                              onClick={(event) => toggleDetails(warehouse.id, event.currentTarget)}
                             >
-                              {warehouse.status === 'ACTIVE' ? (
-                                <ToggleRight size={17} aria-hidden="true" className="shrink-0" />
+                              {t(isExpanded ? 'collapseDetails' : 'viewDetailsAction')}
+                              {isExpanded ? (
+                                <ChevronUp size={14} aria-hidden="true" />
                               ) : (
-                                <ToggleLeft size={17} aria-hidden="true" className="shrink-0" />
+                                <ChevronDown size={14} aria-hidden="true" />
                               )}
                             </Button>
-                          )}
+                            {canManage && (
+                              <Button
+                                variant="ghost"
+                                type="button"
+                                aria-label={t('changeStatus', { code: warehouse.code })}
+                                onClick={() => setSelectedWarehouse(warehouse)}
+                                className="h-8 w-8 shrink-0 p-0 text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
+                              >
+                                {warehouse.status === 'ACTIVE' ? (
+                                  <ToggleRight size={17} aria-hidden="true" className="shrink-0" />
+                                ) : (
+                                  <ToggleLeft size={17} aria-hidden="true" className="shrink-0" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr className="bg-[var(--sc-bg-secondary)]/50">
-                          <td colSpan={7} className="px-6 py-4">
-                            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                              <div>
-                                <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  {t('gps')}
-                                </span>
-                                <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
-                                  {warehouse.latitude}, {warehouse.longitude}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  {t('contactName')}
-                                </span>
-                                <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
-                                  {warehouse.contactName || '—'}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  {t('contactPhone')}
-                                </span>
-                                <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
-                                  {warehouse.contactPhone || '—'}
-                                </span>
-                              </div>
-                            </div>
-                            {canUpdate && (
-                              <Button
-                                className="mt-4"
-                                variant="outline"
-                                onClick={() => setEditingWarehouse(warehouse)}
-                              >
-                                {t('editWarehouse')}
-                              </Button>
-                            )}
-                            {can('warehouses.layout.view') && (
-                              <WarehouseLayoutPanel key={warehouse.id} warehouse={warehouse} />
-                            )}
-                            {can('warehouses.downtime.view') && (
-                              <WarehouseCalendarPanel
-                                key={`${warehouse.id}-${principal?.userId}-${principal?.actorScope}-${principal?.tenantId}-${principal?.roles.join(',')}`}
-                                warehouse={warehouse}
-                                onSaved={() => {
-                                  cache.current = {};
-                                  void fetchWarehouses();
-                                }}
-                              />
-                            )}
-                            {can('warehouses.downtime.view') && (
-                              <WarehouseDowntimePanel
-                                warehouse={warehouse}
-                                onSaved={() => {
-                                  cache.current = {};
-                                  void fetchWarehouses();
-                                }}
-                              />
-                            )}
+                        <tr>
+                          <td colSpan={visibleColumnCount} className="p-0">
+                            <WarehouseDetails
+                              key={`${warehouse.id}-${principal?.userId}-${principal?.actorScope}-${principal?.tenantId}-${principal?.roles.join(',')}`}
+                              id={detailsId}
+                              warehouse={warehouse}
+                              onClose={closeDetails}
+                              onEdit={() => setEditingWarehouse(warehouse)}
+                              onSaved={refreshWarehouses}
+                            />
                           </td>
                         </tr>
                       )}
@@ -390,8 +415,7 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
             onSuccess={() => {
               setAddModalOpen(false);
               setEditingWarehouse(null);
-              cache.current = {};
-              void fetchWarehouses();
+              refreshWarehouses();
             }}
           />
 
@@ -401,8 +425,7 @@ export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {
               onClose={() => setSelectedWarehouse(null)}
               onSaved={() => {
                 setSelectedWarehouse(null);
-                cache.current = {};
-                void fetchWarehouses();
+                refreshWarehouses();
               }}
             />
           )}

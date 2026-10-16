@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
 import { commercialApi } from '../api/commercialApi';
@@ -24,7 +25,7 @@ export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: 
     resolver: zodResolver(schema),
     defaultValues: { message: '' },
   });
-  const operation = useRef(crypto.randomUUID());
+  const operation = useRef(createUuid());
   const running = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);

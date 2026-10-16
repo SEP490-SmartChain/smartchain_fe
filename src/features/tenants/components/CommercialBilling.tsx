@@ -11,6 +11,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -49,7 +50,7 @@ function BankReceiptForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const operation = useRef(crypto.randomUUID());
+  const operation = useRef(createUuid());
   const evidence = useRef<{ file: File; key: string } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const revision = useAuthStore((state) => state.revision);
@@ -107,7 +108,7 @@ function BankReceiptForm({
       if (!current()) return;
       setNotice(`${t('receiptSaved')} ${t('unallocated', { amount: posted.unallocatedVnd })}`);
       form.reset();
-      operation.current = crypto.randomUUID();
+      operation.current = createUuid();
       evidence.current = null;
       await onPosted();
     } catch (failure) {

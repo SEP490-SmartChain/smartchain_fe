@@ -6,15 +6,11 @@ import { ChevronDown, CircleCheck, PanelLeftClose, Settings, Sparkles } from 'lu
 import { useTranslations } from 'next-intl';
 
 import { useAccess } from '@/hooks/useAccess';
-import { getVisibleNavGroups, type NavLink } from '@/lib/accessPolicy';
+import { getVisibleNavGroups, isNavItemActive, type NavLink } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/stores';
 
 import { NAV_ICONS } from './navIcons';
-
-function isMenuPathActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 export default function Sidebar() {
   const { pathname } = useLocation();
@@ -42,7 +38,7 @@ export default function Sidebar() {
 
   const renderChild = (child: NavLink) => {
     const ChildIcon = NAV_ICONS[child.key] ?? Settings;
-    const childActive = isMenuPathActive(pathname, child.href);
+    const childActive = isNavItemActive(child, pathname);
     return (
       <li key={child.href}>
         <Link
@@ -152,10 +148,9 @@ export default function Sidebar() {
                   {group.items.map((item) => {
                     const Icon = NAV_ICONS[item.key] ?? Settings;
                     const hasActiveChild = item.children?.some((child) =>
-                      isMenuPathActive(pathname, child.href),
+                      isNavItemActive(child, pathname),
                     );
-                    const isActive =
-                      hasActiveChild || (item.href && isMenuPathActive(pathname, item.href));
+                    const isActive = hasActiveChild || isNavItemActive(item, pathname);
                     const isExpanded = Boolean(expandedMenus[item.key]) || Boolean(hasActiveChild);
 
                     if (item.children) {

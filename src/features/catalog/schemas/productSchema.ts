@@ -75,12 +75,13 @@ export const productConfigurationSchema = z
   .object({
     trackLot: z.boolean(),
     trackExpiry: z.boolean(),
+    manufactureRequired: z.boolean(),
     shelfLifeDays: z.number().int().positive().max(36500).nullable(),
     minInboundShelfLifePct: z.number().min(0).max(100).multipleOf(0.01),
     minOutboundDays: z.number().int().min(0).max(36500),
     nearExpiryDays: z.number().int().min(0).max(36500),
   })
-  .refine((value) => !value.trackExpiry || value.trackLot, {
+  .refine((value) => !(value.trackExpiry || value.manufactureRequired) || value.trackLot, {
     path: ['trackLot'],
     message: 'expiryRequiresLot',
   });

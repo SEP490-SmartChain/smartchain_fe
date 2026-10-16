@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowLeftRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert, Button, Card, CardContent, Input, Select } from '@/components/Common';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -74,8 +76,8 @@ export function RelocationWorkspace({ warehouse, disabled, onLock }: Props) {
     <section className="space-y-4 border-t border-[var(--sc-border-default)] pt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">{t('title')}</h2>
-          <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
+          <h2 className="m-0 text-xl font-semibold">{t('title')}</h2>
+          <p className="mb-0 mt-2 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
         </div>
         <Button
           variant="outline"
@@ -113,25 +115,53 @@ export function RelocationWorkspace({ warehouse, disabled, onLock }: Props) {
                 </Card>
               ))}
             </div>
-            {visible.items.length === 0 && <p>{t('empty')}</p>}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                disabled={!cursor || disabled || locked}
-                onClick={() => setCursor(null)}
-              >
-                {t('firstPage')}
-              </Button>
-              {visible.nextCursor && (
-                <Button
-                  variant="outline"
-                  disabled={disabled || locked}
-                  onClick={() => setCursor(visible.nextCursor)}
-                >
-                  {t('nextPage')}
-                </Button>
-              )}
-            </div>
+            {visible.items.length === 0 && (
+              <Card variant="bordered" className="flex items-center gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                  <ArrowLeftRight size={18} aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="m-0 text-sm font-semibold">{t('empty')}</h3>
+                  <p className="mb-0 mt-1 text-sm leading-5 text-[var(--sc-text-secondary)]">
+                    {t('emptyHint')}
+                  </p>
+                </div>
+                {cursor && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={disabled || locked}
+                    onClick={() => setCursor(null)}
+                  >
+                    {t('firstPage')}
+                  </Button>
+                )}
+              </Card>
+            )}
+            {visible.items.length > 0 && (cursor || visible.nextCursor) && (
+              <div className="flex justify-end gap-2 border-t border-[var(--sc-border-default)] pt-4">
+                {cursor && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={disabled || locked}
+                    onClick={() => setCursor(null)}
+                  >
+                    {t('firstPage')}
+                  </Button>
+                )}
+                {visible.nextCursor && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={disabled || locked}
+                    onClick={() => setCursor(visible.nextCursor)}
+                  >
+                    {t('nextPage')}
+                  </Button>
+                )}
+              </div>
+            )}
             {selected && visible.items.some((i) => i.id === selected.id) && (
               <RelocationForm
                 key={`${warehouse}:${selected.id}:${user?.userId}`}
@@ -181,7 +211,7 @@ function RelocationForm({
         .refine((v) => v.toBinId !== source.fromBinId, { path: ['toBinId'] }),
     ),
     defaultValues: {
-      operationKey: crypto.randomUUID(),
+      operationKey: createUuid(),
       expectedVersion: source.version,
       toBinId: '',
       fromBinScan: '',

@@ -9,8 +9,10 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
 import {
@@ -83,7 +85,7 @@ export function CommercialQuotaPanel({ tenantId }: { tenantId?: string }) {
     setError(null);
     setNotice(null);
     if (operation.current?.planVersionId !== input.planVersionId) {
-      operation.current = { planVersionId: input.planVersionId, key: crypto.randomUUID() };
+      operation.current = { planVersionId: input.planVersionId, key: createUuid() };
     }
     try {
       await commercialApi.requestPlanChange(
@@ -276,7 +278,7 @@ export function CommercialQuotaAdmin() {
   }, [t]);
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{t('quotaTitle')}</h1>
+      <PageHeader title={t('quotaTitle')} />
       {error && <Alert variant="error">{error}</Alert>}
       <Select
         label={t('selectSeller')}

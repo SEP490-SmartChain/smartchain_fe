@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -55,28 +56,28 @@ function ScopedRules() {
   };
   return (
     <div className="space-y-5 sc-page-enter">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--sc-text-primary)]">{t('title')}</h1>
-          <p className="mt-2 max-w-3xl text-sm text-[var(--sc-text-secondary)]">{t('subtitle')}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            disabled={isLoading || modalOpen}
-            onClick={reload}
-            aria-label={t('refresh')}
-          >
-            <RefreshCw size={17} />
-          </Button>
-          {canOperate && (
-            <Button disabled={modalOpen || isLoading} onClick={() => setEditor({ rule: null })}>
-              <Plus size={17} />
-              {t('createRule')}
+      <PageHeader
+        title={t('title')}
+        description={t('subtitle')}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={isLoading || modalOpen}
+              onClick={reload}
+              aria-label={t('refresh')}
+            >
+              <RefreshCw size={17} />
             </Button>
-          )}
-        </div>
-      </header>
+            {canOperate && (
+              <Button disabled={modalOpen || isLoading} onClick={() => setEditor({ rule: null })}>
+                <Plus size={17} />
+                {t('createRule')}
+              </Button>
+            )}
+          </div>
+        }
+      />
       <div className="max-w-sm">
         <Select
           label={t('type')}

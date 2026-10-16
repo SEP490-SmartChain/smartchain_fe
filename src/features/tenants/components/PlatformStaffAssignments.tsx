@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
 import { useForm, useController } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
-import { Alert, Button, Card, CardContent, Checkbox } from '@/components/Common';
+import { Alert, Badge, Button, Card, CardHeader, Checkbox, PageHeader } from '@/components/Common';
+import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,8 +28,10 @@ interface AssignmentEditorProps {
 
 function AssignmentEditor({ staff, onClose, onSaved }: AssignmentEditorProps) {
   const t = useTranslations('PlatformStaff');
+  const unavailableDescriptionId = useId();
   const [options, setOptions] = useState<StaffWarehouseOption[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
+  const [hasLoadedOptions, setHasLoadedOptions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const controller = useRef<AbortController | null>(null);
@@ -54,6 +57,7 @@ function AssignmentEditor({ staff, onClose, onSaved }: AssignmentEditorProps) {
         if (signal?.aborted) return;
         setOptions((current) => (next ? [...current, ...page.items] : page.items));
         setCursor(page.pagination.nextCursor);
+        setHasLoadedOptions(true);
       } catch (failure) {
         if (!signal?.aborted) setError(failure instanceof Error ? failure.message : t('loadError'));
       } finally {
@@ -89,35 +93,73 @@ function AssignmentEditor({ staff, onClose, onSaved }: AssignmentEditorProps) {
       title={t('editTitle', { name: staff.fullName })}
       width="600px"
     >
-      <form onSubmit={save} className="space-y-4 p-5">
-        <p className="text-sm text-[var(--sc-text-secondary)]">{t('hint')}</p>
+      <form onSubmit={save} className="space-y-4">
+        <p className="m-0 text-sm leading-5 text-[var(--sc-text-secondary)]">{t('hint')}</p>
         {error && <Alert variant="error">{error}</Alert>}
         <fieldset
           disabled={isSubmitting || loading}
-          className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-[var(--sc-border-default)] p-4"
+          className="rounded-xl border border-[var(--sc-border-default)] px-3 pb-3 pt-1"
         >
           <legend className="px-1 text-sm font-medium">{t('warehouses')}</legend>
-          {options.map((option) => (
-            <Checkbox
-              key={option.id}
-              value={option.id}
-              label={`${option.code} — ${option.name}`}
-              checked={field.value.includes(option.id)}
-              onChange={(event) => toggle(option.id, event.target.checked)}
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1 pt-1">
+            <Badge
+              status={field.value.length ? 'success' : 'warning'}
+              label={t('selectedCount', { count: field.value.length })}
             />
-          ))}
-          {missingIds.map((id) => (
-            <Checkbox
-              key={id}
-              value={id}
-              label={t('unlisted', { id })}
-              checked={field.value.includes(id)}
-              onChange={(event) => toggle(id, event.target.checked)}
-            />
-          ))}
-          {!loading && options.length === 0 && missingIds.length === 0 && (
-            <p className="text-sm">{t('noWarehouses')}</p>
-          )}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={!field.value.length || isSubmitting}
+              onClick={() => field.onChange([])}
+            >
+              {t('clearAll')}
+            </Button>
+          </div>
+          <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
+            {options.map((option) => (
+              <div
+                key={option.id}
+                className="rounded-lg px-2 py-2 transition-colors hover:bg-[var(--sc-bg-secondary)]"
+              >
+                <Checkbox
+                  value={option.id}
+                  label={`${option.code} — ${option.name}`}
+                  checked={field.value.includes(option.id)}
+                  onChange={(event) => toggle(option.id, event.target.checked)}
+                />
+              </div>
+            ))}
+            {hasLoadedOptions && missingIds.length > 0 && (
+              <div className="rounded-lg border border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)] px-2 py-2">
+                <Checkbox
+                  value="unlisted-assignments"
+                  label={t('unlisted', { count: missingIds.length })}
+                  checked={missingIds.every((id) => field.value.includes(id))}
+                  aria-describedby={unavailableDescriptionId}
+                  onChange={(event) => {
+                    const missingSet = new Set(missingIds);
+                    field.onChange(
+                      event.target.checked
+                        ? [...new Set([...field.value, ...missingIds])]
+                        : field.value.filter((id) => !missingSet.has(id)),
+                    );
+                  }}
+                />
+                <p
+                  id={unavailableDescriptionId}
+                  className="mb-0 ml-6 mt-1 text-xs leading-4 text-[var(--sc-warning-dark)]"
+                >
+                  {t(cursor ? 'unlistedMoreHelp' : 'unlistedFinalHelp')}
+                </p>
+              </div>
+            )}
+            {hasLoadedOptions && options.length === 0 && missingIds.length === 0 && (
+              <p className="m-0 px-2 py-2 text-sm text-[var(--sc-text-secondary)]">
+                {t('noWarehouses')}
+              </p>
+            )}
+          </div>
         </fieldset>
         {errors.warehouseIds && <Alert variant="error">{t('invalidSelection')}</Alert>}
         {loading && <p role="status">{t('loading')}</p>}
@@ -187,53 +229,78 @@ function StaffDirectory() {
     void load();
     return () => pending.abort();
   }, [load]);
+
+  const columns: ColumnDef<PlatformStaff>[] = [
+    {
+      key: 'staff',
+      label: t('staffColumn'),
+      render: (staff) => (
+        <div className="min-w-[180px]">
+          <p className="m-0 font-medium">{staff.fullName}</p>
+          <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{staff.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'warehouseIds',
+      label: t('assignedWarehousesColumn'),
+      render: (staff) => (
+        <span className="whitespace-nowrap tabular-nums">
+          {t('assignedCount', { count: staff.warehouseIds.length })}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: t('actionsColumn'),
+      render: (staff) => (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={loading}
+            onClick={() => {
+              setSuccess(false);
+              setEditing(staff);
+            }}
+          >
+            {t('assign')}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
-      </div>
+      <PageHeader title={t('title')} description={t('description')} />
       {error && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{t('saved')}</Alert>}
-      <Card>
-        <CardContent className="space-y-4 p-5">
-          {loading && <p role="status">{t('loading')}</p>}
-          {!loading && !error && items.length === 0 && <p>{t('empty')}</p>}
-          <ul className="m-0 list-none divide-y divide-[var(--sc-border-default)] p-0">
-            {items.map((staff) => (
-              <li
-                key={staff.userId}
-                className="flex flex-wrap items-center justify-between gap-3 py-4"
-              >
-                <div>
-                  <p className="m-0 font-medium">{staff.fullName}</p>
-                  <p className="my-1 text-sm text-[var(--sc-text-secondary)]">{staff.email}</p>
-                  <p className="m-0 text-sm">
-                    {t('assignedCount', { count: staff.warehouseIds.length })}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  disabled={loading}
-                  onClick={() => {
-                    setSuccess(false);
-                    setEditing(staff);
-                  }}
-                >
-                  {t('assign')}
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {cursor && (
+      <Card padding="none">
+        <CardHeader
+          title={t('directoryTitle')}
+          className="mb-0 border-b border-[var(--sc-border-default)] px-4 py-3 sm:px-5"
+          action={
+            <Button size="sm" variant="outline" disabled={loading} onClick={() => void load()}>
+              {t('retry')}
+            </Button>
+          }
+        />
+        <DataTable
+          ariaLabel={t('tableLabel')}
+          columns={columns}
+          data={items}
+          getRowKey={(staff) => staff.userId}
+          isLoading={loading}
+          emptyMessage={t('empty')}
+        />
+        {cursor && (
+          <div className="border-t border-[var(--sc-border-default)] p-4">
             <Button variant="outline" disabled={loading} onClick={() => void load(cursor)}>
               {t('loadMore')}
             </Button>
-          )}
-          <Button variant="outline" disabled={loading} onClick={() => void load()}>
-            {t('retry')}
-          </Button>
-        </CardContent>
+          </div>
+        )}
       </Card>
       {editing && (
         <AssignmentEditor

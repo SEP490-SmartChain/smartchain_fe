@@ -588,7 +588,8 @@ Một tính năng hoặc thay đổi code chỉ được xem là hoàn tất khi
   target phải đo trên device đã ghi; không suy UI mượt là đã đạt.
 - Chỉ server-confirmed scan mới đổi displayed authoritative stock/task. Timeout hiển thị unknown
   và query cùng operation reference; không auto-resubmit với reference mới.
-- ASN declared ≠ received ≠ sellable. Count UI blind không tải/ẩn bằng CSS expected qty.
+- ASN declared ≠ received ≠ sellable. Receiving hiển thị khai gửi và thực nhận riêng để Staff/Manager
+  đối chiếu; không tự điền số thực nhận từ khai gửi. Kiểm kê tồn kho mù không tải expected qty.
   Lot substitution, count adjustment và disposal có actor approval/evidence riêng.
 - PACKED cần verified contents và actual measurements; label retry phải giữ LABEL_VERIFYING
   khi chưa biết carrier outcome. Cancel/return chưa physically confirmed không tăng stock UI.

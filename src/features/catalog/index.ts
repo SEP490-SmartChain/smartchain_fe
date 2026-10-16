@@ -25,4 +25,5 @@ export { warehouseApi } from './api/warehouseApi';
 export type { Warehouse, WarehouseFilters } from './types/warehouse';
 
 export { WarehouseDirectory } from './components/WarehouseDirectory';
+export { WarehouseStorageSetup } from './components/WarehouseStorageSetup';
 export { binBarcode as encodeCode128 } from './lib/binBarcode';

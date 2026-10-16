@@ -32,12 +32,14 @@ export function useInventoryDetail(
   }>({ key: '', items: [], next: null });
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const revision = useRef(0);
   const key = JSON.stringify([scopeKey, kind, filters]);
   const load = useCallback(
     async (cursor?: string) => {
       const current = ++revision.current;
-      setIsLoading(true);
+      setIsLoading(!cursor);
+      setIsLoadingMore(Boolean(cursor));
       setError(null);
       if (!cursor) setState({ key, items: [], next: null });
       try {
@@ -53,7 +55,10 @@ export function useInventoryDetail(
           setError(failure instanceof Error ? failure : new Error(String(failure)));
         }
       } finally {
-        if (current === revision.current) setIsLoading(false);
+        if (current === revision.current) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
       }
     },
     [key, kind, filters],
@@ -70,6 +75,7 @@ export function useInventoryDetail(
     items: visible && enabled ? state.items : [],
     error: visible && enabled ? error : null,
     isLoading: enabled && (isLoading || !visible),
+    isLoadingMore: enabled && visible && isLoadingMore,
     hasNext: visible && enabled && state.next !== null,
     refetch: () => load(),
     loadMore: () => load(state.next ?? undefined),

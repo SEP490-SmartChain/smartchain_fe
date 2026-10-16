@@ -6,7 +6,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Input,
+  PageHeader,
+  Select,
+} from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 import { canStartSellerIntake } from '@/lib/sellerService';
@@ -126,17 +135,18 @@ export function AsnWorkspace() {
   }, []);
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[var(--sc-bg-primary)]">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--sc-border-default)] px-6 py-5">
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--sc-text-primary)]">{t('title')}</h1>
-          <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
-        </div>
-        {canWrite && (
-          <Button disabled={!canStartSellerIntake(user)} onClick={() => setForm({ draft: null })}>
-            {t('create')}
-          </Button>
-        )}
-      </header>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        className="px-6 py-5"
+        actions={
+          canWrite && (
+            <Button disabled={!canStartSellerIntake(user)} onClick={() => setForm({ draft: null })}>
+              {t('create')}
+            </Button>
+          )
+        }
+      />
       <div className="space-y-5 overflow-auto p-6">
         <div className="grid gap-3 sm:grid-cols-2">
           <Input

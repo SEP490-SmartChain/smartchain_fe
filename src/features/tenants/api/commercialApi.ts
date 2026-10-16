@@ -84,7 +84,11 @@ const invoicesSchema = z.object({
     }),
   ),
 });
-const catalogSchema = z.object({ plans: z.array(planSchema), signingConfigured: z.boolean() });
+const catalogSchema = z.object({
+  plans: z.array(planSchema),
+  signingConfigured: z.boolean(),
+  mockPaymentsEnabled: z.boolean().optional().default(false),
+});
 
 export type CommercialPlan = z.infer<typeof planSchema>;
 export type SigningRequest = z.infer<typeof signingSchema>;
@@ -215,6 +219,20 @@ const downloadSchema = z
   })
   .strict();
 export const commercialApi = {
+  async mockPayment(contractId: string, signal?: AbortSignal) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      '/v1/commercial/mock-payments',
+      { contractId },
+      { signal, silent: true },
+    );
+    return z
+      .object({
+        contractId: z.string().uuid(),
+        serviceStatus: serviceStatusSchema,
+        serviceVersion: z.number().int().positive(),
+      })
+      .parse(data);
+  },
   async finalizeClosure(
     tenantId: string,
     expectedVersion: number,

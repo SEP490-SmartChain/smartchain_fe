@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowLeft, Warehouse } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
@@ -12,11 +13,13 @@ import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { ReceiptCountForm } from './ReceiptCountForm';
-import { receivingApi, type AsnArrival, type ReceivingWarehouse } from '../api/receivingApi';
+import styles from './ReceiptWorkspace.module.css';
+import { receivingApi, type AsnArrival } from '../api/receivingApi';
 import { asnCodeFromScan, asnScanSchema } from '../schemas/asnScanSchema';
 
 import type { WarehouseAsn } from '../api/warehouseAsnSchema';
 import type { AsnStatus } from '../types/asn.types';
+import type { InboundWarehouseScope } from '../types/inboundWarehouse.types';
 
 const statuses: AsnStatus[] = [
   'SUBMITTED',
@@ -34,17 +37,21 @@ interface Scoped<T> {
   data: T;
 }
 
-export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: AsnStatus | '' }) {
+interface ReceivingWorkspaceProps extends InboundWarehouseScope {
+  initialStatus?: AsnStatus | '';
+}
+
+export function ReceivingWorkspace({
+  warehouse,
+  onNavigationLockChange,
+  initialStatus = '',
+}: ReceivingWorkspaceProps) {
   const t = useTranslations('Receiving');
   const asnT = useTranslations('Asns');
   const locale = useLocale();
   const user = useAuthStore((state) => state.user);
   const { can } = useAccess();
-  const [directory, setDirectory] = useState<{
-    owner: Principal;
-    items: ReceivingWarehouse[];
-  } | null>(null);
-  const [warehouseId, setWarehouseId] = useState('');
+  const activeWarehouse = warehouse.id;
   const [status, setStatus] = useState<AsnStatus | ''>(initialStatus);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState<Scoped<{ items: WarehouseAsn[]; cursor: string | null }> | null>(
@@ -54,12 +61,10 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
   const [countSelection, setCountSelection] = useState<Scoped<WarehouseAsn> | null>(null);
   const [arrival, setArrival] = useState<Scoped<AsnArrival> | null>(null);
   const [error, setError] = useState<Scoped<string> | null>(null);
-  const [directoryError, setDirectoryError] = useState<Principal | false>(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [workLocked, setWorkLocked] = useState(false);
   const [refresh, setRefresh] = useState(0);
-  const [directoryRefresh, setDirectoryRefresh] = useState(0);
   const generation = useRef(0);
   const {
     register,
@@ -70,10 +75,6 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
     resolver: zodResolver(asnScanSchema),
     defaultValues: { code: '' },
   });
-  const warehouses = directory?.owner === user ? directory.items : [];
-  const activeWarehouse = warehouses.some((warehouse) => warehouse.id === warehouseId)
-    ? warehouseId
-    : '';
   const isCurrent = <T,>(value: Scoped<T> | null) =>
     value?.owner === user && value.warehouse === activeWarehouse;
   const items = isCurrent(page) ? (page?.data.items ?? []) : [];
@@ -82,26 +83,23 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
   const countedAsn = isCurrent(countSelection) ? countSelection?.data : null;
 
   useEffect(() => {
-    const controller = new AbortController();
-    setDirectory(null);
-    setDirectoryError(false);
-    setWarehouseId('');
+    const refreshOnFocus = () => {
+      if (!busy && !workLocked && !command && !countedAsn) setRefresh((value) => value + 1);
+    };
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
+  }, [busy, workLocked, command, countedAsn]);
+
+  useEffect(() => {
     setSearch('');
     setStatus(initialStatus);
     reset();
-    void receivingApi
-      .warehouses(controller.signal)
-      .then((items) => {
-        if (!controller.signal.aborted && user === useAuthStore.getState().user) {
-          setDirectory({ owner: user, items });
-          if (items.length === 1 && items[0]) setWarehouseId(items[0].id);
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setDirectoryError(user);
-      });
-    return () => controller.abort();
-  }, [user, directoryRefresh, reset, initialStatus]);
+  }, [user, activeWarehouse, reset, initialStatus]);
+
+  useEffect(() => {
+    onNavigationLockChange(busy || workLocked || Boolean(command));
+    return () => onNavigationLockChange(false);
+  }, [busy, workLocked, command, onNavigationLockChange]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -183,6 +181,17 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
       const result = await receivingApi.checkIn(activeWarehouse, command.id, command.version);
       if (request !== generation.current || user !== useAuthStore.getState().user) return;
       setArrival({ owner: user, warehouse: activeWarehouse, data: result });
+      setCountSelection({
+        owner: user,
+        warehouse: activeWarehouse,
+        data: {
+          ...command,
+          status: 'ARRIVED',
+          version: result.version,
+          arrivedAt: result.arrivedAt,
+          receiptIds: [result.receiptId],
+        },
+      });
       setSelected(null);
       setRefresh((value) => value + 1);
     } catch (reason) {
@@ -200,17 +209,30 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
   if (countedAsn) {
     return (
       <div className="flex flex-1 flex-col overflow-hidden bg-[var(--sc-bg-primary)]">
-        <header className="space-y-2 border-b border-[var(--sc-border-default)] px-6 py-5">
-          <Button variant="ghost" disabled={workLocked} onClick={() => setCountSelection(null)}>
-            {t('backToList')}
-          </Button>
-          <h1 className="text-xl font-semibold">{t('countTitle', { code: countedAsn.asnCode })}</h1>
-          <p className="text-sm text-[var(--sc-text-secondary)]">
-            {warehouses.find((w) => w.id === activeWarehouse)?.name}
-          </p>
+        <header className="border-b border-[var(--sc-border-default)] px-4 py-5 sm:px-6">
+          <div className={styles.page}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-4 -ml-3"
+              disabled={workLocked}
+              onClick={() => setCountSelection(null)}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              {t('backToList')}
+            </Button>
+            <h2 className="text-xl font-semibold">{t('title')}</h2>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[var(--sc-text-secondary)]">
+              <p className="min-w-0 break-all font-medium">{countedAsn.asnCode}</p>
+              <p className="flex items-center gap-2">
+                <Warehouse size={16} aria-hidden="true" />
+                {warehouse.name}
+              </p>
+            </div>
+          </div>
         </header>
-        <div className="overflow-auto p-6">
-          <div className="mx-auto max-w-4xl">
+        <div className="overflow-auto p-4 sm:p-6">
+          <div className={styles.page}>
             <ReceiptCountForm
               onNavigationLockChange={setWorkLocked}
               key={`${activeWarehouse}:${countedAsn.id}`}
@@ -226,37 +248,8 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
     );
   }
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[var(--sc-bg-primary)]">
-      <header className="border-b border-[var(--sc-border-default)] px-6 py-5">
-        <h1 className="text-xl font-semibold">{t('title')}</h1>
-        <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
-      </header>
-      <div className="space-y-5 overflow-auto p-6">
-        {directoryError === user && (
-          <Alert variant="error" title={t('loadError')}>
-            <Button variant="outline" onClick={() => setDirectoryRefresh((value) => value + 1)}>
-              {t('reload')}
-            </Button>
-          </Alert>
-        )}
-        {!directory && directoryError !== user && <p role="status">{t('loading')}</p>}
-        {directory?.owner === user && !warehouses.length && (
-          <Alert variant="info" title={t('noWarehouses')} />
-        )}
-        <Select
-          label={t('warehouse')}
-          placeholder={t('selectWarehouse')}
-          value={activeWarehouse}
-          disabled={busy}
-          options={warehouses.map((warehouse) => ({
-            value: warehouse.id,
-            label: `${warehouse.code} — ${warehouse.name}`,
-          }))}
-          onChange={(event) => setWarehouseId(event.target.value)}
-        />
-        {warehouses.length > 1 && !activeWarehouse && (
-          <Alert variant="info" title={t('chooseWarehouseHelp')} />
-        )}
+    <div className="space-y-5">
+      <div className="space-y-5">
         {activeWarehouse && (
           <>
             <div className="grid gap-3 md:grid-cols-2">
@@ -365,8 +358,18 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
                         </td>
                         <td className="px-4 py-3">
                           <Badge
-                            status={asn.status === 'CANCELLED' ? 'error' : 'info'}
-                            label={asnT(`status.${asn.status}`)}
+                            status={
+                              asn.status === 'CANCELLED'
+                                ? 'error'
+                                : asn.reinspectionRequired
+                                  ? 'warning'
+                                  : 'info'
+                            }
+                            label={
+                              asn.reinspectionRequired
+                                ? t('progressReinspection')
+                                : asnT(`status.${asn.status}`)
+                            }
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -406,7 +409,13 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
                                 })
                               }
                             >
-                              {t(can('warehouse.asn.recordCount') ? 'countOpen' : 'countView')}
+                              {t(
+                                can('warehouse.asn.recordCount')
+                                  ? asn.reinspectionRequired
+                                    ? 'reinspectionAction'
+                                    : 'countOpen'
+                                  : 'countView',
+                              )}
                             </Button>
                           )}
                         </td>
@@ -433,9 +442,7 @@ export function ReceivingWorkspace({ initialStatus = '' }: { initialStatus?: Asn
       >
         <div className="space-y-4">
           <p>{t('confirmDescription', { code: command?.asnCode ?? '' })}</p>
-          <p className="text-sm text-[var(--sc-text-secondary)]">
-            {warehouses.find((warehouse) => warehouse.id === activeWarehouse)?.name}
-          </p>
+          <p className="text-sm text-[var(--sc-text-secondary)]">{warehouse.name}</p>
           {isCurrent(error) && error && <Alert variant="error" title={error.data} />}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="ghost" disabled={busy} onClick={() => setSelected(null)}>

@@ -254,6 +254,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'inventory.stocks.view',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    'UC-45: GET /v1/inventory/stocks and /summary require SELLER_OWNER or SELLER_STAFF and an authenticated tenant',
+  ),
+  capability(
     'inventory.expiry.view',
     'inventory',
     'ANY',
@@ -707,6 +715,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/iam/users', capability: 'iam.users.manage' },
   // Profile chỉ cần đăng nhập + scope/role hợp lệ, mọi role ORCA đều xem được.
   { path: '/settings/profile' },
+  // Legacy seller-profile links keep their existing guard and redirect to the merged profile.
   { path: '/settings/general', capability: 'workspace.settings.manage' },
   { path: '/settings/api-keys', capability: 'apikey.manage' },
   { path: '/settings/webhooks', capability: 'workspace.settings.manage' },
@@ -738,6 +747,20 @@ export interface NavLink {
 
 export interface NavItem extends NavLink {
   children?: NavLink[];
+  activePaths?: readonly string[];
+}
+
+export const WAREHOUSE_INBOUND_TABS = [
+  { key: 'warehouse_inbound', href: '/warehouse/inbound' },
+  { key: 'warehouse_receiving', href: '/warehouse/receiving' },
+  { key: 'warehouse_putaway', href: '/warehouse/putaway' },
+] as const;
+
+export function isNavItemActive(item: NavItem, pathname: string): boolean {
+  const current = normalizePathname(pathname);
+  return (item.activePaths ?? [item.href]).some(
+    (href) => current === href || current.startsWith(`${href}/`),
+  );
 }
 
 export type NavScope = 'platform' | 'workspace' | 'shared';
@@ -801,7 +824,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'workspace',
     items: [
       { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
-      { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
       { key: 'contract', href: '/settings/contract', capability: 'contract.sign' },
     ],
   },
@@ -812,19 +834,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'platform',
     items: [
       {
-        key: 'warehouse_inbound',
+        key: 'warehouse_intake',
         href: '/warehouse/inbound',
         capability: 'warehouse.operations.view',
-      },
-      {
-        key: 'warehouse_receiving',
-        href: '/warehouse/receiving',
-        capability: 'warehouse.operations.view',
-      },
-      {
-        key: 'warehouse_putaway',
-        href: '/warehouse/putaway',
-        capability: 'warehouse.operations.view',
+        activePaths: WAREHOUSE_INBOUND_TABS.map((tab) => tab.href),
       },
       {
         key: 'warehouse_picking',
@@ -932,23 +945,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'shared',
     items: [{ key: 'profile', href: '/settings/profile' }],
   },
-  {
-    key: 'ui_heading',
-    scope: 'shared',
-    devOnly: true,
-    items: [
-      {
-        key: 'components',
-        href: '/components/data-table',
-        children: [
-          { key: 'data_table', href: '/components/data-table' },
-          { key: 'buttons', href: '/components/buttons' },
-          { key: 'dropzone', href: '/components/dropzone' },
-          { key: 'data_display', href: '/components/data-display' },
-        ],
-      },
-    ],
-  },
 ];
 
 /**
@@ -1039,6 +1035,17 @@ export function isRouteAllowed(roles: readonly string[], pathname: string, isDev
   return true;
 }
 
+const SETTINGS_TABS = ['profile', 'api-keys', 'webhooks', 'contract'] as const;
+export type SettingTab = (typeof SETTINGS_TABS)[number];
+
+/** One profile tab; legacy seller-profile links and invalid tabs resolve to it. */
+export function getSettingsNavigation(roles: readonly string[], requestedTab?: string) {
+  const tabs = SETTINGS_TABS.filter((id) => isRouteAllowed(roles, `/settings/${id}`));
+  const activeTab: SettingTab = tabs.find((id) => id === requestedTab) ?? 'profile';
+  const redirectTo = requestedTab && requestedTab !== activeTab ? '/settings/profile' : null;
+  return { tabs, activeTab, redirectTo };
+}
+
 const DEFAULT_PATHS: Readonly<Record<OrcaRole, string>> = Object.freeze({
   ORCA_ADMIN: '/admin/tenants',
   OPS_DISPATCHER: '/shipments',
@@ -1088,8 +1095,8 @@ export interface VisibleNavGroup {
 
 /**
  * Sidebar builder: chỉ giữ group/menu có ít nhất một route được phép (mục 9).
- * `isDev` bật group `devOnly` (catalog `/components/*`). Các group trùng key
- * (vd "Giám sát" của platform và workspace) được gộp để không trùng React key.
+ * Group `devOnly` chỉ hiện khi `isDev`; các group trùng key (vd "Giám sát" của
+ * platform và workspace) được gộp để không trùng React key.
  */
 export function getVisibleNavGroups(roles: readonly string[], isDev: boolean): VisibleNavGroup[] {
   const actorScope = resolveActorScope(roles);

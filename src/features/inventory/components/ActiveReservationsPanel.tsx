@@ -11,6 +11,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { formatFulfillmentOrderCode } from '@/lib/fulfillmentOrderCode';
 import { secondsUntil } from '@/lib/reservationTtl';
 
+import { InventoryState } from './InventoryState';
 import { ReleaseReservationsDialog } from './ReleaseReservationsDialog';
 import { ReservationTtlBadge } from './ReservationTtlBadge';
 import { useActiveReservations } from '../hooks/useActiveReservations';
@@ -28,7 +29,7 @@ export function ActiveReservationsPanel() {
   const t = useTranslations('Inventory');
   const locale = useLocale();
   const { can } = useAccess();
-  const { reservations, error, isLoading, hasNextPage, refetch, loadMore } =
+  const { reservations, error, isLoading, isLoadingMore, hasNextPage, refetch, loadMore } =
     useActiveReservations();
   const { summary, error: summaryError, refetch: refetchSummary } = useReservationSummary();
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,10 +44,8 @@ export function ActiveReservationsPanel() {
   const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const loadedPageCount = Math.max(1, Math.ceil(reservations.length / PAGE_SIZE));
   const totalPages = loadedPageCount + (hasNextPage ? 1 : 0);
-  const visibleReservations = reservations.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
+  const safePage = Math.min(currentPage, loadedPageCount);
+  const visibleReservations = reservations.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const canRelease = can('inventory.reservations.release');
 
   // Panel render lại mỗi giây vì đồng hồ đếm ngược; `Modal` chạy lại effect (trả focus rồi
@@ -139,9 +138,9 @@ export function ActiveReservationsPanel() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
+          <h2 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
             {t('reservationsTitle')}
-          </h1>
+          </h2>
           {summary && (
             <Badge
               status="info"
@@ -150,11 +149,21 @@ export function ActiveReservationsPanel() {
           )}
           {summaryError && <Badge status="warning" label={t('reservationsSummaryError')} />}
         </div>
-        <Button type="button" size="sm" variant="outline" onClick={handleRefresh}>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={isLoading || isLoadingMore}
+          onClick={handleRefresh}
+        >
           <RefreshCw size={14} aria-hidden="true" />
           {t('refresh')}
         </Button>
       </header>
+
+      <p className="m-0 text-sm leading-6 text-[var(--sc-text-secondary)]">
+        {t('reservationsHint')}
+      </p>
 
       {error ? (
         <Alert variant="error" title={t('reservationsLoadError')}>
@@ -170,11 +179,19 @@ export function ActiveReservationsPanel() {
             data={visibleReservations}
             isLoading={isLoading}
             getRowKey={(row) => row.id}
-            emptyMessage={t('reservationsEmpty')}
+            emptyMessage={
+              <InventoryState
+                compact
+                title={t('reservationsEmpty')}
+                description={t('reservationsEmptyHint')}
+              />
+            }
             pagination={{
-              currentPage: Math.min(currentPage, totalPages),
+              currentPage: safePage,
               totalPages,
-              onPageChange: (page) => void handlePageChange(page),
+              onPageChange: (page) => {
+                if (!isLoadingMore) void handlePageChange(page);
+              },
             }}
           />
         </section>

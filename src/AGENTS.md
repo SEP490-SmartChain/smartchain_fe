@@ -49,8 +49,9 @@ File này áp dụng cho mọi file trong `src/`. Phải đọc và tuân thủ 
   confirm, tài chính/API key hoặc staff administration. Seller không quản lý kho/carrier/routing
   platform; normal sales order không có seller warehouse/carrier selector.
 - Warehouse Staff không nhận/store/render COD, order value, invoice hoặc API secret. Recipient PII
-  chỉ ở task/label được phép; blind count không tải expected quantity. Hiding column không thay
-  server projection. Export/search/print/download và optional AI phải giữ cùng field/data scope.
+  chỉ ở task/label được phép. Receipt receiving được trả `declaredQty` và `cartonCount` cho Staff/Manager
+  trong kho được phân công để đối chiếu; kiểm kê tồn kho mù vẫn không tải expected quantity.
+  Hiding column không thay server projection. Export/search/print/download và optional AI giữ cùng field/data scope.
 - Route nghiệp vụ chưa triển khai dùng shared `UnderConstruction`, không thêm mock API hay nghiệp vụ giả.
 - `/components/*` phải được loại khỏi sidebar và route production bằng `import.meta.env.DEV`.
 
@@ -62,7 +63,7 @@ File này áp dụng cho mọi file trong `src/`. Phải đọc và tuân thủ 
 - Test seller khác, warehouse ngoài assignment, revoke grant/assignment và cache sau scope switch.
 - Test Manager approval tách Staff operation; Seller Staff ASN write không cấp SKU/order/finance
   write; Owner staff management không cấp platform assignment.
-- Test privacy payload/cache/export/label và blind count; API trả field thừa phải báo backend gap,
+- Test privacy payload/cache/export/label, receiving declaration allowlist và blind inventory count; API trả field thừa phải báo backend gap,
   không coi việc hide cột là đã bảo vệ dữ liệu.
 - Test direct URL ngoài quyền trả về luồng `403` và không làm mất session.
 

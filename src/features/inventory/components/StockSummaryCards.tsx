@@ -3,10 +3,9 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Boxes, PackageCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Alert } from '@/components/Common/Alert/Alert';
-import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 
+import { InventoryReadError } from './InventoryReadError';
 import { useInventorySummary } from '../hooks/useInventorySummary';
 
 interface SummaryCard {
@@ -23,11 +22,11 @@ export function StockSummaryCards() {
 
   if (error) {
     return (
-      <Alert variant="error" title={t('summaryLoadError')}>
-        <Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>
-          {t('retry')}
-        </Button>
-      </Alert>
+      <InventoryReadError
+        error={error}
+        title={t('summaryLoadError')}
+        onRetry={() => void refetch()}
+      />
     );
   }
 

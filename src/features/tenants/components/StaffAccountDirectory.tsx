@@ -19,7 +19,6 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Avatar } from '@/components/Common/Avatar/Avatar';
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -28,6 +27,7 @@ import { Can } from '@/components/Common/Can/Can';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -61,12 +61,12 @@ interface ActionMenuState {
   left: number;
 }
 
-function StaffAvatar({ account, isSelf }: { account: StaffAccount; isSelf: boolean }) {
+function StaffAvatar({ account }: { account: StaffAccount }) {
   const avatarUrl = useAvatarUrl(account.avatarUrl);
 
   return (
     <Avatar
-      src={avatarUrl || (isSelf ? profileAvatar : undefined)}
+      src={avatarUrl}
       fallback={account.fullName}
       size="lg"
       className="rounded-full border-[var(--sc-border-default)]"
@@ -253,19 +253,19 @@ export function StaffAccountDirectory() {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
-          {t('title')}
-        </h1>
-        {STAFF_CREATE_SUPPORTED && (
-          <Can capability="iam.users.manage">
-            <Button type="button" onClick={() => setAddModalOpen(true)}>
-              <Plus size={17} aria-hidden="true" />
-              {t('addNew')}
-            </Button>
-          </Can>
-        )}
-      </header>
+      <PageHeader
+        title={t('title')}
+        actions={
+          STAFF_CREATE_SUPPORTED && (
+            <Can capability="iam.users.manage">
+              <Button type="button" onClick={() => setAddModalOpen(true)}>
+                <Plus size={17} aria-hidden="true" />
+                {t('addNew')}
+              </Button>
+            </Can>
+          )
+        }
+      />
 
       {error ? (
         <Alert variant="error" title={t('loadError')}>
@@ -482,7 +482,7 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex min-w-0 items-center gap-3">
-                              <StaffAvatar account={account} isSelf={isSelf} />
+                              <StaffAvatar account={account} />
                               <span className="min-w-0">
                                 <span className="block truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
                                   {account.fullName}

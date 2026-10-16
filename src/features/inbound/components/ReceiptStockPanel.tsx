@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { ChevronDown, ChevronUp, RefreshCw, Warehouse } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Alert, Button, Input, Select } from '@/components/Common';
+import { Alert, Button, Card, Select } from '@/components/Common';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import styles from './ReceiptWorkspace.module.css';
 import {
   receiptStockApi,
   receiptStockInputSchema,
@@ -36,14 +39,16 @@ export function ReceiptStockPanel({
 }: Props) {
   const t = useTranslations('Receiving'),
     owner = useAuthStore((s) => s.user);
+  const locale = useLocale();
   const [expanded, setExpanded] = useState(false),
     [state, setState] = useState<ReceiptStockState | null>(null),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(''),
+    [loadError, setLoadError] = useState(''),
     [refresh, setRefresh] = useState(0);
-  const [binSearch, setBinSearch] = useState(''),
-    [binQuery, setBinQuery] = useState('');
+  const [primaryZoneId, setPrimaryZoneId] = useState(''),
+    [quarantineZoneId, setQuarantineZoneId] = useState('');
   const [attempt, setAttempt] = useState<{
     input: ReceiptStockInput;
     receipt: string;
@@ -59,11 +64,15 @@ export function ReceiptStockPanel({
     register,
     handleSubmit,
     reset,
+    setValue,
+    clearErrors,
+    control,
     formState: { errors },
   } = useForm<ReceiptStockInput>({
     resolver: zodResolver(receiptStockInputSchema),
-    defaultValues: { operationKey: crypto.randomUUID(), expectedVersion: 1, binId: '' },
+    defaultValues: { operationKey: createUuid(), expectedVersion: 1, binId: '' },
   });
+  const [binId, quarantineBinId] = useWatch({ control, name: ['binId', 'quarantineBinId'] });
   useEffect(() => {
     const version = ++generation.current,
       controller = new AbortController();
@@ -72,9 +81,10 @@ export function ReceiptStockPanel({
     setAttempt(null);
     setBusy(false);
     setError('');
-    setBinSearch('');
-    setBinQuery('');
-    reset({ operationKey: crypto.randomUUID(), expectedVersion: 1, binId: '' });
+    setLoadError('');
+    setPrimaryZoneId('');
+    setQuarantineZoneId('');
+    reset({ operationKey: createUuid(), expectedVersion: 1, binId: '' });
     return () => {
       generation.current = version + 1;
       controller.abort();
@@ -86,7 +96,7 @@ export function ReceiptStockPanel({
       controller = new AbortController();
     setLoading(true);
     void receiptStockApi
-      .get(warehouseId, asnId, recordId, receiptId, controller.signal, binSearch)
+      .get(warehouseId, asnId, recordId, receiptId, controller.signal)
       .then((result) => {
         if (
           !controller.signal.aborted &&
@@ -94,10 +104,10 @@ export function ReceiptStockPanel({
           owner === useAuthStore.getState().user
         ) {
           setState(result);
-          setError('');
+          setLoadError('');
           if (!attempt) {
             reset({
-              operationKey: crypto.randomUUID(),
+              operationKey: createUuid(),
               expectedVersion: result.receiptVersion,
               binId: '',
             });
@@ -106,26 +116,14 @@ export function ReceiptStockPanel({
       })
       .catch((e: unknown) => {
         if (!controller.signal.aborted && version === generation.current) {
-          setError(e instanceof ApiError ? e.message : t('stockError'));
+          setLoadError(e instanceof ApiError ? e.message : t('stockError'));
         }
       })
       .finally(() => {
         if (!controller.signal.aborted && version === generation.current) setLoading(false);
       });
     return () => controller.abort();
-  }, [
-    expanded,
-    warehouseId,
-    asnId,
-    recordId,
-    receiptId,
-    owner,
-    refresh,
-    attempt,
-    reset,
-    t,
-    binSearch,
-  ]);
+  }, [expanded, warehouseId, asnId, recordId, receiptId, owner, refresh, attempt, reset, t]);
   async function send(command: { input: ReceiptStockInput; receipt: string; quantity: number }) {
     if (
       busy ||
@@ -134,6 +132,17 @@ export function ReceiptStockPanel({
       owner !== useAuthStore.getState().user
     ) {
       return;
+    }
+    if (!attempt && state) {
+      const primary = state.bins.find((bin) => bin.id === command.input.binId);
+      const quarantine = state.bins.find((bin) => bin.id === command.input.quarantineBinId);
+      const blocker =
+        primary?.primaryBlocker ??
+        (state.load.quarantineQty > 0 ? quarantine?.quarantineBlocker : null);
+      if (!primary || (state.load.quarantineQty > 0 && !quarantine) || blocker) {
+        setError(blocker ? t(`stockBinBlock${blocker}`) : t('stockSelectBin'));
+        return;
+      }
     }
     const version = generation.current;
     setBusy(true);
@@ -165,53 +174,163 @@ export function ReceiptStockPanel({
       if (version === generation.current) setBusy(false);
     }
   }
+  const panelId = `stock-${recordId}`;
+  const quarantineZones = state?.zones.filter((zone) => zone.zoneType === 'QUARANTINE') ?? [];
+  const primaryZones =
+    state && !state.load.primaryRequiresQuarantine ? state.zones : quarantineZones;
+  const primaryBins = state?.bins.filter((bin) => bin.zoneId === primaryZoneId) ?? [];
+  const quarantineBins = state?.bins.filter((bin) => bin.zoneId === quarantineZoneId) ?? [];
+  const hasSplitQty = (state?.load.quarantineQty ?? 0) > 0;
+  const primaryBin = primaryBins.find((bin) => bin.id === binId);
+  const quarantineBin = quarantineBins.find((bin) => bin.id === quarantineBinId);
+  const canSubmit =
+    !!primaryBin &&
+    primaryBin.primaryBlocker === null &&
+    (!hasSplitQty ||
+      (!!quarantineBin &&
+        quarantineBin.quarantineBlocker === null &&
+        quarantineBin.id !== primaryBin.id));
+  const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 6 });
+  const format = (value: string | number) => formatter.format(Number(value));
+  const binSpace = (bin: ReceiptStockState['bins'][number]) =>
+    t('stockBinSpace', {
+      availableWeight: format(Number(bin.availableWeightG) / 1000),
+      maxWeight: format(Number(bin.maxWeightG) / 1000),
+      availableVolume: format(bin.availableVolumeM3),
+      maxVolume: format(bin.maxVolumeM3),
+    });
+  const binOption = (bin: ReceiptStockState['bins'][number], quarantine = false) => {
+    const blocker = quarantine ? bin.quarantineBlocker : bin.primaryBlocker;
+    const space = binSpace(bin);
+    return {
+      value: bin.id,
+      label: `${bin.code} · ${space}${blocker ? ` · ${t(`stockBinBlock${blocker}`)}` : ''}`,
+      disabled: blocker !== null,
+    };
+  };
   return (
-    <section className="mt-3 space-y-3 rounded-lg border border-[var(--sc-border-default)] p-3">
-      <Button
-        type="button"
-        variant="outline"
-        aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
-      >
-        {t('stockTitle')}
-      </Button>
-      {expanded && (
-        <>
-          <p className="text-sm text-[var(--sc-text-secondary)]">{t('stockHelp')}</p>
-          <form
-            className="space-y-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setBinSearch(binQuery.trim());
+    <Card padding="none" className={styles.panel}>
+      <div className={styles.actionPanelHeader}>
+        <h3 className={styles.actionPanelHeading}>
+          <Button
+            type="button"
+            variant="ghost"
+            className={styles.actionPanelToggle}
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            aria-describedby={`${panelId}-summary`}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            <Warehouse size={20} aria-hidden="true" className={styles.panelIcon} />
+            <span>{t('stockTitle')}</span>
+            {expanded ? (
+              <ChevronUp size={16} aria-hidden="true" className={styles.chevron} />
+            ) : (
+              <ChevronDown size={16} aria-hidden="true" className={styles.chevron} />
+            )}
+          </Button>
+        </h3>
+        {expanded && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={styles.actionPanelRefresh}
+            aria-label={t('stockReload')}
+            disabled={busy || loading}
+            onClick={() => {
+              setError('');
+              setRefresh((v) => v + 1);
             }}
           >
-            <Input
-              label={t('stockBinSearch')}
-              value={binQuery}
-              maxLength={64}
-              disabled={busy || !!attempt}
-              onChange={(e) => setBinQuery(e.target.value)}
-            />
-            <Button type="submit" variant="outline" disabled={busy || !!attempt}>
-              {t('stockFindBin')}
-            </Button>
-          </form>
+            <RefreshCw size={14} aria-hidden="true" />
+            {t('stockReload')}
+          </Button>
+        )}
+      </div>
+      <p id={`${panelId}-summary`} className={styles.actionPanelSummary}>
+        {t('stockSummary')}
+      </p>
+      {expanded && (
+        <div id={panelId} className={styles.actionPanelBody}>
+          {state?.qcState === 'APPROVED' && (
+            <div className={`${styles.record} ${styles.stockRecord}`}>
+              <p className="font-medium">
+                {t('stockQcBreakdown', {
+                  accepted: state.acceptedQty.toLocaleString(),
+                  quarantined: state.quarantinedQty.toLocaleString(),
+                  rejected: state.rejectedQty.toLocaleString(),
+                })}
+              </p>
+              <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
+                {t('stockRecognized', {
+                  quantity: state.recognizedQty.toLocaleString(),
+                  total: (state.acceptedQty + state.quarantinedQty).toLocaleString(),
+                })}
+              </p>
+              <dl className="mt-3 grid gap-3 border-t border-[var(--sc-border-default)] pt-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-[var(--sc-text-secondary)]">{t('stockPerUnit')}</dt>
+                  <dd className="mt-1 font-medium tabular-nums">
+                    {t('stockUnitMeasurements', {
+                      length: format(state.load.lengthCm),
+                      width: format(state.load.widthCm),
+                      height: format(state.load.heightCm),
+                      weight: format(state.load.unitWeightG / 1000),
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[var(--sc-text-secondary)]">
+                    {t('stockTotalLoad', {
+                      quantity: state.load.primaryQty + state.load.quarantineQty,
+                    })}
+                  </dt>
+                  <dd className="mt-1 font-medium tabular-nums">
+                    {t('stockLoadMeasurements', {
+                      weight: format(
+                        ((state.load.primaryQty + state.load.quarantineQty) *
+                          state.load.unitWeightG) /
+                          1000,
+                      ),
+                      volume: format(
+                        (state.load.primaryQty + state.load.quarantineQty) *
+                          Number(state.load.unitVolumeM3),
+                      ),
+                    })}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
           {loading && <p role="status">{t('loading')}</p>}
-          {error && <Alert variant="error" title={error} />}{' '}
-          {attempt && <Alert variant="warning" title={t('stockUncertain')} />}{' '}
+          {(error || loadError) && <Alert variant="error" title={error || loadError} />}
+          {attempt && <Alert variant="warning" title={t('stockUncertain')} />}
           {state && (
             <>
-              <p>{t('stockRecognized', { quantity: state.recognizedQty })}</p>
-              {state.items.map((i) => (
-                <p key={i.stockId}>
-                  {t('stockLocation', {
-                    code: state.bins.find((b) => b.id === i.binId)?.code ?? t('stockSavedLocation'),
-                    quantity: i.quantity,
-                  })}
-                </p>
-              ))}
-              {!state.canPost && state.recognizedQty === 0 && <p>{t('stockAwaitReview')}</p>}
-              {state.moreBins && <p>{t('stockMoreBins')}</p>}
+              {(!!state.items.length || (!state.canPost && state.recognizedQty === 0)) && (
+                <div className={`${styles.record} ${styles.stockRecord}`}>
+                  {!!state.items.length && (
+                    <ul className={styles.stockLocations}>
+                      {state.items.map((item) => (
+                        <li key={item.stockId}>
+                          {t('stockLocation', {
+                            code:
+                              state.bins.find((bin) => bin.id === item.binId)?.code ??
+                              t('stockSavedLocation'),
+                            quantity: item.quantity.toLocaleString(),
+                          })}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {!state.canPost && state.recognizedQty === 0 && (
+                    <p className="text-sm text-[var(--sc-text-secondary)]">
+                      {t('stockAwaitReview')}
+                    </p>
+                  )}
+                </div>
+              )}
               {canWrite && state.canPost && !attempt && (
                 <form
                   className="space-y-3"
@@ -225,28 +344,114 @@ export function ReceiptStockPanel({
                   )}
                 >
                   <fieldset disabled={busy || loading} className="space-y-3">
-                    <Select
-                      label={t('stockBin')}
-                      {...register('binId')}
-                      options={state.bins.map((b) => ({
-                        value: b.id,
-                        label: `${b.code} · ${t(b.zoneType === 'RECEIVING' ? 'stockReceivingZone' : 'stockQuarantineZone')}`,
-                      }))}
-                      error={errors.binId ? t('stockSelectBin') : undefined}
-                    />
-                    <Select
-                      label={t('stockQuarantineBin')}
-                      {...register('quarantineBinId', { setValueAs: (v) => v || undefined })}
-                      options={[
-                        { value: '', label: t('stockNoQuarantineBin') },
-                        ...state.bins
-                          .filter((b) => b.zoneType === 'QUARANTINE')
-                          .map((b) => ({ value: b.id, label: b.code })),
-                      ]}
-                      error={errors.quarantineBinId ? t('stockDistinctBin') : undefined}
-                    />
-                    <Button type="submit" isLoading={busy}>
-                      {t('stockSubmit')}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Select
+                        label={t(
+                          state.load.primaryRequiresQuarantine
+                            ? 'stockQuarantineArea'
+                            : 'stockPrimaryArea',
+                        )}
+                        placeholder={t('stockSelectZone')}
+                        value={primaryZoneId}
+                        required
+                        onChange={(event) => {
+                          setPrimaryZoneId(event.target.value);
+                          setValue('binId', '');
+                          clearErrors('binId');
+                          setError('');
+                        }}
+                        options={primaryZones.map((zone) => ({
+                          value: zone.id,
+                          label: zone.code,
+                        }))}
+                      />
+                      <Select
+                        label={t(
+                          state.load.primaryRequiresQuarantine
+                            ? 'stockQuarantineBin'
+                            : 'stockPrimaryBin',
+                        )}
+                        placeholder={t('stockSelectBin')}
+                        required
+                        disabled={!primaryZoneId || busy || loading}
+                        {...register('binId', { onChange: () => setError('') })}
+                        options={primaryBins.map((bin) => binOption(bin))}
+                        helperText={
+                          primaryBin
+                            ? binSpace(primaryBin)
+                            : primaryZoneId
+                              ? t('stockCapacityHint')
+                              : undefined
+                        }
+                        error={errors.binId ? t('stockSelectBin') : undefined}
+                      />
+                    </div>
+                    {hasSplitQty && (
+                      <p className="text-sm text-[var(--sc-text-secondary)]">
+                        {t('stockPrimaryLoad', {
+                          quantity: state.load.primaryQty,
+                          weight: format((state.load.primaryQty * state.load.unitWeightG) / 1000),
+                          volume: format(state.load.primaryQty * Number(state.load.unitVolumeM3)),
+                        })}
+                      </p>
+                    )}
+                    {state.load.primaryRequiresQuarantine && state.acceptedQty > 0 && (
+                      <Alert variant="warning" title={t('stockShelfLifeQuarantine')} />
+                    )}
+                    {primaryZoneId && !primaryBins.some((bin) => bin.primaryBlocker === null) && (
+                      <Alert variant="warning" title={t('stockNoFittingBins')} />
+                    )}
+                    {hasSplitQty && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Select
+                          label={t('stockQuarantineArea')}
+                          placeholder={t('stockSelectZone')}
+                          value={quarantineZoneId}
+                          required
+                          onChange={(event) => {
+                            setQuarantineZoneId(event.target.value);
+                            setValue('quarantineBinId', '');
+                            clearErrors('quarantineBinId');
+                            setError('');
+                          }}
+                          options={quarantineZones.map((zone) => ({
+                            value: zone.id,
+                            label: zone.code,
+                          }))}
+                        />
+                        <Select
+                          label={t('stockQuarantineBin')}
+                          placeholder={t('stockSelectBin')}
+                          required
+                          disabled={!quarantineZoneId || busy || loading}
+                          {...register('quarantineBinId', { onChange: () => setError('') })}
+                          options={quarantineBins.map((bin) => binOption(bin, true))}
+                          helperText={t('stockQuarantineLoad', {
+                            quantity: state.load.quarantineQty,
+                            weight: format(
+                              (state.load.quarantineQty * state.load.unitWeightG) / 1000,
+                            ),
+                            volume: format(
+                              state.load.quarantineQty * Number(state.load.unitVolumeM3),
+                            ),
+                          })}
+                          error={errors.quarantineBinId ? t('stockSelectBin') : undefined}
+                        />
+                      </div>
+                    )}
+                    {hasSplitQty &&
+                      quarantineZoneId &&
+                      !quarantineBins.some((bin) => bin.quarantineBlocker === null) && (
+                        <Alert variant="warning" title={t('stockNoFittingBins')} />
+                      )}
+                    <Button
+                      type="submit"
+                      isLoading={busy}
+                      disabled={!canSubmit || loading || !!loadError}
+                    >
+                      {t('stockSubmit', {
+                        quantity: (state.acceptedQty + state.quarantinedQty).toLocaleString(),
+                      })}
                     </Button>
                   </fieldset>
                 </form>
@@ -258,17 +463,9 @@ export function ReceiptStockPanel({
               {t('stockRetry')}
             </Button>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={busy}
-            onClick={() => setRefresh((v) => v + 1)}
-          >
-            {t('stockReload')}
-          </Button>
-          {!canWrite && <p>{t('stockStaffOnly')}</p>}
-        </>
+          {!canWrite && state?.canPost && !loading && <p>{t('stockStaffOnly')}</p>}
+        </div>
       )}
-    </section>
+    </Card>
   );
 }

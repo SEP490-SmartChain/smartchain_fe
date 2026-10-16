@@ -5,7 +5,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Bell,
   Command,
-  Globe2,
   LogOut,
   Monitor,
   Moon,
@@ -22,7 +21,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { getSearchLinks } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useLocaleStore, useUiStore } from '@/stores';
+import { useAuthStore, useUiStore } from '@/stores';
 import type { ThemeMode } from '@/stores/uiStore';
 
 import { NAV_ICONS } from './navIcons';
@@ -47,7 +46,6 @@ export default function Topbar() {
   const t = useTranslations('Topbar');
   const sidebar = useTranslations('Sidebar');
   const locale = useLocale();
-  const { setLocale } = useLocaleStore();
   const { logout, isLoggingOut } = useAuth();
   const user = useAuthStore((state) => state.user);
   const avatarUrl = useAvatarUrl(user?.avatarUrl);
@@ -374,18 +372,6 @@ export default function Topbar() {
                 <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{roleSummary}</p>
               </div>
               <div className="my-2 h-px bg-[var(--sc-border-default)]" />
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-3 rounded-lg p-2 text-sm hover:bg-[var(--sc-bg-secondary)]"
-                onClick={() => setLocale(locale === 'vi' ? 'en' : 'vi')}
-              >
-                <Globe2 size={16} strokeWidth={1.5} />
-                <span>{t('language')}</span>
-                <span className="ml-auto text-xs uppercase text-[var(--sc-text-tertiary)]">
-                  {locale}
-                </span>
-              </button>
               <Link
                 to="/settings"
                 role="menuitem"

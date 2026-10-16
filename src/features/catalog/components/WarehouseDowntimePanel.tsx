@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { CalendarClock, PauseCircle, Plus } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { useAccess } from '@/hooks/useAccess';
+import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import styles from './WarehouseDetails.module.css';
 import { warehouseApi, type Downtime, type WarehouseOutstanding } from '../api/warehouseApi';
 
 import type { Warehouse } from '../types/warehouse';
@@ -22,6 +25,7 @@ export function WarehouseDowntimePanel({
   readonly onSaved: () => void;
 }) {
   const t = useTranslations('Warehouses');
+  const locale = useLocale();
   const { can } = useAccess();
   const principal = useAuthStore((s) => s.user);
   const [rows, setRows] = useState<Downtime[]>([]);
@@ -33,7 +37,7 @@ export function WarehouseDowntimePanel({
   const [end, setEnd] = useState('');
   const [reason, setReason] = useState('');
   const [retry, setRetry] = useState(0);
-  const [operationKey, setOperationKey] = useState(() => crypto.randomUUID());
+  const [operationKey, setOperationKey] = useState(() => createUuid());
   useEffect(() => {
     let active = true;
     setRows([]);
@@ -43,7 +47,7 @@ export function WarehouseDowntimePanel({
     setStart('');
     setEnd('');
     setReason('');
-    setOperationKey(crypto.randomUUID());
+    setOperationKey(createUuid());
     void Promise.all([warehouseApi.downtime(warehouse.id), warehouseApi.outstanding(warehouse.id)])
       .then(([intervals, work]) => {
         if (active) {
@@ -98,89 +102,123 @@ export function WarehouseDowntimePanel({
       setSaving(false);
     }
   };
-  const changed = () => setOperationKey(crypto.randomUUID());
+  const changed = () => setOperationKey(createUuid());
   return (
-    <section className="mt-5 space-y-3" aria-label={t('downtimeTitle')}>
-      <h2 className="font-semibold">{t('downtimeTitle')}</h2>
-      <p>{t('downtimeNotice')}</p>
-      {loading && <p role="status">{t('loading')}</p>}
-      {counts && (
-        <p>
-          {t('outstanding', {
-            stock: counts.stockUnits,
-            tasks: counts.openTasks,
-            waves: counts.openWaves,
-          })}
-        </p>
-      )}
+    <section className={styles.stack} aria-label={t('downtimeTitle')}>
+      <div>
+        <h2 className={styles.panelTitle}>
+          <PauseCircle size={20} className={styles.icon} aria-hidden="true" />
+          {t('downtimeTitle')}
+        </h2>
+        <p className={`${styles.copy} mt-2`}>{t('downtimeNotice')}</p>
+      </div>
       {error && (
         <Alert variant="error" title={error}>
-          <Button onClick={() => setRetry((v) => v + 1)}>{t('retry')}</Button>
+          <Button variant="outline" onClick={() => setRetry((v) => v + 1)}>
+            {t('retry')}
+          </Button>
         </Alert>
       )}
-      {!loading && !rows.length && <p>{t('downtimeEmpty')}</p>}
-      <ul>
-        {rows.map((row) => (
-          <li key={row.id} className="py-2">
-            {new Intl.DateTimeFormat(undefined, {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-              timeZone: warehouse.timeZone,
-            }).format(new Date(row.startAt))}{' '}
-            –{' '}
-            {new Intl.DateTimeFormat(undefined, {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-              timeZone: warehouse.timeZone,
-            }).format(new Date(row.endAt))}
-            : {row.reason}
-          </li>
-        ))}
-      </ul>
-      {can('warehouses.downtime.manage') && warehouse.status === 'ACTIVE' && (
-        <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
-          <label>
-            {t('startAt')} ({warehouse.timeZone})
-            <Input
-              type="datetime-local"
-              value={start}
-              required
-              onChange={(e) => {
-                setStart(e.target.value);
-                changed();
-              }}
-            />
-          </label>
-          <label>
-            {t('endAt')}
-            <Input
-              type="datetime-local"
-              value={end}
-              required
-              onChange={(e) => {
-                setEnd(e.target.value);
-                changed();
-              }}
-            />
-          </label>
-          <label>
-            {t('reason')}
-            <Input
-              value={reason}
-              minLength={3}
-              maxLength={500}
-              required
-              onChange={(e) => {
-                setReason(e.target.value);
-                changed();
-              }}
-            />
-          </label>
-          <Button type="submit" disabled={loading} isLoading={saving}>
-            {t('schedule')}
-          </Button>
-        </form>
-      )}
+      {loading && <p role="status">{t('loading')}</p>}
+      <div className={styles.split}>
+        <div className={styles.stack}>
+          {counts && (
+            <div className={styles.panel}>
+              <h3 className={`${styles.subtitle} mb-4`}>{t('currentWork')}</h3>
+              <dl className={styles.counts}>
+                {[
+                  { label: 'stockUnits', value: counts.stockUnits },
+                  { label: 'openTasks', value: counts.openTasks },
+                  { label: 'openWaves', value: counts.openWaves },
+                ].map((item) => (
+                  <div key={item.label}>
+                    <dt>{t(item.label)}</dt>
+                    <dd>{item.value.toLocaleString(locale)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+          <div className={styles.panel}>
+            <h3 className={`${styles.subtitle} mb-4`}>{t('scheduledDowntime')}</h3>
+            {!loading && !rows.length && !error && (
+              <div className={styles.empty}>
+                <CalendarClock size={28} aria-hidden="true" />
+                <p>{t('downtimeEmpty')}</p>
+              </div>
+            )}
+            <ul className={styles.stack}>
+              {rows.map((row) => (
+                <li key={row.id} className={styles.interval}>
+                  <p className="font-medium">
+                    {new Intl.DateTimeFormat(locale, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                      timeZone: warehouse.timeZone,
+                    }).format(new Date(row.startAt))}{' '}
+                    –{' '}
+                    {new Intl.DateTimeFormat(locale, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                      timeZone: warehouse.timeZone,
+                    }).format(new Date(row.endAt))}
+                  </p>
+                  <p className="break-words text-[var(--sc-text-secondary)]">{row.reason}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        {can('warehouses.downtime.manage') && warehouse.status === 'ACTIVE' && (
+          <form onSubmit={save} className={styles.panel}>
+            <h3 className={`${styles.panelTitle} mb-2`}>
+              <Plus size={20} className={styles.icon} aria-hidden="true" />
+              {t('schedule')}
+            </h3>
+            <p className={`${styles.copy} mb-5`}>
+              {t('downtimeTimeZone', { zone: warehouse.timeZone })}
+            </p>
+            <fieldset disabled={saving || loading} className="space-y-4">
+              <Input
+                label={t('startAt')}
+                type="datetime-local"
+                value={start}
+                required
+                onChange={(e) => {
+                  setStart(e.target.value);
+                  changed();
+                }}
+              />
+              <Input
+                label={t('endAt')}
+                type="datetime-local"
+                value={end}
+                required
+                onChange={(e) => {
+                  setEnd(e.target.value);
+                  changed();
+                }}
+              />
+              <Input
+                label={t('reason')}
+                value={reason}
+                minLength={3}
+                maxLength={500}
+                required
+                onChange={(e) => {
+                  setReason(e.target.value);
+                  changed();
+                }}
+              />
+            </fieldset>
+            <div className={styles.formActions}>
+              <Button type="submit" disabled={loading} isLoading={saving}>
+                {t('schedule')}
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
     </section>
   );
 }

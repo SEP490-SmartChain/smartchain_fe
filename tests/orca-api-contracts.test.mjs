@@ -123,6 +123,42 @@ test('warehouse directory accepts the ORCA platform projection and null district
     pagination,
   });
 });
+test('storage setup resolves the exact assigned warehouse beyond the first cursor page', async () => {
+  const calls = [];
+  const signal = new AbortController().signal;
+  globalThis.fetch = async (input, options) => {
+    const url = new URL(input, 'http://localhost');
+    calls.push(url.searchParams.get('cursor'));
+    assert.equal(url.searchParams.get('search'), warehouse.code);
+    assert.equal(options.signal, signal);
+    return calls.length === 1
+      ? ok([{ ...warehouse, id: '00000000-0000-4000-8000-000000000099' }])
+      : ok([warehouse], { limit: 50, hasNext: false, nextCursor: null });
+  };
+  assert.deepEqual(await warehouseApi.assigned(id, warehouse.code, signal), warehouse);
+  assert.deepEqual(calls, [null, id]);
+});
+test('storage setup never substitutes another warehouse or seller-owned warehouse', async () => {
+  globalThis.fetch = async () => ok([], { limit: 50, hasNext: false, nextCursor: null });
+  assert.equal(await warehouseApi.assigned(id, warehouse.code), null);
+  for (const change of [{ code: 'WRONG-WH' }, { tenantId: id }]) {
+    globalThis.fetch = async () => ok([{ ...warehouse, ...change }]);
+    await assert.rejects(warehouseApi.assigned(id, warehouse.code));
+  }
+});
+test('storage setup aborts obsolete requests and rejects repeating cursors', async () => {
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return ok([]);
+  };
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(warehouseApi.assigned(id, warehouse.code, controller.signal));
+  assert.equal(calls, 0);
+  await assert.rejects(warehouseApi.assigned(id, warehouse.code));
+  assert.equal(calls, 2);
+});
 test('warehouse create accepts the same platform projection returned by the server', async () => {
   const payload = {
     code: warehouse.code,
