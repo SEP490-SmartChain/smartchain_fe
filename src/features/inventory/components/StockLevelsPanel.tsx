@@ -1,160 +1,173 @@
 import { useMemo, useState } from 'react';
 
-import { Search } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Alert } from '@/components/Common/Alert/Alert';
-import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
-import { Select } from '@/components/Common/Select/Select';
 import { useDebounce } from '@/hooks/useDebounce';
 
+import { InventoryReadError } from './InventoryReadError';
+import { InventoryState } from './InventoryState';
 import { StockSummaryCards } from './StockSummaryCards';
 import { useInventoryStocks } from '../hooks/useInventoryStocks';
-import { useWarehouseOptions } from '../hooks/useWarehouseOptions';
 
 import type { InventoryStockFilters, InventoryStockLevel } from '../types/inventoryStock.types';
 
-const PAGE_SIZE = 10;
-/** Khớp giới hạn `search` của `GET /v1/inventory/stocks` (tối đa 100 ký tự). */
-const SEARCH_MAX_LENGTH = 100;
-/** `inventory_stocks` là bảng nóng nhất hệ thống: chỉ truy vấn khi người dùng ngừng gõ. */
-const SEARCH_DEBOUNCE_MS = 400;
-
-export function StockLevelsPanel() {
+export function StockLevelsPanel({ warehouseId }: { warehouseId: string }) {
   const t = useTranslations('Inventory');
   const locale = useLocale();
   const [searchInput, setSearchInput] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
+  const search = useDebounce(searchInput, 400);
   const filters = useMemo<InventoryStockFilters>(
-    () => ({ search: debouncedSearch, warehouseId }),
-    [debouncedSearch, warehouseId],
+    () => ({ search, warehouseId }),
+    [search, warehouseId],
   );
-  const { stockLevels, error, isLoading, hasNextPage, refetch, loadMore } =
+  const { stockLevels, error, isLoading, isLoadingMore, hasNextPage, refetch, loadMore } =
     useInventoryStocks(filters);
-  const { warehouses, error: warehouseError } = useWarehouseOptions();
-
-  const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale]);
-  const warehouseOptions = useMemo(
-    () =>
-      warehouses.map((warehouse) => ({
-        value: warehouse.id,
-        label: `${warehouse.code} — ${warehouse.name}`,
-      })),
-    [warehouses],
-  );
-
-  const loadedPageCount = Math.max(1, Math.ceil(stockLevels.length / PAGE_SIZE));
-  const totalPages = loadedPageCount + (hasNextPage ? 1 : 0);
-  const visibleStockLevels = stockLevels.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
-  );
-  const hasActiveFilters = filters.search.trim() !== '' || filters.warehouseId !== '';
-
-  const handleSearchChange = (value: string) => {
-    setCurrentPage(1);
-    setSearchInput(value);
-  };
-
-  const handleWarehouseChange = (value: string) => {
-    setCurrentPage(1);
-    setWarehouseId(value);
-  };
-
-  const handlePageChange = async (page: number) => {
-    if (page > loadedPageCount && hasNextPage) await loadMore();
-    setCurrentPage(page);
-  };
-
+  const number = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const columns: ColumnDef<InventoryStockLevel>[] = [
-    { key: 'sku', label: t('columnSku') },
-    { key: 'productName', label: t('columnProductName') },
+    {
+      key: 'sku',
+      label: t('product'),
+      render: (row) => (
+        <div className="min-w-44">
+          <span className="font-medium">{row.sku}</span>
+          <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{row.productName}</p>
+        </div>
+      ),
+    },
     {
       key: 'warehouse',
       label: t('columnWarehouse'),
       render: (row) => (
-        <span className="flex flex-col">
+        <div className="min-w-32">
           <span className="font-medium">{row.warehouseCode}</span>
-          <span className="text-xs text-[var(--sc-text-secondary)]">{row.warehouseName}</span>
+          <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{row.warehouseName}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'onHandQty',
+      label: t('columnOnHand'),
+      render: (row) => (
+        <span className="block text-right font-medium tabular-nums">
+          {number.format(row.onHandQty)}
         </span>
+      ),
+    },
+    {
+      key: 'reservedQty',
+      label: t('columnReserved'),
+      render: (row) => (
+        <span className="block text-right tabular-nums">{number.format(row.reservedQty)}</span>
       ),
     },
     {
       key: 'availableQty',
       label: t('columnAvailable'),
-      render: (row) => numberFormatter.format(row.availableQty),
-    },
-    {
-      key: 'reservedQty',
-      label: t('columnReserved'),
-      render: (row) => numberFormatter.format(row.reservedQty),
-    },
-    {
-      key: 'onHandQty',
-      label: t('columnOnHand'),
-      render: (row) => numberFormatter.format(row.onHandQty),
+      render: (row) => (
+        <span className="block text-right font-semibold tabular-nums text-[var(--sc-primary-dark)]">
+          {number.format(row.availableQty)}
+        </span>
+      ),
     },
   ];
-
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
-          {t('title')}
-        </h1>
-      </header>
-
-      <StockSummaryCards />
-
-      {error ? (
-        <Alert variant="error" title={t('loadError')}>
-          <Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>
-            {t('retry')}
+      <div className="space-y-3">
+        <p className="m-0 text-xs text-[var(--sc-text-secondary)]">{t('summaryScope')}</p>
+        <StockSummaryCards />
+      </div>
+      <section className="sc-surface overflow-hidden" aria-label={t('tableLabel')}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] p-4">
+          <div>
+            <h2 className="m-0 text-base font-semibold">{t('tableTitle')}</h2>
+            <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">
+              {t('stockExplanation')}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isLoading || isLoadingMore}
+            onClick={() => void refetch()}
+          >
+            <RefreshCw size={14} aria-hidden="true" />
+            {t('refresh')}
           </Button>
-        </Alert>
-      ) : (
-        <section className="sc-surface overflow-hidden" aria-label={t('tableLabel')}>
-          <div className="grid gap-3 border-b border-[var(--sc-border-default)] p-4 sm:grid-cols-[1fr_260px]">
+        </div>
+        <div className="flex flex-wrap items-center gap-3 border-b border-[var(--sc-border-default)] p-4">
+          <div className="min-w-0 flex-1 sm:max-w-md">
             <Input
               type="search"
               aria-label={t('searchLabel')}
               placeholder={t('searchPlaceholder')}
               value={searchInput}
-              maxLength={SEARCH_MAX_LENGTH}
+              maxLength={100}
               leftIcon={<Search size={16} aria-hidden="true" />}
-              onChange={(event) => handleSearchChange(event.target.value)}
-            />
-            <Select
-              aria-label={t('warehouseFilter')}
-              value={warehouseId}
-              placeholder={warehouseError ? t('warehouseLoadError') : t('allWarehouses')}
-              isPlaceholderDisabled={false}
-              disabled={warehouseError !== null}
-              options={warehouseOptions}
-              onChange={(event) => handleWarehouseChange(event.target.value)}
+              onChange={(event) => setSearchInput(event.target.value)}
             />
           </div>
-
-          <DataTable
-            ariaLabel={t('tableLabel')}
-            columns={columns}
-            data={visibleStockLevels}
-            isLoading={isLoading}
-            getRowKey={(row) => row.id}
-            emptyMessage={hasActiveFilters ? t('emptyFiltered') : t('emptyState')}
-            pagination={{
-              currentPage: Math.min(currentPage, totalPages),
-              totalPages,
-              onPageChange: (page) => void handlePageChange(page),
-            }}
-          />
-        </section>
-      )}
+          {searchInput && (
+            <Button variant="ghost" size="sm" onClick={() => setSearchInput('')}>
+              {t('clearFilters')}
+            </Button>
+          )}
+        </div>
+        {error ? (
+          <div className="p-4">
+            <InventoryReadError
+              error={error}
+              title={stockLevels.length ? t('loadMoreError') : t('loadError')}
+              onRetry={() => void (stockLevels.length ? loadMore() : refetch())}
+            />
+          </div>
+        ) : null}
+        {(!error || stockLevels.length > 0) && (
+          <div aria-busy={isLoading || isLoadingMore}>
+            <DataTable
+              ariaLabel={t('tableLabel')}
+              columns={columns}
+              data={stockLevels}
+              isLoading={isLoading}
+              getRowKey={(row) => row.id}
+              emptyMessage={
+                <InventoryState
+                  compact
+                  title={t(search.trim() ? 'emptyFiltered' : 'emptyState')}
+                  description={t(search.trim() ? 'emptyFilteredHint' : 'emptyStockHint')}
+                  action={
+                    searchInput ? (
+                      <Button variant="outline" size="sm" onClick={() => setSearchInput('')}>
+                        {t('clearFilters')}
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              }
+            />
+            {!isLoading && stockLevels.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] px-4 py-3">
+                <span role="status" className="text-xs text-[var(--sc-text-secondary)]">
+                  {t('loadedRows', { count: stockLevels.length })}
+                </span>
+                {hasNextPage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    isLoading={isLoadingMore}
+                    onClick={() => void loadMore()}
+                  >
+                    {t('loadMore')}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -15,10 +15,11 @@ const pageSchema = z.object({
 });
 export type InventoryWarehouseOption = z.infer<typeof optionSchema>;
 
-export async function listInventoryWarehouses(cursor?: string) {
+export async function listInventoryWarehouses(cursor?: string, signal?: AbortSignal) {
   const { data, meta } = await apiClient.get<ApiResponse<unknown>>('/v1/warehouses', {
     params: { limit: '50', ...(cursor ? { cursor } : {}) },
     silent: true,
+    signal,
   });
   return pageSchema.parse({ items: data, pagination: meta.pagination });
 }

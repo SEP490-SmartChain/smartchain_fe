@@ -5,49 +5,66 @@ import { inventoryStockApi } from '../api/inventoryStockApi';
 import type { InventoryStockFilters, InventoryStockLevel } from '../types/inventoryStock.types';
 
 export function useInventoryStocks(filters: InventoryStockFilters) {
-  const [stockLevels, setStockLevels] = useState<InventoryStockLevel[]>([]);
-  const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const key = JSON.stringify(filters);
+  const [state, setState] = useState<{
+    key: string;
+    items: InventoryStockLevel[];
+    error: Error | null;
+    loading: boolean;
+    loadingMore: boolean;
+    cursor: string | null;
+  }>({ key: '', items: [], error: null, loading: true, loadingMore: false, cursor: null });
   const requestRevision = useRef(0);
-
   const loadPage = useCallback(
-    async (cursor?: string, shouldAppend = false) => {
+    async (cursor?: string) => {
       const revision = ++requestRevision.current;
-      if (shouldAppend) setIsLoadingMore(true);
-      else setIsLoading(true);
-      setError(null);
+      setState((old) => ({
+        key,
+        items: cursor && old.key === key ? old.items : [],
+        error: null,
+        loading: !cursor,
+        loadingMore: Boolean(cursor),
+        cursor: cursor ?? null,
+      }));
       try {
         const page = await inventoryStockApi.list(filters, cursor);
         if (revision !== requestRevision.current) return;
-        setStockLevels((current) => (shouldAppend ? [...current, ...page.items] : page.items));
-        setNextCursor(page.pagination.nextCursor);
+        setState((old) => ({
+          key,
+          items: cursor && old.key === key ? [...old.items, ...page.items] : page.items,
+          cursor: page.pagination.nextCursor,
+          error: null,
+          loading: false,
+          loadingMore: false,
+        }));
       } catch (failure) {
         if (revision === requestRevision.current) {
-          setError(failure instanceof Error ? failure : new Error(String(failure)));
-        }
-      } finally {
-        if (revision === requestRevision.current) {
-          setIsLoading(false);
-          setIsLoadingMore(false);
+          setState((old) => ({
+            ...old,
+            error: failure instanceof Error ? failure : new Error(String(failure)),
+            loading: false,
+            loadingMore: false,
+          }));
         }
       }
     },
-    [filters],
+    [filters, key],
   );
-
+  const invalidate = useCallback(() => {
+    requestRevision.current++;
+  }, []);
   useEffect(() => {
     void loadPage();
-  }, [loadPage]);
-
+    return invalidate;
+  }, [loadPage, invalidate]);
+  const visible = state.key === key;
   return {
-    stockLevels,
-    error,
-    isLoading,
-    isLoadingMore,
-    hasNextPage: nextCursor !== null,
+    stockLevels: visible ? state.items : [],
+    error: visible ? state.error : null,
+    isLoading: !visible || state.loading,
+    isLoadingMore: visible && state.loadingMore,
+    hasNextPage: visible && state.cursor !== null,
     refetch: () => loadPage(),
-    loadMore: () => loadPage(nextCursor ?? undefined, true),
+    loadMore: () => loadPage(state.cursor ?? undefined),
   };
 }
