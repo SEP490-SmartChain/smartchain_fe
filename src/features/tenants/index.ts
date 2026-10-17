@@ -38,5 +38,6 @@ export type {
 export { PlatformStaffAssignments } from './components/PlatformStaffAssignments';
 export { SellerContractOnboarding } from './components/SellerContractOnboarding';
 export { CommercialPlanAdmin } from './components/CommercialPlanAdmin';
+export { ServiceTariffManager } from './components/ServiceTariffManager';
 export { CommercialBilling } from './components/CommercialBilling';
 export { CommercialQuotaAdmin } from './components/CommercialQuotaPanel';
