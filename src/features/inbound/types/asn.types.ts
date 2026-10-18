@@ -77,3 +77,26 @@ export interface AsnSkuOption {
   trackLot: boolean;
   trackExpiry: boolean;
 }
+
+export interface WarehouseAllocation {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  region: string;
+  suggestedQuantity: number;
+  percentage: number;
+  dailyVelocity: number;
+  currentStock: number;
+  daysOfCover: number;
+  shelfLifeCapApplied: boolean;
+  maxHoldableQuantity: number | null;
+}
+
+export interface AllocationSuggestion {
+  productId: string;
+  totalQuantity: number;
+  modelVersion: string;
+  evaluationBasis: string;
+  hasSufficientHistory: boolean;
+  allocations: WarehouseAllocation[];
+}

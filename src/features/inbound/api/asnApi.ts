@@ -2,7 +2,14 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
-import type { Asn, AsnPage, AsnStatus, CreateAsnInput, UpdateAsnInput } from '../types/asn.types';
+import type {
+  AllocationSuggestion,
+  Asn,
+  AsnPage,
+  AsnStatus,
+  CreateAsnInput,
+  UpdateAsnInput,
+} from '../types/asn.types';
 
 const asnLineSchema = z.object({
   id: z.string().uuid(),
@@ -71,7 +78,49 @@ const skuPageSchema = z.object({
   pagination: pageSchema.shape.pagination,
 });
 
+const warehouseAllocationSchema = z.object({
+  warehouseId: z.string().uuid(),
+  warehouseCode: z.string(),
+  warehouseName: z.string(),
+  region: z.string(),
+  suggestedQuantity: z.number().int().nonnegative(),
+  percentage: z.number().nonnegative(),
+  dailyVelocity: z.number().nonnegative(),
+  currentStock: z.number().int().nonnegative(),
+  daysOfCover: z.number().nonnegative(),
+  shelfLifeCapApplied: z.boolean(),
+  maxHoldableQuantity: z.number().int().nullable(),
+});
+
+const allocationSuggestionSchema = z.object({
+  productId: z.string().uuid(),
+  totalQuantity: z.number().int().positive(),
+  modelVersion: z.string(),
+  evaluationBasis: z.string(),
+  hasSufficientHistory: z.boolean(),
+  allocations: z.array(warehouseAllocationSchema),
+});
+
 export const asnApi = {
+  async getAllocationSuggestion(
+    params: { productId: string; totalQuantity: number; shelfLifeDays?: number },
+    signal?: AbortSignal,
+  ): Promise<AllocationSuggestion> {
+    const searchParams: Record<string, string> = {
+      productId: params.productId,
+      totalQuantity: String(params.totalQuantity),
+    };
+    if (params.shelfLifeDays !== undefined) {
+      searchParams.shelfLifeDays = String(params.shelfLifeDays);
+    }
+    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/asns/allocation-suggestion', {
+      params: searchParams,
+      signal,
+      silent: true,
+    });
+    return allocationSuggestionSchema.parse(data);
+  },
+
   async skuOptions(search = '', cursor?: string, signal?: AbortSignal) {
     const params: Record<string, string> = { limit: '100' };
     if (search.trim()) params.search = search.trim();
