@@ -92,8 +92,22 @@ function Manager() {
             ariaLabel={t('title')}
             emptyMessage={t('empty')}
             columns={[
-              { key: 'code', label: t('code') },
-              { key: 'versionNo', label: t('version') },
+              {
+                key: 'code',
+                label: t('code'),
+                render: (row) => (
+                  <div className="font-semibold text-[var(--sc-text-primary)]">{row.code}</div>
+                ),
+              },
+              {
+                key: 'versionNo',
+                label: t('version'),
+                render: (row) => (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)] border border-[var(--sc-border-default)]">
+                    v{row.versionNo}
+                  </span>
+                ),
+              },
               {
                 key: 'status',
                 label: t('status'),
@@ -108,64 +122,82 @@ function Manager() {
                 key: 'effectiveFrom',
                 label: t('effectiveWindow'),
                 render: (row) => (
-                  <span>
-                    {new Date(row.effectiveFrom).toLocaleString(locale, {
-                      timeZone: 'Asia/Ho_Chi_Minh',
-                    })}
-                    <br />
-                    {row.effectiveTo
-                      ? new Date(row.effectiveTo).toLocaleString(locale, {
+                  <div className="text-xs space-y-1 whitespace-nowrap">
+                    <div className="text-[var(--sc-text-secondary)]">
+                      <span className="font-medium text-[var(--sc-text-primary)]">Từ: </span>
+                      {new Date(row.effectiveFrom).toLocaleDateString(locale, {
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                      })}
+                    </div>
+                    <div className="text-[var(--sc-text-secondary)]">
+                      <span className="font-medium text-[var(--sc-text-primary)]">Đến: </span>
+                      {row.effectiveTo ? (
+                        new Date(row.effectiveTo).toLocaleDateString(locale, {
                           timeZone: 'Asia/Ho_Chi_Minh',
                         })
-                      : t('openEnded')}
-                  </span>
+                      ) : (
+                        <span className="text-[var(--sc-text-tertiary)] italic">
+                          {t('openEnded')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 ),
               },
               {
                 key: 'lines',
                 label: t('rates'),
                 render: (row) => (
-                  <ul className="space-y-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 py-1 min-w-[340px] max-w-[500px]">
                     {row.lines.map((line) => (
-                      <li key={`${line.feeType}:${line.lowerBound}`}>
-                        {t(`fee_${line.feeType}`)} ·{' '}
-                        {BigInt(line.unitPriceVnd).toLocaleString(locale)} VND/{line.unit} ·{' '}
-                        {line.lowerBound}–{line.upperBound ?? '∞'}
-                      </li>
+                      <div
+                        key={`${line.feeType}:${line.lowerBound}`}
+                        className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-[var(--sc-bg-secondary)] border border-[var(--sc-border-default)] text-xs transition-colors hover:border-[var(--sc-border-strong)]"
+                      >
+                        <span
+                          className="font-medium text-[var(--sc-text-primary)] truncate"
+                          title={t(`fee_${line.feeType}`)}
+                        >
+                          {t(`fee_${line.feeType}`)}
+                        </span>
+                        <span className="font-semibold text-[var(--sc-primary)] whitespace-nowrap">
+                          {BigInt(line.unitPriceVnd).toLocaleString(locale)} đ
+                          <span className="text-[10px] text-[var(--sc-text-tertiary)] font-normal ml-0.5">
+                            /{line.unit}
+                          </span>
+                        </span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 ),
               },
               {
                 key: 'actions',
                 label: t('actions'),
                 render: (row) => (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 whitespace-nowrap">
                     {row.status === 'DRAFT' ? (
                       <>
-                        <Button variant="ghost" onClick={() => setEditing(row)}>
+                        <Button variant="ghost" size="sm" onClick={() => setEditing(row)}>
                           {t('edit')}
                         </Button>
                         <Button
                           variant="outline"
+                          size="sm"
                           onClick={() => setCommand({ row, mode: 'publish' })}
                         >
                           {t('publish')}
                         </Button>
                       </>
-                    ) : (
-                      <>
-                        <span className="text-sm">{t('immutable')}</span>
-                        {row.status === 'PUBLISHED' && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => setCommand({ row, mode: 'close' })}
-                          >
-                            {t('close')}
-                          </Button>
-                        )}
-                      </>
-                    )}
+                    ) : row.status === 'PUBLISHED' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCommand({ row, mode: 'close' })}
+                      >
+                        {t('close')}
+                      </Button>
+                    ) : null}
                   </div>
                 ),
               },
