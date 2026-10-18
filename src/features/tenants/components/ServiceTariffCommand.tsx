@@ -80,12 +80,14 @@ export function ServiceTariffCommand({
         {mode === 'close' && (
           <Input
             label={t('toUtc')}
+            required
             error={form.formState.errors.effectiveTo ? t('invalid') : undefined}
             {...form.register('effectiveTo')}
           />
         )}
         <Input
           label={t('reason')}
+          required
           error={form.formState.errors.reason ? t('invalid') : undefined}
           {...form.register('reason')}
         />

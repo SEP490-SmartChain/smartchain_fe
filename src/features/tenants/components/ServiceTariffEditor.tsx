@@ -89,6 +89,7 @@ export function ServiceTariffEditor({
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label={t('code')}
+            required
             readOnly={Boolean(row)}
             error={invalid(form.formState.errors.code)}
             {...form.register('code')}
@@ -96,12 +97,16 @@ export function ServiceTariffEditor({
           <Input
             label={t('version')}
             type="number"
+            min={1}
+            step={1}
+            required
             readOnly={Boolean(row)}
             error={invalid(form.formState.errors.versionNo)}
             {...form.register('versionNo', { valueAsNumber: true })}
           />
           <Input
             label={t('fromUtc')}
+            required
             error={invalid(form.formState.errors.effectiveFrom)}
             {...form.register('effectiveFrom')}
           />
@@ -120,6 +125,7 @@ export function ServiceTariffEditor({
             <legend className="px-2 text-sm">{t('line', { number: index + 1 })}</legend>
             <Select
               label={t('feeType')}
+              required
               options={Object.keys(SERVICE_FEE_UNITS).map((value) => ({
                 value,
                 label: t(`fee_${value}`),
@@ -139,18 +145,26 @@ export function ServiceTariffEditor({
             <Input label={t('unit')} readOnly {...form.register(`lines.${index}.unit`)} />
             <Input
               label={t('price')}
-              inputMode="numeric"
+              type="number"
+              min={0}
+              step={1000}
+              required
               error={invalid(form.formState.errors.lines?.[index]?.unitPriceVnd)}
               {...form.register(`lines.${index}.unitPriceVnd`)}
             />
             <Input
               label={t('lower')}
-              inputMode="decimal"
+              type="number"
+              min={0}
+              step="any"
+              required
               {...form.register(`lines.${index}.lowerBound`)}
             />
             <Input
               label={t('upper')}
-              inputMode="decimal"
+              type="number"
+              min={0}
+              step="any"
               {...form.register(`lines.${index}.upperBound`, {
                 setValueAs: (value: string) => (value === '' ? null : value),
               })}
@@ -185,6 +199,7 @@ export function ServiceTariffEditor({
         </Button>
         <Input
           label={t('reason')}
+          required
           error={invalid(form.formState.errors.reason)}
           {...form.register('reason')}
         />
