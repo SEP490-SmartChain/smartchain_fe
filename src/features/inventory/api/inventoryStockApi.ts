@@ -6,6 +6,7 @@ import type {
   InventoryStockFilters,
   InventoryStockPage,
   InventoryStockSummary,
+  RunningLowItem,
 } from '../types/inventoryStock.types';
 
 const quantitySchema = z.number().int().nonnegative();
@@ -32,6 +33,20 @@ const inventoryStockSummarySchema = z.object({
   totalSkus: quantitySchema,
   availableUnits: quantitySchema,
 });
+const runningLowItemSchema = z.object({
+  productId: z.string().uuid(),
+  sku: z.string(),
+  productName: z.string(),
+  warehouseId: z.string().uuid(),
+  warehouseCode: z.string(),
+  warehouseName: z.string(),
+  availableStock: quantitySchema,
+  dailyVelocity: z.number().nonnegative(),
+  daysOfCover: z.number().nonnegative(),
+  suggestedReplenishment: quantitySchema,
+  urgency: z.enum(['CRITICAL', 'WARNING']),
+});
+const runningLowListSchema = z.array(runningLowItemSchema);
 
 export const inventoryStockApi = {
   async list(filters: InventoryStockFilters, cursor?: string): Promise<InventoryStockPage> {
@@ -55,5 +70,12 @@ export const inventoryStockApi = {
       silent: true,
     });
     return inventoryStockSummarySchema.parse(data);
+  },
+
+  async getRunningLow(): Promise<RunningLowItem[]> {
+    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/inventory/stocks/running-low', {
+      silent: true,
+    });
+    return runningLowListSchema.parse(data);
   },
 };
