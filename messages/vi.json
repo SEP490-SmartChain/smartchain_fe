@@ -1922,7 +1922,23 @@
       "network": "Không kết nối được máy chủ. Kiểm tra kết nối và thử lại.",
       "response": "Dữ liệu máy chủ trả về chưa đúng định dạng. Thử tải lại; nếu vẫn lỗi, cần kiểm tra kết nối dữ liệu giữa giao diện và máy chủ.",
       "unavailable": "Máy chủ chưa xử lý được yêu cầu. Vui lòng thử lại sau."
-    }
+    },
+    "runningLowTitle": "Cảnh báo sắp hết hàng",
+    "runningLowDescription": "Các sản phẩm sắp hoặc đã dưới ngưỡng tồn kho an toàn dựa trên tốc độ bán 30 ngày.",
+    "runningLowEmpty": "Tồn kho trong mức an toàn",
+    "runningLowEmptyHint": "Không có sản phẩm nào dưới ngưỡng cần bổ sung hàng.",
+    "runningLowUrgentCount": "{count} mặt hàng cần nhập bổ sung",
+    "columnDailyVelocity": "Tốc độ bán",
+    "columnDaysOfCover": "Ngày còn lại",
+    "columnSuggestedReplenishment": "Gợi ý nhập thêm",
+    "columnUrgency": "Mức độ",
+    "urgencyCritical": "Khẩn cấp (< 7 ngày)",
+    "urgencyWarning": "Cảnh báo",
+    "replenishAction": "Tạo ASN",
+    "unitsPerDay": "{rate}/ngày",
+    "daysCoverUnit": "{days} ngày",
+    "replenishUnits": "{count, number} đơn vị",
+    "runningLowLoadError": "Không thể tải danh sách cảnh báo sắp hết hàng."
   },
   "ApiKeys": {
     "title": "API Keys",

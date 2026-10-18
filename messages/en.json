@@ -1922,7 +1922,23 @@
       "network": "The server could not be reached. Check your connection and retry.",
       "response": "The server returned an unexpected data format. Retry; if it persists, the application data contract needs to be checked.",
       "unavailable": "The server could not complete this request. Please retry later."
-    }
+    },
+    "runningLowTitle": "Running Low Alerts",
+    "runningLowDescription": "Products approaching or below safety threshold based on 30-day sales velocity.",
+    "runningLowEmpty": "Stock levels healthy",
+    "runningLowEmptyHint": "No products are currently below replenishment thresholds.",
+    "runningLowUrgentCount": "{count, plural, one {# item requires replenishment} other {# items require replenishment}}",
+    "columnDailyVelocity": "Daily sales",
+    "columnDaysOfCover": "Days left",
+    "columnSuggestedReplenishment": "Suggested replenish",
+    "columnUrgency": "Urgency",
+    "urgencyCritical": "Critical (< 7d)",
+    "urgencyWarning": "Warning",
+    "replenishAction": "Create ASN",
+    "unitsPerDay": "{rate}/day",
+    "daysCoverUnit": "{days} days",
+    "replenishUnits": "{count, number} units",
+    "runningLowLoadError": "Unable to load running low alerts."
   },
   "ApiKeys": {
     "title": "API Keys",
