@@ -1,5 +1,22 @@
 # features/tenants
 
+## SS-999 service tariffs
+
+The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`
+policy for PLATFORM Admin/Accountant, with no additional seller or warehouse
+access. Requests use `/v1/commercial/service-tariffs`; the backend rechecks live
+roles and RLS. Service tariff authority does not grant plan publication.
+
+Drafts use RHF/Zod, exact decimal-string prices, contiguous quantity tiers and
+UTC input timestamps. Effective dates display in Vietnam time. Saving and
+publishing require an audit reason and the server's `updatedAt` revision.
+Published prices are read-only; closing their future window preserves content.
+API failures retain the form; no local success is shown. Auth revision remounts
+the manager and aborts pending reads/mutations.
+
+Test contracts: `service-tariff-schema.test.mjs`, `service-tariff-api.test.mjs`.
+The UI configures rates; it cannot post seller fees or calculate ledger balances.
+
 ## SS-990 ORCA commercial onboarding
 
 Baseline: UC-08–UC-13 and BR-59; existing identity UC-01–UC-05 is reused.
