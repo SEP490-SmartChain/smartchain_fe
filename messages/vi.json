@@ -3266,10 +3266,10 @@
   },
   "Invoices": {
     "title": "Hóa đơn & phí dịch vụ",
-    "description": "Theo dõi phí gói, phí lưu kho và dịch vụ fulfillment. Mỗi dòng phí giữ tham chiếu đến nghiệp vụ gốc và bảng giá đã áp dụng.",
+    "description": "Quản lý hóa đơn phí gói và dịch vụ. Xem chi tiết từng khoản phí, tải chứng từ và theo dõi thanh toán.",
     "documents": "Số hóa đơn",
     "documentTotal": "Tổng giá trị chứng từ",
-    "outstanding": "Cần thanh toán theo hóa đơn",
+    "outstanding": "Cần thanh toán",
     "loadedOnly": "Trong các hóa đơn đã tải",
     "listTitle": "Danh sách hóa đơn",
     "listHelp": "Hóa đơn đã phát hành được giữ nguyên. Điều chỉnh được thể hiện ở kỳ tiếp theo.",
@@ -3327,6 +3327,33 @@
       "PAID": "Đã thanh toán",
       "EXPIRED": "Quá hạn",
       "LEDGER": "Đã ghi sổ tiền"
+    },
+    "eyebrow": "Tài chính người bán",
+    "reset": "Xóa bộ lọc",
+    "paid": "Đã thanh toán",
+    "documentReference": "Mã chứng từ đầy đủ",
+    "sourceTraceable": "Có nguồn đối chiếu",
+    "viewSource": "Xem nguồn",
+    "included": "Trong hạn mức gói",
+    "ledgerDocument": "Tổng hợp phí đã ghi sổ",
+    "noActiveObligation": "Hóa đơn chưa có nghĩa vụ thu đang hiệu lực. Liên hệ kế toán để đối chiếu trước khi thanh toán.",
+    "feeTypes": {
+      "STORAGE_M3_DAY": "Lưu kho hằng ngày",
+      "PICK_PACK_ORDER": "Xử lý đơn hàng",
+      "INBOUND_CARTON": "Tiếp nhận thùng hàng",
+      "RETURN_HANDLING": "Xử lý hàng hoàn",
+      "COMBO": "Đóng gói bộ sản phẩm",
+      "PACKING_MATERIAL": "Vật tư đóng gói"
+    },
+    "units": {
+      "MONTH": "Tháng",
+      "M3_DAY": "m³ / ngày",
+      "ORDER": "Đơn hàng",
+      "CARTON": "Thùng",
+      "PARCEL": "Kiện",
+      "ADJUST": "Điều chỉnh",
+      "COMBO": "Bộ",
+      "UNIT": "Đơn vị"
     }
   }
 }

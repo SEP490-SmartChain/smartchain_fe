@@ -3,10 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileText } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, FileText, Filter, RefreshCw, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
+import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
@@ -66,6 +67,10 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
   }, [tenantId, filters, revision, t]);
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
+  const date = (value: string) =>
+    new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB').format(
+      new Date(`${value}T12:00:00Z`),
+    );
   const more = async () => {
     const current = request.current;
     if (!cursor || loading || !current) return;
@@ -106,36 +111,57 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
   });
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3" aria-busy={loading}>
         {[
-          { label: t('documents'), value: String(items.length) },
+          { label: t('documents'), value: String(items.length), icon: FileText, emphasis: false },
           {
             label: t('documentTotal'),
             value: money(
               items.reduce((sum, item) => sum + BigInt(item.totalVnd), BigInt(0)).toString(),
             ),
+            icon: CalendarDays,
+            emphasis: false,
           },
           {
             label: t('outstanding'),
             value: money(
               items.reduce((sum, item) => sum + BigInt(item.outstandingVnd), BigInt(0)).toString(),
             ),
+            icon: Wallet,
+            emphasis: true,
           },
         ].map((card) => (
           <div
             key={card.label}
-            className="rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-5"
+            className={`relative overflow-hidden rounded-2xl border p-5 ${card.emphasis ? 'border-[var(--sc-primary)] bg-[var(--sc-primary)] text-white' : 'border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)]'}`}
           >
-            <p className="text-sm text-[var(--sc-text-secondary)]">{card.label}</p>
-            <p className="mt-3 break-words text-xl font-semibold tabular-nums">{card.value}</p>
-            <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">{t('loadedOnly')}</p>
+            <div className="flex items-center justify-between gap-3">
+              <p
+                className={`text-sm ${card.emphasis ? 'text-white/90' : 'text-[var(--sc-text-secondary)]'}`}
+              >
+                {card.label}
+              </p>
+              <card.icon
+                size={19}
+                className={card.emphasis ? 'text-white/80' : 'text-[var(--sc-primary)]'}
+                aria-hidden
+              />
+            </div>
+            <p className="mt-4 break-words text-2xl font-semibold tracking-tight tabular-nums">
+              {loading && !items.length ? '—' : card.value}
+            </p>
+            <p
+              className={`mt-2 text-xs ${card.emphasis ? 'text-white/80' : 'text-[var(--sc-text-secondary)]'}`}
+            >
+              {t('loadedOnly')}
+            </p>
           </div>
         ))}
       </div>
       {tenantId && can('invoice.period.close') && (
         <form
           onSubmit={close}
-          className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--sc-border-default)] p-4"
+          className="grid items-end gap-4 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-5 sm:grid-cols-[minmax(0,1fr)_auto]"
         >
           <Input
             type="month"
@@ -146,7 +172,9 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
           <Button type="submit" variant="outline" isLoading={closeForm.formState.isSubmitting}>
             {t('closePeriod')}
           </Button>
-          <p className="text-xs text-[var(--sc-text-secondary)]">{t('closeHelp')}</p>
+          <p className="text-xs leading-5 text-[var(--sc-text-secondary)] sm:col-span-2">
+            {t('closeHelp')}
+          </p>
         </form>
       )}
       {notice && <Alert variant="success">{notice}</Alert>}
@@ -177,6 +205,7 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
               setRevision((value) => value + 1);
             }}
           >
+            <RefreshCw size={14} aria-hidden />
             {t('refresh')}
           </Button>
         </div>
@@ -193,54 +222,143 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
           </div>
         )}
         {items.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm" aria-label={t('listTitle')}>
-              <thead className="bg-[var(--sc-bg-secondary)] text-xs text-[var(--sc-text-secondary)]">
-                <tr>
-                  {['invoice', 'kind', 'period', 'total', 'status', 'actions'].map((key) => (
-                    <th key={key} className="px-5 py-3 font-medium">
-                      {t(key)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-t border-[var(--sc-border-default)]">
-                    <td className="max-w-72 break-all px-5 py-4 font-medium">
-                      {item.invoiceNo}
-                      <p className="mt-1 text-xs font-normal text-[var(--sc-text-secondary)]">
-                        {t('due', { date: item.dueOn })}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">{t(`kinds.${item.documentType}`)}</td>
-                    <td className="whitespace-nowrap px-5 py-4">{item.periodKey}</td>
-                    <td className="whitespace-nowrap px-5 py-4 font-medium tabular-nums">
-                      {money(item.totalVnd)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex whitespace-nowrap rounded-full bg-[var(--sc-bg-secondary)] px-3 py-1 text-xs font-medium">
-                        {t(
-                          `states.${item.documentStatus === 'DRAFT' ? 'DRAFT' : item.paymentStatus}`,
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelected(item.id);
-                        }}
-                      >
-                        {t('details')}
-                      </Button>
-                    </td>
+          <>
+            <div className="divide-y divide-[var(--sc-border-default)] md:hidden">
+              {items.map((item) => (
+                <article key={item.id} className="space-y-4 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-[var(--sc-primary)]">
+                      {t(`kinds.${item.documentType}`)}
+                    </p>
+                    <Badge
+                      status={
+                        item.documentStatus === 'DRAFT'
+                          ? 'default'
+                          : item.paymentStatus === 'PAID'
+                            ? 'success'
+                            : item.paymentStatus === 'EXPIRED'
+                              ? 'error'
+                              : item.paymentStatus === 'LEDGER'
+                                ? 'info'
+                                : 'warning'
+                      }
+                      label={t(
+                        `states.${item.documentStatus === 'DRAFT' ? 'DRAFT' : item.paymentStatus}`,
+                      )}
+                    />
+                  </div>
+                  <p className="text-sm font-medium" title={item.invoiceNo}>
+                    {item.invoiceNo.endsWith(item.id)
+                      ? `${item.invoiceNo.slice(0, -item.id.length)}${item.id.slice(0, 8).toUpperCase()}`
+                      : item.invoiceNo}
+                  </p>
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-[var(--sc-text-secondary)]">{t('period')}</dt>
+                      <dd className="mt-1">{item.periodKey}</dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="text-xs text-[var(--sc-text-secondary)]">{t('total')}</dt>
+                      <dd className="mt-1 font-semibold tabular-nums">{money(item.totalVnd)}</dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs text-[var(--sc-text-secondary)]">
+                    {item.documentType === 'SERVICE'
+                      ? t('ledgerDocument')
+                      : t('due', { date: date(item.dueOn) })}
+                  </p>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelected(item.id);
+                    }}
+                  >
+                    {t('details')}
+                    <ArrowUpRight size={15} aria-hidden />
+                  </Button>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[720px] text-left text-sm" aria-label={t('listTitle')}>
+                <thead className="bg-[var(--sc-bg-secondary)] text-xs text-[var(--sc-text-secondary)]">
+                  <tr>
+                    {['invoice', 'kind', 'period', 'total', 'status', 'actions'].map((key) => (
+                      <th key={key} className="px-5 py-3 font-medium">
+                        {t(key)}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr
+                      key={item.id}
+                      className="border-t border-[var(--sc-border-default)] transition-colors hover:bg-[var(--sc-bg-secondary)] motion-reduce:transition-none"
+                    >
+                      <td className="px-5 py-5 font-medium">
+                        <span
+                          className="inline-flex items-center gap-2 whitespace-nowrap"
+                          title={item.invoiceNo}
+                        >
+                          <FileText
+                            size={17}
+                            className="shrink-0 text-[var(--sc-primary)]"
+                            aria-hidden
+                          />
+                          {item.invoiceNo.endsWith(item.id)
+                            ? `${item.invoiceNo.slice(0, -item.id.length)}${item.id.slice(0, 8).toUpperCase()}`
+                            : item.invoiceNo}
+                        </span>
+                        <p className="mt-1 text-xs font-normal text-[var(--sc-text-secondary)]">
+                          {item.documentType === 'SERVICE'
+                            ? t('ledgerDocument')
+                            : t('due', { date: date(item.dueOn) })}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4">{t(`kinds.${item.documentType}`)}</td>
+                      <td className="whitespace-nowrap px-5 py-4">{item.periodKey}</td>
+                      <td className="whitespace-nowrap px-5 py-4 font-medium tabular-nums">
+                        {money(item.totalVnd)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <Badge
+                          status={
+                            item.documentStatus === 'DRAFT'
+                              ? 'default'
+                              : item.paymentStatus === 'PAID'
+                                ? 'success'
+                                : item.paymentStatus === 'EXPIRED'
+                                  ? 'error'
+                                  : item.paymentStatus === 'LEDGER'
+                                    ? 'info'
+                                    : 'warning'
+                          }
+                          label={t(
+                            `states.${item.documentStatus === 'DRAFT' ? 'DRAFT' : item.paymentStatus}`,
+                          )}
+                        />
+                      </td>
+                      <td className="px-5 py-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelected(item.id);
+                          }}
+                        >
+                          {t('details')}
+                          <ArrowUpRight size={15} aria-hidden />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
         {cursor && (
           <div className="p-4 text-center">
@@ -309,13 +427,13 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
   const target = fixedTenant ?? (scope === 'PLATFORM' ? selected : undefined);
   return (
     <section className="space-y-6">
-      <div className="rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-5 sm:p-6">
+      <div>
         <div className="flex items-start gap-4">
-          <div className="rounded-xl bg-[var(--sc-accent-light)] p-3 text-[var(--sc-primary)]">
-            <FileText size={24} />
-          </div>
           <div>
-            <h2 className="text-xl font-semibold">{t('title')}</h2>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--sc-primary)]">
+              {t('eyebrow')}
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('title')}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--sc-text-secondary)]">
               {t('description')}
             </p>
@@ -349,7 +467,7 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
         )}
         <form
           onSubmit={form.handleSubmit(setFilters)}
-          className="mt-5 grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+          className="mt-6 grid items-end gap-3 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
         >
           <Input
             type="month"
@@ -367,7 +485,19 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
             {...form.register('documentType')}
           />
           <Button type="submit" variant="outline">
+            <Filter size={16} aria-hidden />
             {t('apply')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              const empty: Filters = { month: '', documentType: '' };
+              form.reset(empty);
+              setFilters(empty);
+            }}
+          >
+            {t('reset')}
           </Button>
         </form>
       </div>

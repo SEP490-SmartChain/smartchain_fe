@@ -14,6 +14,13 @@ Identity or selected seller/filter changes remount the workspace and cancel read
 SePay initiation (S53), deposit-offset orchestration (S16) and email delivery (S19)
 remain separate integrations; no mock success is shown for them.
 
+The reviewed workspace uses semantic status badges, invoice totals for loaded
+documents, Vietnamese/English fee labels, full references behind disclosures,
+and invoice cards on small screens. The financial breadcrumb replaces the old
+SaaS usage breadcrumb. Source evidence and full invoice numbers remain available
+in detail; abbreviated list references are display only. Actual test API/DB
+data, desktop and 390px mobile layouts were checked for SS-1022.
+
 ## SS-999 service tariffs
 
 The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`

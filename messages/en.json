@@ -3266,10 +3266,10 @@
   },
   "Invoices": {
     "title": "Invoices & service fees",
-    "description": "Review subscription, storage and fulfillment charges. Each fee line retains its original operation and applied tariff reference.",
+    "description": "Manage subscription and service invoices. Review each charge, download documents and track payments.",
     "documents": "Invoices",
     "documentTotal": "Document value",
-    "outstanding": "Invoice amount due",
+    "outstanding": "Amount due",
     "loadedOnly": "For loaded invoices only",
     "listTitle": "Invoice history",
     "listHelp": "Issued documents remain unchanged. Corrections appear on a subsequent statement.",
@@ -3327,6 +3327,33 @@
       "PAID": "Paid",
       "EXPIRED": "Overdue",
       "LEDGER": "Posted to ledger"
+    },
+    "eyebrow": "Seller finances",
+    "reset": "Clear filters",
+    "paid": "Paid",
+    "documentReference": "Full document reference",
+    "sourceTraceable": "Source linked",
+    "viewSource": "View source",
+    "included": "Included in plan",
+    "ledgerDocument": "Summary of posted fees",
+    "noActiveObligation": "This invoice has no active collectible obligation. Contact Accounting to reconcile it before paying.",
+    "feeTypes": {
+      "STORAGE_M3_DAY": "Daily storage",
+      "PICK_PACK_ORDER": "Order handling",
+      "INBOUND_CARTON": "Inbound cartons",
+      "RETURN_HANDLING": "Return handling",
+      "COMBO": "Product bundle packing",
+      "PACKING_MATERIAL": "Packing materials"
+    },
+    "units": {
+      "MONTH": "Month",
+      "M3_DAY": "m³ / day",
+      "ORDER": "Order",
+      "CARTON": "Carton",
+      "PARCEL": "Parcel",
+      "ADJUST": "Adjustment",
+      "COMBO": "Bundle",
+      "UNIT": "Unit"
     }
   }
 }

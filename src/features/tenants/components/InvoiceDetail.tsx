@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Download } from 'lucide-react';
+import { Download, FileCheck2, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
+import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
@@ -88,6 +89,10 @@ export function InvoiceDetail({
   };
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
+  const date = (value: string) =>
+    new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB').format(
+      new Date(`${value}T12:00:00Z`),
+    );
   const download = async () => {
     const blob = await invoiceApi.pdf(id, tenantId, abort.current.signal);
     if (abort.current.signal.aborted) return;
@@ -117,17 +122,71 @@ export function InvoiceDetail({
         {loading && <p role="status">{t('loading')}</p>}
         {invoice && (
           <>
-            <div className="flex flex-wrap justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase text-[var(--sc-primary)]">
-                  {t(`kinds.${invoice.documentType}`)} · {invoice.periodKey}
-                </p>
-                <h3 className="mt-2 break-all text-base font-semibold">{invoice.invoiceNo}</h3>
-                <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
-                  {t('due', { date: invoice.dueOn })}
-                </p>
+            <div className="rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-[var(--sc-bg-elevated)] p-3 text-[var(--sc-primary)]">
+                    <FileCheck2 size={24} aria-hidden />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-[var(--sc-primary)]">
+                      {t(`kinds.${invoice.documentType}`)} · {invoice.periodKey}
+                    </p>
+                    <h3 className="mt-2 text-lg font-semibold" title={invoice.invoiceNo}>
+                      {invoice.invoiceNo.endsWith(invoice.id)
+                        ? `${invoice.invoiceNo.slice(0, -invoice.id.length)}${invoice.id.slice(0, 8).toUpperCase()}`
+                        : invoice.invoiceNo}
+                    </h3>
+                    <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
+                      {invoice.documentType === 'SERVICE'
+                        ? t('ledgerDocument')
+                        : t('due', { date: date(invoice.dueOn) })}
+                    </p>
+                  </div>
+                </div>
+                <Badge
+                  status={
+                    invoice.documentStatus === 'DRAFT'
+                      ? 'default'
+                      : invoice.paymentStatus === 'PAID'
+                        ? 'success'
+                        : invoice.paymentStatus === 'EXPIRED'
+                          ? 'error'
+                          : invoice.paymentStatus === 'LEDGER'
+                            ? 'info'
+                            : 'warning'
+                  }
+                  label={t(
+                    `states.${invoice.documentStatus === 'DRAFT' ? 'DRAFT' : invoice.paymentStatus}`,
+                  )}
+                />
               </div>
-              <p className="text-xl font-semibold tabular-nums">{money(invoice.totalVnd)}</p>
+              <dl className="mt-6 grid gap-5 border-t border-[var(--sc-border-default)] pt-5 sm:grid-cols-3">
+                {[
+                  ['total', invoice.totalVnd],
+                  ['paid', invoice.paidVnd],
+                  ['outstanding', invoice.outstandingVnd],
+                ].map(
+                  ([key, value]) =>
+                    key &&
+                    value !== undefined && (
+                      <div key={key}>
+                        <dt className="text-xs text-[var(--sc-text-secondary)]">{t(key)}</dt>
+                        <dd
+                          className={`mt-2 text-xl font-semibold tabular-nums ${key === 'outstanding' ? 'text-[var(--sc-primary)]' : ''}`}
+                        >
+                          {money(value)}
+                        </dd>
+                      </div>
+                    ),
+                )}
+              </dl>
+              <details className="mt-5 text-xs text-[var(--sc-text-secondary)]">
+                <summary className="cursor-pointer rounded py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+                  {t('documentReference')}
+                </summary>
+                <p className="mt-2 break-all font-mono">{invoice.invoiceNo}</p>
+              </details>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button
@@ -155,6 +214,9 @@ export function InvoiceDetail({
               )}
             </div>
             {invoice.paymentStatus === 'LEDGER' && <Alert variant="info">{t('ledgerHelp')}</Alert>}
+            {invoice.documentStatus === 'ISSUED' &&
+              invoice.paymentStatus === 'UNPAID' &&
+              !invoice.paymentRequired && <Alert variant="info">{t('noActiveObligation')}</Alert>}
             {payment && (
               <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">
                 <h4 className="font-semibold">{t('bankTitle')}</h4>
@@ -171,51 +233,82 @@ export function InvoiceDetail({
                 </dl>
               </div>
             )}
-            <div className="overflow-x-auto rounded-xl border border-[var(--sc-border-default)]">
-              <table className="w-full text-left text-sm" aria-label={t('lineTitle')}>
-                <thead className="bg-[var(--sc-bg-secondary)]">
-                  <tr>
-                    {['descriptionColumn', 'quantity', 'rate', 'amount', 'source'].map((key) => (
-                      <th key={key} className="px-4 py-3 text-xs font-medium">
-                        {t(key)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line) => (
-                    <tr key={line.id} className="border-t border-[var(--sc-border-default)]">
-                      <td className="px-4 py-3">
-                        {line.description}
-                        <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">{line.unit}</p>
-                      </td>
-                      <td className="px-4 py-3 tabular-nums">{line.quantity}</td>
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                        {money(line.unitPriceVnd)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-medium tabular-nums">
-                        {money(line.amountVnd)}
-                      </td>
-                      <td className="max-w-80 break-all px-4 py-3 text-xs text-[var(--sc-text-secondary)]">
-                        {line.refType ?? (line.ledgerEntryId ? 'ADJUST' : t('contract'))}
-                        <p className="mt-1 font-mono">
-                          {line.refId ?? line.ledgerEntryId ?? invoice.contractId}
-                        </p>
-                        {line.billableEventId && (
-                          <p className="mt-2 font-mono">
-                            {t('event')}: {line.billableEventId}
-                          </p>
-                        )}
-                        {line.tariffVersionRef && (
-                          <p className="mt-2 font-mono">
-                            {t('tariff')}: {line.tariffVersionRef}
-                          </p>
-                        )}
-                      </td>
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h4 className="font-semibold">{t('lineTitle')}</h4>
+                <span className="inline-flex items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
+                  <ShieldCheck size={14} aria-hidden />
+                  {t('sourceTraceable')}
+                </span>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-[var(--sc-border-default)]">
+                <table
+                  className="w-full min-w-[650px] text-left text-sm"
+                  aria-label={t('lineTitle')}
+                >
+                  <thead className="bg-[var(--sc-bg-secondary)]">
+                    <tr>
+                      {['descriptionColumn', 'quantity', 'rate', 'amount', 'source'].map((key) => (
+                        <th key={key} className="px-4 py-3 text-xs font-medium">
+                          {t(key)}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {lines.map((line) => (
+                      <tr key={line.id} className="border-t border-[var(--sc-border-default)]">
+                        <td className="px-4 py-3">
+                          <span className="font-medium">
+                            {line.feeType && t.has(`feeTypes.${line.feeType}`)
+                              ? t(`feeTypes.${line.feeType}`)
+                              : invoice.documentType === 'PLAN'
+                                ? t('kinds.PLAN')
+                                : line.ledgerEntryId
+                                  ? t('kinds.ADJUSTMENT')
+                                  : line.description}
+                          </span>
+                          <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+                            {t.has(`units.${line.unit}`) ? t(`units.${line.unit}`) : line.unit}
+                            {line.unitPriceVnd === '0' ? ` · ${t('included')}` : ''}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 tabular-nums">{line.quantity}</td>
+                        <td className="whitespace-nowrap px-4 py-3 tabular-nums">
+                          {money(line.unitPriceVnd)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 font-medium tabular-nums">
+                          {money(line.amountVnd)}
+                        </td>
+                        <td className="max-w-80 break-all px-4 py-3 text-xs text-[var(--sc-text-secondary)]">
+                          <details>
+                            <summary className="cursor-pointer rounded py-1 text-[var(--sc-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+                              {t('viewSource')}
+                            </summary>
+                            <p className="mt-2">{line.description}</p>
+                            <p className="mt-2">
+                              {line.refType ?? (line.ledgerEntryId ? 'ADJUST' : t('contract'))}
+                            </p>
+                            <p className="mt-1 font-mono">
+                              {line.refId ?? line.ledgerEntryId ?? invoice.contractId}
+                            </p>
+                            {line.billableEventId && (
+                              <p className="mt-2 font-mono">
+                                {t('event')}: {line.billableEventId}
+                              </p>
+                            )}
+                            {line.tariffVersionRef && (
+                              <p className="mt-2 font-mono">
+                                {t('tariff')}: {line.tariffVersionRef}
+                              </p>
+                            )}
+                          </details>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
             {cursor && (
               <Button
