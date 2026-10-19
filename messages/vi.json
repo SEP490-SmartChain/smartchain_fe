@@ -150,7 +150,8 @@
       "APPLIED": "Đã áp dụng",
       "REJECTED": "Cần kiểm tra lại",
       "CANCELLED": "Đã hủy"
-    }
+    },
+    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ."
   },
   "CommercialAdmin": {
     "finalizeClosure": "Hoàn tất thanh lý",
@@ -480,7 +481,7 @@
     "submit_error": "Chưa xác nhận được kết quả tạo đơn. Gửi lại cùng bản nháp để giữ tham chiếu xử lý.",
     "invalid_field": "Kiểm tra lại giá trị này.",
     "items_error": "Chọn 1–100 SKU khác nhau, số lượng dương và số tiền VND nguyên.",
-    "manual_hint": "Chọn người nhận, địa chỉ và sản phẩm. ORCA tự tạo mã đơn và tính tổng tiền cần thu.",
+    "manual_hint": "Chọn hàng, điền người nhận và tổng cần thu. ORCA tổ chức đóng gói và giao hàng.",
     "draft_kept_hint": "Đóng cửa sổ vẫn giữ bản nháp trên trang này. Tải lại trang hoặc rời trang sẽ mất bản nháp.",
     "discard_draft": "Xóa bản nháp",
     "keep_draft": "Giữ bản nháp",
@@ -551,7 +552,9 @@
       "discountAmount": "Giảm giá đơn",
       "goodsPaidAmount": "Tiền hàng khách đã trả",
       "shippingChargeAmount": "Phí giao hàng thu khách",
-      "shippingPaidAmount": "Phí giao hàng khách đã trả"
+      "shippingPaidAmount": "Phí giao hàng khách đã trả",
+      "collectionAmount": "Tổng thu hộ",
+      "deliveryNote": "Ghi chú giao hàng"
     },
     "statuses": {
       "RECEIVED": "Đã tiếp nhận",
@@ -645,7 +648,8 @@
       "invalid_payment_breakdown": "Kiểm tra các khoản tiền: giảm giá không vượt tổng tiền hàng; tiền đã trả không vượt tiền hàng sau giảm hoặc phí giao hàng; tổng tiền phải nằm trong giới hạn hỗ trợ.",
       "sheet_setup_unavailable": "ORCA chưa bật dịch vụ tạo bảng tự động. Hãy liên hệ ORCA; bạn không cần tự cấu hình.",
       "sheet_setup_in_progress": "ORCA đang chuẩn bị hoặc kiểm tra bảng. Hãy làm mới trạng thái sau ít phút.",
-      "sheet_setup_not_confirmed": "Chưa xác nhận tạo bảng xong. Hãy làm mới trạng thái; thử lại sẽ dùng cùng yêu cầu."
+      "sheet_setup_not_confirmed": "Chưa xác nhận tạo bảng xong. Hãy làm mới trạng thái; thử lại sẽ dùng cùng yêu cầu.",
+      "invalid_declared_value": "Cập nhật giá trị khai báo của từng SKU thành số nguyên VND lớn hơn 0 trong danh mục, rồi gửi lại."
     },
     "search_code": "Tìm theo mã đơn",
     "items_section": "2. Sản phẩm",
@@ -731,7 +735,21 @@
     "sheetCreateConsent": "Bảng do ORCA quản lý và cấp quyền chỉnh sửa cho email chủ shop: {email}. Bấm Tạo bảng đơn hàng để bắt đầu.",
     "sheetPreparing": "ORCA đang chuẩn bị hoặc xác minh bảng. Giữ nguyên yêu cầu và làm mới trạng thái sau ít phút.",
     "sheetSetupRetryHint": "Chưa xác nhận hoàn tất kết nối. ORCA sẽ kiểm tra lại cùng yêu cầu khi bạn thử lại, tránh tạo thêm bảng.",
-    "sheetPlatformUnavailable": "ORCA chưa bật tính năng tự tạo bảng trên hệ thống này. Bạn không cần cấu hình Google hay n8n; hãy liên hệ ORCA để được hỗ trợ."
+    "sheetPlatformUnavailable": "ORCA chưa bật tính năng tự tạo bảng trên hệ thống này. Bạn không cần cấu hình Google hay n8n; hãy liên hệ ORCA để được hỗ trợ.",
+    "entryMode": "Cách nhập tiền thu hộ",
+    "directEntry": "Nhập tổng cần thu khi giao",
+    "calculatedEntry": "Tính từ chi tiết thanh toán",
+    "collectionAmount": "Tổng tiền cần thu khi giao (VND)",
+    "collectionRequired": "Nhập tổng tiền cần thu; nhập 0 nếu không thu tiền.",
+    "collectionHint": "Toàn bộ số tiền shipper thu từ người nhận, gồm phí giao hàng còn thu khách nếu có. Nhập 0 nếu không thu; không để trống.",
+    "deliveryNote": "Ghi chú giao hàng",
+    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ.",
+    "declaredCatalogHint": "Để trống để ORCA lấy tổng giá trị khai báo từ SKU lúc tiếp nhận. Khai giá khác tiền thu hộ và không phải cam kết bồi thường.",
+    "directCollectionSnapshot": "Tổng thu hộ do shop khai báo lúc tạo đơn, đã bao gồm mọi khoản cần thu từ người nhận. Không thể suy ra khách đã trả bao nhiêu từ số tiền này.",
+    "allocationUnitValue": "Giá trị khai báo / sản phẩm",
+    "allocationTotalValue": "Tổng giá trị làm căn cứ phân bổ",
+    "allocationValueHint": "Các giá trị sản phẩm dưới đây được chụp từ danh mục để phân bổ thu hộ khi tách kiện; không phải giá bán của đơn.",
+    "detailedTemplate": "Mẫu tính thanh toán chi tiết (tùy chọn)"
   },
   "Sidebar": {
     "freight_tariffs": "Bảng cước",

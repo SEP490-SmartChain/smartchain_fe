@@ -1,5 +1,13 @@
 # Seller orders — Sprint 4
 
+19 October 2026: manual entry defaults to an explicit total recipient collection,
+including any outstanding buyer shipping; 0 means no collection, blank is invalid.
+Sale prices and payment breakdown are optional through the calculated entry mode
+and detailed Excel download. Default Excel/new Google Sheets use the simplified
+template. DIRECT detail labels catalog allocation values separately from sale prices.
+The earlier descriptions below document compatible legacy formats. Backend contract
+and deployment: `smartchain_be/docs/DIRECT-COLLECTION-INTAKE.md`.
+
 SS-1168 / SS-1171, branch `feat/SS-1171-seller-orders`, synced with develop before publication. OrdersPage composes SellerOrders; API contracts, hooks and forms stay inside this feature.
 
 Seller Owner can create manual orders, download a seller-specific XLSX template and preview/import up to 100 product rows/1 MiB. Owner and Staff can browse own-seller orders with code/status/channel/date filters, cursor pagination, history, fulfillment suborders, parcel summaries and tracking. Strict Staff schemas omit recipient and financial fields. Platform roles keep the existing unavailable screen until their business-specific screens are implemented.

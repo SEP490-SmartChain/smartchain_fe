@@ -150,7 +150,8 @@
       "APPLIED": "Applied",
       "REJECTED": "Review required",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "freightSeparateHint": "Processing uses your plan allowance. ORCA freight is charged separately under your contract using actual packed measurements; it is separate from recipient collection."
   },
   "CommercialAdmin": {
     "finalizeClosure": "Finalize closure",
@@ -485,7 +486,7 @@
     "submit_error": "The order could not be confirmed. Retry the same draft to keep its processing reference.",
     "invalid_field": "Check this value.",
     "items_error": "Use 1–100 distinct products, positive quantities and whole VND amounts.",
-    "manual_hint": "Choose a recipient, address and products. ORCA generates an order code and calculates the collection total.",
+    "manual_hint": "Select products, enter the recipient and total collection. ORCA handles fulfillment and delivery.",
     "items": "Products in this order",
     "product": "Product",
     "quantity": "Quantity",
@@ -551,7 +552,9 @@
       "discountAmount": "Order discount",
       "goodsPaidAmount": "Goods already paid",
       "shippingChargeAmount": "Customer shipping charge",
-      "shippingPaidAmount": "Shipping already paid"
+      "shippingPaidAmount": "Shipping already paid",
+      "collectionAmount": "Total recipient collection",
+      "deliveryNote": "Delivery instructions"
     },
     "statuses": {
       "RECEIVED": "Received",
@@ -645,7 +648,8 @@
       "invalid_payment_breakdown": "Check amounts: discount cannot exceed merchandise; payments cannot exceed net merchandise or shipping; totals must stay within the supported range.",
       "sheet_setup_unavailable": "ORCA has not enabled automatic sheet setup. Contact ORCA; no technical setup is required from you.",
       "sheet_setup_in_progress": "ORCA is preparing or verifying the sheet. Refresh the status in a few minutes.",
-      "sheet_setup_not_confirmed": "Sheet setup was not confirmed. Refresh its status; retrying uses the same setup."
+      "sheet_setup_not_confirmed": "Sheet setup was not confirmed. Refresh its status; retrying uses the same setup.",
+      "invalid_declared_value": "Set each SKU declared value to a positive whole-VND amount in the catalog, then retry."
     },
     "search_code": "Search order code",
     "items_section": "2. Products",
@@ -731,7 +735,21 @@
     "sheetCreateConsent": "ORCA manages the sheet and grants edit access to the shop owner email: {email}. Select Create order sheet to begin.",
     "sheetPreparing": "ORCA is preparing or verifying your sheet. Keep the same request and refresh its status in a few minutes.",
     "sheetSetupRetryHint": "Connection setup has not been confirmed. Retrying checks the same setup to avoid creating another sheet.",
-    "sheetPlatformUnavailable": "ORCA has not enabled automatic sheet setup on this installation. You do not need to configure Google or n8n; contact ORCA support."
+    "sheetPlatformUnavailable": "ORCA has not enabled automatic sheet setup on this installation. You do not need to configure Google or n8n; contact ORCA support.",
+    "entryMode": "Collection entry",
+    "directEntry": "Enter total to collect on delivery",
+    "calculatedEntry": "Calculate from payment details",
+    "collectionAmount": "Total to collect on delivery (VND)",
+    "collectionRequired": "Enter the collection total, or 0 for no collection.",
+    "collectionHint": "The full amount the courier collects from the recipient, including any outstanding buyer shipping. Enter 0 for no collection; do not leave blank.",
+    "deliveryNote": "Delivery instructions",
+    "freightSeparateHint": "Processing uses your plan allowance. ORCA freight is charged separately under your contract using actual packed measurements; it is separate from recipient collection.",
+    "declaredCatalogHint": "Leave blank to use declared SKU values at acceptance. Declared value differs from collection and does not guarantee compensation.",
+    "directCollectionSnapshot": "Total declared by the shop at intake, including all amounts to collect from the recipient. It does not establish how much the buyer has prepaid.",
+    "allocationUnitValue": "Declared value per unit",
+    "allocationTotalValue": "Total allocation value",
+    "allocationValueHint": "These catalog values were frozen for collection allocation across parcels; they are not order sale prices.",
+    "detailedTemplate": "Detailed payment template (optional)"
   },
   "Sidebar": {
     "freight_tariffs": "Freight tariffs",
