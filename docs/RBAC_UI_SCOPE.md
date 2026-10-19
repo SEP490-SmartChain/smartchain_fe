@@ -1,5 +1,13 @@
 # Phạm vi giao diện và phân quyền ORCA
 
+SS-1022: `invoice.period.close` is PLATFORM `ORCA_ACCOUNTANT` only, from UC-123,
+using `POST /v1/billing/tenants/:tenantId/periods/close` and `finance.create`.
+Invoice/header/line/PDF reads use `finance.read`: own Seller Owner and existing
+Admin/Accountant financial scope. Payment instructions are Owner-only reads;
+verified receipts retain the existing Accountant-only posting authority. Staff,
+Ops and warehouse roles receive no invoice payload. SePay and deposit offsets
+are not granted by the close-period capability.
+
 SS-999: tab dịch vụ fulfillment tại `/admin/tariffs` dùng `tariffs.manage`
 (PLATFORM Admin/Accountant), theo UC-117 và API
 `/v1/commercial/service-tariffs`. Quyền này chỉ quản trị service tariff,
