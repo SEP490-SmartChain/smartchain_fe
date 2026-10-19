@@ -42,9 +42,9 @@ const runningLowItemSchema = z.object({
   warehouseName: z.string(),
   availableStock: quantitySchema,
   dailyVelocity: z.number().nonnegative(),
-  daysOfCover: z.number().nonnegative(),
-  suggestedReplenishment: quantitySchema,
-  urgency: z.enum(['CRITICAL', 'WARNING']),
+  daysOfStockLeft: z.number().nonnegative(),
+  suggestedReplenishmentQty: quantitySchema,
+  urgencyLevel: z.enum(['CRITICAL', 'WARNING']),
 });
 const runningLowListSchema = z.array(runningLowItemSchema);
 
@@ -72,8 +72,9 @@ export const inventoryStockApi = {
     return inventoryStockSummarySchema.parse(data);
   },
 
-  async getRunningLow(): Promise<RunningLowItem[]> {
+  async getRunningLow(signal?: AbortSignal): Promise<RunningLowItem[]> {
     const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/inventory/stocks/running-low', {
+      signal,
       silent: true,
     });
     return runningLowListSchema.parse(data);

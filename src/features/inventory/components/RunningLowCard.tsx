@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 
-import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
 import { useNavigate } from 'react-router-dom';
 
+import { AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { Alert } from '@/components/Common';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
@@ -30,7 +32,7 @@ export function RunningLowCard({ warehouseId }: RunningLowCardProps) {
   }, [items, warehouseId]);
 
   const criticalCount = useMemo(
-    () => filteredItems.filter((item) => item.urgency === 'CRITICAL').length,
+    () => filteredItems.filter((item) => item.urgencyLevel === 'CRITICAL').length,
     [filteredItems],
   );
 
@@ -74,30 +76,30 @@ export function RunningLowCard({ warehouseId }: RunningLowCardProps) {
       ),
     },
     {
-      key: 'daysOfCover',
+      key: 'daysOfStockLeft',
       label: t('columnDaysOfCover'),
       render: (row) => (
         <span className="block text-right font-semibold tabular-nums text-[var(--sc-warning-dark)]">
-          {t('daysCoverUnit', { days: row.daysOfCover.toFixed(1) })}
+          {t('daysCoverUnit', { days: number.format(row.daysOfStockLeft) })}
         </span>
       ),
     },
     {
-      key: 'urgency',
+      key: 'urgencyLevel',
       label: t('columnUrgency'),
       render: (row) => (
         <Badge
-          status={row.urgency === 'CRITICAL' ? 'error' : 'warning'}
-          label={row.urgency === 'CRITICAL' ? t('urgencyCritical') : t('urgencyWarning')}
+          status={row.urgencyLevel === 'CRITICAL' ? 'error' : 'warning'}
+          label={row.urgencyLevel === 'CRITICAL' ? t('urgencyCritical') : t('urgencyWarning')}
         />
       ),
     },
     {
-      key: 'suggestedReplenishment',
+      key: 'suggestedReplenishmentQty',
       label: t('columnSuggestedReplenishment'),
       render: (row) => (
         <span className="block text-right font-bold tabular-nums text-[var(--sc-primary-dark)]">
-          +{number.format(row.suggestedReplenishment)}
+          +{number.format(row.suggestedReplenishmentQty)}
         </span>
       ),
     },
@@ -138,7 +140,13 @@ export function RunningLowCard({ warehouseId }: RunningLowCardProps) {
   }
 
   if (error) {
-    return null;
+    return (
+      <Alert variant="error" title={t('runningLowLoadError')}>
+        <Button type="button" variant="outline" onClick={() => void refetch()}>
+          {t('refresh')}
+        </Button>
+      </Alert>
+    );
   }
 
   if (filteredItems.length === 0) {
@@ -158,7 +166,7 @@ export function RunningLowCard({ warehouseId }: RunningLowCardProps) {
             </p>
           </div>
         </div>
-        <Button size="sm" variant="ghost" onClick={() => void refetch()}>
+        <Button size="sm" variant="ghost" aria-label={t('refresh')} onClick={() => void refetch()}>
           <RefreshCw size={14} aria-hidden="true" />
         </Button>
       </section>

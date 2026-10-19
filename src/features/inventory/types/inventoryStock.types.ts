@@ -43,7 +43,7 @@ export interface RunningLowItem {
   warehouseName: string;
   availableStock: number;
   dailyVelocity: number;
-  daysOfCover: number;
-  suggestedReplenishment: number;
-  urgency: RunningLowUrgency;
+  daysOfStockLeft: number;
+  suggestedReplenishmentQty: number;
+  urgencyLevel: RunningLowUrgency;
 }

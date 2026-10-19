@@ -83,20 +83,23 @@ export interface WarehouseAllocation {
   warehouseCode: string;
   warehouseName: string;
   region: string;
-  suggestedQuantity: number;
-  percentage: number;
+  suggestedQty: number;
+  sharePercent: number;
   dailyVelocity: number;
-  currentStock: number;
-  daysOfCover: number;
-  shelfLifeCapApplied: boolean;
-  maxHoldableQuantity: number | null;
+  cappedByExpiry: boolean;
+  maxSellableBeforeExpiry: number | null;
+  redistributedQty: number;
 }
-
 export interface AllocationSuggestion {
   productId: string;
+  sku: string;
+  productName: string;
   totalQuantity: number;
-  modelVersion: string;
-  evaluationBasis: string;
+  declaredExpiryOn: string | null;
+  daysUntilExpiry: number | null;
+  basis: 'HISTORICAL_VELOCITY_30D' | 'CONFIGURED_REGIONAL_BASELINE';
   hasSufficientHistory: boolean;
   allocations: WarehouseAllocation[];
+  warnings: string[];
+  unallocatedQuantity: number;
 }

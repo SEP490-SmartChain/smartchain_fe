@@ -83,35 +83,38 @@ const warehouseAllocationSchema = z.object({
   warehouseCode: z.string(),
   warehouseName: z.string(),
   region: z.string(),
-  suggestedQuantity: z.number().int().nonnegative(),
-  percentage: z.number().nonnegative(),
+  suggestedQty: z.number().int().nonnegative(),
+  sharePercent: z.number().nonnegative(),
   dailyVelocity: z.number().nonnegative(),
-  currentStock: z.number().int().nonnegative(),
-  daysOfCover: z.number().nonnegative(),
-  shelfLifeCapApplied: z.boolean(),
-  maxHoldableQuantity: z.number().int().nullable(),
+  cappedByExpiry: z.boolean(),
+  maxSellableBeforeExpiry: z.number().int().nonnegative().nullable(),
+  redistributedQty: z.number().int().nonnegative(),
 });
-
 const allocationSuggestionSchema = z.object({
   productId: z.string().uuid(),
+  sku: z.string(),
+  productName: z.string(),
   totalQuantity: z.number().int().positive(),
-  modelVersion: z.string(),
-  evaluationBasis: z.string(),
+  declaredExpiryOn: z.string().nullable(),
+  daysUntilExpiry: z.number().int().nonnegative().nullable(),
+  basis: z.enum(['HISTORICAL_VELOCITY_30D', 'CONFIGURED_REGIONAL_BASELINE']),
   hasSufficientHistory: z.boolean(),
   allocations: z.array(warehouseAllocationSchema),
+  warnings: z.array(z.string()),
+  unallocatedQuantity: z.number().int().nonnegative(),
 });
 
 export const asnApi = {
   async getAllocationSuggestion(
-    params: { productId: string; totalQuantity: number; shelfLifeDays?: number },
+    params: { productId: string; totalQuantity: number; declaredExpiryOn?: string },
     signal?: AbortSignal,
   ): Promise<AllocationSuggestion> {
     const searchParams: Record<string, string> = {
       productId: params.productId,
       totalQuantity: String(params.totalQuantity),
     };
-    if (params.shelfLifeDays !== undefined) {
-      searchParams.shelfLifeDays = String(params.shelfLifeDays);
+    if (params.declaredExpiryOn !== undefined) {
+      searchParams.declaredExpiryOn = params.declaredExpiryOn;
     }
     const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/asns/allocation-suggestion', {
       params: searchParams,
