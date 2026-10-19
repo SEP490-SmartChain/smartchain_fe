@@ -1922,7 +1922,23 @@
       "network": "Không kết nối được máy chủ. Kiểm tra kết nối và thử lại.",
       "response": "Dữ liệu máy chủ trả về chưa đúng định dạng. Thử tải lại; nếu vẫn lỗi, cần kiểm tra kết nối dữ liệu giữa giao diện và máy chủ.",
       "unavailable": "Máy chủ chưa xử lý được yêu cầu. Vui lòng thử lại sau."
-    }
+    },
+    "runningLowTitle": "Cảnh báo sắp hết hàng",
+    "runningLowDescription": "Các sản phẩm sắp hoặc đã dưới ngưỡng tồn kho an toàn dựa trên tốc độ bán 30 ngày.",
+    "runningLowEmpty": "Tồn kho trong mức an toàn",
+    "runningLowEmptyHint": "Không có sản phẩm nào dưới ngưỡng cần bổ sung hàng.",
+    "runningLowUrgentCount": "{count} mặt hàng cần nhập bổ sung",
+    "columnDailyVelocity": "Tốc độ bán",
+    "columnDaysOfCover": "Ngày còn lại",
+    "columnSuggestedReplenishment": "Gợi ý nhập thêm",
+    "columnUrgency": "Mức độ",
+    "urgencyCritical": "Khẩn cấp",
+    "urgencyWarning": "Cảnh báo",
+    "replenishAction": "Tạo ASN",
+    "unitsPerDay": "{rate}/ngày",
+    "daysCoverUnit": "{days} ngày",
+    "replenishUnits": "{count, number} đơn vị",
+    "runningLowLoadError": "Không tải được cảnh báo sắp hết hàng."
   },
   "ApiKeys": {
     "title": "API Keys",
@@ -3231,5 +3247,21 @@
     "retry": "Gửi lại thao tác đổi bin",
     "success": "Đã đổi bin lưu trữ; vẫn cần quét và xác nhận thực tế.",
     "completedReadOnly": "Task đã kết thúc. Bạn có thể xem lịch sử; không thể đổi bin."
+  },
+  "Replenishment": {
+    "title": "Gợi ý chia hàng về kho",
+    "description": "Xem nhu cầu 30 ngày trước khi chọn kho nhập hàng.",
+    "calculate": "Tính gợi ý",
+    "loadError": "Không tải được gợi ý. Vui lòng thử lại.",
+    "historical": "Dựa trên đơn đã bàn giao theo vùng nhận hàng trong 30 ngày.",
+    "baseline": "Lịch sử bán chưa đủ hoặc chưa xác định được vùng. Đang dùng tỷ trọng cấu hình; hãy kiểm tra số lượng trước khi xác nhận.",
+    "unallocated": "Còn {quantity} sản phẩm chưa thể phân bổ trong giới hạn hạn sử dụng.",
+    "expired": "Lô hàng đã hết hạn hoặc hết hạn hôm nay.",
+    "noWarehouses": "Chưa có kho đủ điều kiện.",
+    "units": "{quantity} sản phẩm",
+    "velocity": "{quantity} sản phẩm/ngày",
+    "cap": "Sức bán tối đa: {quantity}",
+    "choose": "Dùng cho bản nháp này",
+    "confirmation": "Lựa chọn chỉ điền bản nháp hiện tại. Kiểm tra tất cả dòng hàng trước khi lưu; tạo ASN riêng cho các kho còn lại. Tính lại khi dữ liệu thay đổi."
   }
 }

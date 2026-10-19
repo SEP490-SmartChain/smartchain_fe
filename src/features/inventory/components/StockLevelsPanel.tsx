@@ -10,6 +10,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 
 import { InventoryReadError } from './InventoryReadError';
 import { InventoryState } from './InventoryState';
+import { RunningLowCard } from './RunningLowCard';
 import { StockSummaryCards } from './StockSummaryCards';
 import { useInventoryStocks } from '../hooks/useInventoryStocks';
 
@@ -80,6 +81,7 @@ export function StockLevelsPanel({ warehouseId }: { warehouseId: string }) {
         <p className="m-0 text-xs text-[var(--sc-text-secondary)]">{t('summaryScope')}</p>
         <StockSummaryCards />
       </div>
+      <RunningLowCard warehouseId={warehouseId} />
       <section className="sc-surface overflow-hidden" aria-label={t('tableLabel')}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] p-4">
           <div>
