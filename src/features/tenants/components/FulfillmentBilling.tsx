@@ -349,7 +349,7 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
         )}
         <form
           onSubmit={form.handleSubmit(setFilters)}
-          className="mt-5 flex flex-wrap items-end gap-3"
+          className="mt-5 grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
         >
           <Input
             type="month"
@@ -359,6 +359,7 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
           />
           <Select
             label={t('kind')}
+            placeholder={t('allKinds')}
             options={['', 'ONBOARDING', 'PLAN', 'SERVICE', 'ADJUSTMENT'].map((value) => ({
               value,
               label: value ? t(`kinds.${value}`) : t('allKinds'),

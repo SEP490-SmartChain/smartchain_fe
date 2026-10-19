@@ -49,24 +49,25 @@ export function InvoiceDetail({
     };
   }, []);
   const load = useCallback(async () => {
+    const current = abort.current;
     setLoading(true);
     setError(null);
     try {
       const [header, page] = await Promise.all([
-        invoiceApi.detail(id, tenantId, abort.current.signal),
-        invoiceApi.lines(id, { tenantId, limit: 100 }, abort.current.signal),
+        invoiceApi.detail(id, tenantId, current.signal),
+        invoiceApi.lines(id, { tenantId, limit: 100 }, current.signal),
       ]);
-      if (!abort.current.signal.aborted) {
+      if (!current.signal.aborted) {
         setInvoice(header);
         setLines(page.items);
         setCursor(page.pagination.nextCursor);
       }
     } catch (failure) {
-      if (!abort.current.signal.aborted) {
+      if (!current.signal.aborted) {
         setError(failure instanceof Error ? failure.message : t('loadError'));
       }
     } finally {
-      if (!abort.current.signal.aborted) setLoading(false);
+      if (!current.signal.aborted) setLoading(false);
     }
   }, [id, tenantId, t]);
   useEffect(() => {
