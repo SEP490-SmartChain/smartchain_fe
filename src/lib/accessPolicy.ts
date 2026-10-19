@@ -522,6 +522,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'ORCA Report 3 UC-127 / SS-990: Accountant verifies bank evidence and posts once',
   ),
   capability(
+    'invoice.period.close',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-123 / SS-1022: Accountant closes a completed seller statement',
+  ),
+  capability(
     'apikey.manage',
     'apikey',
     'TENANT',
