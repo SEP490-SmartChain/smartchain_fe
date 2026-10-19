@@ -68,21 +68,19 @@ after(async () => {
 });
 beforeEach(() => {
   store.getState().clear();
-  store
-    .getState()
-    .setSession({
-      accessToken: 'test-token',
-      expiresIn: 3600,
-      user: {
-        userId: id,
-        tenantId: null,
-        email: 'test@orca.test',
-        fullName: 'Test',
-        actorScope: 'PLATFORM',
-        roles: ['ORCA_ADMIN'],
-        permissions: [],
-      },
-    });
+  store.getState().setSession({
+    accessToken: 'test-token',
+    expiresIn: 3600,
+    user: {
+      userId: id,
+      tenantId: null,
+      email: 'test@orca.test',
+      fullName: 'Test',
+      actorScope: 'PLATFORM',
+      roles: ['ORCA_ADMIN'],
+      permissions: [],
+    },
+  });
 });
 test('Accountant reaches tariffs without gaining carrier, credential or unrelated admin routes', () => {
   assert.equal(policy.can(['ORCA_ACCOUNTANT'], 'tariffs.manage'), true);
@@ -99,6 +97,18 @@ test('Accountant reaches tariffs without gaining carrier, credential or unrelate
     ['ORCA_ADMIN', 'LEGACY'],
   ])
     assert.equal(policy.can(roles, 'tariffs.manage'), false);
+});
+
+test('tariff zone options use the credential-free tariff endpoint and reject malformed codes', async () => {
+  let requested;
+  globalThis.fetch = async (url) => {
+    requested = String(url);
+    return ok(['INTRA_PROVINCE']);
+  };
+  assert.deepEqual(await api.zoneCodes(id), ['INTRA_PROVINCE']);
+  assert.ok(requested.endsWith(`/platform/tariffs/carriers/${id}/zone-codes`));
+  globalThis.fetch = async () => ok(['not a zone']);
+  await assert.rejects(api.zoneCodes(id));
 });
 test('purchase list decodes exact money and shared pagination without tenant impersonation', async () => {
   globalThis.fetch = async (url) => {
@@ -211,11 +221,18 @@ test('purchase serialization strips seller-only fields and retains exact VND', (
   assert.equal('laneCode' in data.bands[0], false);
   assert.equal(data.effectiveFrom, '2026-10-12T00:00:00.000Z');
 });
-test('ending a published window checks both revision and prior end date',async()=>{
-  globalThis.fetch=async(url,options)=>{
+test('ending a published window checks both revision and prior end date', async () => {
+  globalThis.fetch = async (url, options) => {
     assert.ok(String(url).endsWith(`/purchase/${id}/close`));
-    assert.deepEqual(JSON.parse(options.body),{expectedVersion:1,expectedEffectiveTo:null,effectiveTo:'2027-01-01T00:00:00.000Z'});
-    return ok({...row,status:'PUBLISHED',effectiveTo:'2027-01-01T00:00:00.000Z'});
+    assert.deepEqual(JSON.parse(options.body), {
+      expectedVersion: 1,
+      expectedEffectiveTo: null,
+      effectiveTo: '2027-01-01T00:00:00.000Z',
+    });
+    return ok({ ...row, status: 'PUBLISHED', effectiveTo: '2027-01-01T00:00:00.000Z' });
   };
-  assert.equal((await api.close('purchase',row,'2027-01-01T00:00:00.000Z')).effectiveTo,'2027-01-01T00:00:00.000Z');
+  assert.equal(
+    (await api.close('purchase', row, '2027-01-01T00:00:00.000Z')).effectiveTo,
+    '2027-01-01T00:00:00.000Z',
+  );
 });

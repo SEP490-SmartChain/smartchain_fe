@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useFieldArray, useForm } from 'react-hook-form';
 
@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 
 import { freightTariffApi } from '../api/freightTariffApi';
@@ -57,7 +58,12 @@ export function FreightTariffEditor({
   onSaved: () => void;
 }) {
   const t = useTranslations('FreightTariffs');
-  const [error, setError] = useState(false);
+  const { can } = useAccess();
+  const [error, setError] = useState('');
+  const [zones, setZones] = useState<string[]>([]);
+  const [zonesLoading, setZonesLoading] = useState(false);
+  const [zonesError, setZonesError] = useState(false);
+  const [zonesRevision, setZonesRevision] = useState(0);
   const [conflict, setConflict] = useState(false);
   const [fresh, setFresh] = useState<PurchaseTariff | SellerTariff | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,6 +93,30 @@ export function FreightTariffEditor({
         : [emptyBand()],
     },
   });
+  const selectedService = services.find((service) => service.id === form.watch('serviceId'));
+  const carrierId = selectedService?.carrierId;
+  useEffect(() => {
+    const abort = new AbortController();
+    setZones([]);
+    setZonesError(false);
+    if (kind !== 'purchase' || !carrierId) {
+      setZonesLoading(false);
+      return () => abort.abort();
+    }
+    setZonesLoading(true);
+    void freightTariffApi
+      .zoneCodes(carrierId, abort.signal)
+      .then((codes) => {
+        if (!abort.signal.aborted) setZones(codes);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setZonesError(true);
+      })
+      .finally(() => {
+        if (!abort.signal.aborted) setZonesLoading(false);
+      });
+    return () => abort.abort();
+  }, [carrierId, kind, zonesRevision]);
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'bands' });
   function bindField(
     name: Parameters<typeof form.register>[0],
@@ -104,7 +134,7 @@ export function FreightTariffEditor({
     try {
       setFresh(await freightTariffApi.read(kind, row.id));
     } catch {
-      setError(true);
+      setError(t('saveError'));
     } finally {
       setRefreshing(false);
     }
@@ -134,19 +164,31 @@ export function FreightTariffEditor({
     setExpected({ id: fresh.id, version: fresh.version });
     setFresh(null);
     setConflict(false);
-    setError(false);
+    setError('');
   }
   async function save(values: TariffFormValues) {
-    setError(false);
+    setError('');
     try {
       if (kind === 'purchase') {
+        if (zonesLoading || zonesError || !zones.includes(values.zone)) {
+          form.setError('zone', { message: t('invalidZone') });
+          return;
+        }
         const service = services.find((s) => s.id === values.serviceId);
         if (!service) throw new Error('Missing service');
         await freightTariffApi.savePurchase(purchaseInput(values, service), expected);
       } else await freightTariffApi.saveSell(sellerInput(values), expected);
       onSaved();
     } catch (failure) {
-      setError(true);
+      const messages: Record<string, string> = {
+        'RATING.INVALID_ZONE': 'invalidZone',
+        'RATING.INVALID_SERVICE_POLICY': 'invalidServicePolicy',
+        'RATING.STALE_OR_PUBLISHED': 'staleSave',
+        'AUTH.FORBIDDEN': 'saveForbidden',
+      };
+      setError(
+        t(failure instanceof ApiError ? (messages[failure.code] ?? 'saveError') : 'saveError'),
+      );
       setConflict(failure instanceof ApiError && failure.status === 409);
     }
   }
@@ -157,7 +199,7 @@ export function FreightTariffEditor({
   return (
     <Modal isOpen onClose={onClose} title={t(row ? 'edit' : 'create')} width="920px">
       <form className="space-y-5" onSubmit={form.handleSubmit(save)}>
-        {error && <Alert variant="error">{t('saveError')}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
         {conflict && row && (
           <Button
             type="button"
@@ -201,10 +243,46 @@ export function FreightTariffEditor({
                   onChange: (e) => {
                     const s = services.find((s) => s.id === e.target.value);
                     if (s) form.setValue('policy.divisor', s.volumetricDivisor);
+                    form.setValue('zone', '');
+                    form.clearErrors('zone');
                   },
                 })}
               />
-              <Input label={t('zone')} {...bindField('zone')} />
+              <div className="space-y-2">
+                <Select
+                  label={t('zone')}
+                  options={zones.map((zone) => ({ value: zone, label: zone }))}
+                  {...bindField('zone')}
+                  disabled={!carrierId || zonesLoading || zonesError || !zones.length}
+                  helperText={t(zonesLoading ? 'zonesLoading' : 'zoneHint')}
+                />
+                {carrierId && !zonesLoading && (zonesError || !zones.length) && (
+                  <Alert variant={zonesError ? 'error' : 'warning'}>
+                    {t(zonesError ? 'zonesError' : 'zonesEmpty')}
+                  </Alert>
+                )}
+                {carrierId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={zonesLoading}
+                    onClick={() => setZonesRevision((n) => n + 1)}
+                  >
+                    {t('reloadZones')}
+                  </Button>
+                )}
+                {can('platform.carriers.manage') && (
+                  <a
+                    href="/admin/carriers"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm text-[var(--sc-primary)] underline"
+                  >
+                    {t('manageZones')}
+                  </a>
+                )}
+              </div>
               <Input
                 label={t('volumeMin')}
                 type="number"
@@ -368,7 +446,11 @@ export function FreightTariffEditor({
             </Button>
             <Button
               type="submit"
-              disabled={!!fresh || refreshing}
+              disabled={
+                !!fresh ||
+                refreshing ||
+                (kind === 'purchase' && (zonesLoading || zonesError || !zones.length))
+              }
               isLoading={form.formState.isSubmitting}
             >
               {t('saveDraft')}

@@ -8,6 +8,7 @@ import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 
 import { CarrierEditor, CarrierServiceEditor } from './CarrierManagementForms';
+import { CarrierZonePanel } from './CarrierZonePanel';
 
 import type { CarrierDetail, CarrierService } from '../types/carrierCatalog.types';
 
@@ -106,6 +107,7 @@ export function CarrierDetailModal({
               },
             ]}
           />
+          {isOpen && <CarrierZonePanel key={carrier.id} carrierId={carrier.id} />}
         </div>
       </Modal>
       {editingCarrier && (

@@ -3,7 +3,7 @@ import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
-let server, api, schemas, store;
+let server, api, schemas, store, zones, zoneSchema;
 const originalFetch = globalThis.fetch;
 const id = 'cd882d2d-8dca-4111-add1-948cd7e9b095';
 const updatedAt = '2026-10-14T01:00:00.000Z';
@@ -32,7 +32,49 @@ before(async () => {
     '/src/features/catalog/api/carrierManagementApi.ts',
   ));
   schemas = await server.ssrLoadModule('/src/features/catalog/schemas/carrierManagementSchema.ts');
+  ({ carrierZoneApi: zones } = await server.ssrLoadModule(
+    '/src/features/catalog/api/carrierZoneApi.ts',
+  ));
+  zoneSchema = await server.ssrLoadModule('/src/features/catalog/schemas/carrierZoneSchema.ts');
   ({ useAuthStore: store } = await server.ssrLoadModule('/src/stores/authStore.ts'));
+});
+
+test('zone routes validate names, ETA and province codes without inventing coverage', () => {
+  const input = { fromProvince: '79', toProvince: '79', zone: ' intra_province ', etaDays: 1 };
+  assert.equal(zoneSchema.carrierZoneFormSchema.parse(input).zone, 'INTRA_PROVINCE');
+  for (const changed of [
+    { zone: '' },
+    { zone: 'bad zone' },
+    { etaDays: 0 },
+    { etaDays: 61 },
+    { fromProvince: '' },
+  ]) {
+    assert.equal(
+      zoneSchema.carrierZoneFormSchema.safeParse({ ...input, ...changed }).success,
+      false,
+    );
+  }
+});
+
+test('zone creation and stale-safe updates send only permitted route fields', async () => {
+  const input = { fromProvince: '79', toProvince: '79', zone: 'INTRA_PROVINCE', etaDays: 1 };
+  const row = { ...input, id, carrierId: id, createdAt: updatedAt, updatedAt };
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), method: options.method, body: JSON.parse(options.body) });
+    return Response.json({
+      success: true,
+      data: row,
+      meta: { timestamp: updatedAt, path: '', requestId: 'test' },
+    });
+  };
+  await zones.save(id, input);
+  await zones.save(id, { ...input, zone: 'CHANGED' }, row);
+  assert.ok(calls[0].url.endsWith(`/platform/carriers/${id}/zones`));
+  assert.equal(calls[0].method, 'POST');
+  assert.deepEqual(calls[0].body, input);
+  assert.equal(calls[1].method, 'PATCH');
+  assert.deepEqual(calls[1].body, { zone: 'CHANGED', etaDays: 1, expectedUpdatedAt: updatedAt });
 });
 after(async () => {
   globalThis.fetch = originalFetch;
