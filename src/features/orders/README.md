@@ -49,3 +49,5 @@ Seller Owner has one Google Sheets entry in the Orders header. The Excel import 
 Each row contains one product; equal order codes form one order, with recipient/payment details and Send order confirmation on the first row only. Template download is secondary inside the Google Sheets dialog and does not itself connect Google or submit orders. CONFIGURED confirms saved setup, not continuous OAuth/n8n health. The timestamp is the latest received Google Sheets source order. Manual orders and Excel upload remain independent. Platform setup and deployment prerequisites: BE `docs/MANAGED_GOOGLE_SHEETS_SETUP.md`.
 
 Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: orca_be PR #120; n8n setup and sample storefront: orca_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.
+
+Managed Sheets đã kết nối có mẫu cũ sẽ hiện Cập nhật mẫu nhập đơn. Cùng endpoint POST không nhận dữ liệu từ seller, tạo bảng v4 mới và chuyển feed; UI giữ link bảng cũ để tra cứu, giải thích dòng chưa gửi không tự chuyển và email được cấp quyền. Binding operator không được nâng cấp qua màn hình này.

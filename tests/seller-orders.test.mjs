@@ -701,6 +701,24 @@ test('Google Sheets binding uses own session and rejects unsafe links or contrad
     lastOrderReceivedAt: null,
   };
   assert.equal(orders.sheetConnectionSchema.parse(value).status, 'CONFIGURED');
+  const upgraded = {
+    ...value,
+    upgradeAvailable: false,
+    previousSpreadsheetUrl: value.spreadsheetUrl,
+  };
+  assert.deepEqual(orders.sheetConnectionSchema.parse(upgraded), upgraded);
+  assert.equal(
+    orders.sheetConnectionSchema.safeParse({
+      ...upgraded,
+      previousSpreadsheetUrl: 'javascript:alert(1)',
+    }).success,
+    false,
+  );
+  assert.equal(
+    orders.sheetConnectionSchema.safeParse({ ...value, upgradeAvailable: true }).success,
+    true,
+  );
+
   for (const patch of [
     { spreadsheetUrl: 'https://evil.example.test/' },
     { spreadsheetUrl: 'javascript:alert(1)' },

@@ -400,6 +400,13 @@ export const sheetConnectionSchema = z
     name: z.string().min(1).max(150).nullable(),
     pollIntervalSeconds: z.literal(60).nullable(),
     lastOrderReceivedAt: z.string().datetime().nullable(),
+    upgradeAvailable: z.boolean().optional(),
+    previousSpreadsheetUrl: z
+      .string()
+      .regex(
+        /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]{20,150}\/edit#gid=\d{1,12}$/,
+      )
+      .optional(),
     setupAvailable: z.boolean().optional(),
     setupState: z.enum(['NONE', 'PREPARING', 'FAILED']).optional(),
   })

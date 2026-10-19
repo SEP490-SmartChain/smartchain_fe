@@ -99,9 +99,35 @@ export function GoogleSheetConnection({
             rel="noopener noreferrer"
             className="inline-flex rounded-lg bg-[var(--sc-primary)] px-4 py-3 font-medium hover:bg-[var(--sc-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2"
           >
-            <span className="text-white">{t('sheetOpen')}</span>
+            <span className="text-white">
+              {t(connection.upgradeAvailable ? 'sheetOpenPrevious' : 'sheetOpen')}
+            </span>
           </a>
-          <p>{t('sheetSendInstructions')}</p>
+          {connection.upgradeAvailable ? (
+            <Alert variant="warning">
+              <p>{t('sheetUpgradeHint')}</p>
+              <p className="mt-2">{t('sheetUpgradeAccess', { email: ownerEmail })}</p>
+              <Button className="mt-3" isLoading={creating} onClick={() => void handleCreate()}>
+                {t('sheetUpgrade')}
+              </Button>
+            </Alert>
+          ) : (
+            <p>{t('sheetSendInstructions')}</p>
+          )}
+          {connection.previousSpreadsheetUrl && (
+            <p className="text-sm">
+              <a
+                href={connection.previousSpreadsheetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                {t('sheetOpenPrevious')}
+              </a>{' '}
+              — {t('sheetPreviousHint')}
+            </p>
+          )}
+          {creating && <p role="status">{t('sheetPreparing')}</p>}
           <p className="text-sm text-[var(--sc-text-secondary)]">{t('sheetRuntimeHint')}</p>
           <p className="text-sm">
             {t('sheetLastOrder')}:{' '}
