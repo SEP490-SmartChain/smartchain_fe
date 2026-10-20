@@ -3321,5 +3321,24 @@
     "cap": "Sức bán tối đa: {quantity}",
     "choose": "Dùng cho bản nháp này",
     "confirmation": "Lựa chọn chỉ điền bản nháp hiện tại. Kiểm tra tất cả dòng hàng trước khi lưu; tạo ASN riêng cho các kho còn lại. Tính lại khi dữ liệu thay đổi."
+  },
+  "ReceiptCartons": {
+    "title": "Số thùng thực nhận",
+    "description": "Sau khi duyệt phiếu nhận, xác nhận số thùng đếm thực tế. Số thùng seller khai và số lượng sản phẩm không thay thế số thùng thực nhận.",
+    "loading": "Đang tải xác nhận số thùng…",
+    "loadError": "Không tải được xác nhận số thùng. Vui lòng tải lại.",
+    "saved": "Đã xác nhận số thùng thực nhận.",
+    "count": "Số thùng thực nhận",
+    "reason": "Ghi chú xác nhận",
+    "confirmedAt": "Thời điểm xác nhận",
+    "uncertain": "Chưa xác định được kết quả. Giữ nguyên xác nhận và thử lại cùng thao tác để kiểm tra kết quả.",
+    "retry": "Thử lại cùng xác nhận",
+    "countInvalid": "Nhập số nguyên từ 0 đến 1.000.000.",
+    "countHelp": "Đếm số thùng thực tế. Chỉ nhập 0 khi không nhận được sản phẩm nào.",
+    "reasonInvalid": "Nhập ghi chú từ 3 đến 1.000 ký tự.",
+    "saving": "Đang xác nhận…",
+    "confirm": "Xác nhận số thùng thực nhận",
+    "managerRequired": "Quản lý kho được phân công có thể xác nhận số thùng sau khi duyệt phiếu nhận.",
+    "reload": "Tải lại xác nhận số thùng"
   }
 }

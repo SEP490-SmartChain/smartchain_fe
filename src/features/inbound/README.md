@@ -145,8 +145,9 @@ and ASN directory so the current operational status appears immediately.
 An approved receipt does not itself create stock. Seller notification delivery remains
 pending integration; a durable outbox intent is not proof of delivery. Original discrepancy
 reports remain immutable OPEN submissions; Manager history describes their disposition.
-SS-1072 receive, SS-1073 billing/webhooks and actual Seller notification delivery remain
-outstanding. Do not mark the entire SS-1070/1071 task complete based on these screens.
+SS-1072 stock recognition is described below. SS-1073 now has a physical-carton
+confirmation card; deployed notification delivery and whole-parent SS-1070/UAT
+acceptance remain separate from these screens.
 
 ## Reviewed stock recognition (SS-1072 / FU-21)
 
@@ -276,3 +277,30 @@ The directory, financial/privacy restrictions and action grants are unchanged.
 The UI uses short labels, compact blockers and collapsed decision history. Release
 frontend and backend together: the strict receipt schema requires `cartonCount` and
 `declaredQty`; an older backend response fails validation rather than showing zero.
+
+## Actual carton confirmation (SS-1073)
+
+The approved receiving receipt shows an actual-carton card. Assigned Manager can
+confirm the physical count and note; Staff reads confirmation without prices,
+quota, contract or ledger fields. The input starts blank and accepts an exact
+integer 0–1,000,000. Zero requires an empty physical receipt on the backend.
+Seller-declared cartons and SKU quantities never prefill this value.
+
+`receiptCartonApi` validates the strict operational projection from GET/POST
+`/v1/warehouses/:warehouseId/asns/:asnId/receiving/cartons`. The server binds the
+current approved review, immutable confirmation, original contract and durable
+billing intent; no finance data is requested or submitted by the UI. API/migration
+must deploy before FE. Confirmation does not itself post stock or mean a financial
+worker has completed the charge.
+
+After a lost response, the command remains frozen, navigation/other receipt actions
+are locked and retry submits the same operation/payload. Known validation/access/
+conflict responses reload state while retaining draft text. Identity, warehouse or
+receipt changes abort and clear obsolete requests. The card uses existing review
+capabilities and Common inputs with red required-field indicators.
+
+Run `node --test tests/receipt-cartons.test.mjs` for API/validation regression and
+`node tests/ss-1073-carton-browser.mjs` for the actual app with explicit synthetic
+transport, including committed-but-lost replies and conflicts. This visual harness
+is not deployed API/financial acceptance; BE has separate restricted PostgreSQL
+receipt-to-billing integration tests.
