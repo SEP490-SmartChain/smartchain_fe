@@ -121,9 +121,9 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
       }
     }, true);
   }
-  function downloadTemplate(sheet = false) {
+  function downloadTemplate(sheet = false, detailed = false) {
     void execute(async (signal) => {
-      const template = await ordersApi.template(signal, sheet);
+      const template = await ordersApi.template(signal, sheet, detailed);
       if (orderScope() !== scope || signal.aborted) return;
       const bytes = Uint8Array.from(atob(template.contentBase64), (character) =>
         character.charCodeAt(0),
@@ -414,6 +414,9 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             <Button variant="secondary" isLoading={busy} onClick={() => downloadTemplate()}>
               <Download size={16} />
               {t('template')}
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={() => downloadTemplate(false, true)}>
+              {t('detailedTemplate')}
             </Button>
           </div>
           <Dropzone

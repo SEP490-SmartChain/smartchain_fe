@@ -71,7 +71,7 @@
     "publishConfirm": "Publish bản nháp revision {version}? Bảng giá đã publish chỉ thay đổi bằng phiên bản mới.",
     "saveDraft": "Lưu bản nháp",
     "cancel": "Hủy",
-    "saveError": "Chưa lưu được. Nếu bản nháp đã thay đổi, đóng cửa sổ và tải lại dữ liệu; nội dung nhập vẫn được giữ tại đây.",
+    "saveError": "Chưa xác nhận lưu bảng cước. Nội dung nhập vẫn được giữ; kiểm tra kết nối và tải lại danh sách trước khi thử lại.",
     "loadError": "Không tải hoặc publish được bảng cước. Kiểm tra quyền, khoảng giá/hiệu lực và tải lại dữ liệu khi có xung đột.",
     "validation": "Kiểm tra các trường, khoảng cân nặng, ngày hiệu lực và giá tham chiếu. Khoảng giá phải liên tục và không chồng nhau.",
     "empty": "Chưa có bảng cước.",
@@ -87,7 +87,7 @@
     "divisor": "Hệ số quy đổi (cm³/kg)",
     "rounding": "Bước làm tròn cân (gram)",
     "returnFee": "Phí hoàn (VND)",
-    "declaredFee": "Phí khai giá trên 1.000.000 VND (VND)",
+    "declaredFee": "Hệ số phí khai giá (ppm; 5000 = 0,5%)",
     "bandHelp": "Khoảng cân gồm cận dưới, không gồm cận trên. Để trống cận trên cho khoảng cuối không giới hạn. Giá VND nguyên; không có bảo hiểm.",
     "band": "Khoảng giá {number}",
     "minWeight": "Cân từ, gồm (gram)",
@@ -116,7 +116,17 @@
     "actions": "Thao tác",
     "immutable": "Giữ nguyên lịch sử",
     "firstPage": "Trang đầu",
-    "nextPage": "Trang tiếp"
+    "nextPage": "Trang tiếp",
+    "invalidZone": "Mã vùng chưa được khai báo cho hãng này. Tải lại vùng hoặc nhờ Admin cấu hình tuyến trước.",
+    "invalidServicePolicy": "Dịch vụ đã thay đổi hoặc hệ số quy đổi không khớp. Chọn lại dịch vụ và kiểm tra hệ số.",
+    "staleSave": "Bản nháp đã thay đổi hoặc đã công bố. Giữ nội dung nhập và đọc lại phiên bản hiện tại.",
+    "saveForbidden": "Bạn không có quyền lưu bảng cước này.",
+    "zonesLoading": "Đang tải vùng của hãng…",
+    "zoneHint": "Chọn vùng đã được Admin khai báo cho hãng vận chuyển.",
+    "zonesError": "Không tải được vùng của hãng. Bấm Tải lại vùng để thử lại.",
+    "zonesEmpty": "Hãng chưa có vùng tính cước. Admin cần thêm tuyến trong Danh mục 3PL trước.",
+    "reloadZones": "Tải lại vùng",
+    "manageZones": "Mở danh mục 3PL để cấu hình tuyến (tab mới)"
   },
   "CommercialQuota": {
     "title": "Gói hiện tại & mức sử dụng",
@@ -150,7 +160,8 @@
       "APPLIED": "Đã áp dụng",
       "REJECTED": "Cần kiểm tra lại",
       "CANCELLED": "Đã hủy"
-    }
+    },
+    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ."
   },
   "CommercialAdmin": {
     "finalizeClosure": "Hoàn tất thanh lý",
@@ -480,7 +491,7 @@
     "submit_error": "Chưa xác nhận được kết quả tạo đơn. Gửi lại cùng bản nháp để giữ tham chiếu xử lý.",
     "invalid_field": "Kiểm tra lại giá trị này.",
     "items_error": "Chọn 1–100 SKU khác nhau, số lượng dương và số tiền VND nguyên.",
-    "manual_hint": "Chọn người nhận, địa chỉ và sản phẩm. ORCA tự tạo mã đơn và tính tổng tiền cần thu.",
+    "manual_hint": "Chọn hàng, điền người nhận và tổng cần thu. ORCA tổ chức đóng gói và giao hàng.",
     "draft_kept_hint": "Đóng cửa sổ vẫn giữ bản nháp trên trang này. Tải lại trang hoặc rời trang sẽ mất bản nháp.",
     "discard_draft": "Xóa bản nháp",
     "keep_draft": "Giữ bản nháp",
@@ -551,7 +562,9 @@
       "discountAmount": "Giảm giá đơn",
       "goodsPaidAmount": "Tiền hàng khách đã trả",
       "shippingChargeAmount": "Phí giao hàng thu khách",
-      "shippingPaidAmount": "Phí giao hàng khách đã trả"
+      "shippingPaidAmount": "Phí giao hàng khách đã trả",
+      "collectionAmount": "Tổng thu hộ",
+      "deliveryNote": "Ghi chú giao hàng"
     },
     "statuses": {
       "RECEIVED": "Đã tiếp nhận",
@@ -645,7 +658,8 @@
       "invalid_payment_breakdown": "Kiểm tra các khoản tiền: giảm giá không vượt tổng tiền hàng; tiền đã trả không vượt tiền hàng sau giảm hoặc phí giao hàng; tổng tiền phải nằm trong giới hạn hỗ trợ.",
       "sheet_setup_unavailable": "ORCA chưa bật dịch vụ tạo bảng tự động. Hãy liên hệ ORCA; bạn không cần tự cấu hình.",
       "sheet_setup_in_progress": "ORCA đang chuẩn bị hoặc kiểm tra bảng. Hãy làm mới trạng thái sau ít phút.",
-      "sheet_setup_not_confirmed": "Chưa xác nhận tạo bảng xong. Hãy làm mới trạng thái; thử lại sẽ dùng cùng yêu cầu."
+      "sheet_setup_not_confirmed": "Chưa xác nhận tạo bảng xong. Hãy làm mới trạng thái; thử lại sẽ dùng cùng yêu cầu.",
+      "invalid_declared_value": "Cập nhật giá trị khai báo của từng SKU thành số nguyên VND lớn hơn 0 trong danh mục, rồi gửi lại."
     },
     "search_code": "Tìm theo mã đơn",
     "items_section": "2. Sản phẩm",
@@ -720,7 +734,7 @@
     "sheetConfigured": "Đã cấu hình",
     "sheetOpen": "Mở bảng đơn hàng",
     "sheetSendInstructions": "Điền mỗi sản phẩm trên một dòng; các dòng cùng mã đơn thuộc một đơn. Sau khi điền đủ, chọn Gửi đơn = Có ở dòng đầu. Hệ thống kiểm tra khoảng mỗi phút; xem kết quả ngay trong bảng.",
-    "sheetRuntimeHint": "Cấu hình bảng không bảo đảm kết nối Google và n8n luôn hoạt động. Nếu chưa thấy kết quả sau vài phút, giữ nguyên mã đơn và liên hệ ORCA kiểm tra kết nối.",
+    "sheetRuntimeHint": "Nếu chưa thấy kết quả sau vài phút, giữ nguyên mã đơn và liên hệ ORCA kiểm tra kết nối. Trạng thái cấu hình không bảo đảm kết nối luôn hoạt động.",
     "sheetLastOrder": "ORCA nhận đơn từ Google Sheets gần nhất",
     "sheetNoOrders": "Chưa ghi nhận đơn",
     "sheetRefresh": "Làm mới trạng thái",
@@ -728,10 +742,29 @@
     "sheetCreate": "Tạo bảng đơn hàng",
     "sheetRetrySetup": "Thử tạo lại bảng",
     "sheetCreateHint": "ORCA sẽ tạo bảng riêng cho shop, có sẵn sản phẩm và hướng dẫn nhập đơn. Bạn không cần cấu hình kỹ thuật.",
+    "sheetUpgrade": "Cập nhật mẫu nhập đơn",
+    "sheetUpgradeHint": "Bảng đang kết nối dùng mẫu cũ. Cập nhật sẽ tạo bảng mới với SKU, số lượng, tổng thu hộ và giá trị khai báo tùy chọn; giữ nguyên bảng cũ và lịch sử đơn. Các dòng chưa gửi trong bảng cũ không được tự chuyển. Sau khi cập nhật, chỉ bảng mới được đồng bộ.",
+    "sheetUpgradeAccess": "Bảng mới được cấp quyền cho email chủ shop: {email}.",
+    "sheetOpenPrevious": "Mở bảng cũ để tra cứu",
+    "sheetPreviousHint": "Bảng này đã ngừng đồng bộ. Nhập đơn mới trong bảng đơn hàng ở trên.",
     "sheetCreateConsent": "Bảng do ORCA quản lý và cấp quyền chỉnh sửa cho email chủ shop: {email}. Bấm Tạo bảng đơn hàng để bắt đầu.",
     "sheetPreparing": "ORCA đang chuẩn bị hoặc xác minh bảng. Giữ nguyên yêu cầu và làm mới trạng thái sau ít phút.",
     "sheetSetupRetryHint": "Chưa xác nhận hoàn tất kết nối. ORCA sẽ kiểm tra lại cùng yêu cầu khi bạn thử lại, tránh tạo thêm bảng.",
-    "sheetPlatformUnavailable": "ORCA chưa bật tính năng tự tạo bảng trên hệ thống này. Bạn không cần cấu hình Google hay n8n; hãy liên hệ ORCA để được hỗ trợ."
+    "sheetPlatformUnavailable": "ORCA chưa bật tính năng tự tạo bảng trên hệ thống này. Liên hệ ORCA để được hỗ trợ kết nối.",
+    "entryMode": "Cách nhập tiền thu hộ",
+    "directEntry": "Nhập tổng cần thu khi giao",
+    "calculatedEntry": "Tính từ chi tiết thanh toán",
+    "collectionAmount": "Tổng tiền cần thu khi giao (VND)",
+    "collectionRequired": "Nhập tổng tiền cần thu; nhập 0 nếu không thu tiền.",
+    "collectionHint": "Toàn bộ số tiền shipper thu từ người nhận, gồm phí giao hàng còn thu khách nếu có. Nhập 0 nếu không thu; không để trống.",
+    "deliveryNote": "Ghi chú giao hàng",
+    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ.",
+    "declaredCatalogHint": "Để trống để ORCA lấy tổng giá trị khai báo từ SKU lúc tiếp nhận. Khai giá khác tiền thu hộ và không phải cam kết bồi thường.",
+    "directCollectionSnapshot": "Tổng thu hộ do shop khai báo lúc tạo đơn, đã bao gồm mọi khoản cần thu từ người nhận. Không thể suy ra khách đã trả bao nhiêu từ số tiền này.",
+    "allocationUnitValue": "Giá trị khai báo / sản phẩm",
+    "allocationTotalValue": "Tổng giá trị làm căn cứ phân bổ",
+    "allocationValueHint": "Các giá trị sản phẩm dưới đây được chụp từ danh mục để phân bổ thu hộ khi tách kiện; không phải giá bán của đơn.",
+    "detailedTemplate": "Mẫu tính thanh toán chi tiết (tùy chọn)"
   },
   "Sidebar": {
     "freight_tariffs": "Bảng cước",
@@ -3247,6 +3280,31 @@
     "retry": "Gửi lại thao tác đổi bin",
     "success": "Đã đổi bin lưu trữ; vẫn cần quét và xác nhận thực tế.",
     "completedReadOnly": "Task đã kết thúc. Bạn có thể xem lịch sử; không thể đổi bin."
+  },
+  "CarrierZones": {
+    "title": "Tuyến và vùng tính cước",
+    "hint": "Mỗi tuyến gồm tỉnh gửi và tỉnh nhận. Bảng cước chỉ chọn được mã vùng đã khai báo cho đúng hãng. Tuyến ngược chiều cần khai báo riêng; cấu hình áp dụng ở cấp tỉnh.",
+    "add": "Thêm tuyến",
+    "edit": "Sửa tuyến",
+    "from": "Tỉnh gửi",
+    "to": "Tỉnh nhận",
+    "zone": "Mã vùng tính cước",
+    "zoneHint": "Chữ in hoa, số, dấu gạch ngang hoặc gạch dưới; dùng cùng mã trong bảng cước.",
+    "eta": "Thời gian giao dự kiến (ngày)",
+    "invalid": "Kiểm tra giá trị đã nhập.",
+    "save": "Lưu tuyến",
+    "cancel": "Hủy",
+    "reload": "Tải lại",
+    "first": "Trang đầu",
+    "next": "Trang tiếp",
+    "actions": "Thao tác",
+    "empty": "Chưa có tuyến. Thêm tuyến để có mã vùng lập bảng cước.",
+    "loadError": "Không tải được tuyến hoặc danh mục tỉnh. Bấm Tải lại để thử lại.",
+    "saveError": "Chưa lưu được tuyến. Nội dung nhập vẫn được giữ; kiểm tra kết nối rồi tải lại danh sách trước khi thử lại.",
+    "duplicate": "Tuyến tỉnh gửi và tỉnh nhận này đã tồn tại. Tải lại danh sách để xem tuyến hiện có.",
+    "stale": "Tuyến đã thay đổi. Nội dung nhập vẫn được giữ; tải lại danh sách rồi chọn Sửa tuyến để dùng phiên bản mới.",
+    "inUse": "Mã vùng đang được bảng cước sử dụng nên chưa thể thay đổi.",
+    "provinceMissing": "Tỉnh gửi hoặc tỉnh nhận không còn trong danh mục. Tải lại danh mục và chọn lại."
   },
   "Replenishment": {
     "title": "Gợi ý chia hàng về kho",

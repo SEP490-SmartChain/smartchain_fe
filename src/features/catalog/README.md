@@ -1,6 +1,10 @@
 # features/catalog
 
-Carrier catalogue management UI (UC-91): create/edit carrier metadata and create/edit/enable/disable services in carrier details. Backend mutation endpoints are a separate dependency. Contract and ownership handoff: [carrier management API](../../../docs/CARRIER-CATALOG-MANAGEMENT-API-HANDOFF.md). Adding a carrier does not implement its provider adapter or configure carrier zones.
+Carrier catalogue management UI (UC-91): create/edit carrier metadata and create/edit/enable/disable services in carrier details. Contract and ownership handoff: [carrier management API](../../../docs/CARRIER-CATALOG-MANAGEMENT-API-HANDOFF.md). Adding a carrier does not implement its provider adapter.
+
+Carrier details include a paginated route/zone panel for Admin. It uses province directory options and existing carrier-zone POST/PATCH endpoints; edits send `expectedUpdatedAt` and preserve drafts on failure. Routes are directional and province-level, not ward-level. No automatic coverage, tariff publication or live carrier booking is implied.
+
+Purchase tariffs select configured zone codes by carrier through `GET /v1/platform/tariffs/carriers/:carrierId/zone-codes`, available to existing Admin/Accountant tariff roles. Empty or failed zone reads block saving and explain how an Admin can add routes. Carrier changes clear the zone; obsolete reads are aborted. The declared-value policy input is labelled ppm to match the API calculation, without implying a fee exemption threshold.
 
 Seller SKU, platform warehouse/carrier catalogue, ORCA-owned carrier accounts/ping và purchase/sell tariff UI. Report3 UC-91–95/118/119; không BYOA. Tariff contract và role/state mapping ở `docs/SS-1246-RATE-CARDS.md`.
 

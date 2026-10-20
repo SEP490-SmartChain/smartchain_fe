@@ -22,6 +22,7 @@ export function importRowFeedback(
 }
 
 const KNOWN_ERRORS: Record<string, string> = {
+  'ORDERS.INVALID_DECLARED_VALUE': 'invalid_declared_value',
   'ORDERS.SHEET_SETUP_UNAVAILABLE': 'sheet_setup_unavailable',
   'ORDERS.SHEET_SETUP_IN_PROGRESS': 'sheet_setup_in_progress',
   'ORDERS.SHEET_SETUP_NOT_CONFIRMED': 'sheet_setup_not_confirmed',
