@@ -1955,7 +1955,23 @@
       "network": "The server could not be reached. Check your connection and retry.",
       "response": "The server returned an unexpected data format. Retry; if it persists, the application data contract needs to be checked.",
       "unavailable": "The server could not complete this request. Please retry later."
-    }
+    },
+    "runningLowTitle": "Running Low Alerts",
+    "runningLowDescription": "Products approaching or below safety threshold based on 30-day sales velocity.",
+    "runningLowEmpty": "Stock levels healthy",
+    "runningLowEmptyHint": "No products are currently below replenishment thresholds.",
+    "runningLowUrgentCount": "{count, plural, one {# item requires replenishment} other {# items require replenishment}}",
+    "columnDailyVelocity": "Daily sales",
+    "columnDaysOfCover": "Days left",
+    "columnSuggestedReplenishment": "Suggested replenish",
+    "columnUrgency": "Urgency",
+    "urgencyCritical": "Critical",
+    "urgencyWarning": "Warning",
+    "replenishAction": "Create ASN",
+    "unitsPerDay": "{rate}/day",
+    "daysCoverUnit": "{days} days",
+    "replenishUnits": "{count, number} units",
+    "runningLowLoadError": "Could not load low-stock alerts."
   },
   "ApiKeys": {
     "title": "API Keys",
@@ -3289,5 +3305,21 @@
     "stale": "The route has changed. Your input is retained; reload the list and edit the current version.",
     "inUse": "Rate cards use this zone code, so it cannot be changed yet.",
     "provinceMissing": "An origin or destination province is no longer available. Reload and select again."
+  },
+  "Replenishment": {
+    "title": "Warehouse split suggestion",
+    "description": "Review demand over the last 30 days before choosing an ASN warehouse.",
+    "calculate": "Calculate suggestion",
+    "loadError": "Could not load suggestions. Try again.",
+    "historical": "Based on fulfilled sales to each destination region over 30 days.",
+    "baseline": "Limited or unmapped sales history. Using configured regional weights; review quantities before confirming.",
+    "unallocated": "{quantity} units cannot be allocated within shelf-life capacity.",
+    "expired": "This lot expires today or has already expired.",
+    "noWarehouses": "No eligible warehouses are available.",
+    "units": "{quantity} units",
+    "velocity": "{quantity} units/day",
+    "cap": "Capacity: {quantity}",
+    "choose": "Use for this draft",
+    "confirmation": "Choosing fills this draft only. Review all lines and quantities before saving. Create separate ASNs for other warehouses. Recalculate after changes."
   }
 }

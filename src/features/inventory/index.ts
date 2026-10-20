@@ -19,4 +19,7 @@ export type {
 } from './types/inventoryStock.types';
 export { NearExpiryPanel } from './components/NearExpiryPanel';
 export { InventoryNotificationSettingsCard } from './components/InventoryNotificationSettingsCard';
+export { RunningLowCard } from './components/RunningLowCard';
+export { useRunningLow } from './hooks/useRunningLow';
+export type { RunningLowItem, RunningLowUrgency } from './types/inventoryStock.types';
 export { InventoryWorkspace } from './components/InventoryWorkspace';
