@@ -3413,5 +3413,24 @@
       "COMBO": "Bundle",
       "UNIT": "Unit"
     }
+  },
+  "ReceiptCartons": {
+    "title": "Actual cartons received",
+    "description": "After approving the receipt, confirm the physical number of cartons. The seller declaration and SKU quantities are not used as the actual carton count.",
+    "loading": "Loading carton evidence…",
+    "loadError": "Unable to load carton confirmation. Reload and try again.",
+    "saved": "Actual carton count confirmed.",
+    "count": "Actual carton count",
+    "reason": "Confirmation note",
+    "confirmedAt": "Confirmed at",
+    "uncertain": "The response is uncertain. Keep this confirmation and retry the same operation to check its result.",
+    "retry": "Retry the same confirmation",
+    "countInvalid": "Enter a whole number from 0 to 1,000,000.",
+    "countHelp": "Count physical cartons. Zero is allowed only when no units were received.",
+    "reasonInvalid": "Enter a note of 3–1,000 characters.",
+    "saving": "Confirming…",
+    "confirm": "Confirm actual cartons",
+    "managerRequired": "An assigned Warehouse Manager can confirm cartons for the approved receipt.",
+    "reload": "Reload carton evidence"
   }
 }

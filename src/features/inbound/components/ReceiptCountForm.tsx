@@ -12,6 +12,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptCartonPanel } from './ReceiptCartonPanel';
 import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
 import { ReceiptPhotos } from './ReceiptPhotos';
@@ -789,6 +790,17 @@ export function ReceiptCountForm({
           )}
         </div>
         <aside className={styles.sidebar} aria-label={t('reviewHistoryTitle')}>
+          {receipt && isApproved && (
+            <ReceiptCartonPanel
+              warehouseId={warehouseId}
+              asnId={asnId}
+              receiptId={receipt.receiptId}
+              receiptVersion={receipt.version}
+              canWrite={!otherPending(`cartons:${asnId}`) && can('warehouse.asn.review')}
+              onPendingChange={handlePending}
+              onSaved={onReceiptChanged}
+            />
+          )}
           {receipt && (
             <ReceiptReviewPanel
               key={`review:${receipt.receivingRound}`}
