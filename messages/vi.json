@@ -2712,7 +2712,12 @@
     "nativeCaptureHelp": "Trên HTTP, nút chụp/quay mở camera hoặc bộ chọn file của thiết bị. Camera xem trực tiếp trong trang web cần HTTPS.",
     "receiptMediaEmpty": "Chưa có ảnh/video.",
     "mediaStorageError": "Chưa gửi được file tới kho lưu trữ. Giữ nguyên file này và bấm Thử lại.",
-    "mediaConfirmError": "File đã gửi nhưng chưa xác nhận lưu. Thử lại cùng file để kiểm tra kết quả."
+    "mediaConfirmError": "File đã gửi nhưng chưa xác nhận lưu. Thử lại cùng file để kiểm tra kết quả.",
+    "countLotCode": "Mã lô (không bắt buộc)",
+    "packagingAssist": "Gợi ý mã lô/hạn dùng từ ảnh",
+    "packagingApplied": "Đã điền giá trị xác nhận vào dòng chưa lưu. Nhập số lượng thực tế và lưu kiểm đếm.",
+    "countLotCodeHelp": "Nhập mã lô trên bao bì, hoặc để trống để hệ thống tạo mã lô nội bộ.",
+    "packagingAppliedQuarantine": "Đã điền giá trị xác nhận vào dòng chưa lưu. Ngày này yêu cầu cách ly theo quy tắc SKU; vẫn phải kiểm đếm và QC thông thường."
   },
   "Asns": {
     "title": "Phiếu gửi hàng vào kho (ASN)",
@@ -3432,5 +3437,34 @@
     "confirm": "Xác nhận số thùng thực nhận",
     "managerRequired": "Quản lý kho được phân công có thể xác nhận số thùng sau khi duyệt phiếu nhận.",
     "reload": "Tải lại xác nhận số thùng"
+  },
+  "PackagingAI": {
+    "title": "Đọc mã lô và hạn dùng từ ảnh",
+    "humanReview": "Đối chiếu bao bì thực tế trước khi chấp nhận",
+    "help": "AI chỉ gợi ý văn bản. Chấp nhận sẽ điền dòng lô chưa lưu; số lượng, QC và tồn kho vẫn lưu qua các bước nhận hàng thông thường.",
+    "loading": "Đang kiểm tra chức năng hỗ trợ…",
+    "loadError": "Không tải được hỗ trợ. Tiếp tục nhập tay hoặc mở lại phần này.",
+    "disabled": "Hỗ trợ từ ảnh đang tắt. Bạn vẫn có thể nhập tay.",
+    "noPhotos": "Tải lên và xác minh ảnh phiên nhận hàng của bạn trước (PNG, JPEG hoặc WebP, tối đa 4 MiB), sau đó mở lại phần này.",
+    "photo": "Ảnh bao bì đã xác minh",
+    "request": "Đọc ảnh này",
+    "uncertain": "Chưa xác nhận được kết quả. Kiểm tra thao tác này hoặc gửi lại đúng yêu cầu cũ.",
+    "running": "Thao tác này chưa có kết quả. Kiểm tra lại hoặc tiếp tục nhập tay.",
+    "check": "Kiểm tra kết quả đã lưu",
+    "retry": "Gửi lại yêu cầu cũ",
+    "quota": "Đã đạt giới hạn AI trong ngày. Vui lòng nhập tay.",
+    "unavailable": "Không đọc được ảnh. Vui lòng nhập tay.",
+    "rawLot": "Mã lô đọc từ ảnh",
+    "rawExpiry": "Hạn dùng đọc từ ảnh",
+    "notRead": "Không nhận diện được",
+    "dateHelp": "Ngày được để trống có chủ ý. Đối chiếu bao bì rồi nhập ngày chính xác; hệ thống không tự đoán ngày từ văn bản chưa rõ.",
+    "lot": "Mã lô đã đối chiếu",
+    "manufacture": "Ngày sản xuất đã đối chiếu",
+    "expiry": "Hạn dùng đã đối chiếu",
+    "confirm": "Tôi đã đối chiếu các giá trị này với bao bì thực tế.",
+    "invalid": "Nhập mã lô hoặc hạn dùng và xác nhận đã đối chiếu bao bì.",
+    "accept": "Chấp nhận giá trị vào form",
+    "retryAccept": "Gửi lại xác nhận cũ",
+    "manual": "Đóng và tiếp tục nhập tay"
   }
 }

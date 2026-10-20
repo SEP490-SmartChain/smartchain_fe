@@ -2712,7 +2712,12 @@
     "nativeCaptureHelp": "On HTTP, these buttons open the device camera/file picker. Live camera preview inside the web page requires HTTPS.",
     "receiptMediaEmpty": "No photos/videos.",
     "mediaStorageError": "The file could not reach storage. Keep this file selected and retry.",
-    "mediaConfirmError": "Upload finished, but confirmation is pending. Retry this file to check the saved result."
+    "mediaConfirmError": "Upload finished, but confirmation is pending. Retry this file to check the saved result.",
+    "countLotCode": "Lot code (optional)",
+    "packagingAssist": "Suggest lot/date from photo",
+    "packagingApplied": "Verified values were filled into the unsaved row. Enter physical quantities and save the count.",
+    "countLotCodeHelp": "Enter the code on the packaging, or leave it blank for an internal lot code.",
+    "packagingAppliedQuarantine": "Verified values were filled into the unsaved row. These dates require quarantine under the SKU rules; normal counting and QC are still required."
   },
   "Asns": {
     "title": "Advance Shipping Notices",
@@ -3432,5 +3437,34 @@
     "confirm": "Confirm actual cartons",
     "managerRequired": "An assigned Warehouse Manager can confirm cartons for the approved receipt.",
     "reload": "Reload carton evidence"
+  },
+  "PackagingAI": {
+    "title": "Read lot and expiry from a photo",
+    "humanReview": "Check the physical packaging before accepting",
+    "help": "AI only suggests text. Accepting fills this unsaved lot row; quantities, QC and stock are saved through the normal receiving steps.",
+    "loading": "Checking assistance availability…",
+    "loadError": "Assistance cannot be loaded. Continue manually or reopen this panel.",
+    "disabled": "Photo assistance is disabled. Manual entry remains available.",
+    "noPhotos": "Upload and verify your own receipt-session photo first (PNG, JPEG or WebP, at most 4 MiB). Then reopen this panel.",
+    "photo": "Verified packaging photo",
+    "request": "Read this photo",
+    "uncertain": "The result is not confirmed. Check this operation or retry the same request.",
+    "running": "This operation is still unresolved. Check again or continue manually.",
+    "check": "Check saved result",
+    "retry": "Retry same request",
+    "quota": "The daily AI limit has been reached. Continue manually.",
+    "unavailable": "The photo could not be read. Continue manually.",
+    "rawLot": "Lot text read from photo",
+    "rawExpiry": "Expiry text read from photo",
+    "notRead": "Not identified",
+    "dateHelp": "Dates are intentionally blank. Read the package and enter the confirmed calendar date; ambiguous text is never converted automatically.",
+    "lot": "Verified lot code",
+    "manufacture": "Verified manufacture date",
+    "expiry": "Verified expiry date",
+    "confirm": "I checked these values against the physical packaging.",
+    "invalid": "Enter a lot code or expiry date and confirm the physical packaging.",
+    "accept": "Accept verified values into form",
+    "retryAccept": "Retry same acceptance",
+    "manual": "Close and continue manual entry"
   }
 }
