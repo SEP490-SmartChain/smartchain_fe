@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
 
@@ -9,8 +9,10 @@ import {
   ArrowRight,
   ArrowUp,
   Box,
+  Focus,
   Home,
   Maximize2,
+  Map,
   Move,
   RotateCw,
   Save,
@@ -36,6 +38,12 @@ import {
   visualPlanKey,
 } from '../utils/visualLayout';
 import { createWarehouseScene } from '../utils/warehouseScene';
+import {
+  defaultWarehouseViewFilters,
+  filterWarehouseEntities,
+  visualEntityKey,
+  warehouseViewFilterSchema,
+} from '../utils/warehouseView';
 
 import type { Bin, Zone } from '../api/warehouseLayoutApi';
 import type {
@@ -45,7 +53,10 @@ import type {
 } from '../schemas/warehouseVisualLayoutSchema';
 import type { Warehouse } from '../types/warehouse';
 
-const searchSchema = z.object({ search: z.string() });
+const floorSchema = z.object({
+  width: z.number().int().min(16).max(256),
+  depth: z.number().int().min(16).max(256),
+});
 const positionSchema = z.object({
   x: z.number().int().min(0).max(255),
   z: z.number().int().min(0).max(255),
@@ -82,6 +93,7 @@ export default function Warehouse3DPlanner({
   const [plan, setPlan] = useState<VisualPlan | null>(null);
   const [selected, setSelected] = useState<VisualEntity | null>(null);
   const [editing, setEditing] = useState(false);
+  const [topView, setTopView] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(true);
@@ -101,11 +113,38 @@ export default function Warehouse3DPlanner({
     !!snapshot &&
     (snapshot.saved.plan === null || visualPlanKey(plan) !== visualPlanKey(snapshot.saved.plan));
   const hasEdits = !!plan && !!snapshot && visualPlanKey(plan) !== visualPlanKey(snapshot.plan);
-  const { register, watch } = useForm({
-    resolver: zodResolver(searchSchema),
-    defaultValues: { search: '' },
+  const {
+    register,
+    watch,
+    reset: resetFilters,
+  } = useForm({
+    resolver: zodResolver(warehouseViewFilterSchema),
+    defaultValues: defaultWarehouseViewFilters,
   });
-  const search = watch('search').trim().toLocaleLowerCase(locale);
+  const [search, zoneId, zoneType, status, placed] = watch([
+    'search',
+    'zoneId',
+    'zoneType',
+    'status',
+    'placement',
+  ]);
+  const matches = useMemo(() => {
+    const entities =
+      snapshot && plan
+        ? filterWarehouseEntities(
+            snapshot.zones,
+            snapshot.bins,
+            plan,
+            { search, zoneId, zoneType, status, placement: placed },
+            locale,
+          )
+        : [];
+    return new Set(entities.map(visualEntityKey));
+  }, [snapshot, plan, search, zoneId, zoneType, status, placed, locale]);
+  const floorSize = useForm({
+    resolver: zodResolver(floorSchema),
+    defaultValues: { width: 32, depth: 32 },
+  });
   const position = useForm({
     resolver: zodResolver(positionSchema),
     defaultValues: { x: 0, z: 0, width: 8, depth: 6 },
@@ -127,6 +166,8 @@ export default function Warehouse3DPlanner({
     setSelected(null);
     setPast([]);
     setEditing(false);
+    setTopView(false);
+    resetFilters(defaultWarehouseViewFilters);
     setError('');
     setNotice('');
     setLoading(true);
@@ -161,7 +202,7 @@ export default function Warehouse3DPlanner({
       controller.abort();
       request.current?.abort();
     };
-  }, [warehouse.id, scope, attempt, t]);
+  }, [warehouse.id, scope, attempt, t, resetFilters]);
 
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
@@ -220,11 +261,16 @@ export default function Warehouse3DPlanner({
   useEffect(() => {
     if (!host.current || !snapshot || unavailable) return;
     try {
-      const value = createWarehouseScene(host.current, t('canvasLabel'), {
-        select: (entity) => callbacks.current.select(entity),
-        move: (entity, x, z) => callbacks.current.move(entity, x, z),
-        unavailable: () => callbacks.current.unavailable(),
-      });
+      const value = createWarehouseScene(
+        host.current,
+        t('canvasLabel'),
+        {
+          select: (entity) => callbacks.current.select(entity),
+          move: (entity, x, z) => callbacks.current.move(entity, x, z),
+          unavailable: () => callbacks.current.unavailable(),
+        },
+        styles.selectionChip,
+      );
       scene.current = value;
       value.update({ ...snapshot, plan: snapshot.plan, selected: null, editing: false });
       value.home(latest.current.editing);
@@ -236,14 +282,31 @@ export default function Warehouse3DPlanner({
       setUnavailable(true);
     }
   }, [snapshot, unavailable, t]);
+  const selectionLabel =
+    zone || bin
+      ? `${zone?.code ?? bin?.code} · ${t((zone ?? bin)?.isActive ? 'active' : 'inactive')}`
+      : '';
   useEffect(() => {
     if (snapshot && plan) {
-      scene.current?.update({ ...snapshot, plan, selected, editing: editing && !saving });
+      scene.current?.update({
+        ...snapshot,
+        plan,
+        selected,
+        editing: editing && !saving,
+        matches,
+        selectionLabel,
+      });
     }
-  }, [snapshot, plan, selected, editing, saving]);
+  }, [snapshot, plan, selected, editing, saving, matches, selectionLabel]);
   useEffect(() => {
-    if (editing) scene.current?.home(true);
-  }, [editing]);
+    scene.current?.setTopView(editing || topView);
+  }, [editing, topView, snapshot]);
+  const { reset: resetFloorSize } = floorSize;
+  const floorWidth = plan?.width,
+    floorDepth = plan?.depth;
+  useEffect(() => {
+    if (floorWidth && floorDepth) resetFloorSize({ width: floorWidth, depth: floorDepth });
+  }, [floorWidth, floorDepth, resetFloorSize]);
   const { reset } = position;
   useEffect(() => {
     if (placement) {
@@ -265,7 +328,7 @@ export default function Warehouse3DPlanner({
       if (event.key !== 'Tab') return;
       const focusable = [
         ...dialog.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]',
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), summary, [tabindex="0"]',
         ),
       ].filter((element) => element.getClientRects().length);
       const first = focusable[0],
@@ -336,11 +399,15 @@ export default function Warehouse3DPlanner({
           value: `bin:${item.id}`,
           label: `${t('bin')} · ${item.code}`,
         })),
-      ].filter((item) => item.label.toLocaleLowerCase(locale).includes(search))
+      ].filter((item) => matches.has(item.value))
     : [];
-  // Keep the selection visible when the search changes.
+  const outsideFilter = !!selectedValue && !matches.has(selectedValue);
+  // Keep current details without disguising an excluded selection as a match.
   if (selectedValue && !options.some((item) => item.value === selectedValue)) {
-    options.unshift({ value: selectedValue, label: zone?.code ?? bin?.code ?? selectedValue });
+    options.unshift({
+      value: selectedValue,
+      label: t('selectedOutsideOption', { code: zone?.code ?? bin?.code ?? selectedValue }),
+    });
   }
 
   return (
@@ -442,7 +509,11 @@ export default function Warehouse3DPlanner({
               </div>
               <div className={styles.camera} aria-label={t('camera')}>
                 {[
-                  { label: 'home', icon: Home, action: () => scene.current?.home(editing) },
+                  {
+                    label: 'home',
+                    icon: Home,
+                    action: () => scene.current?.home(editing || topView),
+                  },
                   { label: 'zoomIn', icon: ZoomIn, action: () => scene.current?.zoom(0.8) },
                   { label: 'zoomOut', icon: ZoomOut, action: () => scene.current?.zoom(1.25) },
                   { label: 'rotate', icon: RotateCw, action: () => scene.current?.rotate() },
@@ -452,12 +523,22 @@ export default function Warehouse3DPlanner({
                     variant="outline"
                     size="sm"
                     aria-label={t(label)}
-                    disabled={unavailable || (editing && label === 'rotate')}
+                    disabled={unavailable || ((editing || topView) && label === 'rotate')}
                     onClick={action}
                   >
                     <Icon size={17} />
                   </Button>
                 ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={t('topView')}
+                  aria-pressed={editing || topView}
+                  disabled={unavailable || editing}
+                  onClick={() => setTopView((value) => !value)}
+                >
+                  <Map size={17} />
+                </Button>
               </div>
               <aside className={styles.details} aria-label={t('details')}>
                 <div className={styles.detailHeading}>
@@ -469,18 +550,85 @@ export default function Warehouse3DPlanner({
                   {...register('search')}
                   placeholder={t('searchPlaceholder')}
                 />
+                <details className={styles.filters}>
+                  <summary>{t('filters')}</summary>
+                  <Select
+                    label={t('zone')}
+                    {...register('zoneId')}
+                    placeholder={t('allZones')}
+                    isPlaceholderDisabled={false}
+                    options={snapshot.zones.map((item) => ({ value: item.id, label: item.code }))}
+                  />
+                  <Select
+                    label={t('type')}
+                    {...register('zoneType')}
+                    options={['all', 'RECEIVING', 'STORAGE', 'PACKING', 'QUARANTINE'].map(
+                      (value) => ({
+                        value,
+                        label: value === 'all' ? t('allTypes') : t(`types.${value}`),
+                      }),
+                    )}
+                  />
+                  <Select
+                    label={t('state')}
+                    {...register('status')}
+                    options={['all', 'active', 'inactive'].map((value) => ({
+                      value,
+                      label: t(value === 'all' ? 'allStatuses' : value),
+                    }))}
+                  />
+                  <Select
+                    label={t('placement')}
+                    {...register('placement')}
+                    options={['all', 'placed', 'unplaced'].map((value) => ({
+                      value,
+                      label: t(value === 'all' ? 'allPlacements' : value),
+                    }))}
+                  />
+                </details>
+                <div className={styles.filterSummary}>
+                  <p role="status">
+                    {t('matches', {
+                      count: matches.size,
+                      total: snapshot.zones.length + snapshot.bins.length,
+                    })}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resetFilters(defaultWarehouseViewFilters)}
+                  >
+                    {t('clearFilters')}
+                  </Button>
+                </div>
+                {matches.size === 0 && <p>{t('noMatches')}</p>}
+                <p>{t('filterContext')}</p>
                 <Select
                   label={t('selectEntity')}
                   value={selectedValue}
                   options={options}
+                  isPlaceholderDisabled={false}
                   onChange={(event) => {
                     const [kind, id] = event.target.value.split(':');
-                    if (id && (kind === 'zone' || kind === 'bin')) setSelected({ kind, id });
+                    if (id && (kind === 'zone' || kind === 'bin')) {
+                      setSelected({ kind, id });
+                      scene.current?.focus({ kind, id });
+                    } else setSelected(null);
                   }}
                 />
+                {outsideFilter && <p role="status">{t('selectedOutside')}</p>}
                 {zone || bin ? (
                   <>
                     <h4>{zone?.code ?? bin?.code}</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!placement || unavailable}
+                      onClick={() => selected && scene.current?.focus(selected)}
+                    >
+                      <Focus size={16} />
+                      {t('focus')}
+                    </Button>
                     <dl className={styles.metadata}>
                       <div>
                         <dt>{t('state')}</dt>
@@ -591,6 +739,38 @@ export default function Warehouse3DPlanner({
                 ) : (
                   <p>{t(snapshot.zones.length ? 'selectHelp' : 'empty')}</p>
                 )}
+                {editing && canEdit && (
+                  <details className={styles.filters}>
+                    <summary>{t('floorSize')}</summary>
+                    <form
+                      className={styles.positionForm}
+                      onSubmit={floorSize.handleSubmit((values) => apply({ ...plan, ...values }))}
+                    >
+                      <p>{t('floorSizeHelp')}</p>
+                      <div className={styles.fields}>
+                        {(['width', 'depth'] as const).map((field) => (
+                          <Input
+                            key={field}
+                            label={t(field)}
+                            type="number"
+                            min={16}
+                            max={256}
+                            step="1"
+                            required
+                            disabled={saving}
+                            {...floorSize.register(field, { valueAsNumber: true })}
+                            error={
+                              floorSize.formState.errors[field] ? t('invalidNumber') : undefined
+                            }
+                          />
+                        ))}
+                      </div>
+                      <Button variant="outline" size="sm" type="submit" disabled={saving}>
+                        {t('applyFloorSize')}
+                      </Button>
+                    </form>
+                  </details>
+                )}
               </aside>
               <div className={styles.legend}>
                 <span className={styles.storage} />
@@ -602,7 +782,9 @@ export default function Warehouse3DPlanner({
                 <span className={styles.quarantine} />
                 {t('types.QUARANTINE')}
               </div>
-              <div className={styles.help}>{t(editing ? 'dragHelp' : 'orbitHelp')}</div>
+              <div className={styles.help}>
+                {t(editing ? 'dragHelp' : topView ? 'panHelp' : 'orbitHelp')}
+              </div>
               {unavailable && (
                 <div className={styles.fallback}>
                   <Alert variant="warning" title={t('webglUnavailable')}>
@@ -614,6 +796,7 @@ export default function Warehouse3DPlanner({
             <footer className={styles.footer}>
               <p role="status">
                 {dirty ? t('draft') : t('revision', { revision: snapshot.saved.revision })}
+                {` · ${t('floorCells', { width: plan.width, depth: plan.depth })}`}
                 {snapshot.saved.savedAt &&
                   ` · ${new Date(snapshot.saved.savedAt).toLocaleString(locale)}`}
               </p>

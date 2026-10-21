@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const html = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORCA · Warehouse 3D acceptance</title></head>
 <body><aside style="padding:8px"><strong>SS-1057 · Synthetic local acceptance data</strong>
 <form><label>Role <select name="role"><option>WAREHOUSE_MANAGER</option><option>ORCA_ADMIN</option></select></label>
-<label>Scenario <select name="scenario"><option>ready</option><option>lost</option><option>stale</option><option>empty</option><option>error</option><option>large</option></select></label><button>Load fixture</button></form>
+<label>Scenario <select name="scenario"><option>ready</option><option>lost</option><option>stale</option><option>empty</option><option>error</option><option>large</option><option>unplaced</option></select></label><button>Load fixture</button></form>
 <output aria-label="Fixture save evidence">No saves</output></aside><div id="root"></div><script type="module">
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -26,7 +26,7 @@ const zones=scenario==='empty'?[]:['RECEIVING','STORAGE','PACKING','QUARANTINE']
 const bins=zones.flatMap((zone,i)=>Array.from({length:scenario==='large'?250:[6,24,6,4][i]},(_,j)=>({id:uuid(1000+i*300+j),warehouseId:warehouse.id,zoneId:zone.id,code:zone.code+'-'+String(j+1).padStart(3,'0'),barcode:zone.code+'-'+String(j+1).padStart(3,'0'),maxWeightG:'100000',maxVolumeM3:'1.5',isActive:j!==3,version:1})));
 const user={userId:uuid(2),tenantId:null,actorScope:'PLATFORM',roles:[role],permissions:[],warehouseIds:[warehouse.id],email:'synthetic@example.test',fullName:'Synthetic 3D reviewer'};
 useAuthStore.getState().setSession({accessToken:'synthetic-layout-acceptance',expiresIn:900,user});
-let saved={revision:0,plan:null,savedAt:null},lost=false,calls=0;
+let saved=scenario==='unplaced'?{revision:1,savedAt:stamp,plan:{schemaVersion:1,width:32,depth:32,zones:[{zoneId:zones[0].id,x:2,z:2,width:8,depth:8}],bins:[{binId:bins[0].id,x:1,z:1}]}}:{revision:0,plan:null,savedAt:null},lost=false,calls=0;
 const ok=(data,pagination)=>Response.json({success:true,data,meta:{timestamp:stamp,requestId:'synthetic-only',...(pagination?{pagination}:{})}});
 window.fetch=async(input,init={})=>{
  const url=new URL(typeof input==='string'?input:input.url,location.origin),p=url.pathname;
