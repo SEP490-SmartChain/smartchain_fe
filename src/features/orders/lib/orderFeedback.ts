@@ -48,7 +48,8 @@ export function orderErrorKey(error: unknown): string {
   return KNOWN_ERRORS[code] ? `errors.${KNOWN_ERRORS[code]}` : 'response_error';
 }
 export function orderReasonKey(code: string | null): string {
-  return code && ['VALIDATION_FAILED', 'ADDRESS_NORMALIZED'].includes(code)
+  return code &&
+    ['VALIDATION_FAILED', 'ADDRESS_NORMALIZED', 'ALLOCATION_QUEUE_FAILED'].includes(code)
     ? `reasons.${code}`
     : 'processing_reason';
 }

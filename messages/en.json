@@ -637,6 +637,7 @@
     "parcel_number": "Parcel {number}",
     "weight_pending": "Not weighed yet",
     "reasons": {
+      "ALLOCATION_QUEUE_FAILED": "Allocation could not finish after retries. ORCA must review this order before processing can continue.",
       "VALIDATION_FAILED": "The address does not match the directory. Check its province/ward and contact ORCA to resolve this order.",
       "ADDRESS_NORMALIZED": "The address has been checked and normalized."
     },
@@ -764,7 +765,19 @@
     "allocationUnitValue": "Declared value per unit",
     "allocationTotalValue": "Total allocation value",
     "allocationValueHint": "These catalog values were frozen for collection allocation across parcels; they are not order sale prices.",
-    "detailedTemplate": "Detailed payment template (optional)"
+    "detailedTemplate": "Detailed payment template (optional)",
+    "detailTabs": "Order detail views",
+    "overviewTab": "Overview",
+    "allocationTab": "Why this warehouse, this lot",
+    "allocationExplanation": "Use one eligible warehouse where possible. Split only when necessary; FEFO/FIFO selects eligible stock.",
+    "allocationPending": "Allocation is pending. BACKORDER keeps no partial reservations.",
+    "nearestWarehouse": "Nearest eligible warehouse within current stock and capacity.",
+    "totalCost": "Lowest estimated cost among evaluated feasible plans; actual packed freight is calculated later.",
+    "allocationUnavailable": "The recorded allocation explanation is unavailable for this parcel.",
+    "expiryFirst": "Published allocation policy prioritizes eligible expiry dates.",
+    "allocationLot": "Lot {lot} · Bin {bin} · {qty} units",
+    "withdrawalOrder": "Stock withdrawal",
+    "withdrawalFees": "Withdrawal has zero recipient COD and no sales-order quota. Contract service, materials and freight charges still apply; the goods value below is not a collection amount."
   },
   "Sidebar": {
     "freight_tariffs": "Freight tariffs",
@@ -3321,5 +3334,37 @@
     "cap": "Capacity: {quantity}",
     "choose": "Use for this draft",
     "confirmation": "Choosing fills this draft only. Review all lines and quantities before saving. Create separate ASNs for other warehouses. Recalculate after changes."
+  },
+  "Withdrawal": {
+    "title": "Request stock withdrawal",
+    "description": "Goods return to the registered seller address. No recipient COD or sales-order quota applies; service, materials and freight charges still apply.",
+    "registeredAddress": "Registered return address",
+    "recipientName": "Recipient name",
+    "recipientPhone": "Phone number",
+    "address": "Street address",
+    "province": "Province/city",
+    "ward": "Ward",
+    "saveAddress": "Save return address",
+    "addressSaved": "Return address saved.",
+    "shipTo": "Registered delivery destination",
+    "stock": "Warehouse · SKU · Lot (available quantity)",
+    "qty": "Withdrawal quantity",
+    "submit": "Request withdrawal",
+    "accepted": "Request accepted, awaiting allocation and warehouse processing.",
+    "more": "More eligible lots",
+    "reload": "Reload data",
+    "retrySame": "Retry the same request",
+    "loadError": "Could not load withdrawal data. Please retry.",
+    "invalid": "Check this field.",
+    "unavailable": "Select eligible stock and a registered address.",
+    "rejected": "The server rejected the request. Check and reload the data.",
+    "unknown": "The outcome is unknown. Preserve this request and retry to avoid a duplicate.",
+    "errors": {
+      "STALE_VERSION": "The address has changed. Reload and verify it before submitting.",
+      "WITHDRAWAL_BLOCKED": "Withdrawal is blocked. Check contract, service status and unpaid debt.",
+      "WITHDRAWAL_STOCK_UNAVAILABLE": "The named lot no longer has enough eligible stock. Reload the choices.",
+      "WITHDRAWAL_FORBIDDEN": "Only a currently authorized Seller Owner can request withdrawal.",
+      "IDEMPOTENCY_CONFLICT": "This reference was used with different content. Reload to check the request."
+    }
   }
 }

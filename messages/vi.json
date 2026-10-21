@@ -637,6 +637,7 @@
     "parcel_number": "Kiện {number}",
     "weight_pending": "Chưa cân",
     "reasons": {
+      "ALLOCATION_QUEUE_FAILED": "Phân bổ hàng chưa hoàn tất sau các lần thử lại. ORCA cần kiểm tra để tiếp tục xử lý đơn.",
       "VALIDATION_FAILED": "Địa chỉ chưa khớp danh mục. Kiểm tra tỉnh/phường và liên hệ ORCA để xử lý đơn này.",
       "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa."
     },
@@ -764,7 +765,19 @@
     "allocationUnitValue": "Giá trị khai báo / sản phẩm",
     "allocationTotalValue": "Tổng giá trị làm căn cứ phân bổ",
     "allocationValueHint": "Các giá trị sản phẩm dưới đây được chụp từ danh mục để phân bổ thu hộ khi tách kiện; không phải giá bán của đơn.",
-    "detailedTemplate": "Mẫu tính thanh toán chi tiết (tùy chọn)"
+    "detailedTemplate": "Mẫu tính thanh toán chi tiết (tùy chọn)",
+    "detailTabs": "Chi tiết đơn hàng",
+    "overviewTab": "Tổng quan",
+    "allocationTab": "Vì sao chọn kho và lô này",
+    "allocationExplanation": "Ưu tiên một kho đủ điều kiện. Chỉ chia khi cần; FEFO/FIFO chọn tồn kho hợp lệ.",
+    "allocationPending": "Chưa phân bổ xong. BACKORDER không giữ hàng một phần.",
+    "nearestWarehouse": "Kho gần nhất phù hợp tồn kho và công suất hiện tại.",
+    "totalCost": "Chi phí ước tính thấp nhất trong các phương án đã xét; cước thực tế được tính sau khi đóng gói.",
+    "allocationUnavailable": "Kiện hàng này chưa có thông tin giải thích phân bổ đã lưu.",
+    "expiryFirst": "Chính sách đã phát hành ưu tiên lô hợp lệ gần hạn hơn.",
+    "allocationLot": "Lô {lot} · Bin {bin} · {qty} sản phẩm",
+    "withdrawalOrder": "Đơn rút hàng",
+    "withdrawalFees": "Đơn rút hàng không thu COD và không trừ hạn mức đơn bán. Phí dịch vụ, vật tư và vận chuyển được tính theo hợp đồng; giá trị hàng dưới đây không phải số tiền phải thu."
   },
   "Sidebar": {
     "freight_tariffs": "Bảng cước",
@@ -3321,5 +3334,37 @@
     "cap": "Sức bán tối đa: {quantity}",
     "choose": "Dùng cho bản nháp này",
     "confirmation": "Lựa chọn chỉ điền bản nháp hiện tại. Kiểm tra tất cả dòng hàng trước khi lưu; tạo ASN riêng cho các kho còn lại. Tính lại khi dữ liệu thay đổi."
+  },
+  "Withdrawal": {
+    "title": "Yêu cầu rút hàng",
+    "description": "Hàng được giao về địa chỉ nhận đã đăng ký. Không thu COD từ người nhận và không trừ hạn mức đơn bán; vẫn áp dụng phí dịch vụ, vật tư và vận chuyển.",
+    "registeredAddress": "Địa chỉ nhận hàng đã đăng ký",
+    "recipientName": "Tên người nhận",
+    "recipientPhone": "Số điện thoại",
+    "address": "Địa chỉ chi tiết",
+    "province": "Tỉnh/thành phố",
+    "ward": "Phường/xã",
+    "saveAddress": "Lưu địa chỉ nhận hàng",
+    "addressSaved": "Đã lưu địa chỉ nhận hàng.",
+    "shipTo": "Địa chỉ sẽ nhận hàng",
+    "stock": "Kho · SKU · Lô (số lượng có thể rút)",
+    "qty": "Số lượng rút",
+    "submit": "Gửi yêu cầu rút hàng",
+    "accepted": "Đã tiếp nhận yêu cầu, đang chờ phân bổ và xử lý tại kho.",
+    "more": "Xem thêm lô hàng",
+    "reload": "Tải lại dữ liệu",
+    "retrySame": "Thử lại cùng yêu cầu",
+    "loadError": "Không tải được dữ liệu rút hàng. Vui lòng thử lại.",
+    "invalid": "Kiểm tra thông tin này.",
+    "unavailable": "Chọn lô còn đủ hàng và địa chỉ đã đăng ký.",
+    "rejected": "Máy chủ từ chối yêu cầu. Kiểm tra dữ liệu và tải lại trước khi gửi.",
+    "unknown": "Chưa xác định kết quả. Giữ nguyên yêu cầu và thử lại để tránh tạo trùng.",
+    "errors": {
+      "STALE_VERSION": "Địa chỉ đã thay đổi. Tải lại dữ liệu và kiểm tra địa chỉ trước khi gửi.",
+      "WITHDRAWAL_BLOCKED": "Chưa đủ điều kiện rút hàng. Kiểm tra hợp đồng, trạng thái dịch vụ và thanh toán công nợ.",
+      "WITHDRAWAL_STOCK_UNAVAILABLE": "Lô đã chọn không còn đủ hàng đủ điều kiện. Tải lại để chọn hàng.",
+      "WITHDRAWAL_FORBIDDEN": "Chỉ chủ tài khoản đang có quyền mới được yêu cầu rút hàng.",
+      "IDEMPOTENCY_CONFLICT": "Tham chiếu này đã dùng cho nội dung khác. Tải lại để kiểm tra yêu cầu."
+    }
   }
 }

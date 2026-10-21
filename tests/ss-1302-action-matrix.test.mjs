@@ -70,6 +70,7 @@ const expected = {
   // UC-66/67 intake does not grant Staff writes or platform intake.
   'orders.seller.read': ['SELLER_OWNER', 'SELLER_STAFF'],
   'orders.create': O,
+  'orders.withdrawal.create': O,
   'orders.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'],
   'shipments.view': [
     'ORCA_ADMIN',

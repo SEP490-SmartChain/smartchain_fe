@@ -353,6 +353,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'R3 FU-30/UC-65, own seller order read; GET /v1/orders',
   ),
   capability(
+    'orders.withdrawal.create',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-79: /v1/orders/withdrawals; withdrawal.create/update, registered address and debt gate',
+  ),
+  capability(
     'orders.create',
     'orders',
     'TENANT',

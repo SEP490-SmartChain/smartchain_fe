@@ -187,3 +187,7 @@ PLATFORM WAREHOUSE_STAFF on the live assigned warehouse. It posts the selected a
 to `receiving/records/:recordId/stock` after Manager approval. Manager/Staff read the evidence,
 while Manager cannot perform the Staff stock effect. Quantities/Seller identity come from
 reviewed evidence; no generic inventory editing, metadata writes or finance access is granted.
+
+## Owner withdrawal — Sprint 5
+
+Capability `orders.withdrawal.create` chỉ dành cho TENANT SELLER_OWNER, hiển thị khi service ACTIVE hoặc SUSPENDED. Các API options/locations/create yêu cầu action `withdrawal.create`; đăng ký địa chỉ yêu cầu `withdrawal.update`. Server kiểm tra lại role sống, tenant, địa chỉ version, contract, công nợ và tồn; UI không tự cấp quyền hoặc tự cập nhật tồn. RLS của địa chỉ chỉ cho Owner đúng tenant; ghi địa chỉ chỉ với action update. CLOSED/PENDING_ACTIVATION không mở thao tác rút hàng. Không mở capability này cho Staff, Manager, platform hoặc CHANNEL.
