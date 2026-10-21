@@ -1,12 +1,32 @@
+import { useState } from 'react';
+
+import { useTranslations } from 'next-intl';
+
 import { UnderConstruction } from '@/components/Common';
-import { SepayUnmatchedTransfers } from '@/features/reconciliation';
+import { Tabs } from '@/components/Common/Tabs/Tabs';
+import { CarrierSettlementBatches, SepayUnmatchedTransfers } from '@/features/reconciliation';
 import { useAccess } from '@/hooks/useAccess';
 
 export default function ReconciliationPage() {
+  const t = useTranslations('ReconciliationPage');
   const { can } = useAccess();
+  const tabs = [
+    ...(can('reconciliation.operate') ? [{ id: 'carrier', label: t('carrierTab') }] : []),
+    ...(can('invoice.bankReceipt.post') ? [{ id: 'sepay', label: t('sepayTab') }] : []),
+  ];
+  const [activeId, setActiveId] = useState(tabs[0]?.id ?? '');
 
-  // UC-127 posting is Accountant-only; carrier reconciliation (UC-137+) is still pending.
-  if (!can('invoice.bankReceipt.post')) return <UnderConstruction />;
+  // Admin read of the carrier settlement screen is not exposed by the API yet.
+  const firstTab = tabs[0];
+  if (!firstTab) return <UnderConstruction />;
+  const current = tabs.some((tab) => tab.id === activeId) ? activeId : firstTab.id;
 
-  return <SepayUnmatchedTransfers />;
+  return (
+    <div className="space-y-4">
+      {tabs.length > 1 && (
+        <Tabs tabs={tabs} activeId={current} onChange={setActiveId} label={t('tabsLabel')} />
+      )}
+      {current === 'carrier' ? <CarrierSettlementBatches /> : <SepayUnmatchedTransfers />}
+    </div>
+  );
 }

@@ -47,3 +47,9 @@ test('invoice number for manual matching mirrors the API contract', () => {
   for (const invoiceNo of ['', 'AB', 'ONB 123', 'ONB-<script>', 'x'.repeat(65)])
     assert.equal(sepayMatchSchema.safeParse({ invoiceNo }).success, false, invoiceNo);
 });
+
+test('carrier settlement upload and lock are Accountant-only actions', () => {
+  assert.equal(policy.can(['ORCA_ACCOUNTANT'], 'reconciliation.operate'), true);
+  for (const role of ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'])
+    assert.equal(policy.can([role], 'reconciliation.operate'), false, role);
+});

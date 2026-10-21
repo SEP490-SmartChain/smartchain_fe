@@ -148,8 +148,9 @@ function ExceptionsModal({ batch, formatMoney, onClose }: ExceptionsModalProps) 
         setRecords((current) => (shouldAppend ? [...current, ...page.items] : page.items));
         setNextRow(page.pagination.nextCursor ? Number(page.pagination.nextCursor) : null);
       } catch (failure) {
-        if (!abort.signal.aborted)
+        if (!abort.signal.aborted) {
           setError(failure instanceof Error ? failure.message : loadErrorMessage);
+        }
       } finally {
         if (!abort.signal.aborted) setIsLoading(false);
       }
