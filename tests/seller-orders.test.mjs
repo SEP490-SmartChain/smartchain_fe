@@ -701,6 +701,24 @@ test('Google Sheets binding uses own session and rejects unsafe links or contrad
     lastOrderReceivedAt: null,
   };
   assert.equal(orders.sheetConnectionSchema.parse(value).status, 'CONFIGURED');
+  const upgraded = {
+    ...value,
+    upgradeAvailable: false,
+    previousSpreadsheetUrl: value.spreadsheetUrl,
+  };
+  assert.deepEqual(orders.sheetConnectionSchema.parse(upgraded), upgraded);
+  assert.equal(
+    orders.sheetConnectionSchema.safeParse({
+      ...upgraded,
+      previousSpreadsheetUrl: 'javascript:alert(1)',
+    }).success,
+    false,
+  );
+  assert.equal(
+    orders.sheetConnectionSchema.safeParse({ ...value, upgradeAvailable: true }).success,
+    true,
+  );
+
   for (const patch of [
     { spreadsheetUrl: 'https://evil.example.test/' },
     { spreadsheetUrl: 'javascript:alert(1)' },
@@ -754,4 +772,100 @@ test('managed Sheets setup sends no seller-controlled binding or credential', as
     return ok(value);
   };
   assert.deepEqual(await orders.ordersApi.createSheet(controller.signal), value);
+});
+
+test('direct entry requires an explicit total, strips stale detail fields and accepts prepaid zero', () => {
+  const direct = {
+    ...draft,
+    entryMode: 'DIRECT',
+    collectionAmount: '220000',
+    declaredValue: '',
+    items: [{ productId: id, qty: 2, unitPrice: '' }],
+  };
+  assert.equal(orders.manualDraftSchema.safeParse(direct).success, true);
+  const result = orders.completeManualDraft(direct, 'AUTO');
+  assert.deepEqual(result.items, [{ productId: id, qty: 2 }]);
+  assert.equal(result.collectionAmount, '220000');
+  for (const field of [
+    'codAmount',
+    'customerShippingFee',
+    'shippingFeePayer',
+    'paymentBreakdown',
+    'declaredValue',
+    'entryMode',
+  ])
+    assert.equal(field in result, false, field);
+  assert.equal(
+    orders.completeManualDraft({ ...direct, collectionAmount: '0' }, 'AUTO').collectionAmount,
+    '0',
+  );
+  assert.equal(
+    orders.manualDraftSchema.safeParse({ ...direct, collectionAmount: '' }).success,
+    false,
+  );
+  assert.throws(() => orders.completeManualDraft({ ...direct, collectionAmount: '' }, 'AUTO'));
+  assert.equal(
+    orders.directOrderSchema.safeParse({ ...result, customerShippingFee: '20000' }).success,
+    false,
+  );
+});
+
+test('direct order detail identifies allocation values and does not invent payment history', () => {
+  const html = renderDetail({
+    collectionMode: 'DIRECT',
+    codAmount: '220000',
+    paymentBreakdown: null,
+  });
+  assert.ok(html.includes('220.000 ₫'));
+  assert.ok(html.includes('không phải giá bán'));
+  assert.ok(html.includes('Giá trị khai báo / sản phẩm'));
+  assert.ok(!html.includes('Tiền hàng còn thu'));
+  assert.ok(!html.includes('chưa lưu chi tiết'));
+});
+
+test('calculated entry infers buyer shipping without asking who pays the carrier', () => {
+  const value = orders.completeManualDraft(
+    {
+      ...draft,
+      entryMode: 'CALCULATED',
+      goodsPaymentMode: 'PARTIAL',
+      paymentBreakdown: {
+        discountAmount: '0',
+        goodsPaidAmount: '20000',
+        shippingChargeAmount: '30000',
+        shippingPaidAmount: '10000',
+      },
+    },
+    'AUTO',
+  );
+  assert.equal(value.codAmount, '80000');
+  assert.equal(value.customerShippingFee, '20000');
+  assert.equal(orders.orderCollectionTotal(value), '100000');
+});
+
+test('calculated entry preserves delivery instructions while omitting unused direct collection', () => {
+  const result = orders.completeManualDraft(
+    { ...draft, entryMode: 'CALCULATED', deliveryNote: 'Call first', collectionAmount: '220000' },
+    'AUTO',
+  );
+  assert.equal(result.deliveryNote, 'Call first');
+  assert.equal('collectionAmount' in result, false);
+});
+
+test('calculated entry rejects shipping overpayment even when shipping charge is zero', () => {
+  assert.throws(() =>
+    orders.completeManualDraft(
+      {
+        ...draft,
+        entryMode: 'CALCULATED',
+        paymentBreakdown: {
+          discountAmount: '0',
+          goodsPaidAmount: '0',
+          shippingChargeAmount: '0',
+          shippingPaidAmount: '10000',
+        },
+      },
+      'AUTO',
+    ),
+  );
 });

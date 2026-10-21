@@ -252,6 +252,12 @@ class ApiClient {
       }
       return body as T;
     } catch (error) {
+      if (
+        (error instanceof DOMException && error.name === 'AbortError') ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) {
+        throw error;
+      }
       const failure =
         error instanceof ApiError
           ? error

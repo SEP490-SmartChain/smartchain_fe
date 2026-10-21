@@ -96,6 +96,8 @@ const expected = {
   'cod.view': ['ORCA_ACCOUNTANT', 'SELLER_OWNER'],
   'invoice.view': finance,
   'invoice.bankReceipt.post': ['ORCA_ACCOUNTANT'],
+  // SS-1022 / UC-123: closing a seller period is an Accountant action.
+  'invoice.period.close': ['ORCA_ACCOUNTANT'],
   'apikey.manage': O,
   'contract.sign': O,
   'asns.view': ['SELLER_OWNER', 'SELLER_STAFF'],
@@ -105,6 +107,7 @@ const expected = {
   'warehouse.asn.checkIn': S,
   'warehouse.asn.recordCount': S,
   'warehouse.asn.uploadPhoto': S,
+  'warehouse.asn.packagingAssist': S,
   'warehouse.asn.inspect': S,
   'warehouse.asn.reportDiscrepancy': S,
   'warehouse.asn.review': M,

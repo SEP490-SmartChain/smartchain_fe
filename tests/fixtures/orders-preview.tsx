@@ -23,6 +23,7 @@ useAuthStore.getState().setSession({
     email: 'preview@example.test',
     fullName: 'Synthetic seller',
     actorScope: 'TENANT',
+    serviceStatus: 'ACTIVE',
     roles: [staff ? 'SELLER_STAFF' : 'SELLER_OWNER'],
     permissions: [],
   },

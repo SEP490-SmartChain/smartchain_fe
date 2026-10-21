@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
@@ -14,6 +14,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { AsnAllocationSuggestion } from './AsnAllocationSuggestion';
 import { asnApi } from '../api/asnApi';
 import { asnFormSchema, type AsnFormValues } from '../schemas/asnSchema';
 
@@ -39,6 +40,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
   const {
     register,
     control,
+    setValue,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<AsnFormValues>({
@@ -64,6 +66,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           lines: [{ ...blankLine }],
         },
   });
+  const lines = useWatch({ control, name: 'lines' });
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   useEffect(() => {
     const controller = new AbortController();
@@ -232,6 +235,21 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
                 error={errors.lines?.[index]?.declaredExpiryOn ? t('invalidForm') : undefined}
               />
             </div>
+            {!draft && (
+              <AsnAllocationSuggestion
+                productId={lines[index]?.productId ?? ''}
+                quantity={lines[index]?.declaredQty ?? 0}
+                expiry={lines[index]?.declaredExpiryOn}
+                disabled={isSubmitting || loading}
+                onChoose={(warehouseId, quantity) => {
+                  setValue('warehouseId', warehouseId, { shouldDirty: true, shouldValidate: true });
+                  setValue(`lines.${index}.declaredQty`, quantity, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }}
+              />
+            )}
             <Button
               type="button"
               variant="ghost"

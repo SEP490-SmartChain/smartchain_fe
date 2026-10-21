@@ -31,3 +31,19 @@ export interface InventoryStockSummary {
   totalSkus: number;
   availableUnits: number;
 }
+
+export type RunningLowUrgency = 'CRITICAL' | 'WARNING';
+
+export interface RunningLowItem {
+  productId: string;
+  sku: string;
+  productName: string;
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  availableStock: number;
+  dailyVelocity: number;
+  daysOfStockLeft: number;
+  suggestedReplenishmentQty: number;
+  urgencyLevel: RunningLowUrgency;
+}

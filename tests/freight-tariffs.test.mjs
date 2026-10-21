@@ -98,6 +98,18 @@ test('Accountant reaches tariffs without gaining carrier, credential or unrelate
   ])
     assert.equal(policy.can(roles, 'tariffs.manage'), false);
 });
+
+test('tariff zone options use the credential-free tariff endpoint and reject malformed codes', async () => {
+  let requested;
+  globalThis.fetch = async (url) => {
+    requested = String(url);
+    return ok(['INTRA_PROVINCE']);
+  };
+  assert.deepEqual(await api.zoneCodes(id), ['INTRA_PROVINCE']);
+  assert.ok(requested.endsWith(`/platform/tariffs/carriers/${id}/zone-codes`));
+  globalThis.fetch = async () => ok(['not a zone']);
+  await assert.rejects(api.zoneCodes(id));
+});
 test('purchase list decodes exact money and shared pagination without tenant impersonation', async () => {
   globalThis.fetch = async (url) => {
     assert.ok(String(url).includes('/v1/platform/tariffs/purchase'));

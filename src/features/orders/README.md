@@ -1,5 +1,13 @@
 # Seller orders — Sprint 4
 
+19 October 2026: manual entry defaults to an explicit total recipient collection,
+including any outstanding buyer shipping; 0 means no collection, blank is invalid.
+Sale prices and payment breakdown are optional through the calculated entry mode
+and detailed Excel download. Default Excel/new Google Sheets use the simplified
+template. DIRECT detail labels catalog allocation values separately from sale prices.
+The earlier descriptions below document compatible legacy formats. Backend contract
+and deployment: `smartchain_be/docs/DIRECT-COLLECTION-INTAKE.md`.
+
 SS-1168 / SS-1171, branch `feat/SS-1171-seller-orders`, synced with develop before publication. OrdersPage composes SellerOrders; API contracts, hooks and forms stay inside this feature.
 
 Seller Owner can create manual orders, download a seller-specific XLSX template and preview/import up to 100 product rows/1 MiB. Owner and Staff can browse own-seller orders with code/status/channel/date filters, cursor pagination, history, fulfillment suborders, parcel summaries and tracking. Strict Staff schemas omit recipient and financial fields. Platform roles keep the existing unavailable screen until their business-specific screens are implemented.
@@ -41,3 +49,5 @@ Seller Owner has one Google Sheets entry in the Orders header. The Excel import 
 Each row contains one product; equal order codes form one order, with recipient/payment details and Send order confirmation on the first row only. Template download is secondary inside the Google Sheets dialog and does not itself connect Google or submit orders. CONFIGURED confirms saved setup, not continuous OAuth/n8n health. The timestamp is the latest received Google Sheets source order. Manual orders and Excel upload remain independent. Platform setup and deployment prerequisites: BE `docs/MANAGED_GOOGLE_SHEETS_SETUP.md`.
 
 Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: orca_be PR #120; n8n setup and sample storefront: orca_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.
+
+Managed Sheets đã kết nối có mẫu cũ sẽ hiện Cập nhật mẫu nhập đơn. Cùng endpoint POST không nhận dữ liệu từ seller, tạo bảng v4 mới và chuyển feed; UI giữ link bảng cũ để tra cứu, giải thích dòng chưa gửi không tự chuyển và email được cấp quyền. Binding operator không được nâng cấp qua màn hình này.

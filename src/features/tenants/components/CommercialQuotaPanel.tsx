@@ -160,6 +160,7 @@ export function CommercialQuotaPanel({ tenantId }: { tenantId?: string }) {
       {quota && !quota.plan && <Alert variant="info">{t('noPlan')}</Alert>}
       {quota?.plan && (
         <>
+          <Alert variant="info">{t('freightSeparateHint')}</Alert>
           <h3 className="text-base font-semibold">
             {quota.plan.name} · v{quota.plan.versionNo}
           </h3>

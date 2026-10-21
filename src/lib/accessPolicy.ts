@@ -530,6 +530,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'ORCA Report 3 UC-127 / SS-990: Accountant verifies bank evidence and posts once',
   ),
   capability(
+    'invoice.period.close',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-123 / SS-1022: Accountant closes a completed seller statement',
+  ),
+  capability(
     'apikey.manage',
     'apikey',
     'TENANT',
@@ -592,6 +600,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['WAREHOUSE_STAFF'],
     'APPROVED',
     'RP3 FU-21/UC-39; assigned warehouse, private receipt evidence presign/confirm',
+  ),
+  capability(
+    'warehouse.asn.packagingAssist',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 UC-158 / SS-1095: own verified receipt photo; assigned Staff only, receipt_ai.read/create/update; explicit confirmation, no count/QC/stock effect',
   ),
   capability(
     'warehouse.asn.review',

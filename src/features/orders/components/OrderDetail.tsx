@@ -14,6 +14,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
   const status = (value: string) =>
     t.has(`statuses.${value}`) ? t(`statuses.${value}`) : t('processing');
   const owner = order.codAmount !== undefined;
+  const direct = order.collectionMode === 'DIRECT';
   const heading = 'text-base font-semibold';
   const history = [...order.statusHistory].sort(
     (a, b) => Date.parse(b.changedAt) - Date.parse(a.changedAt),
@@ -46,11 +47,20 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                 .filter(Boolean)
                 .join(', ')}
             </p>
+            {order.deliveryNote && (
+              <p className="mt-3 break-words text-sm">
+                <span className="font-medium">{t('deliveryNote')}: </span>
+                {order.deliveryNote}
+              </p>
+            )}
           </section>
           <OrderPaymentSummary payment={order} isSnapshot />
         </div>
       )}
       <section>
+        {direct && (
+          <p className="mb-3 text-sm text-[var(--sc-text-secondary)]">{t('allocationValueHint')}</p>
+        )}
         <h4 className={`${heading} mb-3`}>
           {t('items')}{' '}
           <span className="font-normal text-[var(--sc-text-secondary)]">
@@ -86,7 +96,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                     {owner && (
                       <>
                         <div className="flex items-baseline justify-between gap-3">
-                          <dt className="text-[var(--sc-text-secondary)]">{t('unitPriceShort')}</dt>
+                          <dt className="text-[var(--sc-text-secondary)]">
+                            {t(direct ? 'allocationUnitValue' : 'unitPriceShort')}
+                          </dt>
                           <dd className="shrink-0 tabular-nums">
                             {item.unitPrice === undefined ? '—' : formatOrderMoney(item.unitPrice)}
                           </dd>
@@ -108,7 +120,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
               ))}
               {owner && order.items.length > 1 && order.totalAmount !== undefined && (
                 <li className="flex items-baseline justify-between gap-3 text-sm font-medium">
-                  <span>{t('goods_total')}</span>
+                  <span>{t(direct ? 'allocationTotalValue' : 'goods_total')}</span>
                   <span className="shrink-0 tabular-nums">
                     {formatOrderMoney(order.totalAmount)}
                   </span>
@@ -128,7 +140,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                     {owner && (
                       <>
                         <th scope="col" className="p-3 text-right font-medium">
-                          {t('unitPriceShort')}
+                          {t(direct ? 'allocationUnitValue' : 'unitPriceShort')}
                         </th>
                         <th scope="col" className="p-3 text-right font-medium">
                           {t('line_total')}
@@ -172,7 +184,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                   <tfoot className="border-t border-[var(--sc-border-default)]">
                     <tr>
                       <th scope="row" colSpan={3} className="p-3 text-left font-medium">
-                        {t('goods_total')}
+                        {t(direct ? 'allocationTotalValue' : 'goods_total')}
                       </th>
                       <td className="whitespace-nowrap p-3 text-right font-semibold tabular-nums">
                         {formatOrderMoney(order.totalAmount)}

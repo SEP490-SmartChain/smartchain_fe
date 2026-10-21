@@ -80,6 +80,9 @@ export function ManualOrderForm({
     resolver: zodResolver(manualDraftSchema),
     mode: 'onTouched',
     defaultValues: {
+      entryMode: 'DIRECT',
+      collectionAmount: '',
+      deliveryNote: '',
       goodsPaymentMode: 'COD',
       paymentBreakdown: {
         discountAmount: '0',
@@ -113,10 +116,15 @@ export function ManualOrderForm({
   };
   const province = form.watch('toProvinceCode');
   const draft = form.watch();
+  const direct = draft.entryMode === 'DIRECT';
   const paymentMode = draft.goodsPaymentMode ?? 'COD';
   // RHF mutates watched values before registered onChange callbacks; snapshot the IDs.
   const selectedIds = draft.items.map((item) => item.productId);
-  const payer = draft.shippingFeePayer;
+  const payer =
+    /^(0|[1-9]\d{0,11})$/.test(draft.paymentBreakdown?.shippingChargeAmount ?? '') &&
+    BigInt(draft.paymentBreakdown?.shippingChargeAmount ?? '0') > BigInt(0)
+      ? 'RECIPIENT'
+      : 'SENDER';
   const searching = products.isLoading || search.trim() !== debouncedSearch;
   let goodsTotal: string | null = null;
   let paymentError = false;
@@ -124,6 +132,7 @@ export function ManualOrderForm({
   let paymentSummary: ReturnType<typeof calculateOrderPayment> | null = null;
   try {
     if (
+      !direct &&
       draft.items.every(
         (item) =>
           Number.isInteger(item.qty) && item.qty > 0 && /^(0|[1-9]\d{0,11})$/.test(item.unitPrice),
@@ -151,7 +160,6 @@ export function ManualOrderForm({
             }
           }
           if (
-            payer === 'RECIPIENT' &&
             isMoney(p.shippingChargeAmount) &&
             isMoney(p.shippingPaidAmount) &&
             BigInt(p.shippingPaidAmount) > BigInt(p.shippingChargeAmount)
@@ -186,12 +194,12 @@ export function ManualOrderForm({
         shouldDirty: true,
       });
       form.setValue(`items.${emptyIndex}.unitPrice`, '', { shouldDirty: true });
-      form.setFocus(`items.${emptyIndex}.unitPrice`);
+      form.setFocus(`items.${emptyIndex}.${direct ? 'qty' : 'unitPrice'}`);
     } else if (draft.items.length < 100) {
       lines.append(
         { productId, qty: 1, unitPrice: '' },
         {
-          focusName: `items.${draft.items.length}.unitPrice`,
+          focusName: `items.${draft.items.length}.${direct ? 'qty' : 'unitPrice'}`,
         },
       );
     } else {
@@ -264,6 +272,43 @@ export function ManualOrderForm({
         )}
         {error && <Alert variant="error">{error}</Alert>}
         <fieldset disabled={form.formState.isSubmitting} className="space-y-5">
+          <Select
+            label={t('entryMode')}
+            {...form.register('entryMode', {
+              onChange: (event: { target: { value: string } }) => {
+                // Hidden fields from the other entry mode must not block submission.
+                if (event.target.value === 'DIRECT') {
+                  form.setValue('codAmount', '');
+                  form.setValue('customerShippingFee', '0');
+                  form.setValue('shippingFeePayer', 'SENDER');
+                  for (const field of [
+                    'discountAmount',
+                    'goodsPaidAmount',
+                    'shippingChargeAmount',
+                    'shippingPaidAmount',
+                  ] as const) {
+                    if (
+                      !/^(0|[1-9]\d{0,11})$/.test(form.getValues(`paymentBreakdown.${field}`) ?? '')
+                    ) {
+                      form.setValue(`paymentBreakdown.${field}`, '0');
+                    }
+                  }
+                  draft.items.forEach((item, index) => {
+                    if (!/^(|0|[1-9]\d{0,11})$/.test(item.unitPrice)) {
+                      form.setValue(`items.${index}.unitPrice`, '');
+                    }
+                  });
+                } else if (!/^(|0|[1-9]\d{0,11})$/.test(form.getValues('collectionAmount') ?? '')) {
+                  form.setValue('collectionAmount', '');
+                }
+                form.clearErrors();
+              },
+            })}
+            options={[
+              { value: 'DIRECT', label: t('directEntry') },
+              { value: 'CALCULATED', label: t('calculatedEntry') },
+            ]}
+          />
           <section className="space-y-4">
             <h3 className="text-lg font-semibold">{t('recipient_section')}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -405,7 +450,10 @@ export function ManualOrderForm({
               </div>
             )}
             {lines.fields.map((field, index) => (
-              <div key={field.id} className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
+              <div
+                key={field.id}
+                className={`grid gap-3 ${direct ? 'sm:grid-cols-[2fr_1fr_auto]' : 'sm:grid-cols-[2fr_1fr_1fr_auto]'}`}
+              >
                 <Select
                   label={t('product')}
                   {...form.register(`items.${index}.productId`, {
@@ -439,25 +487,27 @@ export function ManualOrderForm({
                     form.formState.errors.items?.[index]?.qty ? t('quantity_error') : undefined
                   }
                 />
-                <Input
-                  label={t('unit_price')}
-                  inputMode="numeric"
-                  {...form.register(`items.${index}.unitPrice`, {
-                    setValueAs: normalizeOrderMoneyInput,
-                  })}
-                  placeholder={t('price_placeholder')}
-                  helperText={
-                    /^(0|[1-9]\d{0,11})$/.test(draft.items[index]?.unitPrice) &&
-                    Number.isInteger(draft.items[index]?.qty) &&
-                    draft.items[index]?.qty > 0
-                      ? `${t('line_total')}: ${(BigInt(draft.items[index].qty) * BigInt(draft.items[index].unitPrice)).toLocaleString('vi-VN')} ₫`
-                      : t('price_hint')
-                  }
-                  required
-                  error={
-                    form.formState.errors.items?.[index]?.unitPrice ? t('money_error') : undefined
-                  }
-                />
+                {!direct && (
+                  <Input
+                    label={t('unit_price')}
+                    inputMode="numeric"
+                    {...form.register(`items.${index}.unitPrice`, {
+                      setValueAs: normalizeOrderMoneyInput,
+                    })}
+                    placeholder={t('price_placeholder')}
+                    helperText={
+                      /^(0|[1-9]\d{0,11})$/.test(draft.items[index]?.unitPrice) &&
+                      Number.isInteger(draft.items[index]?.qty) &&
+                      draft.items[index]?.qty > 0
+                        ? `${t('line_total')}: ${(BigInt(draft.items[index].qty) * BigInt(draft.items[index].unitPrice)).toLocaleString('vi-VN')} ₫`
+                        : t('price_hint')
+                    }
+                    required
+                    error={
+                      form.formState.errors.items?.[index]?.unitPrice ? t('money_error') : undefined
+                    }
+                  />
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -493,75 +543,85 @@ export function ManualOrderForm({
               {t('add_item')}
             </Button>
           </section>
-          <section className="space-y-4">
-            <h3 className="text-lg font-semibold">{t('payment_section')}</h3>
-            <p>
-              {t('goods_total')}:{' '}
-              {goodsTotal === null
-                ? t('enter_valid_prices')
-                : `${BigInt(goodsTotal).toLocaleString('vi-VN')} ₫`}
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Select
-                label={t('payment_method')}
-                value={paymentMode}
-                onChange={(event) => {
-                  const mode = event.target.value as 'COD' | 'PAID' | 'PARTIAL';
-                  form.setValue('goodsPaymentMode', mode);
-                  form.setValue('paymentBreakdown.goodsPaidAmount', '0');
-                }}
-                options={[
-                  { value: 'COD', label: t('payment_cod') },
-                  { value: 'PAID', label: t('payment_paid') },
-                  { value: 'PARTIAL', label: t('payment_partial') },
-                ]}
+          {direct && (
+            <section className="space-y-4">
+              <Input
+                label={t('collectionAmount')}
+                inputMode="numeric"
+                required
+                {...form.register('collectionAmount', { setValueAs: normalizeOrderMoneyInput })}
+                error={form.formState.errors.collectionAmount ? t('collectionRequired') : undefined}
+                helperText={t('collectionHint')}
               />
-              <Select
-                label={t('fields.shippingFeePayer')}
-                {...form.register('shippingFeePayer', {
-                  onChange: (event: { target: { value: string } }) => {
-                    if (event.target.value === 'SENDER') {
-                      form.setValue('paymentBreakdown.shippingChargeAmount', '0');
-                      form.setValue('paymentBreakdown.shippingPaidAmount', '0');
+              <Input
+                label={t('deliveryNote')}
+                {...form.register('deliveryNote')}
+                maxLength={500}
+                error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
+              />
+              <Alert>{t('freightSeparateHint')}</Alert>
+            </section>
+          )}
+          {!direct && (
+            <section className="space-y-4">
+              <h3 className="text-lg font-semibold">{t('payment_section')}</h3>
+              <Input
+                label={t('deliveryNote')}
+                {...form.register('deliveryNote')}
+                maxLength={500}
+                error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
+              />
+              <p>
+                {t('goods_total')}:{' '}
+                {goodsTotal === null
+                  ? t('enter_valid_prices')
+                  : `${BigInt(goodsTotal).toLocaleString('vi-VN')} ₫`}
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Select
+                  label={t('payment_method')}
+                  value={paymentMode}
+                  onChange={(event) => {
+                    const mode = event.target.value as 'COD' | 'PAID' | 'PARTIAL';
+                    form.setValue('goodsPaymentMode', mode);
+                    form.setValue('paymentBreakdown.goodsPaidAmount', '0');
+                  }}
+                  options={[
+                    { value: 'COD', label: t('payment_cod') },
+                    { value: 'PAID', label: t('payment_paid') },
+                    { value: 'PARTIAL', label: t('payment_partial') },
+                  ]}
+                />
+                {paymentMode === 'PARTIAL' && (
+                  <Input
+                    label={t('goods_paid')}
+                    {...form.register('paymentBreakdown.goodsPaidAmount', {
+                      setValueAs: normalizeOrderMoneyInput,
+                    })}
+                    inputMode="numeric"
+                    helperText={t('goods_paid_hint')}
+                    error={
+                      paymentErrors.goodsPaidAmount ||
+                      (form.formState.errors.paymentBreakdown?.goodsPaidAmount
+                        ? t('money_error')
+                        : undefined)
                     }
-                  },
-                })}
-                options={[
-                  { value: 'SENDER', label: t('sender') },
-                  { value: 'RECIPIENT', label: t('recipient') },
-                ]}
-              />
-              {paymentMode === 'PARTIAL' && (
+                  />
+                )}
                 <Input
-                  label={t('goods_paid')}
-                  {...form.register('paymentBreakdown.goodsPaidAmount', {
+                  label={t('discount')}
+                  inputMode="numeric"
+                  {...form.register('paymentBreakdown.discountAmount', {
                     setValueAs: normalizeOrderMoneyInput,
                   })}
-                  inputMode="numeric"
-                  helperText={t('goods_paid_hint')}
+                  helperText={t('discount_hint')}
                   error={
-                    paymentErrors.goodsPaidAmount ||
-                    (form.formState.errors.paymentBreakdown?.goodsPaidAmount
+                    paymentErrors.discountAmount ||
+                    (form.formState.errors.paymentBreakdown?.discountAmount
                       ? t('money_error')
                       : undefined)
                   }
                 />
-              )}
-              <Input
-                label={t('discount')}
-                inputMode="numeric"
-                {...form.register('paymentBreakdown.discountAmount', {
-                  setValueAs: normalizeOrderMoneyInput,
-                })}
-                helperText={t('discount_hint')}
-                error={
-                  paymentErrors.discountAmount ||
-                  (form.formState.errors.paymentBreakdown?.discountAmount
-                    ? t('money_error')
-                    : undefined)
-                }
-              />
-              {payer === 'RECIPIENT' && (
                 <>
                   <Input
                     label={t('shipping_charge')}
@@ -592,21 +652,25 @@ export function ManualOrderForm({
                     }
                   />
                 </>
-              )}
-            </div>
-            {paymentError && <Alert variant="error">{t('payment_breakdown_error')}</Alert>}
-            {paymentSummary && goodsTotal !== null ? (
-              <div aria-live="polite">
-                <OrderPaymentSummary
-                  payment={{ ...paymentSummary, totalAmount: goodsTotal, shippingFeePayer: payer }}
-                />
               </div>
-            ) : (
-              <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
-                {t(paymentError ? 'check_payment_amounts' : 'enter_valid_prices')}
-              </p>
-            )}
-          </section>
+              {paymentError && <Alert variant="error">{t('payment_breakdown_error')}</Alert>}
+              {paymentSummary && goodsTotal !== null ? (
+                <div aria-live="polite">
+                  <OrderPaymentSummary
+                    payment={{
+                      ...paymentSummary,
+                      totalAmount: goodsTotal,
+                      shippingFeePayer: payer,
+                    }}
+                  />
+                </div>
+              ) : (
+                <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
+                  {t(paymentError ? 'check_payment_amounts' : 'enter_valid_prices')}
+                </p>
+              )}
+            </section>
+          )}
           <details className="space-y-4 rounded-lg border border-[var(--sc-border-default)] p-4">
             <summary className="cursor-pointer">{t('optional_section')}</summary>
             <Input
@@ -619,7 +683,7 @@ export function ManualOrderForm({
               label={t('fields.declaredValue')}
               {...form.register('declaredValue', { setValueAs: normalizeOrderMoneyInput })}
               inputMode="numeric"
-              helperText={t('automatic_value_hint')}
+              helperText={t(direct ? 'declaredCatalogHint' : 'automatic_value_hint')}
               error={invalid('declaredValue')}
             />
           </details>

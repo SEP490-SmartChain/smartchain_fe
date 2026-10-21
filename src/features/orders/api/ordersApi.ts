@@ -46,6 +46,7 @@ export function calculateOrderPayment(
     net < BigInt('0') ||
     paid < BigInt('0') ||
     paid > net ||
+    BigInt(p.shippingPaidAmount) > BigInt(p.shippingChargeAmount) ||
     shippingPaid > shipping ||
     net - paid + shipping - shippingPaid > BigInt('999999999999')
   ) {
@@ -72,9 +73,10 @@ export function normalizeOrderMoneyInput(value: string): string {
   return /^\d+$/.test(digits) ? digits.replace(/^0+(?=\d)/, '') : trimmed;
 }
 const boundedText = (max: number) => z.string().trim().min(1).max(max);
-export const manualOrderSchema = z
+const legacyManualOrderSchema = z
   .object({
     paymentBreakdown: paymentBreakdownSchema.optional(),
+    deliveryNote: z.string().trim().min(1).max(500).optional(),
     externalOrderCode: boundedText(100),
     sourceChannel: boundedText(100),
     recipientName: boundedText(150),
@@ -109,6 +111,36 @@ export const manualOrderSchema = z
       BigInt(orderCollectionTotal(order)) <= BigInt('999999999999'),
     { path: ['customerShippingFee'] },
   );
+export const directOrderSchema = z
+  .object({
+    externalOrderCode: boundedText(100),
+    sourceChannel: boundedText(100),
+    recipientName: boundedText(150),
+    recipientPhone: z.string().regex(/^0\d{9}$/),
+    recipientAddress: boundedText(500),
+    toProvinceCode: boundedText(20),
+    toWardCode: boundedText(20),
+    collectionAmount: money,
+    declaredValue: money.optional(),
+    deliveryNote: z.string().trim().min(1).max(500).optional(),
+    items: z
+      .array(
+        z
+          .object({
+            productId: z.uuid({ version: 'v4' }),
+            qty: z.number().int().min(1).max(1000000),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict()
+  .refine(
+    (order) => new Set(order.items.map((item) => item.productId)).size === order.items.length,
+    { path: ['items'] },
+  );
+export const manualOrderSchema = z.union([legacyManualOrderSchema, directOrderSchema]);
 export type ManualOrder = z.infer<typeof manualOrderSchema>;
 export function orderCollectionTotal(order: {
   codAmount: string;
@@ -120,29 +152,70 @@ export function orderCollectionTotal(order: {
     (order.shippingFeePayer === 'RECIPIENT' ? BigInt(order.customerShippingFee) : BigInt(0))
   ).toString();
 }
-export const manualDraftSchema = manualOrderSchema.safeExtend({
-  goodsPaymentMode: z.enum(['COD', 'PAID', 'PARTIAL']).optional(),
-  externalOrderCode: z.string().trim().max(100),
-  declaredValue: z.string().regex(/^(|0|[1-9]\d{0,11})$/),
-  codAmount: z.string().regex(/^(|0|[1-9]\d{0,11})$/),
-});
+export const manualDraftSchema = legacyManualOrderSchema
+  .safeExtend({
+    entryMode: z.enum(['DIRECT', 'CALCULATED']).optional(),
+    collectionAmount: z
+      .string()
+      .regex(/^(|0|[1-9]\d{0,11})$/)
+      .optional(),
+    deliveryNote: z.string().trim().max(500).optional(),
+    items: z
+      .array(
+        z.object({
+          productId: z.uuid({ version: 'v4' }),
+          qty: z.number().int().min(1).max(1000000),
+          unitPrice: z.string().regex(/^(|0|[1-9]\d{0,11})$/),
+        }),
+      )
+      .min(1)
+      .max(100),
+    goodsPaymentMode: z.enum(['COD', 'PAID', 'PARTIAL']).optional(),
+    externalOrderCode: z.string().trim().max(100),
+    declaredValue: z.string().regex(/^(|0|[1-9]\d{0,11})$/),
+    codAmount: z.string().regex(/^(|0|[1-9]\d{0,11})$/),
+  })
+  .refine(
+    (draft) =>
+      draft.entryMode !== 'DIRECT' || /^(0|[1-9]\d{0,11})$/.test(draft.collectionAmount ?? ''),
+    { path: ['collectionAmount'] },
+  );
 export type ManualDraft = z.infer<typeof manualDraftSchema>;
 export function completeManualDraft(draft: ManualDraft, automaticCode: string): ManualOrder {
+  if (draft.entryMode === 'DIRECT') {
+    return directOrderSchema.parse({
+      externalOrderCode: draft.externalOrderCode || automaticCode,
+      sourceChannel: draft.sourceChannel,
+      recipientName: draft.recipientName,
+      recipientPhone: draft.recipientPhone,
+      recipientAddress: draft.recipientAddress,
+      toProvinceCode: draft.toProvinceCode,
+      toWardCode: draft.toWardCode,
+      collectionAmount: draft.collectionAmount,
+      ...(draft.declaredValue ? { declaredValue: draft.declaredValue } : {}),
+      ...(draft.deliveryNote ? { deliveryNote: draft.deliveryNote } : {}),
+      items: draft.items.map(({ productId, qty }) => ({ productId, qty })),
+    });
+  }
   const total = draft.items.reduce(
     (sum, item) => sum + BigInt(item.qty) * BigInt(item.unitPrice),
     BigInt(0),
   );
-  const { goodsPaymentMode, ...base } = draft;
+  const { goodsPaymentMode, entryMode, collectionAmount, deliveryNote, ...base } = draft;
+  void collectionAmount;
+  const payer =
+    entryMode === 'CALCULATED'
+      ? BigInt(draft.paymentBreakdown?.shippingChargeAmount || '0') > BigInt(0)
+        ? 'RECIPIENT'
+        : 'SENDER'
+      : draft.shippingFeePayer;
   const calculated = draft.paymentBreakdown
-    ? calculateOrderPayment(
-        total.toString(),
-        draft.paymentBreakdown,
-        draft.shippingFeePayer,
-        goodsPaymentMode,
-      )
+    ? calculateOrderPayment(total.toString(), draft.paymentBreakdown, payer, goodsPaymentMode)
     : null;
   return manualOrderSchema.parse({
     ...base,
+    ...(deliveryNote ? { deliveryNote } : {}),
+    shippingFeePayer: payer,
     externalOrderCode: draft.externalOrderCode || automaticCode,
     declaredValue: draft.declaredValue || total.toString(),
     codAmount: draft.codAmount || total.toString(),
@@ -167,6 +240,7 @@ const baseOrder = z.object({
   version: z.number().int(),
 });
 const financial = {
+  collectionMode: z.literal('DIRECT').optional(),
   paymentBreakdown: paymentBreakdownSchema.nullable().optional(),
   codAmount: money,
   totalAmount: money,
@@ -222,6 +296,7 @@ const ownerDetail = ownerOrder
     recipientName: z.string(),
     recipientPhone: z.string(),
     recipientAddress: z.string(),
+    deliveryNote: z.string().nullable().optional(),
     toProvinceCode: z.string(),
     toWardCode: z.string(),
     provinceName: z.string().nullable().optional(),
@@ -325,6 +400,13 @@ export const sheetConnectionSchema = z
     name: z.string().min(1).max(150).nullable(),
     pollIntervalSeconds: z.literal(60).nullable(),
     lastOrderReceivedAt: z.string().datetime().nullable(),
+    upgradeAvailable: z.boolean().optional(),
+    previousSpreadsheetUrl: z
+      .string()
+      .regex(
+        /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[A-Za-z0-9_-]{20,150}\/edit#gid=\d{1,12}$/,
+      )
+      .optional(),
     setupAvailable: z.boolean().optional(),
     setupState: z.enum(['NONE', 'PREPARING', 'FAILED']).optional(),
   })
@@ -428,9 +510,11 @@ export const ordersApi = {
     );
     return importResultSchema.parse(data);
   },
-  async template(signal?: AbortSignal, sheet = false) {
+  async template(signal?: AbortSignal, sheet = false, detailed = false) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
-      sheet ? '/v1/orders/sheet-template' : '/v1/orders/import-template',
+      sheet
+        ? '/v1/orders/sheet-template'
+        : `/v1/orders/import-template${detailed ? '?detailed=true' : ''}`,
       {
         signal,
         silent: true,

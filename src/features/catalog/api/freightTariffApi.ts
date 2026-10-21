@@ -17,6 +17,13 @@ const pagination = z.object({
 });
 const root = '/v1/platform/tariffs';
 export const freightTariffApi = {
+  async zoneCodes(carrierId: string, signal?: AbortSignal) {
+    const result = await apiClient.get<ApiResponse<unknown>>(
+      `${root}/carriers/${encodeURIComponent(carrierId)}/zone-codes`,
+      { signal, silent: true },
+    );
+    return z.array(z.string().regex(/^[A-Z0-9_-]{1,40}$/)).parse(result.data);
+  },
   async read(kind: 'purchase' | 'sell', id: string) {
     const r = await apiClient.get<ApiResponse<unknown>>(
       `${root}/${kind}/${encodeURIComponent(id)}`,

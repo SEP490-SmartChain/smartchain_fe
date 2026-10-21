@@ -12,8 +12,10 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptCartonPanel } from './ReceiptCartonPanel';
 import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
+import { ReceiptPackagingPanel } from './ReceiptPackagingPanel';
 import { ReceiptPhotos } from './ReceiptPhotos';
 import { ReceiptReviewPanel } from './ReceiptReviewPanel';
 import { ReceiptStockPanel } from './ReceiptStockPanel';
@@ -56,6 +58,9 @@ export function ReceiptCountForm({
   const [refresh, setRefresh] = useState(0);
   const [photoRevision, setPhotoRevision] = useState(0);
   const [activeLot, setActiveLot] = useState('');
+  const [aiLot, setAiLot] = useState('');
+  const [aiApplied, setAiApplied] = useState(false);
+  const [aiQuarantine, setAiQuarantine] = useState(false);
   const [pendingCommands, setPendingCommands] = useState<Record<string, boolean>>({});
   const handlePending = useCallback((key: string, locked: boolean) => {
     setPendingCommands((previous) =>
@@ -454,10 +459,10 @@ export function ReceiptCountForm({
                   </div>
                   {line?.trackLot && (
                     <p className="text-sm text-[var(--sc-text-secondary)]">
-                      {t('countLotCodeAuto')}
+                      {t('countLotCodeHelp')}
                     </p>
                   )}
-                  {(line?.trackExpiry || line?.manufactureRequired) &&
+                  {line?.trackLot &&
                     fields.map((field, index) => (
                       <fieldset
                         key={field.id}
@@ -478,6 +483,14 @@ export function ReceiptCountForm({
                             error={
                               errors.lots?.[index]?.receivedQty ? t('countInvalid') : undefined
                             }
+                          />
+                          <Input
+                            label={t('countLotCode')}
+                            maxLength={100}
+                            {...register(`lots.${index}.lotCode`, {
+                              setValueAs: (value: string) => value.trim() || undefined,
+                            })}
+                            error={errors.lots?.[index]?.lotCode ? t('countInvalid') : undefined}
                           />
                           {(line?.trackExpiry || line?.manufactureRequired) && (
                             <Input
@@ -540,6 +553,18 @@ export function ReceiptCountForm({
                               })}
                             </p>
                           )}
+                        {can('warehouse.asn.packagingAssist') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setAiApplied(false);
+                              setAiLot(field.id);
+                            }}
+                          >
+                            {t('packagingAssist')}
+                          </Button>
+                        )}
                         <Button type="button" variant="ghost" onClick={() => remove(index)}>
                           {t('countRemoveLot', { number: index + 1 })}
                         </Button>
@@ -555,7 +580,7 @@ export function ReceiptCountForm({
                       )}
                     </p>
                   )}
-                  {(line?.trackExpiry || line?.manufactureRequired) && (
+                  {line?.trackLot && (
                     <Button
                       type="button"
                       variant="outline"
@@ -591,6 +616,48 @@ export function ReceiptCountForm({
                   )}
                 </div>
               </form>
+              {aiApplied && (
+                <Alert
+                  variant="info"
+                  title={t(aiQuarantine ? 'packagingAppliedQuarantine' : 'packagingApplied')}
+                />
+              )}
+              {aiLot &&
+                receipt &&
+                line &&
+                fields.some((field) => field.id === aiLot) &&
+                can('warehouse.asn.packagingAssist') && (
+                  <ReceiptPackagingPanel
+                    key={`${warehouseId}:${asnId}:${receipt.receiptId}:${receipt.version}:${receipt.receivingRound}:${line.id}:${aiLot}`}
+                    warehouseId={warehouseId}
+                    asnId={asnId}
+                    policy={line}
+                    scope={{
+                      receiptId: receipt.receiptId,
+                      inboundLineId: line.id,
+                      receiptVersion: receipt.version,
+                      receivingRound: receipt.receivingRound,
+                    }}
+                    onPendingChange={handlePending}
+                    onClose={() => setAiLot('')}
+                    onAccepted={(value) => {
+                      const index = fields.findIndex((field) => field.id === aiLot);
+                      if (index < 0) return;
+                      setValue(`lots.${index}.lotCode`, value.lotCode ?? undefined, {
+                        shouldDirty: true,
+                      });
+                      setValue(`lots.${index}.manufacturedOn`, value.manufacturedOn ?? '', {
+                        shouldDirty: true,
+                      });
+                      setValue(`lots.${index}.expiresOn`, value.expiresOn ?? '', {
+                        shouldDirty: true,
+                      });
+                      setAiQuarantine(value.requiresQuarantine);
+                      setAiApplied(true);
+                      setAiLot('');
+                    }}
+                  />
+                )}
             </Card>
           )}
           {countedLines.length > 0 && (
@@ -789,6 +856,17 @@ export function ReceiptCountForm({
           )}
         </div>
         <aside className={styles.sidebar} aria-label={t('reviewHistoryTitle')}>
+          {receipt && isApproved && (
+            <ReceiptCartonPanel
+              warehouseId={warehouseId}
+              asnId={asnId}
+              receiptId={receipt.receiptId}
+              receiptVersion={receipt.version}
+              canWrite={!otherPending(`cartons:${asnId}`) && can('warehouse.asn.review')}
+              onPendingChange={handlePending}
+              onSaved={onReceiptChanged}
+            />
+          )}
           {receipt && (
             <ReceiptReviewPanel
               key={`review:${receipt.receivingRound}`}

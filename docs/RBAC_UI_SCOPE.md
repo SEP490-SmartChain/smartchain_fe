@@ -1,5 +1,18 @@
 # Phạm vi giao diện và phân quyền ORCA
 
+SS-1022: `invoice.period.close` is PLATFORM `ORCA_ACCOUNTANT` only, from UC-123,
+using `POST /v1/billing/tenants/:tenantId/periods/close` and `finance.create`.
+Invoice/header/line/PDF reads use `finance.read`: own Seller Owner and existing
+Admin/Accountant financial scope. Payment instructions are Owner-only reads;
+verified receipts retain the existing Accountant-only posting authority. Staff,
+Ops and warehouse roles receive no invoice payload. SePay and deposit offsets
+are not granted by the close-period capability.
+
+SS-999: tab dịch vụ fulfillment tại `/admin/tariffs` dùng `tariffs.manage`
+(PLATFORM Admin/Accountant), theo UC-117 và API
+`/v1/commercial/service-tariffs`. Quyền này chỉ quản trị service tariff,
+không grant plan/agreement publication, finance posting hoặc carrier secrets.
+
 Ngày 02/10/2026. Baseline làm việc: `Report3_Software Requirement Specification.docx` §2.1, §3.1.3, các UC và BR. Tài liệu thay mô tả orca bốn role. Đây là đặc tả UI theo yêu cầu mới, **không phải tuyên bố các grant/API/screen đã triển khai hoặc được duyệt đầy đủ**.
 
 Policy hiện có ở `src/lib/accessPolicy.ts`; backend có core-auth action catalog riêng. Mọi gap được giữ rõ ở mục 8. Không viết policy code trong đợt tài liệu này. Ma trận screen không được dùng thay action-level API authorization.
@@ -182,3 +195,7 @@ PLATFORM WAREHOUSE_STAFF on the live assigned warehouse. It posts the selected a
 to `receiving/records/:recordId/stock` after Manager approval. Manager/Staff read the evidence,
 while Manager cannot perform the Staff stock effect. Quantities/Seller identity come from
 reviewed evidence; no generic inventory editing, metadata writes or finance access is granted.
+
+## UC-158 / SS-1095 receiving photo assistance
+
+`warehouse.asn.packagingAssist` is Staff-only, under live assigned warehouse and own verified receipt-session photo. Server actions are `receipt_ai.read/create/update`, not generic assistant access. Explicit reviewed values prefill an unsaved lot row; physical count, QC, stock and finance remain separate commands. Optional AI being disabled does not block manual receiving.

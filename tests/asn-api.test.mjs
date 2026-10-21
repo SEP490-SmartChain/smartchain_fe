@@ -246,3 +246,54 @@ test('ASN form covers quantity/carton/date boundaries and cancellation reason', 
   assert.equal(cancelAsnSchema.safeParse({ reason: 'a'.repeat(501) }).success, false);
   assert.deepEqual(cancelAsnSchema.parse({ reason: ' Change plan ' }), { reason: 'Change plan' });
 });
+
+const suggestion = {
+  productId: id,
+  sku: 'SKU-1',
+  productName: 'Synthetic',
+  totalQuantity: 400,
+  declaredExpiryOn: '2026-10-29',
+  daysUntilExpiry: 10,
+  hasSufficientHistory: true,
+  basis: 'HISTORICAL_VELOCITY_30D',
+  warnings: ['UNALLOCATED_EXPIRY_CAPACITY'],
+  unallocatedQuantity: 67,
+  allocations: [
+    {
+      warehouseId: id,
+      warehouseCode: 'HN',
+      warehouseName: 'North',
+      region: 'NORTH',
+      dailyVelocity: 10,
+      sharePercent: 100,
+      suggestedQty: 333,
+      cappedByExpiry: true,
+      maxSellableBeforeExpiry: 333,
+      redistributedQty: 0,
+    },
+  ],
+};
+test('allocation suggestion parses the BE contract and sends a calendar expiry date', async () => {
+  const controller = new AbortController();
+  globalThis.fetch = async (url, options) => {
+    const request = new URL(url, 'https://example.test');
+    assert.equal(request.pathname, '/api/v1/asns/allocation-suggestion');
+    assert.equal(request.searchParams.get('declaredExpiryOn'), '2026-10-29');
+    assert.equal(request.searchParams.has('shelfLifeDays'), false);
+    assert.equal(request.searchParams.has('tenantId'), false);
+    assert.equal(options.signal, controller.signal);
+    return ok(suggestion);
+  };
+  assert.deepEqual(
+    await api.getAllocationSuggestion(
+      { productId: id, totalQuantity: 400, declaredExpiryOn: '2026-10-29' },
+      controller.signal,
+    ),
+    suggestion,
+  );
+});
+test('allocation rejects a response missing hard-cap remainder', async () => {
+  const { unallocatedQuantity: _remainder, ...malformed } = suggestion;
+  globalThis.fetch = async () => ok(malformed);
+  await assert.rejects(() => api.getAllocationSuggestion({ productId: id, totalQuantity: 400 }));
+});

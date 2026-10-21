@@ -192,3 +192,48 @@ test('inventory KPI values are pluralized and number-formatted per locale', asyn
   assert.equal(vi('availableStockHint'), 'Chỉ tính SKU đang bán tại kho đang hoạt động');
   assert.equal(en('availableStockHint'), 'Only active SKUs in active warehouses');
 });
+
+test('running-low accepts the BE field names and forwards cancellation', async () => {
+  const item = {
+    productId: stockLevel.productId,
+    sku: 'SKU-1',
+    productName: 'Synthetic',
+    warehouseId,
+    warehouseCode: 'HN',
+    warehouseName: 'North',
+    availableStock: 139,
+    dailyVelocity: 20,
+    daysOfStockLeft: 6.95,
+    suggestedReplenishmentQty: 281,
+    urgencyLevel: 'WARNING',
+  };
+  const controller = new AbortController();
+  globalThis.fetch = async (url, options) => {
+    assert.equal(
+      new URL(url, 'https://example.test').pathname,
+      '/api/v1/inventory/stocks/running-low',
+    );
+    assert.equal(options.signal, controller.signal);
+    return ok([item]);
+  };
+  assert.deepEqual(await inventoryStockApi.getRunningLow(controller.signal), [item]);
+});
+test('running-low rejects the mismatched legacy field names', async () => {
+  globalThis.fetch = async () =>
+    ok([
+      {
+        productId: stockLevel.productId,
+        warehouseId,
+        sku: 'SKU',
+        productName: 'P',
+        warehouseCode: 'HN',
+        warehouseName: 'North',
+        availableStock: 139,
+        dailyVelocity: 20,
+        daysOfCover: 6.95,
+        suggestedReplenishment: 281,
+        urgency: 'WARNING',
+      },
+    ]);
+  await assert.rejects(() => inventoryStockApi.getRunningLow());
+});

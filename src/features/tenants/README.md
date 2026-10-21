@@ -1,5 +1,43 @@
 # features/tenants
 
+## SS-1022 invoice cycles
+
+`CommercialBilling` now composes the fulfillment invoice workspace: seller/month/type
+filters, cursor pagination, source-linked fee lines, deterministic PDF export and
+read-only verified-bank-transfer instructions. It uses `/v1/billing/invoices` and
+existing verified receipt endpoints; the browser never marks an invoice paid.
+SERVICE documents summarize the operating ledger and cannot request the same fee
+again. PLAN documents display as subscriptions. Accountant-only period closure
+uses `invoice.period.close`, sourced from UC-123 and `finance.create`; issued
+documents remain immutable. Seven-role/API regressions: `invoice-billing.test.mjs`.
+Identity or selected seller/filter changes remount the workspace and cancel reads.
+SePay initiation (S53), deposit-offset orchestration (S16) and email delivery (S19)
+remain separate integrations; no mock success is shown for them.
+
+The reviewed workspace uses semantic status badges, invoice totals for loaded
+documents, Vietnamese/English fee labels, full references behind disclosures,
+and invoice cards on small screens. The financial breadcrumb replaces the old
+SaaS usage breadcrumb. Source evidence and full invoice numbers remain available
+in detail; abbreviated list references are display only. Actual test API/DB
+data, desktop and 390px mobile layouts were checked for SS-1022.
+
+## SS-999 service tariffs
+
+The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`
+policy for PLATFORM Admin/Accountant, with no additional seller or warehouse
+access. Requests use `/v1/commercial/service-tariffs`; the backend rechecks live
+roles and RLS. Service tariff authority does not grant plan publication.
+
+Drafts use RHF/Zod, exact decimal-string prices, contiguous quantity tiers and
+UTC input timestamps. Effective dates display in Vietnam time. Saving and
+publishing require an audit reason and the server's `updatedAt` revision.
+Published prices are read-only; closing their future window preserves content.
+API failures retain the form; no local success is shown. Auth revision remounts
+the manager and aborts pending reads/mutations.
+
+Test contracts: `service-tariff-schema.test.mjs`, `service-tariff-api.test.mjs`.
+The UI configures rates; it cannot post seller fees or calculate ledger balances.
+
 ## SS-990 ORCA commercial onboarding
 
 Baseline: UC-08–UC-13 and BR-59; existing identity UC-01–UC-05 is reused.

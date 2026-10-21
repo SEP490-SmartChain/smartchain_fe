@@ -90,8 +90,8 @@ export default function RouteBreadcrumbs() {
     items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('staff_accounts') });
   } else if (primaryPath === '/billing') {
-    items.push({ label: sidebar('workspace_settings_heading') });
-    items.push({ label: sidebar('usage') });
+    items.push({ label: sidebar('finance_heading') });
+    items.push({ label: sidebar('billing') });
   } else {
     items.push({ label: pageLabels[primaryPath] ?? topbar('default_title') });
   }
