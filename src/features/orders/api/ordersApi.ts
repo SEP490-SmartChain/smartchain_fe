@@ -298,6 +298,7 @@ const child = z.object({
   shipments: z.array(shipment),
 });
 const detail = {
+  backorderReminder: z.boolean().optional(),
   statusHistory: z.array(
     z
       .object({

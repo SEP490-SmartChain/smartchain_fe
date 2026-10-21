@@ -49,7 +49,12 @@ export function orderErrorKey(error: unknown): string {
 }
 export function orderReasonKey(code: string | null): string {
   return code &&
-    ['VALIDATION_FAILED', 'ADDRESS_NORMALIZED', 'ALLOCATION_QUEUE_FAILED'].includes(code)
+    [
+      'VALIDATION_FAILED',
+      'ADDRESS_NORMALIZED',
+      'RESERVATION_RENEWAL_REQUIRED',
+      'ALLOCATION_QUEUE_FAILED',
+    ].includes(code)
     ? `reasons.${code}`
     : 'processing_reason';
 }

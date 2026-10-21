@@ -637,6 +637,7 @@
     "parcel_number": "Parcel {number}",
     "weight_pending": "Not weighed yet",
     "reasons": {
+      "RESERVATION_RENEWAL_REQUIRED": "The stock hold expired and could not be fully renewed. ORCA must review this order before picking can continue.",
       "ALLOCATION_QUEUE_FAILED": "Allocation could not finish after retries. ORCA must review this order before processing can continue.",
       "VALIDATION_FAILED": "The address does not match the directory. Check its province/ward and contact ORCA to resolve this order.",
       "ADDRESS_NORMALIZED": "The address has been checked and normalized."
@@ -771,6 +772,7 @@
     "allocationTab": "Why this warehouse, this lot",
     "allocationExplanation": "Use one eligible warehouse where possible. Split only when necessary; FEFO/FIFO selects eligible stock.",
     "allocationPending": "Allocation is pending. BACKORDER keeps no partial reservations.",
+    "backorderReminder": "This order is still waiting for eligible stock. You can keep waiting or ask the account Owner to request cancellation. The order will not be cancelled automatically.",
     "nearestWarehouse": "Nearest eligible warehouse within current stock and capacity.",
     "totalCost": "Lowest estimated cost among evaluated feasible plans; actual packed freight is calculated later.",
     "allocationUnavailable": "The recorded allocation explanation is unavailable for this parcel.",

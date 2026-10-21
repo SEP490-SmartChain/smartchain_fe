@@ -43,6 +43,11 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
         </p>
       </header>
       {order.holdReason && <Alert variant="warning">{t(orderReasonKey(order.holdReason))}</Alert>}
+      {order.status === 'BACKORDER' && order.backorderReminder && (
+        <Alert variant="warning" role="status">
+          {t('backorderReminder')}
+        </Alert>
+      )}
       <Tabs
         label={t('detailTabs')}
         tabs={[
