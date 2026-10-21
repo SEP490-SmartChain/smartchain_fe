@@ -50,6 +50,7 @@ function PickingScope() {
     [waves, setWaves] = useState<PickWave[]>([]),
     [waveId, setWaveId] = useState(''),
     [detail, setDetail] = useState<PickDetail | null>(null),
+    [lineCursor, setLineCursor] = useState<string | null>(null),
     [staff, setStaff] = useState<{ id: string; fullName: string }[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [next, setNext] = useState<string | null>(null),
@@ -125,11 +126,14 @@ function PickingScope() {
     return () => c.abort();
   }, [warehouse, cursor, manager, refresh, t]);
   useEffect(() => {
+    setLineCursor(null);
+  }, [warehouse, waveId]);
+  useEffect(() => {
     setDetail(null);
     if (!warehouse || !waveId) return;
     const c = new AbortController();
     void pickingApi
-      .detail(warehouse, waveId, c.signal)
+      .detail(warehouse, waveId, c.signal, lineCursor)
       .then((data) => {
         if (!c.signal.aborted) setDetail(data);
       })
@@ -137,7 +141,7 @@ function PickingScope() {
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
-  }, [warehouse, waveId, refresh, t]);
+  }, [warehouse, waveId, refresh, lineCursor, t]);
   useEffect(() => {
     if (!waveRequest || !warehouse) return;
     const c = new AbortController();
@@ -186,6 +190,7 @@ function PickingScope() {
         setWaveRequest(result.requestId);
         setNotice(t('waveProcessing'));
       } else setNotice(t('confirmed'));
+      setLineCursor(null);
       setRefresh((x) => x + 1);
       if (result.waveId) setWaveId(result.waveId);
     } catch (cause) {
@@ -328,6 +333,26 @@ function PickingScope() {
                         }
                       />
                     ))}
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    {lineCursor && (
+                      <Button
+                        variant="outline"
+                        disabled={busy || !!pending}
+                        onClick={() => setLineCursor(null)}
+                      >
+                        {t('firstLines')}
+                      </Button>
+                    )}
+                    {detail.nextCursor && (
+                      <Button
+                        variant="outline"
+                        disabled={busy || !!pending}
+                        onClick={() => setLineCursor(detail.nextCursor)}
+                      >
+                        {t('nextLines')}
+                      </Button>
+                    )}
                   </div>
                 </>
               )}

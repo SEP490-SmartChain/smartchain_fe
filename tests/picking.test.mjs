@@ -133,6 +133,34 @@ test('strict operational line refuses financial and blind expected fields', () =
   for (const key of ['codAmount', 'unitPrice', 'expectedQty', 'recipientPhone'])
     assert.equal(api.pickLineSchema.safeParse({ ...line, [key]: 'secret' }).success, false);
 });
+test('pick detail passes the continuation cursor within the current warehouse', async () => {
+  const original = client.get;
+  const id = '00000000-0000-4000-8000-000000000001';
+  const cursor = '00000000-0000-4000-8000-000000000002';
+  const calls = [];
+  client.get = async (_path, options) => {
+    calls.push(options.params);
+    return {
+      data: {
+        id,
+        waveCode: 'PICK',
+        status: 'ASSIGNED',
+        assigneeId: null,
+        lines: [],
+        nextCursor: options.params.cursor ? null : cursor,
+      },
+    };
+  };
+  try {
+    const first = await api.pickingApi.detail('warehouse', id);
+    const second = await api.pickingApi.detail('warehouse', id, undefined, first.nextCursor);
+    assert.equal(first.nextCursor, cursor);
+    assert.equal(second.nextCursor, null);
+    assert.deepEqual(calls, [{ warehouseId: 'warehouse' }, { warehouseId: 'warehouse', cursor }]);
+  } finally {
+    client.get = original;
+  }
+});
 
 test('retry sends the exact same scan reference, payload and warehouse', async () => {
   const original = client.post,
