@@ -195,3 +195,7 @@ PLATFORM WAREHOUSE_STAFF on the live assigned warehouse. It posts the selected a
 to `receiving/records/:recordId/stock` after Manager approval. Manager/Staff read the evidence,
 while Manager cannot perform the Staff stock effect. Quantities/Seller identity come from
 reviewed evidence; no generic inventory editing, metadata writes or finance access is granted.
+
+## UC-158 / SS-1095 receiving photo assistance
+
+`warehouse.asn.packagingAssist` is Staff-only, under live assigned warehouse and own verified receipt-session photo. Server actions are `receipt_ai.read/create/update`, not generic assistant access. Explicit reviewed values prefill an unsaved lot row; physical count, QC, stock and finance remain separate commands. Optional AI being disabled does not block manual receiving.

@@ -594,6 +594,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-39; assigned warehouse, private receipt evidence presign/confirm',
   ),
   capability(
+    'warehouse.asn.packagingAssist',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 UC-158 / SS-1095: own verified receipt photo; assigned Staff only, receipt_ai.read/create/update; explicit confirmation, no count/QC/stock effect',
+  ),
+  capability(
     'warehouse.asn.review',
     'warehouses',
     'PLATFORM',

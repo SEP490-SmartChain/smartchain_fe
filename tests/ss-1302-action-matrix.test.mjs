@@ -106,6 +106,7 @@ const expected = {
   'warehouse.asn.checkIn': S,
   'warehouse.asn.recordCount': S,
   'warehouse.asn.uploadPhoto': S,
+  'warehouse.asn.packagingAssist': S,
   'warehouse.asn.inspect': S,
   'warehouse.asn.reportDiscrepancy': S,
   'warehouse.asn.review': M,
