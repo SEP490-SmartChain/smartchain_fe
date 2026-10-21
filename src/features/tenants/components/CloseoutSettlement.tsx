@@ -216,7 +216,8 @@ export function CloseoutSettlement({
                   {...(action === 'offsets'
                     ? offset.register('amountVnd')
                     : refund.register('amountVnd'))}
-                  disabled={disabled || action === 'refunds'}
+                  disabled={disabled}
+                  readOnly={action === 'refunds'}
                   error={fields.formState.errors.amountVnd ? t('invalidAmount') : undefined}
                 />
                 <Input
