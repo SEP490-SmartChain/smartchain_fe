@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Boxes, MapPin, Plus, Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -20,6 +20,8 @@ import { warehouseLayoutApi, type Bin, type Zone } from '../api/warehouseLayoutA
 
 import type { BinFormValues, ZoneFormValues } from '../schemas/warehouseLayoutSchema';
 import type { Warehouse } from '../types/warehouse';
+
+const Warehouse3DPlanner = lazy(() => import('./Warehouse3DPlanner'));
 
 function formatCapacity(value: string, locale: string, decimalSeparator: string): string {
   const [integerPart, fractionPart] = value.split('.');
@@ -50,6 +52,8 @@ export function WarehouseLayoutPanel({
   const { can } = useAccess();
   const principal = useAuthStore((state) => state.user);
   const canManage = can('warehouses.layout.manage');
+  const [show3D, setShow3D] = useState(false);
+  useEffect(() => setShow3D(false), [principal, warehouse.id]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [zoneId, setZoneId] = useState('');
   const [search, setSearch] = useState('');
@@ -218,6 +222,11 @@ export function WarehouseLayoutPanel({
   };
   return (
     <section className={styles.panel} aria-label={t('title')}>
+      {show3D && (
+        <Suspense fallback={<p role="status">{t('loading')}</p>}>
+          <Warehouse3DPlanner warehouse={warehouse} onClose={() => setShow3D(false)} />
+        </Suspense>
+      )}
       {!zoneType && (
         <div className={styles.panelHeader}>
           <div>
@@ -227,12 +236,21 @@ export function WarehouseLayoutPanel({
             </h2>
             <p className={`${styles.copy} mt-2`}>{t('layoutHelp')}</p>
           </div>
-          {canManage && warehouse.status === 'ACTIVE' && (
-            <Button variant="outline" onClick={() => setZoneForm({ zone: null })}>
-              <Plus size={16} aria-hidden="true" />
-              {t('createZone')}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShow3D(true)}
+              disabled={zoneForm !== null || binForm !== null}
+            >
+              {t('view3D')}
             </Button>
-          )}
+            {canManage && warehouse.status === 'ACTIVE' && (
+              <Button variant="outline" onClick={() => setZoneForm({ zone: null })}>
+                <Plus size={16} aria-hidden="true" />
+                {t('createZone')}
+              </Button>
+            )}
+          </div>
         </div>
       )}
       {error && (
