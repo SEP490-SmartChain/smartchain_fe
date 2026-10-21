@@ -199,3 +199,17 @@ reviewed evidence; no generic inventory editing, metadata writes or finance acce
 ## UC-158 / SS-1095 receiving photo assistance
 
 `warehouse.asn.packagingAssist` is Staff-only, under live assigned warehouse and own verified receipt-session photo. Server actions are `receipt_ai.read/create/update`, not generic assistant access. Explicit reviewed values prefill an unsaved lot row; physical count, QC, stock and finance remain separate commands. Optional AI being disabled does not block manual receiving.
+
+## SS-1012 statement review and manual payout
+
+statement.review is TENANT Seller Owner only (UC-131/132), for
+POST /v1/billing/statements/:id/confirm and line disputes. The server checks
+current own-seller scope, version and deadline. payout.manage is PLATFORM
+Accountant only (UC-133–136), for send, approve, dispute resolution and evidenced
+manual transfer recording via finance.create. The existing /billing route
+provides the financial workspace to Owner/Admin/Accountant; /statements keeps
+its Owner gate. Admin receives read access, never Accountant mutations.
+
+All actual financial effects remain server-owned. The UI uses Vietnam time,
+separate operating/deposit balances, exact integer-string money, and no
+simulated-time header or off-cycle override.
