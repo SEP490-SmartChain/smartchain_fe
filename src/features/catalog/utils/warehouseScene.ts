@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
+import { warehouseCameraDistance, warehouseEntityBounds, visualEntityKey } from './warehouseView';
+
 import type { Bin, Zone } from '../api/warehouseLayoutApi';
 import type { VisualEntity, VisualPlan } from '../schemas/warehouseVisualLayoutSchema';
 
@@ -11,6 +13,8 @@ type SceneData = {
   bins: Bin[];
   selected: VisualEntity | null;
   editing: boolean;
+  matches?: ReadonlySet<string>;
+  selectionLabel?: string;
 };
 type EntityObject = THREE.Group & { userData: { entity: VisualEntity } };
 
@@ -23,6 +27,7 @@ export function createWarehouseScene(
     move: (entity: VisualEntity, x: number, z: number) => void;
     unavailable: () => void;
   },
+  chipClassName: string,
 ) {
   const tokens = getComputedStyle(host);
   const color = (name: string) => new THREE.Color(tokens.getPropertyValue(`--sc-${name}`).trim());
@@ -36,18 +41,23 @@ export function createWarehouseScene(
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   const canvas = renderer.domElement;
   canvas.setAttribute('role', 'img');
   canvas.setAttribute('aria-label', label);
   canvas.style.touchAction = 'none';
   host.append(canvas);
+  const chip = document.createElement('div');
+  chip.className = chipClassName;
+  chip.setAttribute('aria-hidden', 'true');
+  chip.hidden = true;
+  host.append(chip);
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 2000);
   const controls = new OrbitControls(camera, canvas);
   controls.enableDamping = false;
   controls.maxPolarAngle = Math.PI / 2.1;
   controls.minDistance = 5;
-  controls.maxDistance = 400;
+  controls.maxDistance = 1600;
   const ambient = new THREE.HemisphereLight(color('bg-surface'), color('secondary-light'), 1.6);
   scene.add(ambient);
   const sun = new THREE.DirectionalLight(color('bg-surface'), 2);
@@ -63,6 +73,20 @@ export function createWarehouseScene(
   const pointer = new THREE.Vector2();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   let data: SceneData | null = null;
+  let topView = false;
+  let selectedObject: THREE.Object3D | null = null;
+  const chipAnchor = new THREE.Vector3();
+  const projectedAnchor = new THREE.Vector3();
+  const reservedWidth = () =>
+    parseFloat(getComputedStyle(host).getPropertyValue('--planner-hud-width')) || 0;
+  const projection = () => {
+    const width = host.clientWidth,
+      height = host.clientHeight;
+    if (!width || !height) return;
+    camera.aspect = width / height;
+    camera.setViewOffset(width, height, reservedWidth() / 2, 0, width, height);
+    camera.updateProjectionMatrix();
+  };
   let disposed = false,
     frame = 0;
   let binObjects: EntityObject[] = [];
@@ -79,18 +103,42 @@ export function createWarehouseScene(
   } | null = null;
   const render = () => {
     frame = 0;
-    if (!disposed && host.clientWidth && host.clientHeight) renderer.render(scene, camera);
+    if (!disposed && host.clientWidth && host.clientHeight) {
+      renderer.render(scene, camera);
+      chip.hidden = true;
+      if (selectedObject && data?.selectionLabel) {
+        selectedObject.localToWorld(projectedAnchor.copy(chipAnchor)).project(camera);
+        const x = ((projectedAnchor.x + 1) * host.clientWidth) / 2;
+        const y = ((1 - projectedAnchor.y) * host.clientHeight) / 2;
+        if (
+          projectedAnchor.z > -1 &&
+          projectedAnchor.z < 1 &&
+          x > 40 &&
+          x < host.clientWidth - reservedWidth() - 40 &&
+          y > 90 &&
+          y < host.clientHeight - 40
+        ) {
+          chip.hidden = false;
+          chip.style.left = `${x}px`;
+          chip.style.top = `${y}px`;
+        }
+      }
+    }
   };
   const invalidate = () => {
     if (!frame && !disposed) frame = requestAnimationFrame(render);
   };
   controls.addEventListener('change', invalidate);
+  let resizeFrame = 0;
   const resize = new ResizeObserver(() => {
-    if (!host.clientWidth || !host.clientHeight) return;
-    renderer.setSize(host.clientWidth, host.clientHeight, false);
-    camera.aspect = host.clientWidth / host.clientHeight;
-    camera.updateProjectionMatrix();
-    invalidate();
+    cancelAnimationFrame(resizeFrame);
+    // Keep canvas writes out of ResizeObserver delivery, including modal transitions.
+    resizeFrame = requestAnimationFrame(() => {
+      if (disposed || !host.clientWidth || !host.clientHeight) return;
+      renderer.setSize(host.clientWidth, host.clientHeight, false);
+      projection();
+      invalidate();
+    });
   });
   resize.observe(host);
   function disposeObjects() {
@@ -109,6 +157,8 @@ export function createWarehouseScene(
     binObjects = [];
     rackInstances = null;
     bodyInstances = null;
+    selectedObject = null;
+    chip.hidden = true;
   }
   function box(
     parent: THREE.Object3D,
@@ -162,7 +212,11 @@ export function createWarehouseScene(
     data = next;
     disposeObjects();
     const { plan, zones, bins, selected } = next;
-    controls.enableRotate = !next.editing;
+    controls.enableRotate = !next.editing && !topView;
+    chip.textContent = next.selectionLabel ?? '';
+    const contextZones = new Set(
+      bins.filter((bin) => next.matches?.has(`bin:${bin.id}`)).map((bin) => bin.zoneId),
+    );
     const slab = box(
       root,
       plan.width,
@@ -203,6 +257,9 @@ export function createWarehouseScene(
                 ? 'success-bg'
                 : 'primary-lighter',
       );
+      if (next.matches && !next.matches.has(`zone:${zone.id}`) && !contextZones.has(zone.id)) {
+        tint.lerp(color('bg-primary'), 0.75);
+      }
       const tile = box(
         group,
         place.width - 0.12,
@@ -223,6 +280,8 @@ export function createWarehouseScene(
         Math.min(place.width - 0.6, 7),
       );
       if (selected?.kind === 'zone' && selected.id === zone.id) {
+        selectedObject = group;
+        chipAnchor.set(place.width / 2, 0.5, place.depth / 2);
         const outline = new THREE.LineSegments(
           new THREE.EdgesGeometry(tile.geometry),
           new THREE.LineBasicMaterial({ color: color('primary') }),
@@ -244,7 +303,7 @@ export function createWarehouseScene(
     pieces.forEach((piece) => piece.dispose());
     rackInstances = new THREE.InstancedMesh(
       rackGeometry,
-      new THREE.MeshStandardMaterial({ color: color('secondary-light'), roughness: 0.85 }),
+      new THREE.MeshStandardMaterial({ roughness: 0.85 }),
       plan.bins.length,
     );
     bodyInstances = new THREE.InstancedMesh(
@@ -272,9 +331,14 @@ export function createWarehouseScene(
             ? 'primary'
             : 'info',
       );
+      const matched = !next.matches || next.matches.has(visualEntityKey(group.userData.entity));
+      if (!matched && selected?.id !== bin.id) tint.lerp(color('bg-primary'), 0.8);
+      rackInstances.setColorAt(binObjects.length, color(matched ? 'secondary-light' : 'bg-muted'));
       bodyInstances.setColorAt(binObjects.length, tint);
       binObjects.push(group);
       if (selected?.kind === 'bin' && selected.id === bin.id) {
+        selectedObject = group;
+        chipAnchor.set(0.5, 1.5, 0.5);
         const marker = new THREE.Mesh(
           new THREE.RingGeometry(0.65, 0.74, 32),
           new THREE.MeshBasicMaterial({ color: color('primary'), side: THREE.DoubleSide }),
@@ -302,24 +366,31 @@ export function createWarehouseScene(
       }
     }
   }
-  function home(top: boolean) {
-    if (!data) return;
-    const places = data.plan.zones;
-    const minX = Math.min(...places.map((zone) => zone.x), 2),
-      minZ = Math.min(...places.map((zone) => zone.z), 2);
-    const maxX = Math.max(...places.map((zone) => zone.x + zone.width), 20),
-      maxZ = Math.max(...places.map((zone) => zone.z + zone.depth), 16);
-    const cx = (minX + maxX) / 2,
-      cz = (minZ + maxZ) / 2;
-    const size = Math.max((maxX - minX) / Math.max(camera.aspect, 0.5), maxZ - minZ, 12);
-    controls.target.set(cx, 0, cz);
-    camera.position.set(
-      cx + (top ? 0 : size * 0.7),
-      size * (top ? 1.7 : 1.2),
-      cz + (top ? 0.001 : size * 0.9),
+  function frameBounds(
+    bounds: { x: number; z: number; width: number; depth: number },
+    top: boolean,
+  ) {
+    projection();
+    const cx = bounds.x + bounds.width / 2,
+      cz = bounds.z + bounds.depth / 2;
+    const distance = warehouseCameraDistance(
+      bounds,
+      camera.aspect,
+      camera.fov,
+      Math.max(0.2, (host.clientWidth - reservedWidth()) / Math.max(1, host.clientWidth)),
+    );
+    controls.target.set(cx, 0.5, cz);
+    camera.position.copy(
+      new THREE.Vector3(top ? 0 : 0.7, top ? 1 : 1.2, top ? 0.00001 : 0.9)
+        .normalize()
+        .multiplyScalar(distance)
+        .add(controls.target),
     );
     controls.update();
     invalidate();
+  }
+  function home(top: boolean) {
+    if (data) frameBounds({ x: 0, z: 0, width: data.plan.width, depth: data.plan.depth }, top);
   }
   function ray(event: PointerEvent) {
     const rect = canvas.getBoundingClientRect();
@@ -403,6 +474,18 @@ export function createWarehouseScene(
   return {
     update,
     home,
+    focus(entity: VisualEntity) {
+      if (!data) return;
+      const bounds = warehouseEntityBounds(entity, data.plan, data.bins);
+      if (bounds) frameBounds(bounds, data.editing || topView);
+    },
+    setTopView(top: boolean) {
+      topView = top;
+      controls.enableRotate = !top && !data?.editing;
+      controls.mouseButtons.LEFT = top ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
+      controls.touches.ONE = top ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
+      home(top);
+    },
     zoom(factor: number) {
       camera.position.sub(controls.target).multiplyScalar(factor).add(controls.target);
       controls.update();
@@ -420,18 +503,20 @@ export function createWarehouseScene(
     dispose() {
       disposed = true;
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(resizeFrame);
       resize.disconnect();
       controls.dispose();
       disposeObjects();
       sun.shadow.dispose();
       renderer.dispose();
-      renderer.forceContextLoss();
       canvas.removeEventListener('webglcontextlost', lost);
+      renderer.forceContextLoss();
       canvas.removeEventListener('pointerdown', down);
       canvas.removeEventListener('pointermove', move);
       canvas.removeEventListener('pointerup', up);
       canvas.removeEventListener('pointercancel', up);
       canvas.remove();
+      chip.remove();
     },
   };
 }

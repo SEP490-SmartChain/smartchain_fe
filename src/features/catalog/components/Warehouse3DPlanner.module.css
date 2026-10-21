@@ -43,10 +43,52 @@
   background: var(--sc-bg-primary);
 }
 .canvas {
+  --planner-hud-width: 326;
   min-width: 0;
   width: 100%;
   position: absolute;
   inset: 0;
+}
+.selectionChip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--sc-primary);
+  border-radius: 8px;
+  background: var(--sc-bg-surface);
+  box-shadow: var(--sc-shadow-button);
+  color: var(--sc-text-primary);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.filters {
+  display: grid;
+  border-block: 1px solid var(--sc-border-default);
+  padding: 10px 0;
+}
+.filters > :not(summary) {
+  margin-top: 10px;
+}
+.filters summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.filters summary:focus-visible {
+  outline: 2px solid var(--sc-primary);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.filterSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .canvas canvas {
   max-width: 100%;
@@ -108,6 +150,9 @@
   flex-direction: column;
   gap: 12px;
   overflow: auto;
+}
+.details > * {
+  flex-shrink: 0;
 }
 .detailHeading {
   display: flex;
@@ -222,6 +267,7 @@
     flex-direction: column;
   }
   .canvas {
+    --planner-hud-width: 0;
     position: relative;
     height: 410px;
     border-radius: 16px;
