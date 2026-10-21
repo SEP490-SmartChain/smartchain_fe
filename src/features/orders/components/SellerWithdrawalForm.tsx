@@ -190,6 +190,8 @@ export function SellerWithdrawalForm({
         </Button>
         <form
           className="grid gap-3 sm:grid-cols-2"
+          onChange={() => setNotice('')}
+          onInvalidCapture={() => setNotice('')}
           onSubmit={address.handleSubmit((values) =>
             execute({
               kind: 'ADDRESS',
@@ -247,7 +249,10 @@ export function SellerWithdrawalForm({
         )}
         <form
           className="grid gap-3 sm:grid-cols-2"
+          onChange={() => setNotice('')}
+          onInvalidCapture={() => setNotice('')}
           onSubmit={form.handleSubmit((values) => {
+            setNotice('');
             if (!choice || !data?.address || values.qty > choice.availableQty) {
               setError(t('unavailable'));
               return;
