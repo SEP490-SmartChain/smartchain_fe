@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 
-let server, policy, schemas, api, client;
+let server, policy, schemas, api, client, evidence;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -16,7 +16,66 @@ before(async () => {
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
   schemas = await server.ssrLoadModule('/src/features/orders/schemas/pickingSchema.ts');
   api = await server.ssrLoadModule('/src/features/orders/api/pickingApi.ts');
+  evidence = await server.ssrLoadModule('/src/features/orders/api/pickEvidenceApi.ts');
   ({ apiClient: client } = await server.ssrLoadModule('/src/services/apiClient.ts'));
+});
+
+test('evidence upload binds checksum and confirms the uploaded image before returning its key', async () => {
+  const originalPost = client.post,
+    originalUpload = client.uploadSignedImage;
+  const calls = [],
+    key = 'private-evidence-key';
+  const file = new File([new Uint8Array(68)], 'proof.png', { type: 'image/png' });
+  client.post = async (path, body) => {
+    calls.push(path.endsWith('/presign?warehouseId=W') ? 'presign' : 'confirm');
+    if (path.includes('/presign')) {
+      const checksum = Buffer.from(body.sha256, 'hex').toString('base64');
+      assert.equal(body.fileSizeBytes, 68);
+      return {
+        data: {
+          evidenceKey: key,
+          upload: {
+            method: 'PUT',
+            uploadUrl: 'http://localhost:9000/proof',
+            expiresInSeconds: 300,
+            headers: { 'Content-Type': file.type, 'x-amz-checksum-sha256': checksum },
+          },
+        },
+      };
+    }
+    assert.equal(body.evidenceKey, key);
+    return { data: { evidenceKey: key, verified: true } };
+  };
+  client.uploadSignedImage = async (_url, uploaded) => {
+    calls.push('PUT');
+    assert.equal(uploaded, file);
+  };
+  try {
+    assert.equal(
+      await evidence.uploadPickEvidence('W', 'L', file, new AbortController().signal),
+      key,
+    );
+    assert.deepEqual(calls, ['presign', 'PUT', 'confirm']);
+    calls.length = 0;
+    client.uploadSignedImage = async () => {
+      throw new Error('Upload failed');
+    };
+    await assert.rejects(evidence.uploadPickEvidence('W', 'L', file, new AbortController().signal));
+    assert.deepEqual(calls, ['presign']);
+    calls.length = 0;
+    await assert.rejects(
+      evidence.uploadPickEvidence(
+        'W',
+        'L',
+        new File(['text'], 'bad.svg', { type: 'image/svg+xml' }),
+        new AbortController().signal,
+      ),
+    );
+    assert.deepEqual(calls, []);
+  } finally {
+    client.post = originalPost;
+    client.uploadSignedImage = originalUpload;
+  }
 });
 after(async () => {
   await server?.close();

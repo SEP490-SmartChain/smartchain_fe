@@ -21,6 +21,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { PickShortEvidence } from './PickShortEvidence';
 import {
   pickingApi,
   type PickPending,
@@ -395,7 +396,8 @@ function PickLineCard({
   execute: (c: PickPending) => Promise<void>;
 }) {
   const t = useTranslations('Picking'),
-    [mode, setMode] = useState<'scan' | 'short'>('scan');
+    [mode, setMode] = useState<'scan' | 'short'>('scan'),
+    [uploadBusy, setUploadBusy] = useState(false);
   const f = useForm<z.infer<typeof pickScanSchema>>({
     resolver: zodResolver(pickScanSchema),
     defaultValues: { qty: 1 },
@@ -426,7 +428,12 @@ function PickLineCard({
           <Alert variant="warning">
             {t('shortPending')} · {line.shortage.evidenceRefs.reason}
           </Alert>
-          <p>{line.shortage.evidenceRefs.evidenceKey}</p>
+          <PickShortEvidence
+            warehouseId={warehouseId}
+            lineId={line.id}
+            disabled={disabled}
+            evidenceKey={line.shortage.evidenceRefs.evidenceKey}
+          />
           {manager && (
             <form
               className="mt-3 flex items-end gap-3"
@@ -455,7 +462,7 @@ function PickLineCard({
           <div className="mb-3 flex gap-2">
             <Button
               variant={mode === 'scan' ? 'primary' : 'outline'}
-              disabled={disabled}
+              disabled={disabled || uploadBusy}
               onClick={() => setMode('scan')}
             >
               {t('scan')}
@@ -522,11 +529,15 @@ function PickLineCard({
                 min={0}
                 max={line.remainingQty - 1}
               />
-              <Input
-                label={t('evidence')}
-                {...shortage.register('evidenceKey')}
-                required
+              <PickShortEvidence
+                warehouseId={warehouseId}
+                lineId={line.id}
                 disabled={disabled}
+                onBusyChange={setUploadBusy}
+                evidenceKey={shortage.watch('evidenceKey')}
+                onVerified={(key) =>
+                  shortage.setValue('evidenceKey', key, { shouldValidate: true })
+                }
               />
               {shortage.formState.errors.evidenceKey && <p role="alert">{t('evidenceRequired')}</p>}
               <Input
@@ -535,7 +546,10 @@ function PickLineCard({
                 disabled={disabled}
                 required
               />
-              <Button type="submit" disabled={disabled || !shortage.watch('evidenceKey')}>
+              <Button
+                type="submit"
+                disabled={disabled || uploadBusy || !shortage.watch('evidenceKey')}
+              >
                 {t('reportShort')}
               </Button>
             </form>
