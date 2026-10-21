@@ -29,6 +29,15 @@ export const shipmentSchema = z.object({
   labelAvailable: z.boolean(),
 });
 export type Shipment = z.infer<typeof shipmentSchema>;
+export const trackingEventSchema = z.object({
+  id,
+  eventCode: z.string().max(50),
+  standardStatus: z.string().max(50),
+  eventTime: z.string().datetime(),
+  isApplied: z.boolean(),
+  ignoreReason: z.string().max(100).nullable(),
+});
+export type TrackingEvent = z.infer<typeof trackingEventSchema>;
 export const paginationSchema = z.object({
   limit: z.number().int().min(1).max(50),
   hasNext: z.boolean(),
@@ -56,3 +65,10 @@ export const breakerSchema = z.discriminatedUnion('available', [
   }),
 ]);
 export type CarrierBreaker = z.infer<typeof breakerSchema>;
+export const cancelResultSchema = z.enum([
+  'REQUESTED',
+  'ALREADY_REQUESTED',
+  'ALREADY_CANCELLED',
+  'RETRY_SCHEDULED',
+]);
+export type CancelResult = z.infer<typeof cancelResultSchema>;

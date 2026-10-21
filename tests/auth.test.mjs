@@ -185,7 +185,7 @@ for (const [name, patch] of [
 }
 
 test('SS-985: a late 401 after scope change is silent and preserves the current session', async (t) => {
-  const toastError = t.mock.method(toast, 'error', () => { });
+  const toastError = t.mock.method(toast, 'error', () => {});
   useAuthStore.getState().setSession(session('old'));
   const pending = deferred();
   const calls = [];
@@ -204,7 +204,7 @@ test('SS-985: a late 401 after scope change is silent and preserves the current 
 });
 
 test('SS-985: scope change while refreshing is silent and cannot overwrite the current session', async (t) => {
-  const toastError = t.mock.method(toast, 'error', () => { });
+  const toastError = t.mock.method(toast, 'error', () => {});
   useAuthStore.getState().setSession(session('old'));
   const pending = deferred();
   const started = deferred();

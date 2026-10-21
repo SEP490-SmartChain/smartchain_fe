@@ -385,6 +385,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'UC-81 label print; GET /v1/shipments/:id/label; PDF includes COD/recipient data; RLS shipment.read',
   ),
   capability(
+    'shipments.cancel',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-101 waybill cancel; owner-approved 20/10/2026; POST /v1/shipments/:id/cancel; RLS shipment.update',
+  ),
+  capability(
     'shipments.operate',
     'shipments',
     'ANY',

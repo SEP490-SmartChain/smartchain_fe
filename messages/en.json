@@ -2721,6 +2721,22 @@
     }
   },
   "Shipments": {
+    "journeyStatuses": {
+      "PICKED_UP": "Picked up",
+      "DELIVERY_FAILED": "Delivery failed",
+      "CANCELLED": "Cancelled",
+      "UNMAPPED": "Status requires review",
+      "DELIVERED": "Delivered",
+      "IN_TRANSIT": "In transit",
+      "LABEL_CREATED": "Label created",
+      "RETURNED": "Returned",
+      "RETURNING": "Returning"
+    },
+    "timelineApplied": "Applied",
+    "timelineRecorded": "Recorded only",
+    "timelineTitle": "Shipment journey",
+    "journeyUnknown": "Status requires review",
+    "timelineEmpty": "No tracking updates yet.",
     "title": "Shipments",
     "subtitle": "Track bookings after packing and carrier labels.",
     "reload": "Reload",
@@ -2757,6 +2773,17 @@
       "CANCEL_UNKNOWN": "Verifying cancellation",
       "CANCELLED": "Cancelled",
       "COMPLETED": "Completed"
+    },
+    "cancelAction": "Cancel waybill",
+    "cancelConfirm": "The cancellation is sent to the carrier and takes effect only after the carrier confirms. It is possible only before handover.",
+    "cancelSubmit": "Confirm cancellation",
+    "cancelDismiss": "Keep waybill",
+    "cancelUnknownNotice": "The carrier's cancellation outcome is not confirmed yet. ORCA keeps checking; no new waybill is created and no stock is restored.",
+    "cancelResults": {
+      "REQUESTED": "Cancellation request recorded; waiting for carrier confirmation.",
+      "ALREADY_REQUESTED": "A cancellation request was already recorded.",
+      "ALREADY_CANCELLED": "The waybill is already cancelled.",
+      "RETRY_SCHEDULED": "A new check of the cancellation outcome with the carrier is scheduled."
     }
   },
   "CarrierBreakers": {
@@ -3179,5 +3206,28 @@
     "retry": "Retry this bin decision",
     "success": "Storage bin changed; physical confirmation is still required.",
     "completedReadOnly": "This task has ended. Decision history remains available; the bin cannot be changed."
+  },
+  "SepayReconciliation": {
+    "title": "Unmatched SePay transfers",
+    "description": "Verified transfers that could not be matched automatically (underpaid, overpaid or missing ORCA plus the invoice number). Match one to an invoice to post it exactly once.",
+    "refresh": "Refresh",
+    "loadMore": "Load more",
+    "empty": "No transfers need manual matching.",
+    "loadError": "Could not load the transfers.",
+    "tableLabel": "Unmatched SePay transfers",
+    "receivedAt": "Received at",
+    "amount": "Amount",
+    "content": "Transfer content",
+    "reference": "SePay transaction id",
+    "actions": "Actions",
+    "match": "Match invoice",
+    "matchTitle": "Match transfer to invoice",
+    "matchHelp": "The amount {amount} is allocated to the outstanding obligations of the invoice; any excess stays unallocated.",
+    "invoiceNo": "Invoice number",
+    "invoiceNoInvalid": "Enter a valid invoice number (letters, digits and hyphens).",
+    "confirm": "Confirm match",
+    "cancel": "Cancel",
+    "matched": "Posted. Unallocated: {amount}.",
+    "matchError": "Could not match the transfer. Please try again."
   }
 }

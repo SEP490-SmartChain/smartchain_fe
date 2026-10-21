@@ -2721,6 +2721,22 @@
     }
   },
   "Shipments": {
+    "journeyStatuses": {
+      "PICKED_UP": "Hãng đã lấy hàng",
+      "DELIVERY_FAILED": "Giao chưa thành công",
+      "CANCELLED": "Đã hủy",
+      "UNMAPPED": "Trạng thái cần kiểm tra",
+      "DELIVERED": "Đã giao",
+      "IN_TRANSIT": "Đang vận chuyển",
+      "LABEL_CREATED": "Đã tạo vận đơn",
+      "RETURNED": "Đã hoàn",
+      "RETURNING": "Đang hoàn"
+    },
+    "timelineApplied": "Đã cập nhật",
+    "timelineRecorded": "Chỉ lưu thông tin",
+    "timelineTitle": "Hành trình vận đơn",
+    "journeyUnknown": "Trạng thái cần kiểm tra",
+    "timelineEmpty": "Chưa có cập nhật hành trình.",
     "title": "Vận đơn",
     "subtitle": "Theo dõi booking sau đóng gói và nhãn vận chuyển.",
     "reload": "Tải lại",
@@ -2757,6 +2773,17 @@
       "CANCEL_UNKNOWN": "Đang xác minh hủy",
       "CANCELLED": "Đã hủy",
       "COMPLETED": "Hoàn tất"
+    },
+    "cancelAction": "Hủy vận đơn",
+    "cancelConfirm": "Yêu cầu hủy gửi tới hãng và chỉ có hiệu lực khi hãng xác nhận. Chỉ hủy được khi chưa bàn giao.",
+    "cancelSubmit": "Xác nhận hủy",
+    "cancelDismiss": "Không hủy",
+    "cancelUnknownNotice": "Chưa xác nhận được kết quả hủy với hãng. Hệ thống tiếp tục kiểm tra; không tạo vận đơn mới hoặc nhập lại tồn kho.",
+    "cancelResults": {
+      "REQUESTED": "Đã ghi nhận yêu cầu hủy; chờ hãng xác nhận.",
+      "ALREADY_REQUESTED": "Yêu cầu hủy đã được ghi nhận trước đó.",
+      "ALREADY_CANCELLED": "Vận đơn đã được hủy.",
+      "RETRY_SCHEDULED": "Đã lên lịch kiểm tra lại kết quả hủy với hãng."
     }
   },
   "CarrierBreakers": {
@@ -3179,5 +3206,28 @@
     "retry": "Gửi lại thao tác đổi bin",
     "success": "Đã đổi bin lưu trữ; vẫn cần quét và xác nhận thực tế.",
     "completedReadOnly": "Task đã kết thúc. Bạn có thể xem lịch sử; không thể đổi bin."
+  },
+  "SepayReconciliation": {
+    "title": "Giao dịch SePay chưa khớp",
+    "description": "Chuyển khoản đã xác thực nhưng không tự khớp được (thiếu, thừa hoặc không có mã ORCA kèm số hóa đơn). Khớp với hóa đơn để ghi sổ đúng một lần.",
+    "refresh": "Tải lại",
+    "loadMore": "Tải thêm",
+    "empty": "Không có giao dịch nào cần khớp tay.",
+    "loadError": "Không tải được danh sách giao dịch.",
+    "tableLabel": "Danh sách giao dịch SePay chưa khớp",
+    "receivedAt": "Nhận lúc",
+    "amount": "Số tiền",
+    "content": "Nội dung chuyển khoản",
+    "reference": "Mã giao dịch SePay",
+    "actions": "Thao tác",
+    "match": "Khớp hóa đơn",
+    "matchTitle": "Khớp giao dịch với hóa đơn",
+    "matchHelp": "Số tiền {amount} sẽ được phân bổ vào các nghĩa vụ còn nợ của hóa đơn; phần thừa giữ lại là số dư chưa phân bổ.",
+    "invoiceNo": "Số hóa đơn",
+    "invoiceNoInvalid": "Nhập số hóa đơn hợp lệ (chữ, số và dấu gạch ngang).",
+    "confirm": "Xác nhận khớp",
+    "cancel": "Hủy",
+    "matched": "Đã ghi sổ. Chưa phân bổ: {amount}.",
+    "matchError": "Không khớp được giao dịch. Vui lòng thử lại."
   }
 }

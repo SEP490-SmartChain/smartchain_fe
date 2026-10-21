@@ -118,6 +118,7 @@ export function CarrierDetailModal({
       {editingService !== undefined && (
         <CarrierServiceEditor
           carrierId={carrier.id}
+          carrierCode={carrier.code}
           current={editingService ?? undefined}
           onClose={() => setEditingService(undefined)}
           onSaved={() => void saved()}

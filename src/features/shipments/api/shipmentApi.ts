@@ -2,9 +2,29 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
-import { shipmentSchema, paginationSchema, breakerSchema } from '../schemas/shipmentSchema';
+import {
+  shipmentSchema,
+  paginationSchema,
+  breakerSchema,
+  trackingEventSchema,
+  cancelResultSchema,
+} from '../schemas/shipmentSchema';
 
 export const shipmentApi = {
+  async timeline(id: string, cursor?: string, signal?: AbortSignal) {
+    const response = await apiClient.get<ApiResponse<unknown>>(
+      `/v1/shipments/${encodeURIComponent(id)}/timeline`,
+      {
+        params: { limit: '50', ...(cursor ? { cursor } : {}) },
+        signal,
+        silent: true,
+      },
+    );
+    return {
+      items: z.array(trackingEventSchema).parse(response.data),
+      pagination: paginationSchema.parse(response.meta.pagination),
+    };
+  },
   async list(cursor?: string, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>('/v1/shipments', {
       params: { limit: '20', ...(cursor ? { cursor } : {}) },
@@ -31,6 +51,14 @@ export const shipmentApi = {
       signal,
       silent: true,
     });
+  },
+  async cancel(id: string, signal?: AbortSignal) {
+    const response = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/shipments/${encodeURIComponent(id)}/cancel`,
+      {},
+      { signal, silent: true },
+    );
+    return z.object({ result: cancelResultSchema }).parse(response.data).result;
   },
   async breakers(signal?: AbortSignal) {
     return z.array(breakerSchema).parse(

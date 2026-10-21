@@ -10,6 +10,7 @@ import Modal from '@/components/Common/Modal/Modal';
 import { useAuthStore } from '@/stores/authStore';
 
 import { carrierManagementApi } from '../api/carrierManagementApi';
+import { carrierServicePresets } from '../schemas/carrierServicePresets';
 import {
   carrierFormSchema,
   carrierServiceFormSchema,
@@ -101,11 +102,13 @@ export function CarrierEditor({
 }
 export function CarrierServiceEditor({
   carrierId,
+  carrierCode,
   current,
   onClose,
   onSaved,
 }: {
   carrierId: string;
+  carrierCode: string;
   current?: CarrierService;
   onClose: () => void;
   onSaved: () => void;
@@ -115,6 +118,7 @@ export function CarrierServiceEditor({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CarrierServiceFormValues>({
     resolver: zodResolver(carrierServiceFormSchema),
@@ -131,6 +135,7 @@ export function CarrierServiceEditor({
       maxDimensionSumCm: current?.maxDimensionSumCm?.toString() ?? '',
     },
   });
+  const presets = carrierServicePresets(carrierCode);
   const submit = handleSubmit(async (values) => {
     const actor = useAuthStore.getState().user;
     if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
@@ -162,14 +167,32 @@ export function CarrierServiceEditor({
     >
       <form onSubmit={submit} className="space-y-4">
         {error && <ErrorNotice message={error} />}
-        <Input
-          label={t('service_code')}
-          {...register('code')}
-          readOnly={!!current}
-          error={errors.code ? t('invalidService') : undefined}
-          disabled={isSubmitting}
-          helperText={t('serviceCodeHint')}
-        />
+        {!current && presets.length > 0 ? (
+          <Select
+            label={t('serviceChoice')}
+            options={presets.map((preset) => ({ value: preset.code, label: t(preset.labelKey) }))}
+            {...register('code', {
+              onChange: (event) => {
+                const preset = presets.find((item) => item.code === event.target.value);
+                if (!preset) return;
+                setValue('name', t(preset.labelKey), { shouldDirty: true, shouldValidate: true });
+                setValue('transportMode', preset.transportMode, { shouldDirty: true });
+              },
+            })}
+            error={errors.code ? t('invalidService') : undefined}
+            disabled={isSubmitting}
+            helperText={t('servicePresetHint')}
+          />
+        ) : (
+          <Input
+            label={t('service_code')}
+            {...register('code')}
+            readOnly={!!current}
+            error={errors.code ? t('invalidService') : undefined}
+            disabled={isSubmitting}
+            helperText={t('serviceCodeHint')}
+          />
+        )}
         <Input
           label={t('service_name')}
           {...register('name')}

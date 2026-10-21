@@ -80,6 +80,7 @@ const expected = {
   ],
   'shipments.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'shipments.label.download': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+  'shipments.cancel': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   'reconciliation.view': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'reconciliation.operate': ['ORCA_ACCOUNTANT'],
   'analytics.operations.view': reporting,
