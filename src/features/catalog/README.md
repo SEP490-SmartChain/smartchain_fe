@@ -48,3 +48,24 @@ with `status`, `reason` and `expectedVersion`, and reload confirmed server data.
 Request/validation errors render a retry state rather than an empty directory.
 
 Regression checks: `node --test tests/orca-api-contracts.test.mjs`.
+
+## Warehouse 3D (SS-1057)
+
+The directory layout panel opens a lazy-loaded Three.js schematic with OrbitControls,
+raycast selection and grid-snapped zone/bin dragging. Rack/body instancing keeps GPU
+work bounded. Manager edits require the current warehouse assignment; Admin reads only.
+Native object selection, coordinate/zone-size forms and cell nudges also work without
+WebGL. Search matches code/barcode; zone/type/status/placement filters dim non-matching
+objects without removing collision obstacles or changing whole-catalog KPIs. Excluded
+selections stay labelled. Camera focus resolves bin coordinates through the actual parent
+zone and reserves desktop HUD space; top view and a projected status chip aid navigation.
+Manager floor resizing uses schematic cells (16–256), refuses clipped zones and participates
+in the same undo/save revision flow. Unsaved edits are guarded on close/reload/unload; scope changes abort/reset.
+
+Shared layouts use the backend visual-layout GET/POST revision contract. Full catalog
+pagination completes before editing (100 zones / 1,000 bins); larger/inconsistent
+responses block partial saves. Counts/status/capacity come from catalog, with no invented
+occupancy or vehicle telemetry. Cells are schematic units and saving cannot move stock.
+
+Contract: backend `docs/SS-1057-WAREHOUSE-3D-LAYOUT.md`.
+Local labelled fixture: `node tests/ss1057-visual-browser.mjs` (loopback, no .env/real API).
