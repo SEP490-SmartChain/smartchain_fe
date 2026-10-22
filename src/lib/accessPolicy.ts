@@ -554,6 +554,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'ORCA Report 3 UC-123 / SS-1022: Accountant closes a completed seller statement',
   ),
   capability(
+    'statement.review',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'SS-1012 / UC-131–132: own statement confirmation and line disputes via statement_review.update / payout_review.create',
+  ),
+  capability(
+    'payout.manage',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'SS-1012 / UC-133–136: evidenced statement approval, manual transfers and approved closeout settlement via finance.create',
+  ),
+  capability(
     'apikey.manage',
     'apikey',
     'TENANT',
