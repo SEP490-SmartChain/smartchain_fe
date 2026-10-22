@@ -1,5 +1,13 @@
 # Phạm vi giao diện và phân quyền ORCA
 
+SS-1022: `invoice.period.close` is PLATFORM `ORCA_ACCOUNTANT` only, from UC-123,
+using `POST /v1/billing/tenants/:tenantId/periods/close` and `finance.create`.
+Invoice/header/line/PDF reads use `finance.read`: own Seller Owner and existing
+Admin/Accountant financial scope. Payment instructions are Owner-only reads;
+verified receipts retain the existing Accountant-only posting authority. Staff,
+Ops and warehouse roles receive no invoice payload. SePay and deposit offsets
+are not granted by the close-period capability.
+
 SS-999: tab dịch vụ fulfillment tại `/admin/tariffs` dùng `tariffs.manage`
 (PLATFORM Admin/Accountant), theo UC-117 và API
 `/v1/commercial/service-tariffs`. Quyền này chỉ quản trị service tariff,
@@ -191,3 +199,7 @@ reviewed evidence; no generic inventory editing, metadata writes or finance acce
 ## Owner withdrawal — Sprint 5
 
 Capability `orders.withdrawal.create` chỉ dành cho TENANT SELLER_OWNER, hiển thị khi service ACTIVE hoặc SUSPENDED. Các API options/locations/create yêu cầu action `withdrawal.create`; đăng ký địa chỉ yêu cầu `withdrawal.update`. Server kiểm tra lại role sống, tenant, địa chỉ version, contract, công nợ và tồn; UI không tự cấp quyền hoặc tự cập nhật tồn. RLS của địa chỉ chỉ cho Owner đúng tenant; ghi địa chỉ chỉ với action update. CLOSED/PENDING_ACTIVATION không mở thao tác rút hàng. Không mở capability này cho Staff, Manager, platform hoặc CHANNEL.
+
+## UC-158 / SS-1095 receiving photo assistance
+
+`warehouse.asn.packagingAssist` is Staff-only, under live assigned warehouse and own verified receipt-session photo. Server actions are `receipt_ai.read/create/update`, not generic assistant access. Explicit reviewed values prefill an unsaved lot row; physical count, QC, stock and finance remain separate commands. Optional AI being disabled does not block manual receiving.
