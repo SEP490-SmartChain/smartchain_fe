@@ -1121,7 +1121,21 @@
     "dropzone_title": "Thả tệp vào đây hoặc nhấn để chọn",
     "dropzone_hint": "Chấp nhận tệp có dung lượng tối đa {size} MB",
     "dropzone_rejected": "Có {count} tệp vượt quá giới hạn {size} MB.",
-    "remove_file": "Xóa {name}"
+    "remove_file": "Xóa {name}",
+    "financialControls": {
+      "monthPlaceholder": "Chọn tháng (MM/YYYY)",
+      "clearMonth": "Xóa tháng đã chọn",
+      "previousYear": "Năm trước",
+      "nextYear": "Năm sau",
+      "currentMonth": "Tháng này",
+      "clearSelection": "Xóa lựa chọn",
+      "selectPlaceholder": "Chọn một mục",
+      "searchPlaceholder": "Tìm kiếm…",
+      "emptyMessage": "Không tìm thấy kết quả phù hợp",
+      "clearSearch": "Xóa tìm kiếm",
+      "optionCount": "Tổng số: {count}",
+      "filteredCount": "Tìm thấy {count} / {total}"
+    }
   },
   "Components": {
     "buttonsDescription": "Các thao tác dùng chung với cấp độ, kích thước, trạng thái tải và vô hiệu hóa đồng nhất.",
@@ -3464,7 +3478,9 @@
     "tariff": "Phiên bản bảng giá",
     "seller": "Người bán",
     "selectSeller": "Chọn người bán để xem hóa đơn",
+    "searchSeller": "Tìm kiếm người bán...",
     "month": "Lọc theo tháng",
+    "chooseMonth": "Chọn tháng (MM/YYYY)",
     "allKinds": "Tất cả loại hóa đơn",
     "apply": "Áp dụng",
     "invalidMonth": "Chọn tháng hợp lệ",
@@ -3572,6 +3588,7 @@
     "statements": "Sao kê tuần",
     "seller": "Seller",
     "chooseSeller": "Chọn seller trong phạm vi được phép để xem dữ liệu tài chính.",
+    "searchSeller": "Tìm kiếm seller...",
     "loading": "Đang tải dữ liệu tài chính…",
     "loadError": "Chưa tải được dữ liệu tài chính. Hãy làm mới và thử lại.",
     "refresh": "Làm mới",

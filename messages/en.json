@@ -1121,7 +1121,21 @@
     "dropzone_title": "Drop files here or click to browse",
     "dropzone_hint": "Files up to {size} MB are accepted",
     "dropzone_rejected": "{count, plural, one {# file exceeds} other {# files exceed}} the {size} MB limit.",
-    "remove_file": "Remove {name}"
+    "remove_file": "Remove {name}",
+    "financialControls": {
+      "monthPlaceholder": "Choose month (MM/YYYY)",
+      "clearMonth": "Clear month",
+      "previousYear": "Previous year",
+      "nextYear": "Next year",
+      "currentMonth": "This month",
+      "clearSelection": "Clear selection",
+      "selectPlaceholder": "Choose an option",
+      "searchPlaceholder": "Search…",
+      "emptyMessage": "No matching results",
+      "clearSearch": "Clear search",
+      "optionCount": "Total: {count}",
+      "filteredCount": "Found {count} / {total}"
+    }
   },
   "Components": {
     "buttonsDescription": "Shared actions with consistent hierarchy, sizing, loading and disabled states.",
@@ -3464,7 +3478,9 @@
     "tariff": "Tariff version",
     "seller": "Seller",
     "selectSeller": "Choose a seller to view invoices",
+    "searchSeller": "Search seller...",
     "month": "Filter by month",
+    "chooseMonth": "Select month (MM/YYYY)",
     "allKinds": "All document types",
     "apply": "Apply",
     "invalidMonth": "Choose a valid month",
@@ -3572,6 +3588,7 @@
     "statements": "Weekly statements",
     "seller": "Seller",
     "chooseSeller": "Choose an authorized seller to view financial records.",
+    "searchSeller": "Search seller...",
     "loading": "Loading financial records…",
     "loadError": "Could not load financial records. Refresh and try again.",
     "refresh": "Refresh",

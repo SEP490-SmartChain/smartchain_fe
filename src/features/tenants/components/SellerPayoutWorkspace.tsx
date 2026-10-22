@@ -7,6 +7,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
+import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -354,12 +355,13 @@ function FinancialSellerPicker() {
         </Alert>
       )}
       {actorScope === 'PLATFORM' && (
-        <Select
+        <SearchableSelect
           label={t('seller')}
           placeholder={t('chooseSeller')}
+          searchPlaceholder={t('searchSeller')}
           value={selected}
           options={sellers.map((seller) => ({ value: seller.id, label: seller.name }))}
-          onChange={(event) => setSelected(event.target.value)}
+          onChange={(val) => setSelected(val)}
         />
       )}
       {actorScope === 'TENANT' || selected ? (

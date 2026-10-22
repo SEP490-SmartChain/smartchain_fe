@@ -59,7 +59,8 @@ export function PayoutStatementDetail({
     [now, setNow] = useState(() => new Date());
   const request = useRef<AbortController | null>(null),
     pending = useRef<Pending | null>(null),
-    busyRef = useRef(false);
+    busyRef = useRef(false),
+    reasonCardRef = useRef<HTMLDivElement>(null);
   const reason = useForm<z.infer<typeof payoutReasonSchema>>({
     resolver: zodResolver(payoutReasonSchema),
     defaultValues: { reason: '' },
@@ -102,6 +103,14 @@ export function PayoutStatementDetail({
       window.clearInterval(timer);
     };
   }, [id, tenantId, revision, t]);
+  useEffect(() => {
+    if (reasonTarget && reasonCardRef.current) {
+      reasonCardRef.current.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [reasonTarget]);
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const date = (value: string) =>
@@ -385,50 +394,54 @@ export function PayoutStatementDetail({
                 </Button>
               )}
               {reasonTarget && (
-                <Card>
-                  <form
-                    className="space-y-3"
-                    onSubmit={
-                      reasonTarget.disputeId
-                        ? resolution.handleSubmit((values) =>
-                            perform('resolve', values, reasonTarget.disputeId),
-                          )
-                        : reason.handleSubmit((values) =>
-                            perform('dispute', values, reasonTarget.lineId),
-                          )
-                    }
-                  >
-                    <Input
-                      label={t('reason')}
-                      {...(reasonTarget.disputeId
-                        ? resolution.register('reason')
-                        : reason.register('reason'))}
-                      error={
-                        (
-                          reasonTarget.disputeId
-                            ? resolution.formState.errors.reason
-                            : reason.formState.errors.reason
-                        )
-                          ? t('invalidReason')
-                          : undefined
+                <div ref={reasonCardRef} className="pt-2">
+                  <Card>
+                    <form
+                      className="space-y-3"
+                      onSubmit={
+                        reasonTarget.disputeId
+                          ? resolution.handleSubmit((values) =>
+                              perform('resolve', values, reasonTarget.disputeId),
+                            )
+                          : reason.handleSubmit((values) =>
+                              perform('dispute', values, reasonTarget.lineId),
+                            )
                       }
-                      disabled={busy || hasPending}
-                    />
-                    {reasonTarget.disputeId && (
+                    >
                       <Input
-                        label={t('adjustment')}
-                        {...resolution.register('adjustmentVnd')}
+                        label={t('reason')}
+                        {...(reasonTarget.disputeId
+                          ? resolution.register('reason')
+                          : reason.register('reason'))}
                         error={
-                          resolution.formState.errors.adjustmentVnd ? t('invalidAmount') : undefined
+                          (
+                            reasonTarget.disputeId
+                              ? resolution.formState.errors.reason
+                              : reason.formState.errors.reason
+                          )
+                            ? t('invalidReason')
+                            : undefined
                         }
                         disabled={busy || hasPending}
                       />
-                    )}
-                    <Button type="submit" disabled={busy || hasPending}>
-                      {reasonTarget.disputeId ? t('resolve') : t('dispute')}
-                    </Button>
-                  </form>
-                </Card>
+                      {reasonTarget.disputeId && (
+                        <Input
+                          label={t('adjustment')}
+                          {...resolution.register('adjustmentVnd')}
+                          error={
+                            resolution.formState.errors.adjustmentVnd
+                              ? t('invalidAmount')
+                              : undefined
+                          }
+                          disabled={busy || hasPending}
+                        />
+                      )}
+                      <Button type="submit" disabled={busy || hasPending}>
+                        {reasonTarget.disputeId ? t('resolve') : t('dispute')}
+                      </Button>
+                    </form>
+                  </Card>
+                </div>
               )}
               {can('payout.manage') && !row.isLegacy && row.status === 'APPROVED' && (
                 <Card>
