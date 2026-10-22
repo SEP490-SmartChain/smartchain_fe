@@ -255,7 +255,18 @@
       "REJECTED": "Review required",
       "CANCELLED": "Cancelled"
     },
-    "freightSeparateHint": "Processing uses your plan allowance. ORCA freight is charged separately under your contract using actual packed measurements; it is separate from recipient collection."
+    "freightSeparateHint": "Processing uses your plan allowance. ORCA freight is charged separately under your contract using actual packed measurements; it is separate from recipient collection.",
+    "eyebrow": "Service agreement",
+    "history": "Plan change history",
+    "reject": "Reject request",
+    "rejected": "Request rejected. The seller may submit a new request for the next cycle.",
+    "rejectionReason": "Rejection reason",
+    "pendingHint": "A change is awaiting processing. The current plan applies until an approved change takes effect.",
+    "closeoutTitle": "Closing your contract · complete each step",
+    "closeoutDebt": "Clear debt through verified payment or an approved deposit offset.",
+    "closeoutStock": "Withdraw stock through the warehouse flow and complete open work and disputes.",
+    "closeoutFinal": "Settle final charges, record the evidenced refund, then Admin closes the contract.",
+    "openSettlement": "View debt and refund requirements"
   },
   "CommercialAdmin": {
     "finalizeClosure": "Finalize closure",

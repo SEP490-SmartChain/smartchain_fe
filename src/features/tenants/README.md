@@ -155,3 +155,26 @@ Regression: tests/payout-workspace.test.mjs checks seven-role scope, malformed
 money, review deadline, timezone, retry identity and 403/409 session behavior.
 
 SS-1012 closeout: Owner reads remaining blockers; Accountant records approved, privately evidenced deposit offsets and actual final refunds only for the current terminating contract. Existing contract closure remains an Admin decision. No free withdrawal from active accounts.
+
+## SS-1299 contract lifecycle
+
+The contract panel shows the effective plan, bounded plan-change history and
+read-only usage. Owner requests require the current signed contract; a pending
+request disables duplicate submissions. A suspended Owner may still request
+termination. The terminating view explains debt clearance, withdrawal, final
+charges and evidenced refund, linking to the existing /statements settlement
+workspace. No client action transfers money or clears a balance.
+
+Admin uses existing platform.plans.manage (UC-12, contract.update) to schedule or
+reject a REQUESTED plan change. Rejection calls POST
+/v1/commercial/tenants/:tenantId/plan-changes/:id/reject with the current contract
+version and a reason. Scheduled/applied changes remain under the existing worker
+flow. Staff and warehouse roles gain no financial capability. Backend enforces
+current authority and seller-scoped RLS.
+
+The panel remounts on auth revision/seller changes to discard prior data, form
+state and operation references. Successful requests release their retry key;
+uncertain attempts retain it. Read failures remain visible and do not fabricate
+success. Regression: tests/contract-lifecycle.test.mjs; full frontend typecheck,
+lint, tests and build. Isolated browser QA uses synthetic HTTP fixtures and does
+not verify a real bank transfer or project database.
