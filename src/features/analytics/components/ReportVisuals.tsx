@@ -93,29 +93,18 @@ export function ReportVisuals({ report }: { report: ReportView }) {
               data-tone={reportTone(metric.key, index)}
             >
               <div className={styles.metricTop}>
+                <span className={styles.metricLabel}>{label(metric.key)}</span>
                 <span className={styles.metricIcon}>
                   <Icon size={20} strokeWidth={1.7} aria-hidden="true" />
                 </span>
-                <span className={styles.metricContext}>
-                  {t(metricContextKey(metric, report.kind))}
-                  {metric.unit !== 'count' && metric.unit !== 'percent' && (
-                    <span className={styles.currency}>
-                      {metric.unit === 'VND' ? 'VND' : t('units.' + metric.unit)}
-                    </span>
-                  )}
-                </span>
               </div>
-              <p className={styles.metricLabel}>{label(metric.key)}</p>
               <div className={styles.metricBottom}>
                 <strong
                   className={styles.metricValue}
-                  style={{
-                    fontSize: Math.max(12, Math.min(32, 240 / metricText.length)),
-                  }}
+                  style={{ fontSize: Math.max(12, Math.min(32, 240 / metricText.length)) }}
                 >
                   {metricText}
                 </strong>
-
                 {metric.href && (
                   <Link
                     to={metric.href}
@@ -124,6 +113,14 @@ export function ReportVisuals({ report }: { report: ReportView }) {
                   >
                     <ArrowUpRight size={18} aria-hidden="true" />
                   </Link>
+                )}
+              </div>
+              <div className={styles.metricContext}>
+                {t(metricContextKey(metric, report.kind))}
+                {metric.unit !== 'count' && metric.unit !== 'percent' && (
+                  <span className={styles.currency}>
+                    {metric.unit === 'VND' ? 'VND' : t('units.' + metric.unit)}
+                  </span>
                 )}
               </div>
             </Card>
@@ -351,7 +348,7 @@ function Distribution({ title, groups }: { title: string; groups: Group[] }) {
                 r="76"
                 fill="none"
                 stroke="var(--sc-bg-secondary)"
-                strokeWidth="18"
+                strokeWidth="13"
               />
               {groups.map((row, index) => {
                 const length = barPercent(row.value, total);
@@ -366,7 +363,7 @@ function Distribution({ title, groups }: { title: string; groups: Group[] }) {
                     r="76"
                     pathLength="100"
                     fill="none"
-                    strokeWidth="18"
+                    strokeWidth="13"
                     strokeDasharray={length + ' ' + (100 - length)}
                     strokeDashoffset={-start}
                     transform="rotate(-90 100 100)"

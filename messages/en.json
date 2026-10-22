@@ -3699,6 +3699,7 @@
     "title": "A clearer view of your operations",
     "subtitle": "Explore committed business results, follow the evidence and focus on what needs attention.",
     "scoped": "Your authorized scope",
+    "filterTitle": "Filters & scope",
     "viewLabel": "Report views",
     "from": "From date",
     "to": "To date",

@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Activity,
+  CalendarDays,
   ArrowDownLeft,
   Clock3,
   Boxes,
@@ -106,46 +107,23 @@ function ScopedReports({ initialView }: { initialView?: ReportKind }) {
             <BarChart3 size={14} aria-hidden="true" />
             {t('eyebrow')}
           </p>
-          <h1>{initialView ? t('views.' + initialView) : t('dashboardTitle')}</h1>
+          <h1>{t('views.' + view)}</h1>
           <p>{initialView ? t('subtitle') : t('dashboardSubtitle')}</p>
         </div>
-        <div className={styles.heroArt}>
-          <div className={styles.heroNetwork} aria-hidden="true">
-            <svg viewBox="0 0 280 120" fill="none">
-              <path
-                d="M45 76C90 76 70 30 137 30S195 76 237 76"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeDasharray="4 5"
-              />
-              <circle cx="45" cy="76" r="30" stroke="currentColor" strokeOpacity=".12" />
-              <circle cx="137" cy="30" r="30" stroke="currentColor" strokeOpacity=".12" />
-              <circle cx="237" cy="76" r="30" stroke="currentColor" strokeOpacity=".12" />
-            </svg>
-            <span className={styles.networkWarehouse}>
-              <Boxes size={25} strokeWidth={1.4} />
-            </span>
-            <span className={styles.networkTruck}>
-              <Truck size={29} strokeWidth={1.4} />
-            </span>
-            <span className={styles.networkParcel}>
-              <Package size={25} strokeWidth={1.4} />
-            </span>
-          </div>
-          <div className={styles.heroMeta}>
-            <strong>
-              {new Date().toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US', {
-                timeZone: 'Asia/Ho_Chi_Minh',
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </strong>
-            <span className="inline-flex items-center gap-1">
-              <ShieldCheck size={12} aria-hidden="true" />
-              {t('scoped')}
-            </span>
-          </div>
+        <div className={styles.heroMeta}>
+          <strong>
+            <CalendarDays size={16} aria-hidden="true" />
+            {new Date().toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US', {
+              timeZone: 'Asia/Ho_Chi_Minh',
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </strong>
+          <span className="inline-flex items-center gap-1">
+            <ShieldCheck size={12} aria-hidden="true" />
+            {t('scoped')}
+          </span>
         </div>
       </header>
       {!initialView && options.views.length > 1 && (
@@ -265,7 +243,9 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-[var(--sc-primary)]" aria-hidden="true" />
-            <h2 className="m-0 text-sm font-semibold">{t(`views.${view}`)}</h2>
+            <h2 className="m-0 text-sm font-semibold">
+              {view === 'health' ? t('views.health') : t('filterTitle')}
+            </h2>
           </div>
           <div className="flex items-center gap-1">
             <span
