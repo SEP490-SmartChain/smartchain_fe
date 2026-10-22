@@ -637,6 +637,7 @@
     "parcel_number": "Kiện {number}",
     "weight_pending": "Chưa cân",
     "reasons": {
+      "RESERVATION_RENEWAL_REQUIRED": "Thời gian giữ hàng đã hết và hệ thống chưa thể giữ lại đủ hàng. ORCA cần kiểm tra trước khi tiếp tục lấy hàng.",
       "ALLOCATION_QUEUE_FAILED": "Phân bổ hàng chưa hoàn tất sau các lần thử lại. ORCA cần kiểm tra để tiếp tục xử lý đơn.",
       "VALIDATION_FAILED": "Địa chỉ chưa khớp danh mục. Kiểm tra tỉnh/phường và liên hệ ORCA để xử lý đơn này.",
       "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa."
@@ -772,6 +773,7 @@
     "allocationExplanation": "Ưu tiên một kho đủ điều kiện. Chỉ chia khi cần; FEFO/FIFO chọn tồn kho hợp lệ.",
     "allocationPending": "Chưa phân bổ xong. BACKORDER không giữ hàng một phần.",
     "nearestWarehouse": "Kho gần nhất phù hợp tồn kho và công suất hiện tại.",
+    "backorderReminder": "Đơn vẫn đang chờ bổ sung hàng đủ điều kiện. Bạn có thể tiếp tục chờ hoặc đề nghị chủ tài khoản yêu cầu hủy. Hệ thống không tự hủy đơn.",
     "totalCost": "Chi phí ước tính thấp nhất trong các phương án đã xét; cước thực tế được tính sau khi đóng gói.",
     "allocationUnavailable": "Kiện hàng này chưa có thông tin giải thích phân bổ đã lưu.",
     "expiryFirst": "Chính sách đã phát hành ưu tiên lô hợp lệ gần hạn hơn.",

@@ -70,20 +70,22 @@ test('only an active or suspended Owner sees withdrawal actions', () => {
     'SELLER_STAFF',
   ]) {
     for (const serviceStatus of ['ACTIVE', 'SUSPENDED', 'CLOSED', 'PENDING_ACTIVATION']) {
-      auth.getState().setSession({
-        accessToken: 'synthetic',
-        expiresIn: 60,
-        user: {
-          userId: id,
-          tenantId: role.startsWith('SELLER') ? id : null,
-          actorScope: role.startsWith('SELLER') ? 'TENANT' : 'PLATFORM',
-          roles: [role],
-          permissions: [],
-          email: 'synthetic@example.test',
-          fullName: 'Synthetic',
-          serviceStatus,
-        },
-      });
+      auth
+        .getState()
+        .setSession({
+          accessToken: 'synthetic',
+          expiresIn: 60,
+          user: {
+            userId: id,
+            tenantId: role.startsWith('SELLER') ? id : null,
+            actorScope: role.startsWith('SELLER') ? 'TENANT' : 'PLATFORM',
+            roles: [role],
+            permissions: [],
+            email: 'synthetic@example.test',
+            fullName: 'Synthetic',
+            serviceStatus,
+          },
+        });
       assert.equal(
         scope.sellerWithdrawalAccess(),
         role === 'SELLER_OWNER' && ['ACTIVE', 'SUSPENDED'].includes(serviceStatus),
