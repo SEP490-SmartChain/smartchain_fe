@@ -103,6 +103,9 @@ const expected = {
   'asns.view': ['SELLER_OWNER', 'SELLER_STAFF'],
   'returns.view': O,
   'statements.view': O,
+  // SS-1012 / UC-131–134: Owner reviews; Accountant posts evidenced payout.
+  'statement.review': O,
+  'payout.manage': ['ORCA_ACCOUNTANT'],
   'warehouse.operations.view': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'warehouse.asn.checkIn': S,
   'warehouse.asn.recordCount': S,

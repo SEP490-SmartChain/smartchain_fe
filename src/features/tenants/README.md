@@ -134,3 +134,24 @@ are authoritative; the hook reloads invoices, service status and the auth profil
 after success. Errors remain visible and do not show a local success. Refreshing retains
 the state saved by the backend. No real money transfer occurs. The backend switch defaults
 to enabled in every environment, including production; set it false to hide and disable it.
+
+## SS-1012 seller ledger and payout review
+
+SellerPayoutWorkspace replaces the /statements placeholder for Owner. The
+/billing ledger/statements tab exposes authorized Admin/Accountant reads and
+Accountant-only send/approval/manual transfer recording. Owner confirmation and
+line dispute use statement.review; monetary decisions use payout.manage. These
+capabilities do not grant Staff or warehouse financial access.
+
+Queries and mutations use the typed /v1/billing/ledger and /statements API.
+The API owns balances, debt decisions, immutable amounts, version and status.
+The browser displays no wallet controls and never marks a statement PAID locally.
+Unknown outcomes retain the same operation reference for retry; 409 retains the
+form and offers refresh. Identity changes remount the feature; seller changes
+abort reads and discard previous data. Private PDF transfer evidence is uploaded
+before recording the approved amount and actual bank reference.
+
+Regression: tests/payout-workspace.test.mjs checks seven-role scope, malformed
+money, review deadline, timezone, retry identity and 403/409 session behavior.
+
+SS-1012 closeout: Owner reads remaining blockers; Accountant records approved, privately evidenced deposit offsets and actual final refunds only for the current terminating contract. Existing contract closure remains an Admin decision. No free withdrawal from active accounts.
