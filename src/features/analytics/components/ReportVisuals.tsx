@@ -13,6 +13,10 @@ import {
   Package,
   TrendingUp,
   Truck,
+  CheckCircle2,
+  Percent,
+  Clock3,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -33,6 +37,30 @@ import type { ReportView } from '../schemas/reportSchema';
 type Section = ReportView['sections'][number];
 type Group = { key: string; value: string };
 const ICONS = [Package, Boxes, BarChart3, CircleDollarSign];
+const METRIC_ICONS = {
+  parcels: Package,
+  delivered: CheckCircle2,
+  deliveryRate: Percent,
+  inProgress: Truck,
+  orders: Package,
+  onHand: Boxes,
+  physicalFree: Boxes,
+  nearExpiry: Clock3,
+  expired: Clock3,
+  receivedUnits: Boxes,
+  pickedUnits: Package,
+  handedParcels: Truck,
+  backlog: Clock3,
+  serviceFees: CircleDollarSign,
+  sellerFreight: Truck,
+  actualMargin: TrendingUp,
+  reconciledCoverage: ShieldCheck,
+};
+function metricIcon(key: string, index: number) {
+  return Object.prototype.hasOwnProperty.call(METRIC_ICONS, key)
+    ? METRIC_ICONS[key as keyof typeof METRIC_ICONS]
+    : (ICONS[index] ?? BarChart3);
+}
 
 export function ReportVisuals({ report }: { report: ReportView }) {
   const t = useTranslations('Reports');
@@ -57,12 +85,7 @@ export function ReportVisuals({ report }: { report: ReportView }) {
       <div className={styles.metrics}>
         {headlines.map((metric, index) => {
           const metricText = format(metric.value, metric.unit === 'VND' ? undefined : metric.unit);
-          const Icon =
-            metric.unit === 'VND'
-              ? CircleDollarSign
-              : report.kind === 'carriers'
-                ? Truck
-                : (ICONS[index] ?? BarChart3);
+          const Icon = metric.unit === 'VND' ? CircleDollarSign : metricIcon(metric.key, index);
           return (
             <Card
               key={metric.key}
@@ -86,7 +109,9 @@ export function ReportVisuals({ report }: { report: ReportView }) {
               <div className={styles.metricBottom}>
                 <strong
                   className={styles.metricValue}
-                  style={{ fontSize: Math.max(12, Math.min(32, 240 / metricText.length)) }}
+                  style={{
+                    fontSize: Math.max(12, Math.min(32, 240 / metricText.length)),
+                  }}
                 >
                   {metricText}
                 </strong>
@@ -132,7 +157,11 @@ export function ReportVisuals({ report }: { report: ReportView }) {
                         <Truck size={19} aria-hidden="true" />
                       </span>
                       <div>
-                        <h3>{t('carrierLabel', { number: String(index + 1).padStart(2, '0') })}</h3>
+                        <h3>
+                          {t('carrierLabel', {
+                            number: String(index + 1).padStart(2, '0'),
+                          })}
+                        </h3>
                         <details className={styles.reference}>
                           <summary>{t('carrierReference')}</summary>
                           <code>{carrier.id}</code>
@@ -148,7 +177,9 @@ export function ReportVisuals({ report }: { report: ReportView }) {
                         <span
                           key={group.key}
                           data-tone={reportTone(group.key, i)}
-                          style={{ width: barPercent(group.value, carrier.total) + '%' }}
+                          style={{
+                            width: barPercent(group.value, carrier.total) + '%',
+                          }}
                         />
                       ))}
                     </div>

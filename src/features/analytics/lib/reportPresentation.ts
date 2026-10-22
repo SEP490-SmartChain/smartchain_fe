@@ -37,15 +37,47 @@ export function barPercent(value: string, max: bigint): number {
 export type ReportTone = 'teal' | 'blue' | 'amber' | 'red' | 'muted';
 export function reportTone(key: string, index = 0): ReportTone {
   if (['DELIVERED', 'COMPLETED', 'SUCCESS', '0_30'].includes(key)) return 'teal';
-  if (['FAILED', 'RETURNED', 'EXHAUSTED', 'DLQ', 'expired'].includes(key)) return 'red';
+  if (['FAILED', 'EXHAUSTED', 'DLQ', 'expired'].includes(key)) return 'red';
   if (
-    ['PENDING', 'ON_HOLD', 'BACKORDER', 'TIMEOUT', 'UNKNOWN', 'over_90', 'nearExpiry'].includes(key)
+    [
+      'RETURNED',
+      'PENDING',
+      'ON_HOLD',
+      'BACKORDER',
+      'TIMEOUT',
+      'UNKNOWN',
+      'over_90',
+      'nearExpiry',
+    ].includes(key)
   ) {
     return 'amber';
   }
   if (['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'SHIPPED', 'PACKED', '31_60'].includes(key)) return 'blue';
   if (key === 'CANCELLED' || key === 'unknown') return 'muted';
   return (['blue', 'teal', 'amber', 'muted'] as const)[index % 4] ?? 'blue';
+}
+
+const STATUS_ORDER = [
+  'DELIVERED',
+  'IN_TRANSIT',
+  'OUT_FOR_DELIVERY',
+  'SHIPPED',
+  'PACKED',
+  'CREATED',
+  'RETURNED',
+  'FAILED',
+  'CANCELLED',
+  'UNKNOWN',
+];
+function statusRank(key: string) {
+  const index = STATUS_ORDER.indexOf(key);
+  return index < 0 ? STATUS_ORDER.length : index;
+}
+function orderGroups<T extends { key: string }>(groups: T[]) {
+  return [...groups].sort(
+    (left, right) =>
+      statusRank(left.key) - statusRank(right.key) || left.key.localeCompare(right.key),
+  );
 }
 
 /** Aggregate only the returned cohort; do not infer carrier names or a global success rate. */
@@ -70,8 +102,11 @@ export function carrierBreakdown(groups: { key: string; value: string }[]) {
     states.set(state, (states.get(state) ?? BigInt(0)) + BigInt(row.value));
   }
   return {
-    carriers: [...carriers.values()],
-    groups: [...states].map(([key, value]) => ({ key, value: value.toString() })),
+    carriers: [...carriers.values()].map((carrier) => ({
+      ...carrier,
+      groups: orderGroups(carrier.groups),
+    })),
+    groups: orderGroups([...states].map(([key, value]) => ({ key, value: value.toString() }))),
   };
 }
 

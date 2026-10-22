@@ -15,6 +15,7 @@ import {
   Filter,
   RefreshCw,
   ShieldCheck,
+  CircleDollarSign,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -34,6 +35,17 @@ import {
   type ReportView,
   type TechnicalRow,
 } from '../schemas/reportSchema';
+
+const VIEW_ICONS = {
+  seller: Package,
+  warehouse: Boxes,
+  inventory: Boxes,
+  carriers: Truck,
+  finance: CircleDollarSign,
+  audit: ShieldCheck,
+  logs: BarChart3,
+  health: Activity,
+};
 
 export function ReportWorkspace({ initialView }: { initialView?: ReportKind }) {
   const revision = useAuthStore((state) => state.revision);
@@ -139,8 +151,17 @@ function ScopedReports({ initialView }: { initialView?: ReportKind }) {
       {!initialView && options.views.length > 1 && (
         <Tabs
           label={t('viewLabel')}
+          variant="pills"
+          className={styles.reportTabs}
           activeId={view}
-          tabs={options.views.map((id) => ({ id, label: t('views.' + id) }))}
+          tabs={options.views.map((id) => {
+            const Icon = VIEW_ICONS[id];
+            return {
+              id,
+              label: t('views.' + id),
+              icon: <Icon size={15} strokeWidth={1.7} aria-hidden="true" />,
+            };
+          })}
           onChange={(id) => {
             const result = reportKindSchema.safeParse(id);
             if (result.success && options.views.includes(result.data)) {
@@ -247,6 +268,30 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
             <h2 className="m-0 text-sm font-semibold">{t(`views.${view}`)}</h2>
           </div>
           <div className="flex items-center gap-1">
+            <span
+              className={styles.updatedAt}
+              title={
+                data
+                  ? new Date(data.generatedAt).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US', {
+                      timeZone: 'Asia/Ho_Chi_Minh',
+                    })
+                  : t('businessTime')
+              }
+            >
+              <Clock3 size={12} aria-hidden="true" />
+              {data
+                ? t('updatedCompact', {
+                    time: new Date(data.generatedAt).toLocaleTimeString(
+                      locale === 'vi' ? 'vi-VN' : 'en-US',
+                      {
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      },
+                    ),
+                  })
+                : t('businessTime')}
+            </span>
             {view !== 'health' && (
               <Button
                 ref={filterToggle}
@@ -351,17 +396,6 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
             </Button>
           </form>
         )}
-        <p className="mb-0 mt-4 flex items-center gap-2 text-xs text-[var(--sc-text-tertiary)]">
-          <Clock3 size={13} aria-hidden="true" />
-          {data
-            ? t('updated', {
-                time: new Date(data.generatedAt).toLocaleString(
-                  locale === 'vi' ? 'vi-VN' : 'en-US',
-                  { timeZone: 'Asia/Ho_Chi_Minh' },
-                ),
-              })
-            : t('businessTime')}
-        </p>
       </Card>
       {needsWarehouse && !filters.warehouseId && (
         <Alert variant="warning">{t('chooseWarehouse')}</Alert>
@@ -498,7 +532,9 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
                     <span className="text-xs text-[var(--sc-text-tertiary)]">
                       {new Date('at' in row ? row.at : row.createdAt).toLocaleString(
                         locale === 'vi' ? 'vi-VN' : 'en-US',
-                        { timeZone: 'Asia/Ho_Chi_Minh' },
+                        {
+                          timeZone: 'Asia/Ho_Chi_Minh',
+                        },
                       )}
                     </span>
                   </div>

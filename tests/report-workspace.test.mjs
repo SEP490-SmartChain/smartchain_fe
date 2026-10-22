@@ -247,7 +247,7 @@ test('carrier status colors communicate delivered, in-progress, failure and unkn
   assert.equal(presentation.reportTone('DELIVERED'), 'teal');
   assert.equal(presentation.reportTone('IN_TRANSIT'), 'blue');
   assert.equal(presentation.reportTone('FAILED'), 'red');
-  assert.equal(presentation.reportTone('RETURNED'), 'red');
+  assert.equal(presentation.reportTone('RETURNED'), 'amber');
   assert.equal(presentation.reportTone('UNKNOWN'), 'amber');
   assert.equal(presentation.reportTone('CANCELLED'), 'muted');
 });
@@ -272,4 +272,24 @@ test('a booked freight price snapshot is a period metric, not current stock', ()
     ),
     'last24Hours',
   );
+});
+
+test('carrier comparisons keep a consistent status order without changing cohort counts', () => {
+  const id = '10000000-0000-4000-8000-000000000001';
+  const data = presentation.carrierBreakdown([
+    { key: id + ':FAILED', value: '2' },
+    { key: id + ':RETURNED', value: '1' },
+    { key: id + ':IN_TRANSIT', value: '3' },
+    { key: id + ':DELIVERED', value: '14' },
+  ]);
+  assert.deepEqual(
+    data.groups.map((row) => row.key),
+    ['DELIVERED', 'IN_TRANSIT', 'RETURNED', 'FAILED'],
+  );
+  assert.deepEqual(
+    data.carriers[0].groups.map((row) => row.key),
+    ['DELIVERED', 'IN_TRANSIT', 'RETURNED', 'FAILED'],
+  );
+  assert.equal(data.carriers[0].total.toString(), '20');
+  assert.equal(data.groups.find((row) => row.key === 'FAILED').value, '2');
 });

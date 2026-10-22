@@ -33,3 +33,9 @@ No invented trend, percentage change, carrier name or healthy service is shown.
 Metric definitions use compact two-column label/value rows. Each row opens its
 calculation note on click or keyboard; the note is retained rather than removed.
 On mobile, filters start collapsed and restore keyboard focus after applying.
+
+Dashboard consumes the existing GET /v1/reports contract; a page URL does not
+require a matching backend /dashboard endpoint. Carrier comparisons use a
+consistent display order. Delivered, in-transit, returned and failed outcomes
+have distinct colors; counts and the server's terminal delivery-rate basis are
+unchanged. Calculation definitions remain available on demand.

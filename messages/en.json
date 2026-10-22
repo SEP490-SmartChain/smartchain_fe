@@ -3875,7 +3875,13 @@
       "COMPLETED": "Completed",
       "DLQ": "Recorded DLQ",
       "IN_TRANSIT": "In transit",
-      "OUT_FOR_DELIVERY": "Out for delivery"
+      "OUT_FOR_DELIVERY": "Out for delivery",
+      "FULFILLMENT": "Fulfillment services",
+      "PACKING": "Packing",
+      "PICKING": "Picking",
+      "PICK_PACK": "Pick & pack",
+      "RECEIVING": "Receiving",
+      "SHIPPING": "Shipping"
     },
     "status": {
       "AVAILABLE": "Available",
@@ -3906,11 +3912,11 @@
     "recordedAt": "Recorded at",
     "nextAttempt": "Recorded retry schedule",
     "dashboardTitle": "Your operation, at a glance.",
-    "dashboardSubtitle": "From the big picture to every recorded movement. Explore your data, spot what needs attention and follow performance each day.",
+    "dashboardSubtitle": "Orders, inventory and operational performance, together in one clear view.",
     "allMetrics": "Data & definitions",
     "metricsNote": "Each metric includes its scope and calculation basis.",
-    "currentStock": "At report time",
-    "selectedPeriod": "Selected period",
+    "currentStock": "Current",
+    "selectedPeriod": "This period",
     "notMeasured": "Not measured",
     "ordersInPeriod": "orders in period",
     "daily": "Daily",
@@ -3945,6 +3951,7 @@
     "filterToggle": "Expand or collapse filters",
     "metricCountShort": "{count} metrics",
     "calculationInfo": "Show or hide calculation details",
-    "last24Hours": "Last 24 hours"
+    "last24Hours": "Last 24 hours",
+    "updatedCompact": "Updated {time} · UTC+7"
   }
 }

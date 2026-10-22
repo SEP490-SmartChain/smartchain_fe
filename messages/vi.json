@@ -3875,7 +3875,13 @@
       "COMPLETED": "Đã hoàn tất",
       "DLQ": "Bản ghi DLQ",
       "IN_TRANSIT": "Đang vận chuyển",
-      "OUT_FOR_DELIVERY": "Đang giao hàng"
+      "OUT_FOR_DELIVERY": "Đang giao hàng",
+      "FULFILLMENT": "Dịch vụ fulfillment",
+      "PACKING": "Đóng gói",
+      "PICKING": "Lấy hàng",
+      "PICK_PACK": "Lấy & đóng gói",
+      "RECEIVING": "Nhận hàng",
+      "SHIPPING": "Vận chuyển"
     },
     "status": {
       "AVAILABLE": "Có dữ liệu",
@@ -3906,11 +3912,11 @@
     "recordedAt": "Thời điểm ghi nhận",
     "nextAttempt": "Lịch thử lại đã ghi nhận",
     "dashboardTitle": "Nhịp vận hành, trong tầm mắt.",
-    "dashboardSubtitle": "Từ những con số tổng quan đến từng chuyển động trong hệ thống. Khám phá dữ liệu, nhận diện điểm cần chú ý và theo dõi hiệu quả mỗi ngày.",
+    "dashboardSubtitle": "Theo dõi đơn hàng, tồn kho và hiệu quả vận hành trong cùng một góc nhìn.",
     "allMetrics": "Dữ liệu & cách tính",
     "metricsNote": "Phạm vi và cách tính được ghi rõ cho từng chỉ số.",
-    "currentStock": "Tại thời điểm xem",
-    "selectedPeriod": "Trong kỳ đã chọn",
+    "currentStock": "Hiện tại",
+    "selectedPeriod": "Trong kỳ",
     "notMeasured": "Chưa có số đo",
     "ordersInPeriod": "đơn trong kỳ",
     "daily": "Theo ngày",
@@ -3945,6 +3951,7 @@
     "filterToggle": "Mở hoặc thu gọn bộ lọc",
     "metricCountShort": "{count} chỉ số",
     "calculationInfo": "Xem hoặc thu gọn cách tính",
-    "last24Hours": "Trong 24 giờ qua"
+    "last24Hours": "Trong 24 giờ qua",
+    "updatedCompact": "Cập nhật {time} · UTC+7"
   }
 }
