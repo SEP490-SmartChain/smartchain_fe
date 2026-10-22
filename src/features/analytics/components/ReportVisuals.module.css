@@ -1,0 +1,1011 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(115deg, var(--sc-primary-darker), var(--sc-primary-dark));
+  color: var(--sc-bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -150px -100px auto auto;
+  width: 440px;
+  height: 440px;
+  border: 70px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.04;
+}
+.heroCopy {
+}
+.heroKicker {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  opacity: 0.8;
+}
+.hero h1 {
+  margin: 0;
+  font-weight: 600;
+}
+.heroCopy > p:last-child {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  opacity: 0.8;
+}
+.heroArt {
+  align-items: center;
+  justify-content: center;
+}
+.heroMeta {
+  line-height: 1.8;
+}
+.heroMeta strong {
+  display: block;
+  font-weight: 500;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.metric {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  border-color: var(--sc-border-default);
+}
+.metric::after {
+  content: '';
+  position: absolute;
+  right: -18px;
+  bottom: -30px;
+  width: 100px;
+  height: 100px;
+  border: 18px solid var(--report-tone);
+  border-radius: 50%;
+  opacity: 0.04;
+  pointer-events: none;
+}
+.metricTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.metricIcon,
+.headingIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--report-tone, var(--sc-primary)) 10%, transparent);
+  color: var(--report-tone, var(--sc-primary));
+  flex-shrink: 0;
+}
+.metricContext {
+  max-width: 100px;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: right;
+  color: var(--sc-text-secondary);
+}
+.metricLabel {
+  margin: 18px 0 9px;
+  color: var(--sc-text-secondary);
+  font-weight: 500;
+}
+.metricBottom {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-height: 36px;
+}
+.metricValue {
+  line-height: 1.25;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.currency {
+  font-size: 10px;
+  font-weight: 500;
+}
+.metricLink {
+  margin-left: auto;
+  align-self: center;
+  color: var(--sc-primary);
+  border-radius: 6px;
+}
+.featuredMetric {
+  color: var(--sc-bg-surface);
+  border-color: transparent !important;
+}
+.featuredMetric .metricLabel,
+.featuredMetric .metricContext,
+.featuredMetric .metricLink {
+  color: inherit;
+  opacity: 0.8;
+}
+.featuredMetric .metricIcon {
+  color: inherit;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+[data-tone='teal'] {
+  --report-tone: var(--sc-success-dark);
+}
+[data-tone='blue'] {
+  --report-tone: var(--sc-info);
+}
+[data-tone='amber'] {
+  --report-tone: var(--sc-warning);
+}
+[data-tone='red'] {
+  --report-tone: var(--sc-error);
+}
+[data-tone='muted'] {
+  --report-tone: var(--sc-secondary);
+}
+.charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.wideChart {
+  grid-column: span 2;
+  min-width: 0;
+}
+.feeChart {
+  grid-column: 1/-1;
+}
+.trendCard {
+  min-height: 385px;
+}
+.sectionHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.sectionHeading h2,
+.detailHeading h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.kicker {
+  margin: 0 0 5px;
+  font-size: 10px;
+  line-height: 1.5;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--sc-text-tertiary);
+}
+.headingIcon {
+  width: 34px;
+  height: 34px;
+  color: var(--sc-primary);
+  background: var(--sc-primary-alpha-08);
+  border-radius: 10px;
+}
+.distribution {
+  min-width: 0;
+  height: 100%;
+}
+.ring {
+  position: relative;
+  max-width: 100%;
+  margin: 4px auto 22px;
+}
+.ring svg {
+  width: 100%;
+  height: 100%;
+}
+.segment {
+  stroke: var(--report-tone, var(--sc-primary));
+}
+.ring > div {
+  position: absolute;
+  inset: 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 5px;
+}
+.ring strong {
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.ring span {
+  font-size: 10px;
+  color: var(--sc-text-secondary);
+}
+.legend {
+  max-height: 220px;
+  overflow: auto;
+  display: grid;
+  gap: 13px;
+}
+.legend > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--sc-text-secondary);
+}
+.legend strong {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.legend i,
+.carrierStates i {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--report-tone, var(--sc-primary));
+}
+.carrierOverview {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: start;
+}
+.carrierList {
+  min-width: 0;
+}
+.carrierGrid {
+  display: grid;
+  gap: 14px;
+  max-height: 530px;
+  overflow: auto;
+}
+.carrierCard {
+  border: 1px solid var(--sc-border-default);
+  border-radius: 12px;
+  padding: 18px;
+}
+.carrierTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.carrierTitle h3 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.carrierTitle > strong {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.carrierTitle small {
+  display: block;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--sc-text-secondary);
+}
+.carrierAvatar {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--sc-border-default);
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.reference {
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--sc-text-secondary);
+}
+.reference summary {
+  cursor: pointer;
+}
+.reference code {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 6px 0;
+  max-width: 210px;
+  font-size: 10px;
+}
+.stackedBar {
+  margin: 18px 0 13px;
+  display: flex;
+  gap: 2px;
+  height: 7px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--sc-bg-muted);
+}
+.stackedBar span {
+  height: 100%;
+  background: var(--report-tone, var(--sc-primary));
+}
+.carrierStates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--sc-text-secondary);
+}
+.carrierStates span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.carrierStates b {
+  font-weight: 600;
+  color: var(--sc-text-primary);
+}
+.chartNote {
+  margin: 16px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--sc-text-secondary);
+}
+.feeRows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 32px;
+}
+.feeRows > div {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.feeRows > div > div {
+  min-width: 0;
+  flex: 1;
+}
+.feeIcon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--report-tone, var(--sc-primary));
+  background: color-mix(in srgb, var(--report-tone, var(--sc-primary)) 10%, transparent);
+}
+.feeLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.feeLabel span {
+  color: var(--sc-text-secondary);
+}
+.feeLabel strong {
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.feeTrack {
+  height: 5px;
+  background: var(--sc-bg-secondary);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.feeTrack span {
+  height: 100%;
+  display: block;
+  background: var(--report-tone, var(--sc-primary));
+  border-radius: 10px;
+}
+.detailHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.detailCard {
+  overflow: hidden;
+}
+.detailSection + .detailSection {
+  border-top: 1px solid var(--sc-border-default);
+}
+.detailSection > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px;
+  cursor: pointer;
+  list-style: none;
+}
+.detailSection > summary::-webkit-details-marker {
+  display: none;
+}
+.detailSection > summary:hover {
+  background: var(--sc-bg-primary);
+}
+.detailIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.detailTitle {
+  font-weight: 500;
+  flex: 1;
+}
+.detailTitle small {
+  font-weight: 400;
+  color: var(--sc-text-secondary);
+  margin-top: 3px;
+}
+.chevron {
+  color: var(--sc-text-tertiary);
+  flex-shrink: 0;
+  transition: transform 140ms;
+}
+.detailSection[open] .chevron {
+  transform: rotate(180deg);
+}
+.detailMetrics {
+  margin: 0;
+  border-top: 1px solid var(--sc-border-light);
+  display: grid;
+}
+.detailMetrics dt {
+  font-size: 12px;
+  color: var(--sc-text-secondary);
+}
+.detailMetrics dd {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.detailMetrics p {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--sc-text-secondary);
+}
+.emptyChart {
+  display: grid;
+  justify-items: center;
+  padding: 44px 12px;
+  color: var(--sc-text-tertiary);
+  text-align: center;
+  font-size: 12px;
+}
+.toolbar {
+  padding: 16px 20px !important;
+}
+@media (max-width: 1100px) {
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .wideChart {
+    grid-column: 1/-1;
+  }
+  .carrierOverview {
+    grid-template-columns: 1fr 1.5fr;
+  }
+  .detailMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .heroArt {
+    min-width: 100px;
+  }
+  .heroMeta {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .hero {
+    padding: 24px;
+  }
+  .hero h1 {
+    font-size: 25px;
+  }
+  .heroArt {
+    display: none;
+  }
+  .heroCopy > p:last-child {
+    font-size: 12px;
+  }
+  .metrics {
+    gap: 10px;
+  }
+  .metric {
+    padding: 16px !important;
+  }
+  .metricContext {
+    display: none;
+  }
+  .metricValue {
+    font-size: 23px;
+  }
+  .metricLabel {
+    min-height: 32px;
+    margin: 14px 0 6px;
+    line-height: 1.5;
+  }
+  .metricIcon {
+    width: 34px;
+    height: 34px;
+  }
+  .metricBottom {
+    flex-wrap: wrap;
+  }
+  .charts,
+  .carrierOverview {
+    grid-template-columns: 1fr;
+  }
+  .feeRows {
+    grid-template-columns: 1fr;
+  }
+  .detailMetrics {
+    grid-template-columns: 1fr;
+  }
+  .detailSection > summary {
+    padding: 16px;
+    gap: 9px;
+  }
+  .detailIcon {
+    display: none;
+  }
+  .carrierCard {
+    padding: 14px;
+  }
+  .detailTitle {
+    min-width: 0;
+  }
+  .legend {
+    max-height: 260px;
+  }
+  .toolbar {
+    padding: 16px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+/* Final visual composition: a distinct hero, quiet colored surfaces and generous numbers. */
+.hero {
+  padding: 30px 34px;
+  min-height: 192px;
+  box-shadow: 0 12px 30px -24px var(--sc-primary-dark);
+}
+.hero h1 {
+  font-size: 34px;
+  line-height: 1.2;
+  max-width: 510px;
+}
+.heroCopy {
+  max-width: 580px;
+}
+.heroCopy > p:last-child {
+  max-width: 500px;
+}
+.heroArt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 260px;
+}
+.heroNetwork {
+  position: relative;
+  width: 280px;
+  height: 120px;
+}
+.heroNetwork > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.55;
+}
+.heroNetwork > span {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px -14px var(--sc-secondary-darker);
+  backdrop-filter: blur(8px);
+}
+.networkWarehouse {
+  left: 19px;
+  top: 50px;
+  transform: rotate(-10deg);
+}
+.networkWarehouse svg {
+  transform: rotate(10deg);
+}
+.networkTruck {
+  left: 111px;
+  top: 4px;
+  transform: rotate(6deg);
+}
+.networkTruck svg {
+  transform: rotate(-6deg);
+}
+.networkParcel {
+  left: 211px;
+  top: 50px;
+  transform: rotate(-7deg);
+}
+.networkParcel svg {
+  transform: rotate(7deg);
+}
+.heroMeta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 10px;
+  opacity: 0.8;
+}
+.heroMeta strong {
+  font-size: 11px;
+}
+.metric {
+  padding: 22px !important;
+  min-height: 174px;
+  transition:
+    transform 180ms,
+    box-shadow 180ms;
+}
+.metric:not(.featuredMetric) {
+  background: linear-gradient(
+    145deg,
+    var(--sc-bg-surface) 35%,
+    color-mix(in srgb, var(--report-tone) 5%, var(--sc-bg-surface))
+  );
+}
+.metric:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px -16px var(--report-tone);
+}
+.metricIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+.metricLabel {
+  margin-top: 20px;
+  font-size: 12px;
+}
+.metricValue {
+  font-size: 32px;
+}
+.featuredMetric {
+  background: linear-gradient(135deg, var(--sc-primary-darker), var(--sc-primary-dark)) !important;
+}
+.featuredMetric::after {
+  width: 140px;
+  height: 140px;
+  right: -40px;
+  bottom: -40px;
+  border-width: 24px;
+  border-color: currentColor;
+  opacity: 0.07;
+}
+.distribution,
+.carrierList,
+.trendCard,
+.fees {
+  box-shadow: 0 5px 18px -14px var(--sc-secondary);
+}
+.ring {
+  width: 208px;
+  height: 208px;
+  margin-bottom: 24px;
+}
+.carrierCard {
+  background: linear-gradient(110deg, var(--sc-bg-primary), var(--sc-bg-surface));
+}
+.carrierAvatar {
+  color: var(--sc-primary);
+  background: var(--sc-primary-alpha-08);
+  border-color: var(--sc-primary-alpha-12);
+}
+.filterToggle {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .hero h1 {
+    font-size: 30px;
+  }
+  .heroArt {
+    min-width: 210px;
+  }
+  .heroNetwork {
+    transform: scale(0.8);
+    width: 230px;
+    transform-origin: center;
+  }
+  .heroMeta {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .hero {
+    min-height: 0;
+    padding: 24px;
+  }
+  .hero h1 {
+    font-size: 27px;
+  }
+  .heroArt {
+    display: none;
+  }
+  .metric {
+    padding: 16px !important;
+    min-height: 145px;
+  }
+  .metricValue {
+    font-size: 27px;
+  }
+  .metricLabel {
+    margin-top: 14px;
+    font-size: 11px;
+  }
+  .metricIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+  .metricContext {
+    display: none;
+  }
+  .filterToggle {
+    display: inline-flex;
+  }
+  .filterForm:not([data-expanded='true']) {
+    display: none;
+  }
+  .ring {
+    width: 208px;
+    height: 208px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .metric {
+    transition: none;
+  }
+  .metric:hover {
+    transform: none;
+  }
+}
+
+.singleChart {
+  grid-template-columns: 1fr;
+}
+.singleChart .distribution {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr);
+  gap: 12px 32px;
+}
+.singleChart .sectionHeading {
+  grid-column: 1/-1;
+  margin-bottom: 0;
+}
+.singleChart .ring {
+  margin: 0 auto;
+}
+.singleChart .legend {
+  align-self: center;
+  padding: 16px 20px;
+}
+@media (max-width: 700px) {
+  .singleChart .distribution {
+    grid-template-columns: 1fr;
+  }
+  .singleChart .legend {
+    padding: 0;
+  }
+}
+
+/* Compact metric definitions: scan values first, disclose calculation on demand. */
+.detailHeading {
+  margin-bottom: 12px;
+}
+.detailSection > summary {
+  padding: 14px 18px;
+  gap: 10px;
+}
+.detailIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--sc-primary-alpha-08);
+  color: var(--sc-primary);
+}
+.detailTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  min-width: 0;
+  font-size: 12px;
+}
+.detailTitle small {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--sc-bg-secondary);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.availableDot {
+  height: 6px;
+  width: 6px;
+  border-radius: 50%;
+  background: var(--sc-success-dark);
+  flex-shrink: 0;
+}
+.detailMetrics {
+  padding: 2px 18px 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 28px;
+  background: var(--sc-bg-surface);
+}
+.metricRow {
+  min-width: 0;
+  border-bottom: 1px solid var(--sc-border-light);
+}
+.metricRow:only-child {
+  grid-column: 1/-1;
+}
+.detailMetrics .metricRow dd {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+}
+.metricExplanation > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  padding: 13px 0;
+  cursor: pointer;
+}
+.metricExplanation > summary::-webkit-details-marker {
+  display: none;
+}
+.metricExplanation > summary > span:first-child {
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--sc-text-secondary);
+}
+.metricExplanation > summary > strong {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  max-width: 52%;
+}
+.metricExplanation > summary > svg {
+  color: var(--sc-text-tertiary);
+  flex-shrink: 0;
+  transition: color 140ms;
+}
+.metricExplanation > summary:hover > svg,
+.metricExplanation[open] > summary > svg {
+  color: var(--sc-primary);
+}
+.detailMetrics .metricExplanation > p {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--sc-primary-alpha-20);
+  border-radius: 0 6px 6px 0;
+  background: var(--sc-bg-primary);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.feeRows > div:only-child {
+  grid-column: 1/-1;
+}
+@media (max-width: 700px) {
+  .detailMetrics {
+    padding: 0 14px 5px;
+    grid-template-columns: 1fr;
+  }
+  .detailSection > summary {
+    padding: 13px 14px;
+  }
+  .detailIcon {
+    display: grid;
+  }
+  .detailTitle {
+    gap: 6px;
+  }
+  .detailTitle small {
+    font-size: 9px;
+  }
+  .metricExplanation > summary > strong {
+    font-size: 12px;
+  }
+  .metricExplanation > summary > span:first-child {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .metricExplanation > summary > svg {
+    transition: none;
+  }
+}
+
+.metricBottom {
+  min-width: 0;
+}
+.metricValue {
+  max-width: 100%;
+  min-width: 0;
+  line-height: 1.2;
+}
+.metricContext .currency {
+  display: block;
+  margin-top: 5px;
+  font-size: 9px;
+  font-weight: 600;
+}
+@media (max-width: 700px) {
+  .metricContext:has(.currency) {
+    display: block;
+    max-width: 52px;
+    font-size: 0;
+  }
+  .metricContext .currency {
+    font-size: 9px;
+    margin: 0;
+  }
+}

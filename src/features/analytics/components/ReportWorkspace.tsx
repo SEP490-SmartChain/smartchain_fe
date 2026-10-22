@@ -1,14 +1,17 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Activity,
   ArrowDownLeft,
-  ArrowUpRight,
   Clock3,
+  Boxes,
+  Package,
+  Truck,
+  BarChart3,
   Filter,
   RefreshCw,
   ShieldCheck,
@@ -18,6 +21,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Button, Card, Input, Select, Tabs } from '@/components/Common';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReportVisuals } from './ReportVisuals';
+import styles from './ReportVisuals.module.css';
 import { reportApi } from '../api/reportApi';
 import {
   reportFilterSchema,
@@ -38,8 +43,11 @@ export function ReportWorkspace({ initialView }: { initialView?: ReportKind }) {
 }
 function ScopedReports({ initialView }: { initialView?: ReportKind }) {
   const t = useTranslations('Reports');
+  const locale = useLocale();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = reportKindSchema.safeParse(searchParams.get('view'));
+  const requestedView = requested.success ? requested.data : undefined;
   const [options, setOptions] = useState<ReportOptions | null>(null),
-    [view, setView] = useState<ReportKind | undefined>(initialView),
     [error, setError] = useState(false),
     [attempt, setAttempt] = useState(0);
   useEffect(() => {
@@ -50,14 +58,16 @@ function ScopedReports({ initialView }: { initialView?: ReportKind }) {
       .then((value) => {
         if (!abort.signal.aborted) {
           setOptions(value);
-          setView((previous) => previous ?? value.views[0]);
         }
       })
       .catch(() => {
         if (!abort.signal.aborted) setError(true);
       });
     return () => abort.abort();
-  }, [attempt]);
+  }, [attempt, initialView]);
+  const view =
+    initialView ??
+    (requestedView && options?.views.includes(requestedView) ? requestedView : options?.views[0]);
   if (error) {
     return (
       <Alert variant="error">
@@ -78,30 +88,66 @@ function ScopedReports({ initialView }: { initialView?: ReportKind }) {
   if (!view || !options.views.includes(view)) return <Alert variant="warning">{t('denied')}</Alert>;
   return (
     <div className="sc-page-enter space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--sc-primary)]">
-            <Activity size={14} aria-hidden="true" />
+      <header className={styles.hero}>
+        <div className={styles.heroCopy}>
+          <p className={styles.heroKicker}>
+            <BarChart3 size={14} aria-hidden="true" />
             {t('eyebrow')}
           </p>
-          <h1 className="m-0 text-3xl font-semibold text-[var(--sc-text-primary)]">{t('title')}</h1>
-          <p className="mb-0 mt-2 max-w-2xl text-sm text-[var(--sc-text-secondary)]">
-            {t('subtitle')}
-          </p>
+          <h1>{initialView ? t('views.' + initialView) : t('dashboardTitle')}</h1>
+          <p>{initialView ? t('subtitle') : t('dashboardSubtitle')}</p>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-4 py-2 text-xs text-[var(--sc-text-secondary)]">
-          <ShieldCheck size={16} className="text-[var(--sc-primary)]" aria-hidden="true" />
-          {t('scoped')}
+        <div className={styles.heroArt}>
+          <div className={styles.heroNetwork} aria-hidden="true">
+            <svg viewBox="0 0 280 120" fill="none">
+              <path
+                d="M45 76C90 76 70 30 137 30S195 76 237 76"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeDasharray="4 5"
+              />
+              <circle cx="45" cy="76" r="30" stroke="currentColor" strokeOpacity=".12" />
+              <circle cx="137" cy="30" r="30" stroke="currentColor" strokeOpacity=".12" />
+              <circle cx="237" cy="76" r="30" stroke="currentColor" strokeOpacity=".12" />
+            </svg>
+            <span className={styles.networkWarehouse}>
+              <Boxes size={25} strokeWidth={1.4} />
+            </span>
+            <span className={styles.networkTruck}>
+              <Truck size={29} strokeWidth={1.4} />
+            </span>
+            <span className={styles.networkParcel}>
+              <Package size={25} strokeWidth={1.4} />
+            </span>
+          </div>
+          <div className={styles.heroMeta}>
+            <strong>
+              {new Date().toLocaleDateString(locale === 'vi' ? 'vi-VN' : 'en-US', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </strong>
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck size={12} aria-hidden="true" />
+              {t('scoped')}
+            </span>
+          </div>
         </div>
       </header>
-      {!initialView && (
+      {!initialView && options.views.length > 1 && (
         <Tabs
           label={t('viewLabel')}
           activeId={view}
-          tabs={options.views.map((id) => ({ id, label: t(`views.${id}`) }))}
+          tabs={options.views.map((id) => ({ id, label: t('views.' + id) }))}
           onChange={(id) => {
             const result = reportKindSchema.safeParse(id);
-            if (result.success) setView(result.data);
+            if (result.success && options.views.includes(result.data)) {
+              const next = new URLSearchParams(searchParams);
+              next.set('view', result.data);
+              setSearchParams(next);
+            }
           }}
         />
       )}
@@ -137,6 +183,9 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
     [rows, setRows] = useState<(AuditRow | TechnicalRow)[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(false);
+  const [isFiltersExpanded, setFiltersExpanded] = useState(false);
+  const filterId = useId();
+  const filterToggle = useRef<HTMLButtonElement>(null);
   const isLog = view === 'audit' || view === 'logs';
   const needsWarehouse = options.warehouseRequiredViews.includes(view);
   useEffect(() => {
@@ -191,28 +240,51 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
   };
   return (
     <div className="space-y-5">
-      <Card>
+      <Card className={styles.toolbar}>
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="m-0 text-base font-semibold">{t(`views.${view}`)}</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={loading}
-            onClick={() => setRevision((value) => value + 1)}
-          >
-            <RefreshCw size={14} aria-hidden="true" />
-            {t('refresh')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-[var(--sc-primary)]" aria-hidden="true" />
+            <h2 className="m-0 text-sm font-semibold">{t(`views.${view}`)}</h2>
+          </div>
+          <div className="flex items-center gap-1">
+            {view !== 'health' && (
+              <Button
+                ref={filterToggle}
+                className={styles.filterToggle}
+                variant="ghost"
+                size="sm"
+                aria-label={t('filterToggle')}
+                aria-expanded={isFiltersExpanded}
+                aria-controls={filterId}
+                onClick={() => setFiltersExpanded((value) => !value)}
+              >
+                <Filter size={16} aria-hidden="true" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={loading}
+              onClick={() => setRevision((value) => value + 1)}
+            >
+              <RefreshCw size={14} aria-hidden="true" />
+              {t('refresh')}
+            </Button>
+          </div>
         </div>
         {view !== 'health' && (
           <form
+            id={filterId}
+            data-expanded={isFiltersExpanded}
             onSubmit={form.handleSubmit((value) => {
+              setFiltersExpanded(false);
+              filterToggle.current?.focus();
               setCursor(undefined);
               setBack([]);
               setFilters(value);
               setRevision((value) => value + 1);
             })}
-            className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            className={styles.filterForm + ' grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4'}
           >
             <Input
               type="date"
@@ -313,118 +385,14 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
           <span className="sr-only">{t('loading')}</span>
         </div>
       )}
-      {!loading && !error && data && (
+      {!loading && !error && data && <ReportVisuals report={data} />}
+      {!loading && !error && data && view === 'health' && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {data.sections.flatMap((section) =>
-              section.metrics.slice(0, section.id.startsWith('queue:') ? 0 : 8).map((metric) => (
-                <Card
-                  key={`${section.id}:${metric.key}`}
-                  className="flex min-h-36 flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="m-0 text-xs font-medium text-[var(--sc-text-secondary)]">
-                      {t.has(`metrics.${metric.key}`) ? t(`metrics.${metric.key}`) : t('metric')}
-                    </p>
-                    <ArrowUpRight
-                      size={15}
-                      className="text-[var(--sc-primary)]"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <strong className="mt-4 block break-words text-2xl font-semibold tabular-nums text-[var(--sc-text-primary)]">
-                    {format(metric.value, metric.unit)}
-                  </strong>
-                  <p className="mb-0 mt-3 text-xs leading-5 text-[var(--sc-text-tertiary)]">
-                    {t.has(`basis.${metric.basis}`)
-                      ? t(`basis.${metric.basis}`)
-                      : t('recordedBasis')}
-                  </p>
-                  {metric.href && (
-                    <Link
-                      to={metric.href}
-                      className="mt-2 text-xs font-medium text-[var(--sc-primary)]"
-                    >
-                      {t('details')} ↗
-                    </Link>
-                  )}
-                </Card>
-              )),
-            )}
-          </div>
-          {data.sections.some((section) => section.status !== 'AVAILABLE') && (
-            <Alert variant="warning">{t('partial')}</Alert>
-          )}
           <div className="grid items-start gap-5 xl:grid-cols-2">
             {data.sections
-              .filter(
-                (section) =>
-                  section.series?.length ||
-                  section.groups ||
-                  section.evidence ||
-                  section.id.startsWith('queue:'),
-              )
+              .filter((section) => section.evidence || section.id.startsWith('queue:'))
               .map((section) => (
                 <div key={section.id} className="space-y-4">
-                  {section.series && section.series.length > 0 && <Trend series={section.series} />}
-                  {section.groups && (
-                    <Card>
-                      <div className="mb-5 flex items-center justify-between">
-                        <h3 className="m-0 text-sm font-semibold">
-                          {t.has(`sections.${section.id}`)
-                            ? t(`sections.${section.id}`)
-                            : section.id}
-                        </h3>
-                        <Badge
-                          status={section.status === 'AVAILABLE' ? 'success' : 'warning'}
-                          label={t(`status.${section.status}`)}
-                        />
-                      </div>
-                      {!section.groups.length ? (
-                        <p className="text-sm text-[var(--sc-text-tertiary)]">{t('empty')}</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {section.groups.map((group) => {
-                            const max =
-                              section.groups?.reduce(
-                                (value, row) =>
-                                  BigInt(row.value) > value ? BigInt(row.value) : value,
-                                BigInt(1),
-                              ) ?? BigInt(1);
-                            const width =
-                              Number(
-                                ((BigInt(group.value) < BigInt(0)
-                                  ? BigInt(0)
-                                  : BigInt(group.value)) *
-                                  BigInt(10000)) /
-                                  max,
-                              ) / 100;
-                            return (
-                              <div key={group.key}>
-                                <div className="mb-2 flex items-center justify-between gap-4 text-xs">
-                                  <span
-                                    className="min-w-0 truncate text-[var(--sc-text-secondary)]"
-                                    title={group.key}
-                                  >
-                                    {t.has(`groups.${group.key}`)
-                                      ? t(`groups.${group.key}`)
-                                      : group.key}
-                                  </span>
-                                  <strong className="tabular-nums">{format(group.value)}</strong>
-                                </div>
-                                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--sc-bg-secondary)]">
-                                  <div
-                                    className="h-full rounded-full bg-[var(--sc-primary)]"
-                                    style={{ width: `${Math.min(100, width)}%` }}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </Card>
-                  )}
                   {section.evidence && (
                     <Card>
                       <h3 className="m-0 mb-2 text-sm font-semibold">{t('failureEvidence')}</h3>
@@ -601,51 +569,5 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
         </Card>
       )}
     </div>
-  );
-}
-function Trend({ series }: { series: { key: string; value: string }[] }) {
-  const t = useTranslations('Reports');
-  const id = useId();
-  const max = series.reduce(
-    (value, row) => (BigInt(row.value) > value ? BigInt(row.value) : value),
-    BigInt(1),
-  );
-  const points = series
-    .map(
-      (row, index) =>
-        `${series.length > 1 ? (index / (series.length - 1)) * 640 : 320},${160 - Number((BigInt(row.value) * BigInt(14000)) / max) / 100}`,
-    )
-    .join(' ');
-  return (
-    <Card>
-      <div className="mb-5 flex items-center justify-between">
-        <h3 className="m-0 text-sm font-semibold">{t('trend')}</h3>
-        <span className="text-xs text-[var(--sc-text-tertiary)]">{t('businessTime')}</span>
-      </div>
-      <svg viewBox="0 0 640 180" role="img" aria-label={t('trend')} className="h-48 w-full">
-        <defs>
-          <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--sc-primary)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--sc-primary)" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[20, 65, 110, 160].map((y) => (
-          <line key={y} x1="0" x2="640" y1={y} y2={y} stroke="var(--sc-border-default)" />
-        ))}
-        <polygon points={`0,180 ${points} 640,180`} fill={`url(#${id})`} />
-        <polyline
-          points={points}
-          fill="none"
-          stroke="var(--sc-primary)"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <div className="flex justify-between text-xs text-[var(--sc-text-tertiary)]">
-        <span>{series[0]?.key}</span>
-        <span>{series.at(-1)?.key}</span>
-      </div>
-    </Card>
   );
 }

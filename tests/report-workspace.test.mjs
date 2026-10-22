@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
-let server, api, schemas, store;
+let server, api, schemas, store, presentation;
 const originalFetch = globalThis.fetch;
 const id = '10290000-0000-4000-8000-000000000001';
 const filters = {
@@ -36,6 +36,7 @@ before(async () => {
   });
   ({ reportApi: api } = await server.ssrLoadModule('/src/features/analytics/api/reportApi.ts'));
   schemas = await server.ssrLoadModule('/src/features/analytics/schemas/reportSchema.ts');
+  presentation = await server.ssrLoadModule('/src/features/analytics/lib/reportPresentation.ts');
   ({ useAuthStore: store } = await server.ssrLoadModule('/src/stores/authStore.ts'));
 });
 after(async () => {
@@ -173,5 +174,102 @@ test('per-view warehouse requirements and masked webhook evidence are validated'
     schemas.optionsSchema.safeParse({ ...result, warehouseRequiredViews: ['unknown-admin-view'] })
       .success,
     false,
+  );
+});
+
+test('headline metrics cannot synthesize a financial field missing from the Staff response', () => {
+  const metric = (key, value, unit = 'count') => ({ key, value, unit, basis: 'recorded' });
+  const report = {
+    kind: 'seller',
+    sections: [
+      { id: 'orders', status: 'AVAILABLE', metrics: [metric('orders', '2')] },
+      {
+        id: 'stock',
+        status: 'AVAILABLE',
+        metrics: [metric('onHand', '100'), metric('nearExpiry', '8'), metric('physicalFree', '70')],
+      },
+    ],
+  };
+  assert.deepEqual(
+    presentation.headlineMetrics(report).map((row) => row.key),
+    ['orders', 'onHand', 'physicalFree', 'nearExpiry'],
+  );
+  const owner = {
+    ...report,
+    sections: [
+      ...report.sections,
+      { id: 'fees', metrics: [metric('serviceFees', '9007199254740993', 'VND')] },
+    ],
+  };
+  assert.equal(presentation.headlineMetrics(owner).at(-1).value, '9007199254740993');
+});
+
+test('dashboard formatting preserves exact money, genuine zero and unavailable values', () => {
+  assert.equal(
+    presentation.formatReportValue('9007199254740993', 'en', 'VND'),
+    '9,007,199,254,740,993 VND',
+  );
+  assert.equal(
+    presentation.formatReportValue('-9007199254740993', 'vi', 'VND'),
+    '-9.007.199.254.740.993 VND',
+  );
+  assert.equal(presentation.formatReportValue(null, 'vi', 'VND'), '—');
+  assert.equal(presentation.formatReportValue('0', 'en'), '0');
+  assert.equal(presentation.formatReportValue('33.33', 'en', 'percent'), '33.33%');
+  assert.equal(presentation.barPercent('9007199254740993', BigInt('9007199254740993')), 100);
+  assert.equal(presentation.barPercent('0', BigInt('0')), 0);
+  assert.equal(presentation.barPercent('-5', BigInt('10')), 0);
+});
+
+test('carrier presentation aggregates returned statuses exactly without guessing carrier identities', () => {
+  const first = '10000000-0000-4000-8000-000000000001';
+  const second = '10000000-0000-4000-8000-000000000002';
+  const result = presentation.carrierBreakdown([
+    { key: first + ':DELIVERED', value: '9007199254740993' },
+    { key: first + ':IN_TRANSIT', value: '1' },
+    { key: second + ':DELIVERED', value: '5' },
+    { key: second + ':FAILED', value: '1' },
+  ]);
+  assert.equal(result.carriers.length, 2);
+  assert.equal(result.carriers[0].id, first);
+  assert.equal(result.carriers[0].total.toString(), '9007199254740994');
+  assert.equal(result.groups.find((row) => row.key === 'DELIVERED').value, '9007199254740998');
+  assert.equal('name' in result.carriers[0], false);
+  assert.equal(
+    presentation.carrierBreakdown([{ key: 'not-a-carrier:DELIVERED', value: '5' }]),
+    null,
+  );
+  assert.equal(presentation.carrierBreakdown([{ key: first + ':FAILED', value: '-1' }]), null);
+  assert.deepEqual(presentation.carrierBreakdown([]), { carriers: [], groups: [] });
+});
+
+test('carrier status colors communicate delivered, in-progress, failure and unknown separately', () => {
+  assert.equal(presentation.reportTone('DELIVERED'), 'teal');
+  assert.equal(presentation.reportTone('IN_TRANSIT'), 'blue');
+  assert.equal(presentation.reportTone('FAILED'), 'red');
+  assert.equal(presentation.reportTone('RETURNED'), 'red');
+  assert.equal(presentation.reportTone('UNKNOWN'), 'amber');
+  assert.equal(presentation.reportTone('CANCELLED'), 'muted');
+});
+
+test('a booked freight price snapshot is a period metric, not current stock', () => {
+  const metric = {
+    key: 'sellerFreight',
+    value: '900000',
+    unit: 'VND',
+    basis: 'seller_freight_snapshot_booked_cohort',
+  };
+  assert.equal(presentation.metricContextKey(metric, 'finance'), 'selectedPeriod');
+  assert.equal(
+    presentation.metricContextKey({ ...metric, basis: 'current_physical_snapshot' }, 'seller'),
+    'currentStock',
+  );
+  assert.equal(presentation.metricContextKey({ ...metric, value: null }, 'finance'), 'notMeasured');
+  assert.equal(
+    presentation.metricContextKey(
+      { ...metric, basis: 'recorded_job_execution_dlq_in_24h_not_live_queue' },
+      'health',
+    ),
+    'last24Hours',
   );
 });

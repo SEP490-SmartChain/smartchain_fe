@@ -3695,7 +3695,7 @@
     }
   },
   "Reports": {
-    "eyebrow": "ORCA · Intelligence",
+    "eyebrow": "ORCA · Reporting hub",
     "title": "A clearer view of your operations",
     "subtitle": "Explore committed business results, follow the evidence and focus on what needs attention.",
     "scoped": "Your authorized scope",
@@ -3873,7 +3873,9 @@
       "EXHAUSTED": "Retries exhausted",
       "RUNNING": "Running",
       "COMPLETED": "Completed",
-      "DLQ": "Recorded DLQ"
+      "DLQ": "Recorded DLQ",
+      "IN_TRANSIT": "In transit",
+      "OUT_FOR_DELIVERY": "Out for delivery"
     },
     "status": {
       "AVAILABLE": "Available",
@@ -3902,6 +3904,47 @@
     "attempts": "Attempt",
     "businessReference": "Business reference",
     "recordedAt": "Recorded at",
-    "nextAttempt": "Recorded retry schedule"
+    "nextAttempt": "Recorded retry schedule",
+    "dashboardTitle": "Your operation, at a glance.",
+    "dashboardSubtitle": "From the big picture to every recorded movement. Explore your data, spot what needs attention and follow performance each day.",
+    "allMetrics": "Data & definitions",
+    "metricsNote": "Each metric includes its scope and calculation basis.",
+    "currentStock": "At report time",
+    "selectedPeriod": "Selected period",
+    "notMeasured": "Not measured",
+    "ordersInPeriod": "orders in period",
+    "daily": "Daily",
+    "dailyValues": "View daily figures",
+    "date": "Date",
+    "deeperLook": "Explore the details",
+    "distribution": "Activity breakdown",
+    "network": "Shipping network",
+    "parcelDistribution": "Parcel status",
+    "carrierPerformance": "Carrier performance",
+    "carrierLabel": "Carrier {number}",
+    "carrierReference": "View identifier",
+    "parcelsUnit": "parcels",
+    "displayedTotal": "total in chart",
+    "carrierCohortNote": "Based on the returned parcel cohort within the selected scope and period. Carrier identifiers remain available for reference.",
+    "serviceCosts": "Service costs",
+    "metricCount": "{count} metrics · expand for details",
+    "metricSections": {
+      "orders": "Orders",
+      "stock": "Current inventory",
+      "ageing": "Inventory age",
+      "fees": "Service fees",
+      "freight": "Freight & margins",
+      "warehouse": "Warehouse productivity",
+      "carriers": "Shipping performance"
+    },
+    "units": {
+      "hours": "hours",
+      "seconds": "seconds",
+      "ms": "ms"
+    },
+    "filterToggle": "Expand or collapse filters",
+    "metricCountShort": "{count} metrics",
+    "calculationInfo": "Show or hide calculation details",
+    "last24Hours": "Last 24 hours"
   }
 }
