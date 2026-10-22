@@ -1,4 +1,7 @@
-import { ReportWorkspace } from '@/features/analytics';
+import { Navigate, useLocation } from 'react-router-dom';
+
+/** Compatibility URL. Both route guards still apply; reports have one canonical screen. */
 export default function Page() {
-  return <ReportWorkspace />;
+  const { search, hash } = useLocation();
+  return <Navigate to={'/dashboard' + search + hash} replace />;
 }
