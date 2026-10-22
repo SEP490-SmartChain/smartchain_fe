@@ -3436,8 +3436,8 @@
     "description": "Tải file quyết toán của hãng; hệ thống đọc từng dòng, đối chiếu cước mua và COD với dữ liệu đã chốt. Khi hoàn tất và khóa lô, COD khớp được ghi có cho seller đúng một lần.",
     "carrier": "Hãng",
     "file": "File quyết toán",
-    "fileHelp": "CSV định dạng v1, tối đa 10 MB.",
-    "fileInvalid": "Chọn một file .csv, tối đa 10 MB.",
+    "fileHelp": "CSV định dạng v1, tối đa 128 MB. Dòng sai được ghi nhận là lỗi từng dòng, không làm hỏng cả lô.",
+    "fileInvalid": "Chọn một file .csv, tối đa 128 MB.",
     "upload": "Tải lên",
     "uploaded": "Đã nhận file với {rows} dòng; đang xử lý.",
     "duplicate": "File này đã được tải lên trước đó; không tạo lô mới.",
@@ -3479,7 +3479,8 @@
       "AMBIGUOUS": "Trùng nhiều vận đơn",
       "RETURN": "Hoàn hàng",
       "MANUALLY_MATCHED": "Khớp tay",
-      "OUTBOUND": "Chiều đi"
+      "OUTBOUND": "Chiều đi",
+      "INVALID": "Dòng lỗi"
     },
     "discrepancy": {
       "NOT_FOUND": "không có trong hệ thống",
@@ -3487,7 +3488,21 @@
       "OVERCHARGED": "tính cước cao hơn",
       "UNDERCHARGED": "tính cước thấp hơn",
       "COD_MISMATCH": "lệch COD",
-      "COLLECTION_REMITTANCE_MISMATCH": "lệch tiền thu và chuyển"
+      "COLLECTION_REMITTANCE_MISMATCH": "lệch tiền thu và chuyển",
+      "DUPLICATE_WAYBILL": "trùng mã vận đơn trong file",
+      "INVALID_ROW": "dòng không hợp lệ ({reason})"
+    },
+    "rowError": {
+      "COLUMN_COUNT": "sai số cột",
+      "FORMAT_VERSION": "sai phiên bản định dạng",
+      "WAYBILL": "mã vận đơn không hợp lệ",
+      "STATUS": "trạng thái không hỗ trợ",
+      "AMOUNT": "số tiền không hợp lệ",
+      "NET_AMOUNT": "số tiền thực chuyển không hợp lệ",
+      "NET_ARITHMETIC": "số tiền thực chuyển không khớp phép tính",
+      "RETURN_WITH_COD": "hàng hoàn nhưng có COD",
+      "ENCODING": "không phải UTF-8",
+      "LINE_TOO_LONG": "dòng quá dài"
     }
   },
   "ReconciliationPage": {

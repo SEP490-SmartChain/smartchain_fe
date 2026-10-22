@@ -3436,8 +3436,8 @@
     "description": "Upload a carrier settlement file; rows are read in chunks and purchase freight and COD are compared with the frozen expectations. Completing and locking a batch credits matched COD to sellers exactly once.",
     "carrier": "Carrier",
     "file": "Settlement file",
-    "fileHelp": "CSV format v1, up to 10 MB.",
-    "fileInvalid": "Choose one .csv file of at most 10 MB.",
+    "fileHelp": "CSV format v1, up to 128 MB. Malformed rows are recorded as row errors without failing the batch.",
+    "fileInvalid": "Choose one .csv file of at most 128 MB.",
     "upload": "Upload",
     "uploaded": "Received {rows} rows; processing.",
     "duplicate": "This file was already uploaded; no new batch was created.",
@@ -3479,7 +3479,8 @@
       "AMBIGUOUS": "Several parcels match",
       "RETURN": "Returned",
       "MANUALLY_MATCHED": "Manually matched",
-      "OUTBOUND": "Outbound"
+      "OUTBOUND": "Outbound",
+      "INVALID": "Invalid row"
     },
     "discrepancy": {
       "NOT_FOUND": "not in ORCA",
@@ -3487,7 +3488,21 @@
       "OVERCHARGED": "overcharged",
       "UNDERCHARGED": "undercharged",
       "COD_MISMATCH": "COD mismatch",
-      "COLLECTION_REMITTANCE_MISMATCH": "collection and remittance differ"
+      "COLLECTION_REMITTANCE_MISMATCH": "collection and remittance differ",
+      "DUPLICATE_WAYBILL": "waybill repeated in the file",
+      "INVALID_ROW": "invalid row ({reason})"
+    },
+    "rowError": {
+      "COLUMN_COUNT": "wrong column count",
+      "FORMAT_VERSION": "unsupported format version",
+      "WAYBILL": "invalid waybill",
+      "STATUS": "unsupported status",
+      "AMOUNT": "invalid amount",
+      "NET_AMOUNT": "invalid net remittance",
+      "NET_ARITHMETIC": "net remittance does not add up",
+      "RETURN_WITH_COD": "return with COD",
+      "ENCODING": "not UTF-8",
+      "LINE_TOO_LONG": "line too long"
     }
   },
   "ReconciliationPage": {

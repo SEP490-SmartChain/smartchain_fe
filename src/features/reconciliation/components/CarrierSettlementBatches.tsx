@@ -163,6 +163,17 @@ function ExceptionsModal({ batch, formatMoney, onClose }: ExceptionsModalProps) 
     return () => controller.current?.abort();
   }, [load]);
 
+  // Row errors arrive as INVALID_ROW:<reason>; unknown codes are shown as received, never hidden.
+  const describeDiscrepancy = (code: string) => {
+    if (code.startsWith('INVALID_ROW:')) {
+      const reason = code.slice('INVALID_ROW:'.length);
+      return t('discrepancy.INVALID_ROW', {
+        reason: t.has(`rowError.${reason}`) ? t(`rowError.${reason}`) : reason,
+      });
+    }
+    return t.has(`discrepancy.${code}`) ? t(`discrepancy.${code}`) : code;
+  };
+
   const columns: ColumnDef<SettlementRecord>[] = [
     { key: 'rowNumber', label: t('row') },
     { key: 'trackingNumber', label: t('waybill') },
@@ -171,9 +182,9 @@ function ExceptionsModal({ batch, formatMoney, onClose }: ExceptionsModalProps) 
       label: t('result'),
       render: (row) => (
         <span>
-          {t(`status.${row.matchStatus}`)}
+          {t.has(`status.${row.matchStatus}`) ? t(`status.${row.matchStatus}`) : row.matchStatus}
           {row.discrepancies.length > 0 &&
-            ` · ${row.discrepancies.map((d) => t(`discrepancy.${d}`)).join(', ')}`}
+            ` · ${row.discrepancies.map(describeDiscrepancy).join(', ')}`}
         </span>
       ),
     },
