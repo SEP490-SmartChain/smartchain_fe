@@ -1,5 +1,26 @@
 # features/tenants
 
+## SS-1022 invoice cycles
+
+`CommercialBilling` now composes the fulfillment invoice workspace: seller/month/type
+filters, cursor pagination, source-linked fee lines, deterministic PDF export and
+read-only verified-bank-transfer instructions. It uses `/v1/billing/invoices` and
+existing verified receipt endpoints; the browser never marks an invoice paid.
+SERVICE documents summarize the operating ledger and cannot request the same fee
+again. PLAN documents display as subscriptions. Accountant-only period closure
+uses `invoice.period.close`, sourced from UC-123 and `finance.create`; issued
+documents remain immutable. Seven-role/API regressions: `invoice-billing.test.mjs`.
+Identity or selected seller/filter changes remount the workspace and cancel reads.
+SePay initiation (S53), deposit-offset orchestration (S16) and email delivery (S19)
+remain separate integrations; no mock success is shown for them.
+
+The reviewed workspace uses semantic status badges, invoice totals for loaded
+documents, Vietnamese/English fee labels, full references behind disclosures,
+and invoice cards on small screens. The financial breadcrumb replaces the old
+SaaS usage breadcrumb. Source evidence and full invoice numbers remain available
+in detail; abbreviated list references are display only. Actual test API/DB
+data, desktop and 390px mobile layouts were checked for SS-1022.
+
 ## SS-999 service tariffs
 
 The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`
