@@ -21,6 +21,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { PickShortEvidence } from './PickShortEvidence';
 import {
   pickingApi,
   type PickPending,
@@ -28,7 +29,12 @@ import {
   type PickDetail,
   type PickLine,
 } from '../api/pickingApi';
-import { pickScanSchema, pickWaveFormSchema } from '../schemas/pickingSchema';
+import {
+  pickScanSchema,
+  pickWaveFormSchema,
+  pickShortFormSchema,
+  pickApprovalSchema,
+} from '../schemas/pickingSchema';
 
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
@@ -44,6 +50,7 @@ function PickingScope() {
     [waves, setWaves] = useState<PickWave[]>([]),
     [waveId, setWaveId] = useState(''),
     [detail, setDetail] = useState<PickDetail | null>(null),
+    [lineCursor, setLineCursor] = useState<string | null>(null),
     [staff, setStaff] = useState<{ id: string; fullName: string }[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [next, setNext] = useState<string | null>(null),
@@ -119,11 +126,14 @@ function PickingScope() {
     return () => c.abort();
   }, [warehouse, cursor, manager, refresh, t]);
   useEffect(() => {
+    setLineCursor(null);
+  }, [warehouse, waveId]);
+  useEffect(() => {
     setDetail(null);
     if (!warehouse || !waveId) return;
     const c = new AbortController();
     void pickingApi
-      .detail(warehouse, waveId, c.signal)
+      .detail(warehouse, waveId, c.signal, lineCursor)
       .then((data) => {
         if (!c.signal.aborted) setDetail(data);
       })
@@ -131,7 +141,7 @@ function PickingScope() {
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
-  }, [warehouse, waveId, refresh, t]);
+  }, [warehouse, waveId, refresh, lineCursor, t]);
   useEffect(() => {
     if (!waveRequest || !warehouse) return;
     const c = new AbortController();
@@ -180,6 +190,7 @@ function PickingScope() {
         setWaveRequest(result.requestId);
         setNotice(t('waveProcessing'));
       } else setNotice(t('confirmed'));
+      setLineCursor(null);
       setRefresh((x) => x + 1);
       if (result.waveId) setWaveId(result.waveId);
     } catch (cause) {
@@ -323,6 +334,26 @@ function PickingScope() {
                       />
                     ))}
                   </div>
+                  <div className="mt-4 flex gap-3">
+                    {lineCursor && (
+                      <Button
+                        variant="outline"
+                        disabled={busy || !!pending}
+                        onClick={() => setLineCursor(null)}
+                      >
+                        {t('firstLines')}
+                      </Button>
+                    )}
+                    {detail.nextCursor && (
+                      <Button
+                        variant="outline"
+                        disabled={busy || !!pending}
+                        onClick={() => setLineCursor(detail.nextCursor)}
+                      >
+                        {t('nextLines')}
+                      </Button>
+                    )}
+                  </div>
                 </>
               )}
             </CardContent>
@@ -375,8 +406,10 @@ function WaveForm({
   );
 }
 function PickLineCard({
+  warehouseId,
   line,
   disabled,
+  manager,
   canConfirm,
   execute,
 }: {
@@ -387,50 +420,167 @@ function PickLineCard({
   canConfirm: boolean;
   execute: (c: PickPending) => Promise<void>;
 }) {
-  const t = useTranslations('Picking');
+  const t = useTranslations('Picking'),
+    [mode, setMode] = useState<'scan' | 'short'>('scan'),
+    [uploadBusy, setUploadBusy] = useState(false);
   const f = useForm<z.infer<typeof pickScanSchema>>({
     resolver: zodResolver(pickScanSchema),
     defaultValues: { qty: 1 },
   });
+  const shortage = useForm<z.infer<typeof pickShortFormSchema>>({
+    resolver: zodResolver(pickShortFormSchema),
+    defaultValues: { observedQty: 0 },
+  });
+  const approval = useForm<z.infer<typeof pickApprovalSchema>>({
+    resolver: zodResolver(pickApprovalSchema),
+  });
   useEffect(() => {
-    if (canConfirm && !disabled && line.remainingQty > 0) f.setFocus('binScan');
-  }, [f, canConfirm, disabled, line.remainingQty]);
+    if (canConfirm && !disabled && line.remainingQty > 0 && !line.shortage) f.setFocus('binScan');
+  }, [f, canConfirm, disabled, line.remainingQty, line.shortage]);
   return (
     <section className="rounded-xl border border-[var(--sc-border-default)] p-4">
-      <h3>
-        {line.productName} · {line.sku}
-      </h3>
-      <p>{t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}</p>
-      <p>
-        {t('bin')}: {line.binCode} · {t('lot')}: {line.lotCode}
+      <div className="mb-3 flex flex-wrap justify-between gap-2">
+        <h3 className="font-semibold">
+          {line.productName} · {line.sku}
+        </h3>
+        <p>{t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}</p>
+      </div>
+      <p className="mb-3 text-sm">
+        {t('bin')}: <strong>{line.binCode}</strong> · {t('lot')}: <strong>{line.lotCode}</strong>
       </p>
-      {line.remainingQty > 0 && canConfirm && (
-        <form
-          className="grid gap-3 sm:grid-cols-2"
-          onSubmit={f.handleSubmit((v) =>
-            execute({
-              path: `pick-lines/${line.id}/confirm`,
-              payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
-            }),
-          )}
-        >
-          {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => (
-            <Input key={name} label={t(name)} {...f.register(name)} required disabled={disabled} />
-          ))}
-          <Input
-            type="number"
-            label={t('qty')}
-            {...f.register('qty', { valueAsNumber: true })}
-            min={1}
-            max={line.remainingQty}
-            required
+      {line.shortage ? (
+        <>
+          <Alert variant="warning">
+            {t('shortPending')} · {line.shortage.evidenceRefs.reason}
+          </Alert>
+          <PickShortEvidence
+            warehouseId={warehouseId}
+            lineId={line.id}
             disabled={disabled}
+            evidenceKey={line.shortage.evidenceRefs.evidenceKey}
           />
-          <Button type="submit" disabled={disabled}>
-            {t('confirmScan')}
-          </Button>
-        </form>
-      )}
+          {manager && (
+            <form
+              className="mt-3 flex items-end gap-3"
+              onSubmit={approval.handleSubmit(
+                (v) =>
+                  void execute({
+                    path: `pick-shortages/${line.shortage?.id}/replacement`,
+                    payload: { ...v, clientScanId: createUuid() },
+                  }),
+              )}
+            >
+              <Input
+                label={t('approvalReason')}
+                {...approval.register('reason')}
+                required
+                disabled={disabled}
+              />
+              <Button type="submit" disabled={disabled}>
+                {t('approveReplacement')}
+              </Button>
+            </form>
+          )}
+        </>
+      ) : line.remainingQty > 0 && canConfirm ? (
+        <>
+          <div className="mb-3 flex gap-2">
+            <Button
+              variant={mode === 'scan' ? 'primary' : 'outline'}
+              disabled={disabled || uploadBusy}
+              onClick={() => setMode('scan')}
+            >
+              {t('scan')}
+            </Button>
+            <Button
+              variant={mode === 'short' ? 'primary' : 'outline'}
+              disabled={disabled}
+              onClick={() => setMode('short')}
+            >
+              {t('reportShort')}
+            </Button>
+          </div>
+          {mode === 'scan' ? (
+            <form
+              className="grid gap-3 sm:grid-cols-2"
+              autoComplete="off"
+              onSubmit={f.handleSubmit((v) =>
+                execute({
+                  path: `pick-lines/${line.id}/confirm`,
+                  payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
+                }),
+              )}
+            >
+              {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => (
+                <Input
+                  key={name}
+                  label={t(name)}
+                  {...f.register(name)}
+                  disabled={disabled}
+                  required
+                  error={f.formState.errors[name] ? t('required') : undefined}
+                />
+              ))}
+              <Input
+                type="number"
+                label={t('qty')}
+                {...f.register('qty', { valueAsNumber: true })}
+                disabled={disabled}
+                required
+                min={1}
+                max={line.remainingQty}
+                error={f.formState.errors.qty ? t('invalidQty') : undefined}
+              />
+              <Button type="submit" className="min-h-12 sm:col-span-2" disabled={disabled}>
+                {t('confirmScan')}
+              </Button>
+            </form>
+          ) : (
+            <form
+              className="grid gap-3 sm:grid-cols-2"
+              onSubmit={shortage.handleSubmit((v) =>
+                execute({
+                  path: `pick-lines/${line.id}/shortages`,
+                  payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
+                }),
+              )}
+            >
+              <Input
+                type="number"
+                label={t('observed')}
+                {...shortage.register('observedQty', { valueAsNumber: true })}
+                disabled={disabled}
+                required
+                min={0}
+                max={line.remainingQty - 1}
+              />
+              <PickShortEvidence
+                warehouseId={warehouseId}
+                lineId={line.id}
+                disabled={disabled}
+                onBusyChange={setUploadBusy}
+                evidenceKey={shortage.watch('evidenceKey')}
+                onVerified={(key) =>
+                  shortage.setValue('evidenceKey', key, { shouldValidate: true })
+                }
+              />
+              {shortage.formState.errors.evidenceKey && <p role="alert">{t('evidenceRequired')}</p>}
+              <Input
+                label={t('reason')}
+                {...shortage.register('reason')}
+                disabled={disabled}
+                required
+              />
+              <Button
+                type="submit"
+                disabled={disabled || uploadBusy || !shortage.watch('evidenceKey')}
+              >
+                {t('reportShort')}
+              </Button>
+            </form>
+          )}
+        </>
+      ) : null}
     </section>
   );
 }
