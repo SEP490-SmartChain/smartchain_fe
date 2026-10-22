@@ -233,6 +233,7 @@ const baseOrder = z.object({
   id: z.uuid(),
   externalOrderCode: z.string(),
   sourceChannel: z.string(),
+  kind: z.enum(['SALES', 'WITHDRAWAL']).optional(),
   status: z.enum(ORDER_STATUSES),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -269,6 +270,24 @@ const shipment = z
   })
   .strict();
 const child = z.object({
+  allocation: z
+    .object({
+      reason: z.string().nullable(),
+      ruleVersion: z.number().int().nullable(),
+      lots: z.array(
+        z
+          .object({
+            sku: z.string().nullable(),
+            lotCode: z.string(),
+            expiresOn: z.string().nullable(),
+            binCode: z.string(),
+            qty: z.number().int(),
+          })
+          .strict(),
+      ),
+    })
+    .strict()
+    .optional(),
   id: z.uuid(),
   warehouseId: z.uuid(),
   warehouseName: z.string().nullable().optional(),
