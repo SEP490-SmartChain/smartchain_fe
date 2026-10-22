@@ -831,16 +831,16 @@ export interface NavGroup {
 /** Template sidebar dùng chung lọc theo 3 cổng; lọc theo capability để ra template từng role. */
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
+    key: 'overview_heading',
+    scope: 'shared',
+    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
+  },
+  {
     key: 'platform_staff_heading',
     scope: 'platform',
     items: [{ key: 'platform_staff', href: '/admin/staff', capability: 'iam.warehouses.assign' }],
   },
   // 1. CỔNG NGƯỜI BÁN (TENANT)
-  {
-    key: 'overview_heading',
-    scope: 'workspace',
-    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
-  },
   {
     key: 'goods_heading',
     scope: 'workspace',
@@ -986,11 +986,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         key: 'integration_errors',
         href: '/integration-errors',
         capability: 'integration.errors.view',
-      },
-      {
-        key: 'analytics',
-        href: '/analytics',
-        anyCapability: ['analytics.operations.view', 'analytics.finance.view'],
       },
     ],
   },
