@@ -3774,6 +3774,7 @@
       "deliveryRate": "Tỷ lệ giao trên kiện kết thúc",
       "serviceFees": "Phí dịch vụ phát sinh",
       "sellerFreight": "Cước bán cho seller",
+      "reconciledSellerFreight": "Cước bán của kiện đã đối soát",
       "expectedCost": "Giá mua dự kiến",
       "actualCost": "Giá mua đã đối soát",
       "expectedMargin": "Chênh lệch cước dự kiến",

@@ -3774,6 +3774,7 @@
       "deliveryRate": "Terminal delivery rate",
       "serviceFees": "Accrued service fees",
       "sellerFreight": "Seller freight",
+      "reconciledSellerFreight": "Seller freight on reconciled parcels",
       "expectedCost": "Estimated purchase cost",
       "actualCost": "Reconciled purchase cost",
       "expectedMargin": "Estimated paired margin",
