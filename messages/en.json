@@ -240,7 +240,7 @@
     "requestChange": "Change next period's plan",
     "newPlan": "Requested plan",
     "choose": "Choose a plan",
-    "changeHint": "ORCA validates occupied warehouses before scheduling the next-period change.",
+    "changeHint": "After Admin approval and subject to the application checks, the new plan takes effect at 00:00 Vietnam time on the first day of the next period. Your current plan remains in effect for this period.",
     "sendChange": "Request plan change",
     "requested": "Plan change requested.",
     "requestClose": "Request contract termination",
@@ -266,7 +266,8 @@
     "closeoutDebt": "Clear debt through verified payment or an approved deposit offset.",
     "closeoutStock": "Withdraw stock through the warehouse flow and complete open work and disputes.",
     "closeoutFinal": "Settle final charges, record the evidenced refund, then Admin closes the contract.",
-    "openSettlement": "View debt and refund requirements"
+    "openSettlement": "View debt and refund requirements",
+    "enterpriseHint": "Need Enterprise or changes to negotiated terms? Contact ORCA to negotiate and sign an agreement outside the platform; Admin records the agreed terms."
   },
   "CommercialAdmin": {
     "finalizeClosure": "Finalize closure",

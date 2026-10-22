@@ -331,6 +331,9 @@ function CommercialQuotaContent({ tenantId }: { tenantId?: string }) {
                     {...change.register('planVersionId')}
                   />
                   <p className="text-xs text-[var(--sc-text-secondary)]">{t('changeHint')}</p>
+                  <p className="border-t border-[var(--sc-border-default)] pt-3 text-xs leading-relaxed text-[var(--sc-text-secondary)]">
+                    {t('enterpriseHint')}
+                  </p>
                   <Button type="submit" isLoading={busy} disabled={pendingChange}>
                     {t('sendChange')}
                   </Button>

@@ -240,7 +240,7 @@
     "requestChange": "Đổi gói kỳ tiếp theo",
     "newPlan": "Gói muốn chuyển",
     "choose": "Chọn gói",
-    "changeHint": "ORCA kiểm tra số kho đang có hàng trước khi xếp lịch cho kỳ tiếp theo.",
+    "changeHint": "Sau khi Admin phê duyệt và các điều kiện áp dụng vẫn hợp lệ, gói mới có hiệu lực lúc 00:00 giờ Việt Nam ngày đầu kỳ tiếp theo. Gói hiện tại tiếp tục áp dụng trong kỳ này.",
     "sendChange": "Gửi yêu cầu đổi gói",
     "requested": "Đã gửi yêu cầu đổi gói.",
     "requestClose": "Yêu cầu thanh lý hợp đồng",
@@ -266,7 +266,8 @@
     "closeoutDebt": "Xử lý nợ bằng thanh toán đã xác minh hoặc bù trừ cọc được duyệt.",
     "closeoutStock": "Rút hàng theo quy trình kho và hoàn tất công việc, khiếu nại còn mở.",
     "closeoutFinal": "Chốt phí, hoàn phần tiền còn lại có chứng từ; Admin đóng hợp đồng.",
-    "openSettlement": "Xem công nợ và điều kiện hoàn cọc"
+    "openSettlement": "Xem công nợ và điều kiện hoàn cọc",
+    "enterpriseHint": "Cần gói Enterprise hoặc điều chỉnh điều khoản riêng? Liên hệ ORCA để đàm phán và ký hợp đồng ngoài hệ thống; Admin ghi nhận các điều khoản đã thống nhất."
   },
   "CommercialAdmin": {
     "finalizeClosure": "Hoàn tất thanh lý",

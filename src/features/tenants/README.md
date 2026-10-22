@@ -1,5 +1,16 @@
 # features/tenants
 
+## SS-1299 Owner contract entry
+
+The real Owner route, /settings/contract, mounts the quota/lifecycle panel for
+ACCEPTED, CONFIRMED and TERMINATING current contracts through
+SellerContractOnboarding. The existing contract.sign capability gates this
+composition; Staff and other roles receive no new action or read authority.
+Onboarding-only and terminated contracts do not load this panel. Plan changes
+show the 00:00 Asia/Ho_Chi_Minh next-period boundary and the separate negotiated
+Enterprise process. Existing backend approval and settlement checks remain
+authoritative. Route composition regression: tests/contract-lifecycle-ui.test.mjs.
+
 ## SS-1022 invoice cycles
 
 `CommercialBilling` now composes the fulfillment invoice workspace: seller/month/type
