@@ -10,6 +10,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
+import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { createUuid } from '@/lib/uuid';
@@ -281,12 +282,12 @@ export function CommercialQuotaAdmin() {
     <div className="space-y-4">
       <PageHeader title={t('quotaTitle')} />
       {error && <Alert variant="error">{error}</Alert>}
-      <Select
+      <SearchableSelect
         label={t('selectSeller')}
         placeholder={t('selectSeller')}
         value={tenantId}
         options={sellers.map((item) => ({ value: item.id, label: item.name }))}
-        onChange={(event) => setTenantId(event.target.value)}
+        onChange={(val) => setTenantId(val)}
       />
       {tenantId && <CommercialQuotaPanel key={tenantId} tenantId={tenantId} />}
     </div>

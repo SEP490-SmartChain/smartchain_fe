@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight, CalendarDays, FileText, Filter, RefreshCw, Wallet } from 'lucide-react';
@@ -9,7 +9,8 @@ import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
-import { Input } from '@/components/Common/Input/Input';
+import { MonthPicker } from '@/components/Common/DatePicker/MonthPicker';
+import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -163,11 +164,18 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
           onSubmit={close}
           className="grid items-end gap-4 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-5 sm:grid-cols-[minmax(0,1fr)_auto]"
         >
-          <Input
-            type="month"
-            label={t('closeMonth')}
-            error={closeForm.formState.errors.month ? t('invalidMonth') : undefined}
-            {...closeForm.register('month')}
+          <Controller
+            control={closeForm.control}
+            name="month"
+            render={({ field, fieldState }) => (
+              <MonthPicker
+                label={t('closeMonth')}
+                placeholder={t('chooseMonth')}
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error ? t('invalidMonth') : undefined}
+              />
+            )}
           />
           <Button type="submit" variant="outline" isLoading={closeForm.formState.isSubmitting}>
             {t('closePeriod')}
@@ -454,13 +462,14 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
         )}
         {scope === 'PLATFORM' && !fixedTenant && (
           <div className="mt-5">
-            <Select
+            <SearchableSelect
               label={t('seller')}
               placeholder={t('selectSeller')}
+              searchPlaceholder={t('searchSeller')}
               value={selected}
               options={sellers.map((seller) => ({ value: seller.id, label: seller.name }))}
-              onChange={(event) => {
-                setSelected(event.target.value);
+              onChange={(val) => {
+                setSelected(val);
               }}
             />
           </div>
@@ -469,11 +478,18 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
           onSubmit={form.handleSubmit(setFilters)}
           className="mt-6 grid items-end gap-3 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]"
         >
-          <Input
-            type="month"
-            label={t('month')}
-            error={form.formState.errors.month ? t('invalidMonth') : undefined}
-            {...form.register('month')}
+          <Controller
+            control={form.control}
+            name="month"
+            render={({ field, fieldState }) => (
+              <MonthPicker
+                label={t('month')}
+                placeholder={t('chooseMonth')}
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error ? t('invalidMonth') : undefined}
+              />
+            )}
           />
           <Select
             label={t('kind')}
