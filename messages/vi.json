@@ -3852,6 +3852,7 @@
       "PICK_ASSIGNED": "Đã giao việc lấy hàng",
       "PICKED": "Đã lấy hàng",
       "PACKED": "Đã đóng gói",
+      "DISPATCHED": "Đã xuất kho",
       "HANDED_OVER": "Đã bàn giao",
       "SHIPPED": "Đã gửi vận chuyển",
       "DELIVERED": "Đã giao",

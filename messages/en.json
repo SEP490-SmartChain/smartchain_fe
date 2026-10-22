@@ -3852,6 +3852,7 @@
       "PICK_ASSIGNED": "Pick assigned",
       "PICKED": "Picked",
       "PACKED": "Packed",
+      "DISPATCHED": "Dispatched",
       "HANDED_OVER": "Handed over",
       "SHIPPED": "Shipped",
       "DELIVERED": "Delivered",
