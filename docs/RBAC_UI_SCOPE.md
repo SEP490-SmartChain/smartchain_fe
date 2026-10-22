@@ -213,3 +213,13 @@ its Owner gate. Admin receives read access, never Accountant mutations.
 All actual financial effects remain server-owned. The UI uses Vietnam time,
 separate operating/deposit balances, exact integer-string money, and no
 simulated-time header or off-cycle override.
+
+## SS-1029 role-scoped reports
+
+GET /v1/reports/options returns live allowed views and warehouseRequiredViews; these do not grant operational actions. Existing dashboard/analytics route gates remain. UC-147 returns own-seller orders/stock for Owner/Staff and fees only for Owner. UC-149 is Owner/assigned Manager; UC-148 assigned Manager/Ops; UC-150 Admin/assigned Ops; UC-151 Admin/Accountant. UC-152 audit remains Admin-only: the old seller workspace audit proposal is not enabled. UC-153 technical attempts are Admin/assigned Manager; UC-154 health is Admin/Ops. No retry, clear-log or resolve-parcel action is added. Financial amounts, buyer data, credentials and arbitrary audit snapshots are not exposed to Staff/operational roles. Backend rechecks live authority and row scope; options are not a security boundary.
+
+SS-1029 UI consolidation: /dashboard is the canonical role-report workspace.
+/analytics keeps its existing route guard and redirects with replace to
+/dashboard, preserving query/hash; it has no menu/search entry. The shared
+Dashboard entry uses the existing workspace.dashboard.view capability (six
+reporting roles, never Warehouse Staff). No capability or API authority changed.
