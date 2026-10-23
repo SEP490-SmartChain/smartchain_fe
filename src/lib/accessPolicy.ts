@@ -361,6 +361,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('orders.view', 'orders', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'orders.policy.manage',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-71: GET/PUT /v1/orders/policy, order_policy.read/update',
+  ),
+  capability(
     'orders.seller.read',
     'orders',
     'TENANT',

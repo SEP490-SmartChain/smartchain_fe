@@ -67,6 +67,7 @@ const expected = {
   'rules.simulate.allocation': ['OPS_DISPATCHER'],
   'rules.simulate.carrier': AO,
   'orders.view': roles,
+  'orders.policy.manage': O,
   // UC-66/67 intake does not grant Staff writes or platform intake.
   'orders.seller.read': ['SELLER_OWNER', 'SELLER_STAFF'],
   'orders.create': O,

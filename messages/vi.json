@@ -652,7 +652,8 @@
       "RESERVATION_RENEWAL_REQUIRED": "Thời gian giữ hàng đã hết và hệ thống chưa thể giữ lại đủ hàng. ORCA cần kiểm tra trước khi tiếp tục lấy hàng.",
       "ALLOCATION_QUEUE_FAILED": "Phân bổ hàng chưa hoàn tất sau các lần thử lại. ORCA cần kiểm tra để tiếp tục xử lý đơn.",
       "VALIDATION_FAILED": "Địa chỉ chưa khớp danh mục. Kiểm tra tỉnh/phường và liên hệ ORCA để xử lý đơn này.",
-      "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa."
+      "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa.",
+      "HOLD_RISKY_COD": "Đang chờ bạn xác nhận COD. Chưa giữ tồn kho."
     },
     "errors": {
       "invalid_product": "Sản phẩm không có trong danh mục của bạn hoặc không còn hoạt động. Chọn lại sản phẩm.",
@@ -4087,5 +4088,20 @@
     "calculationInfo": "Xem hoặc thu gọn cách tính",
     "last24Hours": "Trong 24 giờ qua",
     "updatedCompact": "Cập nhật {time} · UTC+7"
+  },
+  "OrderPolicy": {
+    "policyTitle": "Xác nhận đơn COD rủi ro",
+    "policyHint": "Giữ đơn COD đạt ngưỡng hoặc khách từng từ chối nhận hàng từ chính shop này. Đơn đang giữ chưa giữ tồn kho.",
+    "holdEnabled": "Xác nhận đơn COD rủi ro trước khi xử lý",
+    "threshold": "Ngưỡng COD (VND)",
+    "invalidThreshold": "Nhập số tiền nguyên dương bằng VND.",
+    "loading": "Đang tải…",
+    "loadError": "Không tải được chính sách. Vui lòng thử lại.",
+    "writeError": "Chưa xác nhận được kết quả. Giữ nội dung đã nhập và tải lại trạng thái đơn trước khi tiếp tục.",
+    "reload": "Tải lại trạng thái",
+    "save": "Lưu chính sách",
+    "actions": "Thao tác đơn hàng",
+    "confirmHold": "Xác nhận và tiếp tục phân bổ",
+    "invalidInput": "Kiểm tra giá trị này."
   }
 }

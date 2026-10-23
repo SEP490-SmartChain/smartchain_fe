@@ -652,7 +652,8 @@
       "RESERVATION_RENEWAL_REQUIRED": "The stock hold expired and could not be fully renewed. ORCA must review this order before picking can continue.",
       "ALLOCATION_QUEUE_FAILED": "Allocation could not finish after retries. ORCA must review this order before processing can continue.",
       "VALIDATION_FAILED": "The address does not match the directory. Check its province/ward and contact ORCA to resolve this order.",
-      "ADDRESS_NORMALIZED": "The address has been checked and normalized."
+      "ADDRESS_NORMALIZED": "The address has been checked and normalized.",
+      "HOLD_RISKY_COD": "Awaiting your COD confirmation. No stock has been reserved."
     },
     "errors": {
       "invalid_product": "This product is unavailable in your catalog. Choose an available product.",
@@ -4087,5 +4088,20 @@
     "calculationInfo": "Show or hide calculation details",
     "last24Hours": "Last 24 hours",
     "updatedCompact": "Updated {time} · UTC+7"
+  },
+  "OrderPolicy": {
+    "policyTitle": "Risky COD review",
+    "policyHint": "Hold COD orders at or above your threshold, or from a buyer who previously refused delivery from this shop. Held orders reserve no stock.",
+    "holdEnabled": "Review risky COD orders before fulfillment",
+    "threshold": "COD threshold (VND)",
+    "invalidThreshold": "Enter a positive whole VND amount.",
+    "loading": "Loading…",
+    "loadError": "Could not load this policy. Retry to continue.",
+    "writeError": "The result could not be confirmed. Keep your draft and reload the order state before continuing.",
+    "reload": "Reload state",
+    "save": "Save policy",
+    "actions": "Order actions",
+    "confirmHold": "Confirm and continue allocation",
+    "invalidInput": "Check this value."
   }
 }
