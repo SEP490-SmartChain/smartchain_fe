@@ -70,6 +70,7 @@ const expected = {
   // UC-66/67 intake does not grant Staff writes or platform intake.
   'orders.seller.read': ['SELLER_OWNER', 'SELLER_STAFF'],
   'orders.create': O,
+  'orders.withdrawal.create': O,
   'orders.operate': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'],
   'shipments.view': [
     'ORCA_ADMIN',
@@ -116,6 +117,8 @@ const expected = {
   'warehouse.asn.postStock': S,
   'warehouse.putaway.assign': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'warehouse.putaway.confirm': S,
+  'warehouse.picking.manage': M,
+  'warehouse.picking.confirm': S,
   'warehouse.putaway.overrideBin': M,
   'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],

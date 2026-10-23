@@ -24,3 +24,11 @@ export function sellerOrderAccess() {
     intake: canStartSellerIntake(user),
   };
 }
+export function sellerWithdrawalAccess() {
+  const user = useAuthStore.getState().user;
+  return (
+    !!user?.tenantId &&
+    ['ACTIVE', 'SUSPENDED'].includes(user.serviceStatus ?? '') &&
+    can(getEffectiveRoles(user.roles, user.actorScope), 'orders.withdrawal.create')
+  );
+}

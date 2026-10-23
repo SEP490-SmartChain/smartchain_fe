@@ -302,6 +302,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'SS-507 tenant-owned reservation API chưa có mapping ORCA được duyệt',
   ),
   capability(
+    'warehouse.picking.manage',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1186/SS-1312 UC-80/81/84: execution.create/update in assigned warehouse',
+  ),
+  capability(
+    'warehouse.picking.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1186 UC-82/83: assigned pick and shortage evidence via inventory.update',
+  ),
+  capability(
     'inventory.reservations.release',
     'inventory',
     'TENANT',
@@ -351,6 +367,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['SELLER_OWNER', 'SELLER_STAFF'],
     'APPROVED',
     'R3 FU-30/UC-65, own seller order read; GET /v1/orders',
+  ),
+  capability(
+    'orders.withdrawal.create',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-79: /v1/orders/withdrawals; withdrawal.create/update, registered address and debt gate',
   ),
   capability(
     'orders.create',

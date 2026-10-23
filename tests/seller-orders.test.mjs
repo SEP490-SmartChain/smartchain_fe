@@ -538,6 +538,12 @@ test('detail separates collection, recipient and line totals; collapses audit in
   assert.ok(!html.includes(id));
   assert.ok(html.includes('chưa phải kết quả thu tiền'));
 });
+test('scheduled BACKORDER reminder is shown only while waiting and never implies automatic cancellation', () => {
+  const message = viewMessages.Orders.backorderReminder;
+  assert.ok(renderDetail({ status: 'BACKORDER', backorderReminder: true }).includes(message));
+  assert.ok(!renderDetail({ status: 'BACKORDER', backorderReminder: false }).includes(message));
+  assert.ok(!renderDetail({ status: 'ALLOCATED', backorderReminder: true }).includes(message));
+});
 test('legacy detail never invents paid amounts; zero collection does not claim payment verification', () => {
   const html = renderDetail({ codAmount: '0', paymentBreakdown: null });
   assert.ok(html.includes('Không thu tiền người nhận khi giao'));
@@ -868,4 +874,28 @@ test('calculated entry rejects shipping overpayment even when shipping charge is
       'AUTO',
     ),
   );
+});
+
+test('expired-hold review state explains that picking needs ORCA review', () => {
+  const html = renderDetail({
+    status: 'MANUAL_REVIEW',
+    holdReason: 'RESERVATION_RENEWAL_REQUIRED',
+  });
+  assert.equal(
+    feedback.orderReasonKey('RESERVATION_RENEWAL_REQUIRED'),
+    'reasons.RESERVATION_RENEWAL_REQUIRED',
+  );
+  assert.ok(html.includes(viewMessages.Orders.reasons.RESERVATION_RENEWAL_REQUIRED));
+  assert.equal(
+    feedback.orderReasonKey('ALLOCATION_QUEUE_FAILED'),
+    'reasons.ALLOCATION_QUEUE_FAILED',
+  );
+  assert.equal(feedback.orderReasonKey('untrusted raw database text'), 'processing_reason');
+  for (const locale of ['en', 'vi']) {
+    const messages = JSON.parse(
+      readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), 'utf8'),
+    );
+    assert.ok(messages.Orders.reasons.RESERVATION_RENEWAL_REQUIRED.length > 20);
+    assert.ok(messages.Orders.reasons.ALLOCATION_QUEUE_FAILED.length > 20);
+  }
 });
