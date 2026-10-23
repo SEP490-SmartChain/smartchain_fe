@@ -652,7 +652,8 @@
       "RESERVATION_RENEWAL_REQUIRED": "Thời gian giữ hàng đã hết và hệ thống chưa thể giữ lại đủ hàng. ORCA cần kiểm tra trước khi tiếp tục lấy hàng.",
       "ALLOCATION_QUEUE_FAILED": "Phân bổ hàng chưa hoàn tất sau các lần thử lại. ORCA cần kiểm tra để tiếp tục xử lý đơn.",
       "VALIDATION_FAILED": "Địa chỉ chưa khớp danh mục. Kiểm tra tỉnh/phường và liên hệ ORCA để xử lý đơn này.",
-      "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa."
+      "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa.",
+      "CANCEL_PENDING": "Đang chờ xác minh huỷ toàn bộ kiện."
     },
     "errors": {
       "invalid_product": "Sản phẩm không có trong danh mục của bạn hoặc không còn hoạt động. Chọn lại sản phẩm.",
@@ -4132,6 +4133,14 @@
     "carrierSignerName": "Tên đại diện hãng nhận hàng",
     "signAttestation": "Xác nhận các kiện đã được bàn giao thực tế cho đại diện hãng nêu trên. Sau khi ký không thể sửa danh sách kiện.",
     "signHandover": "Xác nhận bàn giao thực tế",
+    "putbackTitle": "Nhập trả hàng do huỷ",
+    "putbackHint": "Chỉ xác nhận scan thực tế mới hoàn tồn hàng đã lấy. Hàng hết hạn hoặc bị chặn phải scan vào khu cách ly.",
+    "noPutbacks": "Không có công việc nhập trả chờ xử lý.",
+    "binCode": "Scan mã vị trí",
+    "sku": "Scan SKU",
+    "lotCode": "Scan mã lô",
+    "actualQty": "Số lượng nhập trả thực tế",
+    "confirmPutback": "Xác nhận nhập trả thực tế",
     "statuses": {
       "PICKED": "Đã lấy hàng",
       "PACKED": "Đã đóng gói",
@@ -4140,5 +4149,20 @@
       "LABEL_CREATED": "Đã có nhãn",
       "DISPATCH_FAILED": "Cần xử lý vận đơn"
     }
+  },
+  "OrderCancellation": {
+    "loading": "Đang tải…",
+    "loadError": "Không tải được chính sách. Vui lòng thử lại.",
+    "writeError": "Chưa xác nhận được kết quả. Giữ nội dung đã nhập và tải lại trạng thái đơn trước khi tiếp tục.",
+    "reload": "Tải lại trạng thái",
+    "actions": "Thao tác đơn hàng",
+    "invalidInput": "Kiểm tra giá trị này.",
+    "cancelReason": "Lý do huỷ",
+    "retryCancellation": "Thử lại cùng yêu cầu huỷ",
+    "cancelOrder": "Yêu cầu huỷ đơn",
+    "cancelled": "Đã xác nhận huỷ. Hàng đã lấy vẫn cần xác nhận nhập trả thực tế trước khi trở thành tồn khả dụng.",
+    "cancelException": "Cần xác minh kết quả huỷ vận đơn với hãng. Chưa hoàn tồn kho.",
+    "cancelPending": "Đang xử lý huỷ. Cần xác minh mọi kiện và kết quả từ hãng vận chuyển.",
+    "checkCancellation": "Kiểm tra yêu cầu huỷ"
   }
 }

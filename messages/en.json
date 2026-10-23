@@ -652,7 +652,8 @@
       "RESERVATION_RENEWAL_REQUIRED": "The stock hold expired and could not be fully renewed. ORCA must review this order before picking can continue.",
       "ALLOCATION_QUEUE_FAILED": "Allocation could not finish after retries. ORCA must review this order before processing can continue.",
       "VALIDATION_FAILED": "The address does not match the directory. Check its province/ward and contact ORCA to resolve this order.",
-      "ADDRESS_NORMALIZED": "The address has been checked and normalized."
+      "ADDRESS_NORMALIZED": "The address has been checked and normalized.",
+      "CANCEL_PENDING": "Cancellation is awaiting verification for every parcel."
     },
     "errors": {
       "invalid_product": "This product is unavailable in your catalog. Choose an available product.",
@@ -4132,6 +4133,14 @@
     "carrierSignerName": "Carrier representative name",
     "signAttestation": "Confirm that these parcels have physically been handed to the named carrier representative. Signing freezes manifest membership.",
     "signHandover": "Confirm physical handover",
+    "putbackTitle": "Cancellation putback",
+    "putbackHint": "Only a confirmed physical scan restores picked stock. Expired or blocked goods must be scanned into quarantine.",
+    "noPutbacks": "No outstanding putback tasks.",
+    "binCode": "Scan bin code",
+    "sku": "Scan SKU",
+    "lotCode": "Scan lot code",
+    "actualQty": "Physically returned quantity",
+    "confirmPutback": "Confirm physical putback",
     "statuses": {
       "PICKED": "Picked",
       "PACKED": "Packed",
@@ -4140,5 +4149,20 @@
       "LABEL_CREATED": "Label ready",
       "DISPATCH_FAILED": "Dispatch needs attention"
     }
+  },
+  "OrderCancellation": {
+    "loading": "Loading…",
+    "loadError": "Could not load this policy. Retry to continue.",
+    "writeError": "The result could not be confirmed. Keep your draft and reload the order state before continuing.",
+    "reload": "Reload state",
+    "actions": "Order actions",
+    "invalidInput": "Check this value.",
+    "cancelReason": "Cancellation reason",
+    "retryCancellation": "Retry the same cancellation",
+    "cancelOrder": "Request cancellation",
+    "cancelled": "Cancellation confirmed. Picked goods still require physical putback before stock becomes available.",
+    "cancelException": "Carrier cancellation needs verification. Stock has not been restored.",
+    "cancelPending": "Cancellation is processing. Every parcel and carrier outcome must be verified.",
+    "checkCancellation": "Check cancellation"
   }
 }

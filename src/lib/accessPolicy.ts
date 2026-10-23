@@ -361,6 +361,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('orders.view', 'orders', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'warehouse.putback.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-50: exact physical putback scan, inventory.update in live assigned warehouse',
+  ),
+  capability(
+    'orders.cancellation.manage',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-50/72/101: orders.update and order_cancel.create/read, own seller only',
+  ),
+  capability(
     'warehouse.packing.confirm',
     'warehouses',
     'PLATFORM',

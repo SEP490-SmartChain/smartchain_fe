@@ -83,9 +83,23 @@ const options = z
     nextManifestCursor: z.uuid().nullable(),
   })
   .strict();
+const putbackTask = z
+  .object({
+    id: z.uuid(),
+    qty: z.number().int(),
+    version: z.number().int(),
+    lotCode: z.string(),
+    sku: z.string(),
+    binCode: z.string(),
+  })
+  .strict();
+const putbacks = z
+  .object({ items: z.array(putbackTask), nextCursor: z.uuid().nullable() })
+  .strict();
 export type PackingDetail = z.infer<typeof detail>;
 export type PackingQueue = z.infer<typeof list>;
 export type HandoverOptions = z.infer<typeof options>;
+export type PutbackTask = z.infer<typeof putbackTask>;
 export interface PackCommand {
   operationId: string;
   expectedVersion: number;
@@ -163,5 +177,39 @@ export const packingApi = {
       { signal, silent: true },
     );
     return operation.parse(data);
+  },
+  async putbacks(warehouseId: string, signal?: AbortSignal, cursor?: string) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/warehouse/putbacks', {
+      params: { warehouseId, ...(cursor ? { cursor } : {}) },
+      signal,
+      silent: true,
+    });
+    return putbacks.parse(data);
+  },
+  async putback(
+    warehouseId: string,
+    id: string,
+    input: {
+      operationId: string;
+      expectedVersion: number;
+      binCode: string;
+      sku: string;
+      lotCode: string;
+      qty: number;
+    },
+    signal?: AbortSignal,
+  ) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/warehouse/putbacks/${id}/confirm?warehouseId=${encodeURIComponent(warehouseId)}`,
+      input,
+      { signal, silent: true },
+    );
+    return z
+      .array(
+        z
+          .object({ stockId: z.uuid(), onHandQty: z.number().int(), reservedQty: z.number().int() })
+          .strict(),
+      )
+      .parse(data);
   },
 };
