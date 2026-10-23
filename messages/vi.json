@@ -146,7 +146,7 @@
     "requestChange": "Đổi gói kỳ tiếp theo",
     "newPlan": "Gói muốn chuyển",
     "choose": "Chọn gói",
-    "changeHint": "ORCA kiểm tra số kho đang có hàng trước khi xếp lịch cho kỳ tiếp theo.",
+    "changeHint": "Sau khi Admin phê duyệt và các điều kiện áp dụng vẫn hợp lệ, gói mới có hiệu lực lúc 00:00 giờ Việt Nam ngày đầu kỳ tiếp theo. Gói hiện tại tiếp tục áp dụng trong kỳ này.",
     "sendChange": "Gửi yêu cầu đổi gói",
     "requested": "Đã gửi yêu cầu đổi gói.",
     "requestClose": "Yêu cầu thanh lý hợp đồng",
@@ -161,7 +161,19 @@
       "REJECTED": "Cần kiểm tra lại",
       "CANCELLED": "Đã hủy"
     },
-    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ."
+    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ.",
+    "eyebrow": "Hợp đồng dịch vụ",
+    "history": "Lịch sử đổi gói",
+    "reject": "Từ chối yêu cầu",
+    "rejected": "Đã từ chối yêu cầu. Seller có thể gửi yêu cầu mới cho kỳ tiếp theo.",
+    "rejectionReason": "Lý do từ chối",
+    "pendingHint": "Đã có yêu cầu chờ xử lý. Gói hiện tại tiếp tục áp dụng đến kỳ thay đổi được duyệt.",
+    "closeoutTitle": "Đang thanh lý · hoàn tất từng bước",
+    "closeoutDebt": "Xử lý nợ bằng thanh toán đã xác minh hoặc bù trừ cọc được duyệt.",
+    "closeoutStock": "Rút hàng theo quy trình kho và hoàn tất công việc, khiếu nại còn mở.",
+    "closeoutFinal": "Chốt phí, hoàn phần tiền còn lại có chứng từ; Admin đóng hợp đồng.",
+    "openSettlement": "Xem công nợ và điều kiện hoàn cọc",
+    "enterpriseHint": "Cần gói Enterprise hoặc điều chỉnh điều khoản riêng? Liên hệ ORCA để đàm phán và ký hợp đồng ngoài hệ thống; Admin ghi nhận các điều khoản đã thống nhất."
   },
   "CommercialAdmin": {
     "finalizeClosure": "Hoàn tất thanh lý",

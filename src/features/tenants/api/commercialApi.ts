@@ -323,6 +323,22 @@ export const commercialApi = {
       .object({ id: z.string().uuid(), status: z.string(), effectiveOn: z.string() })
       .parse(data);
   },
+  async rejectPlanChange(
+    tenantId: string,
+    id: string,
+    expectedVersion: number,
+    reason: string,
+    signal?: AbortSignal,
+  ) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/commercial/tenants/${encodeURIComponent(tenantId)}/plan-changes/${encodeURIComponent(id)}/reject`,
+      { expectedVersion, reason },
+      { signal, silent: true },
+    );
+    return z
+      .object({ id: z.string().uuid(), status: z.literal('REJECTED'), effectiveOn: z.string() })
+      .parse(data);
+  },
   async requestClosure(expectedVersion: number, reason: string, signal?: AbortSignal) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       '/v1/commercial/closure-requests',
