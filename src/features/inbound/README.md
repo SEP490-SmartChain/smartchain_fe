@@ -51,8 +51,25 @@ reuse an operation UUID; mutations and pending reads ignore obsolete identities.
 Submitted cartons have an SVG Code 128 preview and print layout using the existing
 encoder. Cancelled carton labels cannot be printed from this screen.
 
-UC-36 replenishment suggestions await P1 SS-1004. Receiving/QC/putaway effects are
-separate P2 tasks. This screen never fabricates available stock or receiving results.
+UC-36 uses P1's read-only `GET /v1/asns/allocation-suggestion` (SS-1004).
+Seller reviews the 30-day history or disclosed regional baseline, shelf-life cap
+and any unallocated remainder, then explicitly chooses a warehouse/quantity for
+this single-warehouse ASN. The values remain editable; viewing a suggestion never
+creates or submits an ASN. Separate destinations require separate ASN drafts.
+The adapter binds the response to the requested SKU, quantity and expiry, rejects
+duplicate destinations and requires the suggested quantities plus remainder to
+equal the requested total without exceeding individual expiry caps. Invalid
+responses show the existing retry error and cannot populate the form.
+Changing SKU, quantity, expiry or identity invalidates old suggestions.
+Receiving/QC/putaway effects are separate P2 tasks. This screen never fabricates
+available stock or receiving results.
+
+SS-1066 regression: `node --test tests/asn-api.test.mjs`.
+For desktop/mobile role and interaction acceptance, run
+`node tests/ss-1066-asn-browser.mjs` and open `http://127.0.0.1:24366/`.
+The harness runs the actual app with explicitly synthetic local transport and no
+environment files, external providers or shared database. This is UI/contract
+evidence; backend PostgreSQL/RLS acceptance is recorded separately.
 
 ## Warehouse arrival (SS-1071 / FU-21 / UC-37)
 
