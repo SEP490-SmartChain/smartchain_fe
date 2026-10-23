@@ -4163,6 +4163,16 @@
     "cancelled": "Cancellation confirmed. Picked goods still require physical putback before stock becomes available.",
     "cancelException": "Carrier cancellation needs verification. Stock has not been restored.",
     "cancelPending": "Cancellation is processing. Every parcel and carrier outcome must be verified.",
-    "checkCancellation": "Check cancellation"
+    "checkCancellation": "Check cancellation",
+    "opsTitle": "Order cancellation",
+    "opsHint": "Review orders whose every warehouse is currently assigned to you. Carrier cancellation must be verified before completion.",
+    "opsLoadError": "Could not load eligible orders. Reload to recheck your assignments.",
+    "opsEmpty": "No eligible orders in your assigned warehouses.",
+    "orderCode": "Order code",
+    "seller": "Seller",
+    "warehouses": "Warehouses",
+    "search": "Search",
+    "reviewOrder": "Review cancellation",
+    "nextPage": "Next page"
   }
 }

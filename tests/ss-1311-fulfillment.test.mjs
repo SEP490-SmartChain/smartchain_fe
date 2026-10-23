@@ -106,15 +106,18 @@ test('SS-1311 task capability scope is explicit for seven roles', () => {
       'warehouse.handover.create',
       'warehouse.handover.confirm',
       'orders.cancellation.manage',
+      'orders.cancellation.ops',
       'warehouse.putback.confirm',
     ])
       assert.equal(
         policy.can(effective, cap),
-        cap === 'warehouse.handover.create'
-          ? ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'].includes(role)
-          : cap.startsWith('warehouse.')
-            ? role === 'WAREHOUSE_STAFF'
-            : role === 'SELLER_OWNER',
+        cap === 'orders.cancellation.ops'
+          ? role === 'OPS_DISPATCHER'
+          : cap === 'warehouse.handover.create'
+            ? ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'].includes(role)
+            : cap.startsWith('warehouse.')
+              ? role === 'WAREHOUSE_STAFF'
+              : role === 'SELLER_OWNER',
       );
   }
 });

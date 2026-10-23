@@ -377,6 +377,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'UC-50/72/101: orders.update and order_cancel.create/read, own seller only',
   ),
   capability(
+    'orders.cancellation.ops',
+    'orders',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-50/101: order_cancel.read/create; server requires live assignments for every child warehouse',
+  ),
+  capability(
     'warehouse.packing.confirm',
     'warehouses',
     'PLATFORM',

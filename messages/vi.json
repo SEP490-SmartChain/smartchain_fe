@@ -4163,6 +4163,16 @@
     "cancelled": "Đã xác nhận huỷ. Hàng đã lấy vẫn cần xác nhận nhập trả thực tế trước khi trở thành tồn khả dụng.",
     "cancelException": "Cần xác minh kết quả huỷ vận đơn với hãng. Chưa hoàn tồn kho.",
     "cancelPending": "Đang xử lý huỷ. Cần xác minh mọi kiện và kết quả từ hãng vận chuyển.",
-    "checkCancellation": "Kiểm tra yêu cầu huỷ"
+    "checkCancellation": "Kiểm tra yêu cầu huỷ",
+    "opsTitle": "Huỷ đơn hàng",
+    "opsHint": "Xem các đơn mà bạn đang được phân công tất cả kho liên quan. Kết quả huỷ vận đơn phải được xác minh trước khi hoàn tất.",
+    "opsLoadError": "Không tải được đơn đủ điều kiện. Tải lại để kiểm tra phân công kho hiện tại.",
+    "opsEmpty": "Không có đơn đủ điều kiện trong phạm vi kho được phân công.",
+    "orderCode": "Mã đơn hàng",
+    "seller": "Nhà bán",
+    "warehouses": "Kho xử lý",
+    "search": "Tìm kiếm",
+    "reviewOrder": "Xem yêu cầu huỷ",
+    "nextPage": "Trang tiếp"
   }
 }

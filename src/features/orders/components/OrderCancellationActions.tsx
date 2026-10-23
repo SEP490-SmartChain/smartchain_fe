@@ -11,6 +11,7 @@ import { createUuid } from '@/lib/uuid';
 
 import { orderCancellationApi, type Cancellation } from '../api/orderCancellationApi';
 import { cancellationReasonSchema } from '../schemas/orderCancellationSchema';
+import { isRejectedOperation } from '../lib/fulfillmentRetry';
 
 import type { SellerOrderDetail } from '../api/ordersApi';
 import type { z } from 'zod';
@@ -19,7 +20,7 @@ export function OrderCancellationActions({
   order,
   onChanged,
 }: {
-  order: SellerOrderDetail;
+  order: Pick<SellerOrderDetail, 'id' | 'status' | 'holdReason' | 'version'>;
   onChanged: () => void;
 }) {
   const t = useTranslations('OrderCancellation'),
@@ -34,7 +35,7 @@ export function OrderCancellationActions({
     resolver: zodResolver(cancellationReasonSchema),
     defaultValues: { reason: '' },
   });
-  const allowed = can('orders.cancellation.manage');
+  const allowed = can('orders.cancellation.manage') || can('orders.cancellation.ops');
   useEffect(() => {
     const c = new AbortController();
     abort.current = c;
@@ -47,8 +48,11 @@ export function OrderCancellationActions({
     setError('');
     try {
       await action();
-    } catch {
-      if (!abort.current.signal.aborted) setError(t('writeError'));
+    } catch (error: unknown) {
+      if (!abort.current.signal.aborted) {
+        if (isRejectedOperation(error)) pending.current = null;
+        setError(t('writeError'));
+      }
     } finally {
       running.current = false;
       if (!abort.current.signal.aborted) setBusy(false);
