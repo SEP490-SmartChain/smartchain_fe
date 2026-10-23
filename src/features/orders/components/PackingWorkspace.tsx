@@ -20,6 +20,7 @@ import {
 } from '../api/packingApi';
 import { pickingApi } from '../api/pickingApi';
 import { packingFormSchema } from '../schemas/packingSchema';
+import { isRejectedOperation } from '../lib/fulfillmentRetry';
 
 import type { z } from 'zod';
 
@@ -225,8 +226,11 @@ function PackingForm({
         pending.current = null;
         onPacked();
       }
-    } catch {
-      if (!abort.current.signal.aborted) setError(t('writeError'));
+    } catch (error: unknown) {
+      if (!abort.current.signal.aborted) {
+        if (isRejectedOperation(error)) pending.current = null;
+        setError(t('writeError'));
+      }
     } finally {
       running.current = false;
       if (!abort.current.signal.aborted) setBusy(false);

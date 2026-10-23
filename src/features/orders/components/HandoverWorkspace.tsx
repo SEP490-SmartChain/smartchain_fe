@@ -11,6 +11,7 @@ import styles from './PackingWorkspace.module.css';
 import { packingApi, type HandoverOptions } from '../api/packingApi';
 import { pickingApi } from '../api/pickingApi';
 import { handoverAckSchema } from '../schemas/packingSchema';
+import { isRejectedOperation } from '../lib/fulfillmentRetry';
 import type { z } from 'zod';
 
 export function HandoverWorkspace() {
@@ -126,8 +127,11 @@ function WarehouseHandover({
         pending.current = null;
         setReload((n) => n + 1);
       }
-    } catch {
-      if (!abort.current.signal.aborted) setError(t('writeError'));
+    } catch (error: unknown) {
+      if (!abort.current.signal.aborted) {
+        if (isRejectedOperation(error)) pending.current = null;
+        setError(t('writeError'));
+      }
     } finally {
       running.current = false;
       if (!abort.current.signal.aborted) setBusy(false);
@@ -300,8 +304,11 @@ function SignManifest({
     try {
       await packingApi.sign(warehouse, id, pending.current, abort.current.signal);
       if (!abort.current.signal.aborted) onSigned();
-    } catch {
-      if (!abort.current.signal.aborted) setError(t('writeError'));
+    } catch (error: unknown) {
+      if (!abort.current.signal.aborted) {
+        if (isRejectedOperation(error)) pending.current = null;
+        setError(t('writeError'));
+      }
     } finally {
       running.current = false;
       if (!abort.current.signal.aborted) setBusy(false);
