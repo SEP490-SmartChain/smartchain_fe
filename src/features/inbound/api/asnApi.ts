@@ -83,26 +83,40 @@ const warehouseAllocationSchema = z.object({
   warehouseCode: z.string(),
   warehouseName: z.string(),
   region: z.string(),
-  suggestedQty: z.number().int().nonnegative(),
-  sharePercent: z.number().nonnegative(),
+  suggestedQty: z.number().int().min(0).max(1000000),
+  sharePercent: z.number().min(0).max(100),
   dailyVelocity: z.number().nonnegative(),
   cappedByExpiry: z.boolean(),
   maxSellableBeforeExpiry: z.number().int().nonnegative().nullable(),
   redistributedQty: z.number().int().nonnegative(),
 });
-const allocationSuggestionSchema = z.object({
-  productId: z.string().uuid(),
-  sku: z.string(),
-  productName: z.string(),
-  totalQuantity: z.number().int().positive(),
-  declaredExpiryOn: z.string().nullable(),
-  daysUntilExpiry: z.number().int().nonnegative().nullable(),
-  basis: z.enum(['HISTORICAL_VELOCITY_30D', 'CONFIGURED_REGIONAL_BASELINE']),
-  hasSufficientHistory: z.boolean(),
-  allocations: z.array(warehouseAllocationSchema),
-  warnings: z.array(z.string()),
-  unallocatedQuantity: z.number().int().nonnegative(),
-});
+const allocationSuggestionSchema = z
+  .object({
+    productId: z.string().uuid(),
+    sku: z.string(),
+    productName: z.string(),
+    totalQuantity: z.number().int().min(1).max(1000000),
+    declaredExpiryOn: z.iso.date().nullable(),
+    daysUntilExpiry: z.number().int().nonnegative().nullable(),
+    basis: z.enum(['HISTORICAL_VELOCITY_30D', 'CONFIGURED_REGIONAL_BASELINE']),
+    hasSufficientHistory: z.boolean(),
+    allocations: z.array(warehouseAllocationSchema),
+    warnings: z.array(z.string()),
+    unallocatedQuantity: z.number().int().min(0).max(1000000),
+  })
+  .refine((value) => {
+    const destinations = value.allocations.map((row) => row.warehouseId.toLowerCase());
+    return (
+      new Set(destinations).size === destinations.length &&
+      value.allocations.reduce((sum, row) => sum + row.suggestedQty, value.unallocatedQuantity) ===
+        value.totalQuantity &&
+      value.allocations.every(
+        (row) =>
+          row.redistributedQty <= row.suggestedQty &&
+          (row.maxSellableBeforeExpiry === null || row.suggestedQty <= row.maxSellableBeforeExpiry),
+      )
+    );
+  }, 'Allocation quantities must conserve the requested total and respect each expiry cap.');
 
 export const asnApi = {
   async getAllocationSuggestion(
@@ -121,7 +135,15 @@ export const asnApi = {
       signal,
       silent: true,
     });
-    return allocationSuggestionSchema.parse(data);
+    return allocationSuggestionSchema
+      .refine(
+        (value) =>
+          value.productId.toLowerCase() === params.productId.toLowerCase() &&
+          value.totalQuantity === params.totalQuantity &&
+          value.declaredExpiryOn === (params.declaredExpiryOn ?? null),
+        'Allocation suggestion must match the requested SKU, quantity and expiry.',
+      )
+      .parse(data);
   },
 
   async skuOptions(search = '', cursor?: string, signal?: AbortSignal) {
