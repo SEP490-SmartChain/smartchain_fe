@@ -4087,5 +4087,21 @@
     "calculationInfo": "Xem hoặc thu gọn cách tính",
     "last24Hours": "Trong 24 giờ qua",
     "updatedCompact": "Cập nhật {time} · UTC+7"
+  },
+  "OrderLifecycle": {
+    "loading": "Đang tải…",
+    "loadError": "Không tải được chính sách. Vui lòng thử lại.",
+    "writeError": "Chưa xác nhận được kết quả. Giữ nội dung đã nhập và tải lại trạng thái đơn trước khi tiếp tục.",
+    "reload": "Tải lại trạng thái",
+    "actions": "Thao tác đơn hàng",
+    "correct": "Sửa người nhận",
+    "revalidate": "Kiểm tra lại đơn",
+    "recipientName": "Tên người nhận",
+    "recipientPhone": "Số điện thoại",
+    "recipientAddress": "Địa chỉ",
+    "toProvinceCode": "Mã tỉnh/thành",
+    "toWardCode": "Mã phường/xã",
+    "invalidInput": "Kiểm tra giá trị này.",
+    "saveCorrection": "Lưu thông tin sửa"
   }
 }

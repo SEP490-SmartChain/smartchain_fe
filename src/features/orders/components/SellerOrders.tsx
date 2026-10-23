@@ -21,6 +21,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
 import { OrderDetail } from './OrderDetail';
+import { OrderLifecycleActions } from './OrderLifecycleActions';
 import { SellerWithdrawalForm } from './SellerWithdrawalForm';
 import {
   ORDER_STATUSES,
@@ -569,7 +570,19 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             </Button>
           </Alert>
         )}
-        {detail && <OrderDetail order={detail} />}
+        {detail && (
+          <>
+            <OrderDetail order={detail} />
+            <OrderLifecycleActions
+              key={`OrderLifecycleActions:${detail.id}`}
+              order={detail}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
+          </>
+        )}
       </Modal>
     </div>
   );

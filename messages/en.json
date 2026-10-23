@@ -4087,5 +4087,21 @@
     "calculationInfo": "Show or hide calculation details",
     "last24Hours": "Last 24 hours",
     "updatedCompact": "Updated {time} · UTC+7"
+  },
+  "OrderLifecycle": {
+    "loading": "Loading…",
+    "loadError": "Could not load this policy. Retry to continue.",
+    "writeError": "The result could not be confirmed. Keep your draft and reload the order state before continuing.",
+    "reload": "Reload state",
+    "actions": "Order actions",
+    "correct": "Correct recipient",
+    "revalidate": "Validate again",
+    "recipientName": "Recipient name",
+    "recipientPhone": "Phone",
+    "recipientAddress": "Address",
+    "toProvinceCode": "Province code",
+    "toWardCode": "Ward code",
+    "invalidInput": "Check this value.",
+    "saveCorrection": "Save correction"
   }
 }
