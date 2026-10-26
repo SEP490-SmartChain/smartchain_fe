@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { PickingWorkspace } from '@/features/orders';
 
 export default function PickingPage() {
-  return <UnderConstruction />;
+  return <PickingWorkspace />;
 }

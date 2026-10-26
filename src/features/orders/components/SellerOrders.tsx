@@ -21,6 +21,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
 import { OrderDetail } from './OrderDetail';
+import { SellerWithdrawalForm } from './SellerWithdrawalForm';
 import {
   ORDER_STATUSES,
   ordersApi,
@@ -33,7 +34,7 @@ import {
 import { useOrders } from '../hooks/useOrders';
 import { importRowFeedback, orderErrorKey, orderReasonKey } from '../lib/orderFeedback';
 import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
-import { orderScope, sellerOrderAccess } from '../lib/orderScope';
+import { orderScope, sellerOrderAccess, sellerWithdrawalAccess } from '../lib/orderScope';
 
 export function SellerOrders() {
   const scope = useAuthStore(orderScope);
@@ -54,7 +55,9 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
   });
   const [filters, setFilters] = useState(draftFilters);
   const orders = useOrders(scope, filters, owner);
-  const [modal, setModal] = useState<'manual' | 'import' | 'detail' | 'sheet' | null>(null);
+  const [modal, setModal] = useState<
+    'manual' | 'import' | 'detail' | 'sheet' | 'withdrawal' | null
+  >(null);
   const [detail, setDetail] = useState<SellerOrderDetail | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -154,7 +157,11 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
       key: 'sourceChannel',
       label: t('fields.sourceChannel'),
       render: (order) =>
-        order.sourceChannel === 'manual' ? t('manual_channel') : order.sourceChannel,
+        order.kind === 'WITHDRAWAL'
+          ? t('withdrawalOrder')
+          : order.sourceChannel === 'manual'
+            ? t('manual_channel')
+            : order.sourceChannel,
     },
     {
       key: 'status',
@@ -218,6 +225,11 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             </Button>
             {owner && (
               <>
+                {sellerWithdrawalAccess() && (
+                  <Button variant="secondary" onClick={() => setModal('withdrawal')}>
+                    {t('withdrawalOrder')}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   disabled={!canIntake}
@@ -368,6 +380,18 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
           {busy && <p role="status">{t('loading')}</p>}
           {error && <Alert variant="error">{error}</Alert>}
         </Modal>
+      )}
+      {owner && (
+        <SellerWithdrawalForm
+          scope={scope}
+          isOpen={modal === 'withdrawal'}
+          onClose={() => setModal(null)}
+          onAccepted={(id, code) => {
+            setAccepted({ id, code });
+            setModal(null);
+            void orders.reload();
+          }}
+        />
       )}
       {/* Keep the form mounted across dialog closes; scope changes remount this session. */}
       {owner && (

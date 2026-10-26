@@ -35,7 +35,8 @@ export function ProductCatalogTable() {
   const [deactivationProduct, setDeactivationProduct] = useState<Product | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const principal = useAuthStore((state) => state.user);
+  const scopeRevision = useAuthStore((state) => state.revision);
+  const serviceStatus = useAuthStore((state) => state.user?.serviceStatus);
   useEffect(() => {
     setCurrentPage(1);
     setEditingProduct(null);
@@ -43,7 +44,7 @@ export function ProductCatalogTable() {
     setIsCreating(false);
     setDeactivationProduct(null);
     setIsImporting(false);
-  }, [principal]);
+  }, [scopeRevision, serviceStatus]);
   const { can } = useAccess();
   const canManageProducts = can('catalog.products.manage');
   const { products, error, isLoading, hasNextPage, refetch, loadMore } = useProducts(filters);

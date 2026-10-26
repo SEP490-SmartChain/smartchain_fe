@@ -7,11 +7,13 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import Modal from '@/components/Common/Modal/Modal';
+import { useAccess } from '@/hooks/useAccess';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { CommercialCustomInquiry } from './CommercialCustomInquiry';
 import { CommercialPdfPreview } from './CommercialPdfPreview';
 import { CommercialPreparationForm } from './CommercialPreparationForm';
+import { CommercialQuotaPanel } from './CommercialQuotaPanel';
 import { useSellerCommercial } from '../hooks/useSellerCommercial';
 import { shouldUseSigningWindow } from '../lib/signingPresentation';
 
@@ -21,6 +23,7 @@ export function SellerContractOnboarding() {
   const t = useTranslations('Commercial');
   const locale = useLocaleStore((state) => state.locale);
   const flow = useSellerCommercial();
+  const { can } = useAccess();
   const [selectedPlan, setSelectedPlan] = useState<CommercialPlan | null>(null);
   const signingInWindow = shouldUseSigningWindow(
     typeof window === 'undefined' ? '' : window.location.origin,
@@ -358,6 +361,11 @@ export function SellerContractOnboarding() {
           </ul>
         </article>
       ))}
+      {can('contract.sign') &&
+        contract &&
+        ['ACCEPTED', 'CONFIRMED', 'TERMINATING'].includes(contract.status) && (
+          <CommercialQuotaPanel key={contract.id} />
+        )}
       {flow.pdfUrl && (
         <CommercialPdfPreview
           key={flow.pdfUrl}

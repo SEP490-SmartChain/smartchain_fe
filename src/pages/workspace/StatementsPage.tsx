@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { SellerPayoutWorkspace } from '@/features/tenants';
 
 export default function StatementsPage() {
-  return <UnderConstruction />;
+  return <SellerPayoutWorkspace />;
 }

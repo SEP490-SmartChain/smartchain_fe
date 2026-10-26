@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+import {
+  allocationProjectionSchema,
+  allocationSnapshotSchema,
+  carrierProjectionSchema,
+  carrierSnapshotSchema,
+  simulationProjectionSchema,
+} from './simulationProjectionSchema';
+
 const uuid = z
   .string()
   .uuid()
@@ -30,8 +38,23 @@ export const simulationRequestSchema = z
       })
       .strict(),
     candidate: z.object({ ruleId: uuid, version }).strict().optional(),
+    projection: simulationProjectionSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    if (
+      value.projection &&
+      !(value.kind === 'ALLOCATION' ? allocationSnapshotSchema : carrierSnapshotSchema).safeParse(
+        value.projection,
+      ).success
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['projection'],
+        message: 'Wrong simulation snapshot kind',
+      });
+    }
+  });
 export type SimulationRequest = z.infer<typeof simulationRequestSchema>;
 const action = z.union([
   z.object({ strategy: z.enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST']) }).strict(),
@@ -98,6 +121,8 @@ export const simulationResponseSchema = z
       )
       .max(11),
     pending: z.array(z.enum(['ALLOCATION_PREVIEW', 'CARRIER_QUOTE'])).max(1),
+    allocation: allocationProjectionSchema.optional(),
+    carrierQuote: carrierProjectionSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -105,7 +130,11 @@ export const simulationResponseSchema = z
     let valid = new Set(value.trace.map((row) => row.ruleId)).size === value.trace.length;
     if (!value.match) {
       valid &&=
-        selected.length === 0 && value.pending.length === 0 && value.carrierServices.length === 0;
+        selected.length === 0 &&
+        value.pending.length === 0 &&
+        value.carrierServices.length === 0 &&
+        !value.allocation &&
+        !value.carrierQuote;
     } else {
       const match = value.match;
       valid &&=
@@ -116,9 +145,17 @@ export const simulationResponseSchema = z
         selected[0]?.scope === match.scope &&
         selected[0]?.name === match.name;
       valid &&=
-        value.pending[0] === (value.kind === 'ALLOCATION' ? 'ALLOCATION_PREVIEW' : 'CARRIER_QUOTE');
+        value.allocation || value.carrierQuote
+          ? value.pending.length === 0
+          : value.pending[0] ===
+            (value.kind === 'ALLOCATION' ? 'ALLOCATION_PREVIEW' : 'CARRIER_QUOTE');
       if (value.kind === 'ALLOCATION') {
-        valid &&= 'strategy' in match.action && value.carrierServices.length === 0;
+        valid &&=
+          'strategy' in match.action &&
+          value.carrierServices.length === 0 &&
+          !value.carrierQuote &&
+          (!value.allocation ||
+            ('strategy' in match.action && value.allocation.strategy === match.action.strategy));
       } else if ('carrierServiceId' in match.action) {
         const ids = [match.action.carrierServiceId, ...match.action.fallbackServiceIds];
         valid &&=
@@ -128,6 +165,11 @@ export const simulationResponseSchema = z
               value.carrierServices[index]?.id === id &&
               value.carrierServices[index]?.role === (index === 0 ? 'PRIMARY' : 'FALLBACK'),
           );
+        valid &&=
+          !value.allocation &&
+          (!value.carrierQuote ||
+            (value.carrierQuote.candidates.length === ids.length &&
+              ids.every((id, index) => value.carrierQuote?.candidates[index]?.serviceId === id)));
       } else valid = false;
     }
     if (!valid) ctx.addIssue({ code: 'custom', message: 'Inconsistent simulation result' });
@@ -162,6 +204,18 @@ export const simulationFormSchema = (error: string) =>
       isCod: z.enum(['', 'true', 'false']),
       ruleId: z.string().refine((value) => value === '' || uuid.safeParse(value).success, error),
       ruleVersion: z.string(),
+      projectionJson: z
+        .string()
+        .max(100_000, error)
+        .optional()
+        .refine((value) => {
+          if (!value) return true;
+          try {
+            return simulationProjectionSchema.safeParse(JSON.parse(value)).success;
+          } catch {
+            return false;
+          }
+        }, error),
     })
     .superRefine((value, ctx) => {
       if (
@@ -192,5 +246,6 @@ export function toSimulationRequest(
     ...(value.ruleId
       ? { candidate: { ruleId: value.ruleId, version: Number(value.ruleVersion) } }
       : {}),
+    ...(value.projectionJson ? { projection: JSON.parse(value.projectionJson) } : {}),
   });
 }

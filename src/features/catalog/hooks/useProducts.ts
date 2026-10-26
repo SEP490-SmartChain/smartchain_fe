@@ -7,7 +7,7 @@ import { productApi } from '../api/productApi';
 import type { Product, ProductFilters } from '../types/product.types';
 
 export function useProducts(filters: ProductFilters) {
-  const principal = useAuthStore((state) => state.user);
+  const scopeRevision = useAuthStore((state) => state.revision);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +49,7 @@ export function useProducts(filters: ProductFilters) {
     setNextCursor(null);
     void loadPage();
     return invalidateRequests;
-  }, [loadPage, principal, invalidateRequests]);
+  }, [loadPage, scopeRevision, invalidateRequests]);
 
   return {
     products,

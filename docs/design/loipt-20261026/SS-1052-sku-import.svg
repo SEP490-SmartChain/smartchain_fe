@@ -1,0 +1,88 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1052 · Import SKUs</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <rect x="16" y="166" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="193" font-size="14" fill="#0F766E" font-weight="600">Product catalog</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Inbound ASN</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="405" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Product catalog / Import SKUs
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">Seller Owner</text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Import SKUs</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Preview spreadsheet rows and correct errors before committing the import.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1052 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="1120" height="120" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="278" font-size="18" fill="#0F172A" font-weight="600">Upload .xlsx / .csv</text>
+  <text x="310" y="314" font-size="14" fill="#475569" font-weight="400">
+    Selected: synthetic-products.xlsx · 3 rows · Import reference retained on retry
+  </text>
+  <rect x="1182" y="276" width="200" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1198" y="303" font-size="14" fill="#0F172A" font-weight="600">Choose workbook</text>
+  <rect x="286" y="390" width="1120" height="223" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="287" y="391" width="1118" height="48" rx="10" fill="#F1F5F9" />
+  <text x="306" y="420" font-size="12" fill="#475569" font-weight="600">Row</text>
+  <text x="396" y="420" font-size="12" fill="#475569" font-weight="600">SKU</text>
+  <text x="646" y="420" font-size="12" fill="#475569" font-weight="600">Product</text>
+  <text x="936" y="420" font-size="12" fill="#475569" font-weight="600">Validation</text>
+  <text x="1266" y="420" font-size="12" fill="#475569" font-weight="600">Action</text>
+  <path d="M 286 441 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="471" font-size="13" fill="#0F172A" font-weight="600">2</text>
+  <text x="396" y="471" font-size="13" fill="#0F172A" font-weight="400">RICE-5KG</text>
+  <text x="646" y="471" font-size="13" fill="#0F172A" font-weight="400">Jasmine rice 5 kg</text>
+  <text x="936" y="471" font-size="13" fill="#0F172A" font-weight="400">Ready</text>
+  <text x="1266" y="471" font-size="13" fill="#0F766E" font-weight="400">Included</text>
+  <path d="M 286 497 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="527" font-size="13" fill="#0F172A" font-weight="600">3</text>
+  <text x="396" y="527" font-size="13" fill="#0F172A" font-weight="400">TEA-250G</text>
+  <text x="646" y="527" font-size="13" fill="#0F172A" font-weight="400">Green tea</text>
+  <text x="936" y="527" font-size="13" fill="#0F172A" font-weight="400">Ready</text>
+  <text x="1266" y="527" font-size="13" fill="#0F766E" font-weight="400">Included</text>
+  <path d="M 286 553 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="583" font-size="13" fill="#0F172A" font-weight="600">4</text>
+  <text x="396" y="583" font-size="13" fill="#0F172A" font-weight="400">BOX-M</text>
+  <text x="646" y="583" font-size="13" fill="#0F172A" font-weight="400">Shipping box</text>
+  <text x="936" y="583" font-size="13" fill="#0F172A" font-weight="400">
+    Weight must be positive
+  </text>
+  <text x="1266" y="583" font-size="13" fill="#0F766E" font-weight="400">Correct source row</text>
+  <text x="310" y="670" font-size="15" fill="#EF4444" font-weight="600">
+    No import is submitted while blocking rows remain unresolved.
+  </text>
+  <text x="310" y="708" font-size="14" fill="#475569" font-weight="400">
+    Retry the same import reference; never create duplicate SKU effects.
+  </text>
+  <rect x="1050" y="778" width="150" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1066" y="805" font-size="14" fill="#0F172A" font-weight="600">Cancel</text>
+  <rect x="1218" y="778" width="164" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1234" y="805" font-size="14" fill="#FFFFFF" font-weight="600">Import valid rows</text>
+</svg>

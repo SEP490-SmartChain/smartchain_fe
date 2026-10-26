@@ -302,6 +302,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'SS-507 tenant-owned reservation API chưa có mapping ORCA được duyệt',
   ),
   capability(
+    'warehouse.picking.manage',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1186/SS-1312 UC-80/81/84: execution.create/update in assigned warehouse',
+  ),
+  capability(
+    'warehouse.picking.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1186 UC-82/83: assigned pick and shortage evidence via inventory.update',
+  ),
+  capability(
     'inventory.reservations.release',
     'inventory',
     'TENANT',
@@ -351,6 +367,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['SELLER_OWNER', 'SELLER_STAFF'],
     'APPROVED',
     'R3 FU-30/UC-65, own seller order read; GET /v1/orders',
+  ),
+  capability(
+    'orders.withdrawal.create',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-79: /v1/orders/withdrawals; withdrawal.create/update, registered address and debt gate',
   ),
   capability(
     'orders.create',
@@ -536,6 +560,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     ['ORCA_ACCOUNTANT'],
     'APPROVED',
     'ORCA Report 3 UC-123 / SS-1022: Accountant closes a completed seller statement',
+  ),
+  capability(
+    'statement.review',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'SS-1012 / UC-131–132: own statement confirmation and line disputes via statement_review.update / payout_review.create',
+  ),
+  capability(
+    'payout.manage',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'SS-1012 / UC-133–136: evidenced statement approval, manual transfers and approved closeout settlement via finance.create',
   ),
   capability(
     'apikey.manage',
@@ -799,16 +839,16 @@ export interface NavGroup {
 /** Template sidebar dùng chung lọc theo 3 cổng; lọc theo capability để ra template từng role. */
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
+    key: 'overview_heading',
+    scope: 'shared',
+    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
+  },
+  {
     key: 'platform_staff_heading',
     scope: 'platform',
     items: [{ key: 'platform_staff', href: '/admin/staff', capability: 'iam.warehouses.assign' }],
   },
   // 1. CỔNG NGƯỜI BÁN (TENANT)
-  {
-    key: 'overview_heading',
-    scope: 'workspace',
-    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
-  },
   {
     key: 'goods_heading',
     scope: 'workspace',
@@ -954,11 +994,6 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         key: 'integration_errors',
         href: '/integration-errors',
         capability: 'integration.errors.view',
-      },
-      {
-        key: 'analytics',
-        href: '/analytics',
-        anyCapability: ['analytics.operations.view', 'analytics.finance.view'],
       },
     ],
   },

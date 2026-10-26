@@ -1,0 +1,99 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1064 · Create shipment notice</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Product catalog</text>
+  <rect x="16" y="219" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="246" font-size="14" fill="#0F766E" font-weight="600">Inbound ASN</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="405" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Inbound ASN / Create shipment notice
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    Seller Owner / Seller Staff
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">
+    Create shipment notice
+  </text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    One ASN belongs to one eligible warehouse. Review declared quantities before submitting.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1064 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="1120" height="600" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="279" font-size="18" fill="#0F172A" font-weight="600">Shipment details</text>
+  <text x="310" y="323" font-size="13" fill="#475569" font-weight="600">Warehouse</text>
+  <text x="381" y="323" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="333" width="500" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="359" font-size="14" fill="#0F172A" font-weight="400">DN-01 · Đà Nẵng</text>
+  <text x="842" y="323" font-size="13" fill="#475569" font-weight="600">External reference</text>
+  <rect x="842" y="333" width="540" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="854" y="359" font-size="14" fill="#0F172A" font-weight="400">SUPPLIER-DEMO-001</text>
+  <text x="310" y="415" font-size="13" fill="#475569" font-weight="600">Expected arrival</text>
+  <rect x="310" y="425" width="500" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="451" font-size="14" fill="#0F172A" font-weight="400">Optional date / time</text>
+  <text x="842" y="415" font-size="13" fill="#475569" font-weight="600">Carton count</text>
+  <text x="934" y="415" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="842" y="425" width="540" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="854" y="451" font-size="14" fill="#0F172A" font-weight="400">20</text>
+  <text x="310" y="513" font-size="18" fill="#0F172A" font-weight="600">Declared items</text>
+  <text x="310" y="554" font-size="13" fill="#475569" font-weight="600">SKU</text>
+  <text x="339" y="554" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="564" width="330" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="590" font-size="14" fill="#0F172A" font-weight="400">
+    RICE-5KG · Jasmine rice
+  </text>
+  <text x="664" y="554" font-size="13" fill="#475569" font-weight="600">Declared units</text>
+  <text x="770" y="554" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="664" y="564" width="170" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="676" y="590" font-size="14" fill="#0F172A" font-weight="400">200</text>
+  <text x="858" y="554" font-size="13" fill="#475569" font-weight="600">Supplier lot</text>
+  <rect x="858" y="564" width="235" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="870" y="590" font-size="14" fill="#0F172A" font-weight="400">Optional</text>
+  <text x="1117" y="554" font-size="13" fill="#475569" font-weight="600">Declared expiry</text>
+  <rect x="1117" y="564" width="265" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1129" y="590" font-size="14" fill="#0F172A" font-weight="400">Optional</text>
+  <rect x="310" y="638" width="1072" height="80" rx="12" fill="#D1FAE5" stroke="#E2E8F0" />
+  <text x="328" y="668" font-size="15" fill="#0F766E" font-weight="600">
+    Optional distribution suggestion
+  </text>
+  <text x="328" y="696" font-size="13" fill="#475569" font-weight="400">
+    Example: HN 60 / DN 50 / HCM 90. Your chosen DN quantity remains editable; no automatic
+    submission.
+  </text>
+  <rect x="937" y="766" width="140" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="953" y="793" font-size="14" fill="#0F172A" font-weight="600">Save draft</text>
+  <rect x="1093" y="766" width="113" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1109" y="793" font-size="14" fill="#0F172A" font-weight="600">Cancel</text>
+  <rect x="1222" y="766" width="160" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1238" y="793" font-size="14" fill="#FFFFFF" font-weight="600">Submit ASN</text>
+  <text x="310" y="875" font-size="13" fill="#475569" font-weight="400">
+    Validation: select an eligible warehouse and SKU; positive units/cartons; retain input on server
+    error.
+  </text>
+</svg>

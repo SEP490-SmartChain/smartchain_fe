@@ -67,7 +67,7 @@ export function StockLevelsPanel({ warehouseId }: { warehouseId: string }) {
     },
     {
       key: 'availableQty',
-      label: t('columnAvailable'),
+      label: t('columnUnreserved'),
       render: (row) => (
         <span className="block text-right font-semibold tabular-nums text-[var(--sc-primary-dark)]">
           {number.format(row.availableQty)}

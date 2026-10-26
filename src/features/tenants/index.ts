@@ -41,3 +41,5 @@ export { CommercialPlanAdmin } from './components/CommercialPlanAdmin';
 export { ServiceTariffManager } from './components/ServiceTariffManager';
 export { CommercialBilling } from './components/CommercialBilling';
 export { CommercialQuotaAdmin } from './components/CommercialQuotaPanel';
+
+export { SellerPayoutWorkspace } from './components/SellerPayoutWorkspace';

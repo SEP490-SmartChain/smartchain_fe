@@ -1,5 +1,4 @@
-import { CarrierBreakerPanel } from '@/features/shipments';
-
-export default function IntegrationErrorsPage() {
-  return <CarrierBreakerPanel />;
+import { ReportWorkspace } from '@/features/analytics';
+export default function Page() {
+  return <ReportWorkspace initialView="health" />;
 }

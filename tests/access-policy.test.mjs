@@ -509,6 +509,7 @@ test('default path for every role is a route that role may access', () => {
 test('sidebar derives from the same capability source for every role', () => {
   const expected = {
     ORCA_ADMIN: [
+      'overview_heading',
       'platform_staff_heading',
       'platform_tenants_heading',
       'network_warehouses_heading',
@@ -519,6 +520,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'account_heading',
     ],
     OPS_DISPATCHER: [
+      'overview_heading',
       'network_warehouses_heading',
       'shipping_heading',
       'operations_queue_heading',
@@ -526,21 +528,16 @@ test('sidebar derives from the same capability source for every role', () => {
       'account_heading',
     ],
     WAREHOUSE_MANAGER: [
+      'overview_heading',
       'warehouse_ops_heading',
       'network_warehouses_heading',
       'shipping_heading',
       'operations_queue_heading',
-      'monitoring_heading',
       'account_heading',
     ],
     WAREHOUSE_STAFF: ['warehouse_ops_heading', 'account_heading'],
     // UC-94/118 now have a tariff-only entry, without carrier credential grants.
-    ORCA_ACCOUNTANT: [
-      'shipping_heading',
-      'finance_heading',
-      'monitoring_heading',
-      'account_heading',
-    ],
+    ORCA_ACCOUNTANT: ['overview_heading', 'shipping_heading', 'finance_heading', 'account_heading'],
     SELLER_OWNER: [
       'overview_heading',
       'goods_heading',
@@ -805,4 +802,24 @@ test('SS-972: business evidence does not grant technical logs or routing rules',
     }
   }
   assert.equal(policy.isRouteAllowed(effective(OPS, PLATFORM), '/integration-errors'), true);
+});
+
+test('reports have one Dashboard menu/search entry and the legacy Analytics guard stays scoped', () => {
+  for (const [role, scope] of ALL_ROLES) {
+    const roles = effective([role], scope);
+    const allowed = role !== 'WAREHOUSE_STAFF';
+    const links = policy.getSearchLinks(roles, false);
+    assert.equal(links.filter((link) => link.href === '/dashboard').length, allowed ? 1 : 0, role);
+    assert.equal(
+      links.some((link) => link.href === '/analytics'),
+      false,
+      role,
+    );
+    assert.equal(policy.isRouteAllowed(roles, '/analytics'), allowed, role);
+    assert.equal(policy.isRouteAllowed(roles, '/dashboard'), allowed, role);
+  }
+  for (const roles of [[], ['ADMIN'], ['SELLER_OWNER', 'ORCA_ADMIN']]) {
+    assert.equal(policy.isRouteAllowed(roles, '/analytics'), false);
+    assert.equal(policy.isRouteAllowed(roles, '/dashboard'), false);
+  }
 });

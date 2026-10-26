@@ -1,0 +1,99 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1064 · Inbound ASN</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Product catalog</text>
+  <rect x="16" y="219" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="246" font-size="14" fill="#0F766E" font-weight="600">Inbound ASN</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="405" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Inbound ASN / Inbound ASN
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    Seller Owner / Seller Staff
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Inbound ASN</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Create a shipment notice, submit carton declarations and track receiving separately.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1064 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="1220" y="118" width="186" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1236" y="145" font-size="14" fill="#FFFFFF" font-weight="600">+ Create ASN</text>
+  <text x="286" y="259" font-size="13" fill="#475569" font-weight="600">Search</text>
+  <rect x="286" y="269" width="360" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="298" y="295" font-size="14" fill="#0F172A" font-weight="400">ASN code or reference</text>
+  <text x="670" y="259" font-size="13" fill="#475569" font-weight="600">Warehouse</text>
+  <rect x="670" y="269" width="220" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="295" font-size="14" fill="#0F172A" font-weight="400">
+    All eligible warehouses
+  </text>
+  <text x="914" y="259" font-size="13" fill="#475569" font-weight="600">Status</text>
+  <rect x="914" y="269" width="220" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="926" y="295" font-size="14" fill="#0F172A" font-weight="400">All statuses</text>
+  <rect x="286" y="341" width="1120" height="167" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="287" y="342" width="1118" height="48" rx="10" fill="#F1F5F9" />
+  <text x="306" y="371" font-size="12" fill="#475569" font-weight="600">ASN / Reference</text>
+  <text x="606" y="371" font-size="12" fill="#475569" font-weight="600">Warehouse</text>
+  <text x="791" y="371" font-size="12" fill="#475569" font-weight="600">Declared units</text>
+  <text x="981" y="371" font-size="12" fill="#475569" font-weight="600">Cartons</text>
+  <text x="1101" y="371" font-size="12" fill="#475569" font-weight="600">Status</text>
+  <text x="1246" y="371" font-size="12" fill="#475569" font-weight="600">Actions</text>
+  <path d="M 286 392 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="422" font-size="13" fill="#0F172A" font-weight="600">ASN-DEMO-001</text>
+  <text x="606" y="422" font-size="13" fill="#0F172A" font-weight="400">DN-01</text>
+  <text x="791" y="422" font-size="13" fill="#0F172A" font-weight="400">200</text>
+  <text x="981" y="422" font-size="13" fill="#0F172A" font-weight="400">20</text>
+  <rect x="1101" y="403" width="85" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1111" y="421" font-size="12" fill="#0F766E" font-weight="600">Submitted</text>
+  <text x="1246" y="422" font-size="13" fill="#0F766E" font-weight="400">View / Labels</text>
+  <path d="M 286 448 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="478" font-size="13" fill="#0F172A" font-weight="600">ASN-DEMO-002</text>
+  <text x="606" y="478" font-size="13" fill="#0F172A" font-weight="400">HN-01</text>
+  <text x="791" y="478" font-size="13" fill="#0F172A" font-weight="400">60</text>
+  <text x="981" y="478" font-size="13" fill="#0F172A" font-weight="400">6</text>
+  <rect x="1101" y="459" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1111" y="477" font-size="12" fill="#0F766E" font-weight="600">Draft</text>
+  <text x="1246" y="478" font-size="13" fill="#0F766E" font-weight="400">Edit / Submit</text>
+  <rect x="286" y="570" width="1120" height="205" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="610" font-size="18" fill="#0F172A" font-weight="600">
+    Declaration is not inventory
+  </text>
+  <text x="310" y="649" font-size="16" fill="#0F766E" font-weight="600">
+    Declared 200 → counted 200 → accepted 190 + quarantined 10 → putaway 190 sellable
+  </text>
+  <text x="310" y="689" font-size="14" fill="#475569" font-weight="400">
+    Seller can review a distribution suggestion, then explicitly select one warehouse for each ASN.
+  </text>
+  <text x="310" y="725" font-size="14" fill="#475569" font-weight="400">
+    Cancelled carton labels cannot be printed. Submit/cancel actions use the current ASN version.
+  </text>
+  <text x="310" y="757" font-size="14" fill="#475569" font-weight="400">
+    Receiving, QC, Manager approval and physical putaway remain separate authorized steps.
+  </text>
+</svg>

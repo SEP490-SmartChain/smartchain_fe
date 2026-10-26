@@ -12,6 +12,7 @@ import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 
+import { SimulationSnapshotEditor } from './SimulationSnapshotEditor';
 import { ruleSimulationApi } from '../api/ruleSimulationApi';
 import {
   simulationFormSchema,
@@ -33,6 +34,7 @@ const empty: SimulationForm = {
   isCod: '',
   ruleId: '',
   ruleVersion: '',
+  projectionJson: '',
 };
 export function RuleSimulator({ kind, rules }: { kind: RuleKind; rules: RuleRecord[] }) {
   const t = useTranslations('RuleSimulator');
@@ -49,6 +51,9 @@ export function RuleSimulator({ kind, rules }: { kind: RuleKind; rules: RuleReco
     defaultValues: empty,
   });
   const values = watch();
+  useEffect(() => {
+    setValue('projectionJson', '');
+  }, [kind, setValue]);
   const fingerprint = JSON.stringify({
     kind,
     values,
@@ -193,6 +198,13 @@ export function RuleSimulator({ kind, rules }: { kind: RuleKind; rules: RuleReco
             />
           )}
         </div>
+        <SimulationSnapshotEditor
+          kind={kind}
+          value={values.projectionJson ?? ''}
+          rules={rules}
+          onChange={(value) => setValue('projectionJson', value, { shouldValidate: true })}
+          error={errors.projectionJson?.message}
+        />
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t('running') : t('run')}
         </Button>
@@ -224,6 +236,132 @@ export function RuleSimulator({ kind, rules }: { kind: RuleKind; rules: RuleReco
                 </li>
               ))}
             </ol>
+          )}
+          {(result.allocation || result.carrierQuote) && <Alert>{t('scenario.basis')}</Alert>}
+          {result.allocation && (
+            <div className="space-y-3">
+              <p className="font-semibold">{t(`scenario.results.${result.allocation.status}`)}</p>
+              <p className="text-sm">{t(`scenario.reasons.${result.allocation.reason}`)}</p>
+              {result.allocation.estimatedTotalVnd !== null && (
+                <p>
+                  {t('scenario.estimatedTotal')}: {result.allocation.estimatedTotalVnd} VND
+                </p>
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm" aria-label={t('scenario.candidates')}>
+                  <thead>
+                    <tr>
+                      {['warehouseId', 'proximity', 'eligible', 'eligibleUnits'].map((field) => (
+                        <th key={field} className="p-2">
+                          {t(`scenario.${field}`)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.allocation.candidates.map((candidate) => (
+                      <tr
+                        key={candidate.warehouseId}
+                        className="border-t border-[var(--sc-border-default)]"
+                      >
+                        <td className="p-2">{candidate.warehouseId}</td>
+                        <td className="p-2">
+                          {t(`scenario.proximityLevels.${candidate.proximity}`)}
+                        </td>
+                        <td className="p-2">{t(candidate.eligible ? 'yes' : 'no')}</td>
+                        <td className="p-2">
+                          {Object.entries(candidate.stock)
+                            .map(([sku, qty]) => `${sku}: ${qty}`)
+                            .join(' · ')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {result.allocation.parcels.map((parcel, index) => (
+                <div
+                  key={parcel.warehouseId}
+                  className="rounded-xl border border-[var(--sc-border-default)] p-4"
+                >
+                  <h3 className="font-medium">
+                    {t('scenario.parcel', { index: index + 1, warehouse: parcel.warehouseId })}
+                  </h3>
+                  <p className="text-sm">
+                    {t('scenario.codVnd')}: {parcel.codVnd} VND
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {parcel.lines.flatMap((line) =>
+                      line.lots.map((lot) => (
+                        <li key={lot.stockId}>
+                          {line.productId} · {lot.lotId} · {lot.binId} ·{' '}
+                          {t('scenario.units', { qty: lot.qty })}
+                        </li>
+                      )),
+                    )}
+                  </ul>
+                </div>
+              ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm" aria-label={t('scenario.eligibility')}>
+                  <thead>
+                    <tr>
+                      <th className="p-2">{t('scenario.warehouseId')}</th>
+                      <th className="p-2">{t('scenario.lotId')}</th>
+                      <th className="p-2">{t('scenario.eligible')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.allocation.lots.map((lot) => (
+                      <tr key={lot.stockId} className="border-t border-[var(--sc-border-default)]">
+                        <td className="p-2">{lot.warehouseId}</td>
+                        <td className="p-2">{lot.lotId}</td>
+                        <td className="p-2">{t(lot.eligible ? 'yes' : 'no')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {result.carrierQuote && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm" aria-label={t('scenario.tariffs')}>
+                <thead>
+                  <tr>
+                    {['serviceId', 'tariffVersion', 'roundedWeight', 'estimatedTotal'].map(
+                      (field) => (
+                        <th key={field} className="p-2">
+                          {t(`scenario.${field}`)}
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.carrierQuote.candidates.map((row) => (
+                    <tr key={row.serviceId} className="border-t border-[var(--sc-border-default)]">
+                      <td className="p-2">
+                        {
+                          result.carrierServices.find((service) => service.id === row.serviceId)
+                            ?.name
+                        }
+                        {row.serviceId === result.carrierQuote?.selectedServiceId
+                          ? ` · ${t('scenario.selected')}`
+                          : ''}
+                      </td>
+                      <td className="p-2">{row.tariffVersion ?? '—'}</td>
+                      <td className="p-2">{row.roundedWeightG ?? '—'}</td>
+                      <td className="p-2">
+                        {row.totalVnd !== null
+                          ? `${row.totalVnd} VND`
+                          : t(`scenario.reasons.${row.reason ?? 'MISSING_TARIFF'}`)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           {result.pending.map((pending) => (
             <Alert key={pending} variant="warning">

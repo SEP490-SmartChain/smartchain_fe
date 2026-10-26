@@ -1,5 +1,4 @@
-import { PlatformHealthView } from '@/features/tenants';
-
-export default function HealthPage() {
-  return <PlatformHealthView />;
+import { ReportWorkspace } from '@/features/analytics';
+export default function Page() {
+  return <ReportWorkspace initialView="health" />;
 }

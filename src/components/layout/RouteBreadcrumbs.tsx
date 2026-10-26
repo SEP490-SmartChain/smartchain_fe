@@ -49,7 +49,7 @@ export default function RouteBreadcrumbs() {
     '/shipments': sidebar('shipments'),
     '/warehouses': sidebar('warehouses'),
     '/reconciliation': sidebar('reconciliation'),
-    '/analytics': sidebar('analytics'),
+    '/analytics': sidebar('dashboard'),
     '/iam': sidebar('staff_accounts'),
     '/audit': sidebar('audit_trail'),
     '/integration-errors': sidebar('integration_errors'),

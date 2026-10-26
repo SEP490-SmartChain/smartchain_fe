@@ -1,5 +1,4 @@
-import { UnderConstruction } from '@/components/Common';
-
+import { ReportWorkspace } from '@/features/analytics';
 export default function ApiTrafficPage() {
-  return <UnderConstruction />;
+  return <ReportWorkspace initialView="logs" />;
 }

@@ -1,5 +1,28 @@
 # features/tenants
 
+## SS-1301 line disputes and immutable evidence
+
+Statement detail reads full-statement open-dispute totals and the allowlisted
+actual manual transfer from GET /v1/billing/statements/:id. These totals are
+independent of line pagination. The original snapshot remains visible; corrections
+show their ledger references and never edit issued invoices. Opening a dispute
+advances the server statement version, so stale tabs must reload before another
+review action. Existing Owner/Accountant/Admin policy and retry identities remain.
+Older APIs may omit additive detail fields; the UI does not invent zero totals.
+Backend contract: docs/SS-1301-STATEMENT-DISPUTES.md in smartchain_be.
+Regression: tests/payout-workspace.test.mjs. No live bank transfer is initiated.
+
+## SS-1299 Owner contract entry
+
+The real Owner route, /settings/contract, mounts the quota/lifecycle panel for
+ACCEPTED, CONFIRMED and TERMINATING current contracts through
+SellerContractOnboarding. The existing contract.sign capability gates this
+composition; Staff and other roles receive no new action or read authority.
+Onboarding-only and terminated contracts do not load this panel. Plan changes
+show the 00:00 Asia/Ho_Chi_Minh next-period boundary and the separate negotiated
+Enterprise process. Existing backend approval and settlement checks remain
+authoritative. Route composition regression: tests/contract-lifecycle-ui.test.mjs.
+
 ## SS-1022 invoice cycles
 
 `CommercialBilling` now composes the fulfillment invoice workspace: seller/month/type
@@ -134,3 +157,47 @@ are authoritative; the hook reloads invoices, service status and the auth profil
 after success. Errors remain visible and do not show a local success. Refreshing retains
 the state saved by the backend. No real money transfer occurs. The backend switch defaults
 to enabled in every environment, including production; set it false to hide and disable it.
+
+## SS-1012 seller ledger and payout review
+
+SellerPayoutWorkspace replaces the /statements placeholder for Owner. The
+/billing ledger/statements tab exposes authorized Admin/Accountant reads and
+Accountant-only send/approval/manual transfer recording. Owner confirmation and
+line dispute use statement.review; monetary decisions use payout.manage. These
+capabilities do not grant Staff or warehouse financial access.
+
+Queries and mutations use the typed /v1/billing/ledger and /statements API.
+The API owns balances, debt decisions, immutable amounts, version and status.
+The browser displays no wallet controls and never marks a statement PAID locally.
+Unknown outcomes retain the same operation reference for retry; 409 retains the
+form and offers refresh. Identity changes remount the feature; seller changes
+abort reads and discard previous data. Private PDF transfer evidence is uploaded
+before recording the approved amount and actual bank reference.
+
+Regression: tests/payout-workspace.test.mjs checks seven-role scope, malformed
+money, review deadline, timezone, retry identity and 403/409 session behavior.
+
+SS-1012 closeout: Owner reads remaining blockers; Accountant records approved, privately evidenced deposit offsets and actual final refunds only for the current terminating contract. Existing contract closure remains an Admin decision. No free withdrawal from active accounts.
+
+## SS-1299 contract lifecycle
+
+The contract panel shows the effective plan, bounded plan-change history and
+read-only usage. Owner requests require the current signed contract; a pending
+request disables duplicate submissions. A suspended Owner may still request
+termination. The terminating view explains debt clearance, withdrawal, final
+charges and evidenced refund, linking to the existing /statements settlement
+workspace. No client action transfers money or clears a balance.
+
+Admin uses existing platform.plans.manage (UC-12, contract.update) to schedule or
+reject a REQUESTED plan change. Rejection calls POST
+/v1/commercial/tenants/:tenantId/plan-changes/:id/reject with the current contract
+version and a reason. Scheduled/applied changes remain under the existing worker
+flow. Staff and warehouse roles gain no financial capability. Backend enforces
+current authority and seller-scoped RLS.
+
+The panel remounts on auth revision/seller changes to discard prior data, form
+state and operation references. Successful requests release their retry key;
+uncertain attempts retain it. Read failures remain visible and do not fabricate
+success. Regression: tests/contract-lifecycle.test.mjs; full frontend typecheck,
+lint, tests and build. Isolated browser QA uses synthetic HTTP fixtures and does
+not verify a real bank transfer or project database.

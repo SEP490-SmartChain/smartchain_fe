@@ -1,0 +1,106 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1052 · Product catalog</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <rect x="16" y="166" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="193" font-size="14" fill="#0F766E" font-weight="600">Product catalog</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Inbound ASN</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="405" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Product catalog / Product catalog
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">Seller Owner</text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Product catalog</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Manage your own SKUs, barcode references and lot/expiry policies.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1052 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="1060" y="118" width="155" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1076" y="145" font-size="14" fill="#0F172A" font-weight="600">Import workbook</text>
+  <rect x="1230" y="118" width="176" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1246" y="145" font-size="14" fill="#FFFFFF" font-weight="600">+ Create SKU</text>
+  <text x="286" y="259" font-size="13" fill="#475569" font-weight="600">Search</text>
+  <rect x="286" y="269" width="360" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="298" y="295" font-size="14" fill="#0F172A" font-weight="400">
+    SKU, product name or barcode
+  </text>
+  <text x="668" y="259" font-size="13" fill="#475569" font-weight="600">Status</text>
+  <rect x="668" y="269" width="220" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="680" y="295" font-size="14" fill="#0F172A" font-weight="400">All statuses</text>
+  <text x="910" y="259" font-size="13" fill="#475569" font-weight="600">Expiry tracking</text>
+  <rect x="910" y="269" width="230" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="922" y="295" font-size="14" fill="#0F172A" font-weight="400">All policies</text>
+  <rect x="286" y="341" width="1120" height="223" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="287" y="342" width="1118" height="48" rx="10" fill="#F1F5F9" />
+  <text x="306" y="371" font-size="12" fill="#475569" font-weight="600">SKU / Product</text>
+  <text x="601" y="371" font-size="12" fill="#475569" font-weight="600">Barcode</text>
+  <text x="811" y="371" font-size="12" fill="#475569" font-weight="600">Weight</text>
+  <text x="931" y="371" font-size="12" fill="#475569" font-weight="600">Lot / expiry</text>
+  <text x="1121" y="371" font-size="12" fill="#475569" font-weight="600">Status</text>
+  <text x="1236" y="371" font-size="12" fill="#475569" font-weight="600">Actions</text>
+  <path d="M 286 392 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="422" font-size="13" fill="#0F172A" font-weight="600">
+    RICE-5KG · Jasmine rice
+  </text>
+  <text x="601" y="422" font-size="13" fill="#0F172A" font-weight="400">8930000001001</text>
+  <text x="811" y="422" font-size="13" fill="#0F172A" font-weight="400">5.00 kg</text>
+  <text x="931" y="422" font-size="13" fill="#0F172A" font-weight="400">Lot + expiry</text>
+  <rect x="1121" y="403" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1131" y="421" font-size="12" fill="#0F766E" font-weight="600">Active</text>
+  <text x="1236" y="422" font-size="13" fill="#0F766E" font-weight="400">Edit / Policy</text>
+  <path d="M 286 448 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="478" font-size="13" fill="#0F172A" font-weight="600">TEA-250G · Green tea</text>
+  <text x="601" y="478" font-size="13" fill="#0F172A" font-weight="400">8930000001002</text>
+  <text x="811" y="478" font-size="13" fill="#0F172A" font-weight="400">0.25 kg</text>
+  <text x="931" y="478" font-size="13" fill="#0F172A" font-weight="400">Lot + expiry</text>
+  <rect x="1121" y="459" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1131" y="477" font-size="12" fill="#0F766E" font-weight="600">Active</text>
+  <text x="1236" y="478" font-size="13" fill="#0F766E" font-weight="400">Edit / Policy</text>
+  <path d="M 286 504 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="534" font-size="13" fill="#0F172A" font-weight="600">BOX-M · Shipping box</text>
+  <text x="601" y="534" font-size="13" fill="#0F172A" font-weight="400">—</text>
+  <text x="811" y="534" font-size="13" fill="#0F172A" font-weight="400">0.20 kg</text>
+  <text x="931" y="534" font-size="13" fill="#0F172A" font-weight="400">No expiry</text>
+  <rect x="1121" y="515" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1131" y="533" font-size="12" fill="#0F766E" font-weight="600">Active</text>
+  <text x="1236" y="534" font-size="13" fill="#0F766E" font-weight="400">Edit / Policy</text>
+  <rect x="286" y="615" width="1120" height="150" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="651" font-size="17" fill="#0F172A" font-weight="600">
+    Import and validation states
+  </text>
+  <text x="310" y="684" font-size="14" fill="#475569" font-weight="400">
+    Preview rows before importing. Show accepted and rejected rows with actionable errors.
+  </text>
+  <text x="310" y="717" font-size="14" fill="#475569" font-weight="400">
+    Owner can create/edit; Seller Staff can read operational SKU fields only.
+  </text>
+  <text x="310" y="745" font-size="14" fill="#475569" font-weight="400">
+    Inactive or unmapped SKUs cannot silently become eligible inventory.
+  </text>
+</svg>

@@ -167,7 +167,9 @@ FU-42/UC-77), and `rules.simulate.carrier` for PLATFORM Admin/Ops (FU-35/UC-98).
 The SS-1089 endpoint rechecks the actor and live database grants; sample seller
 references never authorize another tenant. Rules screen access is insufficient
 for Admin-only allocation simulation. Preview does not publish or perform stock,
-order, billing or booking effects; planning and price projections remain pending.
+order, billing or booking effects. Optional fictional stock/tariff snapshots now
+produce labelled pure projections; they do not grant live inventory/tariff reads.
+Omitting a snapshot keeps the corresponding projection pending.
 
 Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Directory ASN dùng DTO kho riêng. Từ 16/10/2026, receipt receiving trả `declaredQty`/`cartonCount` cho Staff/Manager để đối chiếu; kiểm kê tồn kho mù giữ giới hạn expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
 
@@ -196,6 +198,34 @@ to `receiving/records/:recordId/stock` after Manager approval. Manager/Staff rea
 while Manager cannot perform the Staff stock effect. Quantities/Seller identity come from
 reviewed evidence; no generic inventory editing, metadata writes or finance access is granted.
 
+## Owner withdrawal — Sprint 5
+
+Capability `orders.withdrawal.create` chỉ dành cho TENANT SELLER_OWNER, hiển thị khi service ACTIVE hoặc SUSPENDED. Các API options/locations/create yêu cầu action `withdrawal.create`; đăng ký địa chỉ yêu cầu `withdrawal.update`. Server kiểm tra lại role sống, tenant, địa chỉ version, contract, công nợ và tồn; UI không tự cấp quyền hoặc tự cập nhật tồn. RLS của địa chỉ chỉ cho Owner đúng tenant; ghi địa chỉ chỉ với action update. CLOSED/PENDING_ACTIVATION không mở thao tác rút hàng. Không mở capability này cho Staff, Manager, platform hoặc CHANNEL.
+
 ## UC-158 / SS-1095 receiving photo assistance
 
 `warehouse.asn.packagingAssist` is Staff-only, under live assigned warehouse and own verified receipt-session photo. Server actions are `receipt_ai.read/create/update`, not generic assistant access. Explicit reviewed values prefill an unsaved lot row; physical count, QC, stock and finance remain separate commands. Optional AI being disabled does not block manual receiving.
+
+## SS-1012 statement review and manual payout
+
+statement.review is TENANT Seller Owner only (UC-131/132), for
+POST /v1/billing/statements/:id/confirm and line disputes. The server checks
+current own-seller scope, version and deadline. payout.manage is PLATFORM
+Accountant only (UC-133–136), for send, approve, dispute resolution and evidenced
+manual transfer recording via finance.create. The existing /billing route
+provides the financial workspace to Owner/Admin/Accountant; /statements keeps
+its Owner gate. Admin receives read access, never Accountant mutations.
+
+All actual financial effects remain server-owned. The UI uses Vietnam time,
+separate operating/deposit balances, exact integer-string money, and no
+simulated-time header or off-cycle override.
+
+## SS-1029 role-scoped reports
+
+GET /v1/reports/options returns live allowed views and warehouseRequiredViews; these do not grant operational actions. Existing dashboard/analytics route gates remain. UC-147 returns own-seller orders/stock for Owner/Staff and fees only for Owner. UC-149 is Owner/assigned Manager; UC-148 assigned Manager/Ops; UC-150 Admin/assigned Ops; UC-151 Admin/Accountant. UC-152 audit remains Admin-only: the old seller workspace audit proposal is not enabled. UC-153 technical attempts are Admin/assigned Manager; UC-154 health is Admin/Ops. No retry, clear-log or resolve-parcel action is added. Financial amounts, buyer data, credentials and arbitrary audit snapshots are not exposed to Staff/operational roles. Backend rechecks live authority and row scope; options are not a security boundary.
+
+SS-1029 UI consolidation: /dashboard is the canonical role-report workspace.
+/analytics keeps its existing route guard and redirects with replace to
+/dashboard, preserving query/hash; it has no menu/search entry. The shared
+Dashboard entry uses the existing workspace.dashboard.view capability (six
+reporting roles, never Warehouse Staff). No capability or API authority changed.
