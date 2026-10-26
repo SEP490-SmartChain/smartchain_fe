@@ -316,3 +316,254 @@ test('simulator translations retain identical keys and interpolation variables',
     );
   assert.deepEqual(flat(load('en')), flat(load('vi')));
 });
+
+const snapshot = () => ({
+  asOf: '2026-10-26',
+  destinationProvince: '01',
+  destinationRegion: 'NORTH',
+  items: [
+    {
+      productId: 'SKU',
+      qty: 10,
+      unitValueVnd: '10000',
+      trackExpiry: true,
+      minOutboundDays: 7,
+      active: true,
+    },
+  ],
+  warehouses: [
+    { id: 'HN', province: '01', region: 'NORTH', eligible: true, estimatedFreightVnd: '25000' },
+  ],
+  stock: [
+    {
+      id: 'S1',
+      warehouseId: 'HN',
+      productId: 'SKU',
+      lotId: 'L1',
+      binId: 'B1',
+      availableQty: 10,
+      expiresOn: '2026-12-01',
+      receivedOn: '2026-10-01',
+      lotStatus: 'SELLABLE',
+      stockState: 'SELLABLE',
+      activePosition: true,
+      storageZone: true,
+    },
+  ],
+  codVnd: '100000',
+  buyerFreightVnd: '0',
+  splitPenaltyVnd: '0',
+  expiryRiskVndPerUnitDay: '0',
+});
+const projected = () => ({
+  ...result(),
+  pending: [],
+  allocation: {
+    basis: 'SIMULATED_INPUT',
+    strategy: 'EXPIRY_FIRST',
+    status: 'PLANNED',
+    reason: 'EXPIRY_FIRST',
+    candidates: [{ warehouseId: 'HN', proximity: 0, eligible: true, stock: { SKU: 10 } }],
+    lots: [{ stockId: 'S1', warehouseId: 'HN', lotId: 'L1', eligible: true }],
+    parcels: [
+      {
+        warehouseId: 'HN',
+        codVnd: '100000',
+        lines: [
+          {
+            productId: 'SKU',
+            qty: 10,
+            lots: [{ stockId: 'S1', lotId: 'L1', binId: 'B1', qty: 10 }],
+          },
+        ],
+      },
+    ],
+    estimatedTotalVnd: null,
+    globalOptimum: false,
+  },
+});
+const projectionRequest = () => ({ ...sample(), projection: snapshot() });
+test('accepts labelled snapshot results and conserves the requested quantities and collection', async () => {
+  globalThis.fetch = async () => ok(projected());
+  assert.deepEqual(await api.simulate(projectionRequest()), projected());
+});
+for (const edit of [
+  (r) => {
+    r.allocation.basis = 'LIVE_STOCK';
+  },
+  (r) => {
+    r.allocation.parcels[0].lines[0].lots[0].qty = 9;
+  },
+  (r) => {
+    r.allocation.parcels[0].codVnd = '99999';
+  },
+  (r) => {
+    r.allocation.parcels[0].lines[0].lots[0].binId = 'FOREIGN-BIN';
+  },
+  (r) => {
+    r.allocation.parcels[0].lines[0].productId = 'FOREIGN-SKU';
+  },
+  (r) => {
+    r.allocation.parcels[0].warehouseId = 'FOREIGN-WH';
+  },
+  (r) => {
+    r.allocation.lots[0].eligible = false;
+  },
+  (r) => {
+    r.allocation.status = 'BACKORDER';
+  },
+  (r) => {
+    r.allocation.strategy = 'TOTAL_COST';
+  },
+  (r) => {
+    r.allocation.privateCost = 'must-not-cache';
+  },
+  (r) => {
+    r.pending = ['ALLOCATION_PREVIEW'];
+  },
+])
+  test(
+    'rejects fabricated, inconsistent or private allocation projections ' + String(edit),
+    async () => {
+      const response = projected();
+      edit(response);
+      globalThis.fetch = async () => ok(response);
+      await assert.rejects(api.simulate(projectionRequest()));
+    },
+  );
+test('rejects an unrequested stock projection and invalid snapshot authority fields', async () => {
+  globalThis.fetch = async () => ok(projected());
+  await assert.rejects(api.simulate(sample()));
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return ok(projected());
+  };
+  await assert.rejects(
+    api.simulate({ ...projectionRequest(), projection: { ...snapshot(), tenantId: sellerId } }),
+  );
+  assert.equal(calls, 0);
+});
+test('allows BACKORDER only with no partial parcels and preserves a no-match result', async () => {
+  const value = projected();
+  value.allocation.status = 'BACKORDER';
+  value.allocation.reason = 'INSUFFICIENT_ELIGIBLE_STOCK';
+  value.allocation.parcels = [];
+  globalThis.fetch = async () => ok(value);
+  assert.equal((await api.simulate(projectionRequest())).allocation.parcels.length, 0);
+  globalThis.fetch = async () =>
+    ok({
+      kind: 'ALLOCATION',
+      mode: 'PUBLISHED',
+      match: null,
+      trace: [],
+      carrierServices: [],
+      pending: [],
+    });
+  assert.equal((await api.simulate(projectionRequest())).match, null);
+});
+
+const carrierSnapshot = () => ({
+  measurements: { weightGram: 1200, lengthCm: '10', widthCm: '10', heightCm: '10' },
+  direction: 'OUTBOUND',
+  declaredValueVnd: '100000',
+  tariffs: [carrierId, fallbackId].map((serviceId) => ({
+    serviceId,
+    version: 'sample-v1',
+    eligible: true,
+    policy: {
+      version: 1,
+      divisor: 5000,
+      roundingGram: 500,
+      returnFeeVnd: '0',
+      declaredValuePpm: 0,
+    },
+    bands: [
+      {
+        minWeightG: 0,
+        maxWeightG: null,
+        includedWeightG: 1000,
+        stepWeightG: 500,
+        basePriceVnd: '20000',
+        stepPriceVnd: '5000',
+      },
+    ],
+  })),
+});
+const carrierProjected = () => ({
+  ...result(),
+  kind: 'CARRIER',
+  match: {
+    ...result().match,
+    action: { carrierServiceId: carrierId, fallbackServiceIds: [fallbackId] },
+  },
+  carrierServices: [
+    { id: carrierId, name: 'Synthetic primary', role: 'PRIMARY' },
+    { id: fallbackId, name: 'Synthetic fallback', role: 'FALLBACK' },
+  ],
+  pending: [],
+  carrierQuote: {
+    basis: 'SIMULATED_INPUT',
+    selectedServiceId: carrierId,
+    candidates: [carrierId, fallbackId].map((serviceId) => ({
+      serviceId,
+      status: 'QUOTED',
+      reason: null,
+      tariffVersion: 'sample-v1',
+      roundedWeightG: 1500,
+      totalVnd: '25000',
+    })),
+  },
+});
+const carrierRequest = () => ({
+  kind: 'CARRIER',
+  sample: { sellerId },
+  projection: carrierSnapshot(),
+});
+test('accepts a zero-based first weight band and a labelled supplied-tariff quote', async () => {
+  globalThis.fetch = async () => ok(carrierProjected());
+  assert.equal((await api.simulate(carrierRequest())).carrierQuote.candidates[0].totalVnd, '25000');
+});
+test('keeps a missing primary quote explicit and proposes the first quoted fallback', async () => {
+  const value = carrierProjected();
+  value.carrierQuote.selectedServiceId = fallbackId;
+  value.carrierQuote.candidates[0] = {
+    serviceId: carrierId,
+    status: 'UNAVAILABLE',
+    reason: 'MISSING_TARIFF',
+    tariffVersion: null,
+    roundedWeightG: null,
+    totalVnd: null,
+  };
+  globalThis.fetch = async () => ok(value);
+  assert.equal((await api.simulate(carrierRequest())).carrierQuote.selectedServiceId, fallbackId);
+});
+for (const edit of [
+  (r) => {
+    r.carrierQuote.basis = 'LIVE_TARIFF';
+  },
+  (r) => {
+    r.carrierQuote.candidates.reverse();
+  },
+  (r) => {
+    r.carrierQuote.selectedServiceId = fallbackId;
+  },
+  (r) => {
+    r.carrierQuote.candidates[0].tariffVersion = 'foreign-version';
+  },
+  (r) => {
+    r.carrierQuote.candidates[0].privatePurchase = 'secret';
+  },
+  (r) => {
+    r.carrierQuote.candidates[0].totalVnd = null;
+  },
+  (r) => {
+    r.carrierQuote.candidates[0].status = 'UNAVAILABLE';
+  },
+])
+  test('rejects inconsistent/private synthetic tariff response ' + String(edit), async () => {
+    const value = carrierProjected();
+    edit(value);
+    globalThis.fetch = async () => ok(value);
+    await assert.rejects(api.simulate(carrierRequest()));
+  });

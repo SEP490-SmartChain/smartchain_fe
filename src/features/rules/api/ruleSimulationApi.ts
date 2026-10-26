@@ -32,6 +32,72 @@ export const ruleSimulationApi = {
     ) {
       throw new Error('Simulation response does not match request');
     }
+    if (result.allocation) {
+      if (!request.projection || !('items' in request.projection)) {
+        throw new Error('Unrequested allocation projection');
+      }
+      const snapshot = request.projection;
+      const lines = result.allocation.parcels.flatMap((parcel) => parcel.lines);
+      if (
+        result.allocation.candidates.some(
+          (row) => !snapshot.warehouses.some((warehouse) => warehouse.id === row.warehouseId),
+        ) ||
+        result.allocation.lots.some(
+          (row) =>
+            !snapshot.stock.some(
+              (stock) =>
+                stock.id === row.stockId &&
+                stock.lotId === row.lotId &&
+                stock.warehouseId === row.warehouseId,
+            ),
+        ) ||
+        (result.allocation.status === 'PLANNED' &&
+          (snapshot.items.some(
+            (item) =>
+              lines
+                .filter((line) => line.productId === item.productId)
+                .reduce((sum, line) => sum + line.qty, 0) !== item.qty,
+          ) ||
+            result.allocation.parcels.reduce(
+              (sum, parcel) => sum + BigInt(parcel.codVnd),
+              BigInt(0),
+            ) !== BigInt(snapshot.codVnd))) ||
+        lines.some(
+          (line) =>
+            !snapshot.items.some((item) => item.productId === line.productId) ||
+            line.lots.some(
+              (lot) =>
+                !snapshot.stock.some(
+                  (stock) =>
+                    stock.id === lot.stockId &&
+                    stock.productId === line.productId &&
+                    stock.binId === lot.binId &&
+                    lot.qty <= stock.availableQty,
+                ),
+            ),
+        )
+      ) {
+        throw new Error('Allocation projection does not match supplied snapshot');
+      }
+    }
+    if (result.carrierQuote) {
+      const snapshot = request.projection;
+      if (
+        !snapshot ||
+        !('tariffs' in snapshot) ||
+        result.carrierQuote.candidates.some(
+          (candidate) =>
+            candidate.status === 'QUOTED' &&
+            !snapshot.tariffs.some(
+              (tariff) =>
+                tariff.serviceId === candidate.serviceId &&
+                tariff.version === candidate.tariffVersion,
+            ),
+        )
+      ) {
+        throw new Error('Carrier projection does not match supplied snapshot');
+      }
+    }
     return result;
   },
 };
