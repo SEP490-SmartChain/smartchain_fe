@@ -3711,6 +3711,17 @@
     "manual": "Close and continue manual entry"
   },
   "Payouts": {
+    "notApproved": "Not approved",
+    "frozenSnapshot": "Frozen statement snapshot",
+    "immutableHelp": "Original source lines and amounts stay unchanged. Corrections use separate adjustments in a later period.",
+    "disputeSummary": "Awaiting reconciliation",
+    "openDisputes": "{count} open line disputes",
+    "frozenEligible": "Eligibility cap at cutoff",
+    "disputedCredits": "Disputed credits",
+    "disputedDebits": "Disputed fees",
+    "disputeTotalsHelp": "Totals cover the entire statement, including other pages. Disputes do not change the posted ledger; Accounting reviews undisputed proceeds against the actual balance.",
+    "recordedTransfer": "Actual bank transfer recorded",
+    "adjustmentReference": "Adjustment entry reference",
     "eyebrow": "Seller settlement",
     "title": "Ledger & statements",
     "description": "Trace every posted amount, review weekly statements and follow evidenced settlement.",
