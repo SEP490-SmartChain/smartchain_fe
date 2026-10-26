@@ -1,0 +1,122 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1058 · DN-01 · Zones &amp; bins</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Inbound ASN</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <rect x="16" y="272" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="299" font-size="14" fill="#0F766E" font-weight="600">Warehouses</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Warehouses / DN-01 · Zones &amp; bins
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    Assigned Warehouse Manager
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">
+    DN-01 · Zones &amp; bins
+  </text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Assigned warehouse layout. Physical stock is updated only through receiving/putaway operations.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1058 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="1120" height="62" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="278" font-size="14" fill="#0F172A" font-weight="400">Overview</text>
+  <text x="470" y="278" font-size="14" fill="#0F766E" font-weight="600">Zones &amp; bins</text>
+  <text x="670" y="278" font-size="14" fill="#0F172A" font-weight="400">Calendar</text>
+  <text x="835" y="278" font-size="14" fill="#0F172A" font-weight="400">Downtime</text>
+  <rect x="1170" y="250" width="210" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1186" y="277" font-size="14" fill="#0F172A" font-weight="600">Open 3D schematic</text>
+  <rect x="286" y="325" width="700" height="475" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="363" font-size="18" fill="#0F172A" font-weight="600">Warehouse layout</text>
+  <rect x="310" y="390" width="180" height="120" rx="8" fill="#DBEAFE" stroke="#E2E8F0" />
+  <text x="324" y="417" font-size="14" fill="#0F172A" font-weight="600">RCV · Receiving</text>
+  <rect x="514" y="390" width="448" height="280" rx="8" fill="#D1FAE5" stroke="#E2E8F0" />
+  <text x="528" y="417" font-size="14" fill="#0F172A" font-weight="600">STORE-A · Storage</text>
+  <rect x="310" y="534" width="180" height="136" rx="8" fill="#FEF3C7" stroke="#E2E8F0" />
+  <text x="324" y="561" font-size="14" fill="#0F172A" font-weight="600">QC · Quarantine</text>
+  <rect x="310" y="695" width="652" height="75" rx="8" fill="#F1F5F9" stroke="#E2E8F0" />
+  <text x="324" y="722" font-size="14" fill="#0F172A" font-weight="600">PACK · Packing</text>
+  <rect x="536" y="442" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="544" y="469" font-size="11" fill="#0F172A" font-weight="400">A1-1</text>
+  <rect x="616" y="442" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="624" y="469" font-size="11" fill="#0F172A" font-weight="400">A1-2</text>
+  <rect x="696" y="442" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="704" y="469" font-size="11" fill="#0F172A" font-weight="400">A1-3</text>
+  <rect x="776" y="442" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="784" y="469" font-size="11" fill="#0F172A" font-weight="400">A1-4</text>
+  <rect x="856" y="442" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="864" y="469" font-size="11" fill="#0F172A" font-weight="400">A1-5</text>
+  <rect x="536" y="507" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="544" y="534" font-size="11" fill="#0F172A" font-weight="400">A2-1</text>
+  <rect x="616" y="507" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="624" y="534" font-size="11" fill="#0F172A" font-weight="400">A2-2</text>
+  <rect x="696" y="507" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="704" y="534" font-size="11" fill="#0F172A" font-weight="400">A2-3</text>
+  <rect x="776" y="507" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="784" y="534" font-size="11" fill="#0F172A" font-weight="400">A2-4</text>
+  <rect x="856" y="507" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="864" y="534" font-size="11" fill="#0F172A" font-weight="400">A2-5</text>
+  <rect x="536" y="572" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="544" y="599" font-size="11" fill="#0F172A" font-weight="400">A3-1</text>
+  <rect x="616" y="572" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="624" y="599" font-size="11" fill="#0F172A" font-weight="400">A3-2</text>
+  <rect x="696" y="572" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="704" y="599" font-size="11" fill="#0F172A" font-weight="400">A3-3</text>
+  <rect x="776" y="572" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="784" y="599" font-size="11" fill="#0F172A" font-weight="400">A3-4</text>
+  <rect x="856" y="572" width="62" height="45" rx="6" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="864" y="599" font-size="11" fill="#0F172A" font-weight="400">A3-5</text>
+  <rect x="1010" y="325" width="396" height="475" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1034" y="364" font-size="18" fill="#0F172A" font-weight="600">Bin STORE-A-01</text>
+  <text x="1034" y="410" font-size="13" fill="#475569" font-weight="600">Zone</text>
+  <text x="1070" y="410" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="1034" y="420" width="348" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1046" y="446" font-size="14" fill="#0F172A" font-weight="400">STORE-A</text>
+  <text x="1034" y="479" font-size="13" fill="#475569" font-weight="600">Barcode</text>
+  <rect x="1034" y="489" width="348" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1046" y="515" font-size="14" fill="#0F172A" font-weight="400">DN-STORE-A-01</text>
+  <text x="1034" y="548" font-size="13" fill="#475569" font-weight="600">Maximum weight</text>
+  <text x="1140" y="548" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="1034" y="558" width="348" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1046" y="584" font-size="14" fill="#0F172A" font-weight="400">100 kg</text>
+  <text x="1034" y="617" font-size="13" fill="#475569" font-weight="600">Maximum volume</text>
+  <text x="1140" y="617" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="1034" y="627" width="348" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1046" y="653" font-size="14" fill="#0F172A" font-weight="400">1.50 m³</text>
+  <text x="1034" y="686" font-size="13" fill="#475569" font-weight="600">Status</text>
+  <rect x="1034" y="696" width="348" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1046" y="722" font-size="14" fill="#0F172A" font-weight="400">Active</text>
+  <rect x="286" y="825" width="1120" height="72" rx="12" fill="#D1FAE5" stroke="#E2E8F0" />
+  <text x="310" y="854" font-size="15" fill="#0F766E" font-weight="600">
+    Unsaved layout changes
+  </text>
+  <text x="310" y="880" font-size="13" fill="#475569" font-weight="400">
+    Leave/reload confirmation · Version conflicts preserve your draft · Revoked assignment blocks
+    saving
+  </text>
+</svg>

@@ -1,0 +1,103 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1058 · Calendar &amp; downtime</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Inbound ASN</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <rect x="16" y="272" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="299" font-size="14" fill="#0F766E" font-weight="600">Warehouses</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Warehouses / Calendar &amp; downtime
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    Assigned Warehouse Manager
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">
+    Calendar &amp; downtime
+  </text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Changing future eligibility does not delete accepted orders, inventory or labels.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1058 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="540" height="600" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="280" font-size="18" fill="#0F172A" font-weight="600">Business calendar</text>
+  <text x="310" y="325" font-size="13" fill="#475569" font-weight="600">Working weekdays</text>
+  <text x="430" y="325" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="335" width="492" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="361" font-size="14" fill="#0F172A" font-weight="400">
+    Mon · Tue · Wed · Thu · Fri · Sat
+  </text>
+  <text x="310" y="420" font-size="13" fill="#475569" font-weight="600">Closed date</text>
+  <rect x="310" y="430" width="492" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="456" font-size="14" fill="#0F172A" font-weight="400">2026-11-01</text>
+  <text x="310" y="515" font-size="13" fill="#475569" font-weight="600">
+    Review at Vietnam local time
+  </text>
+  <text x="514" y="515" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="525" width="492" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="551" font-size="14" fill="#0F172A" font-weight="400">2026-10-26 13:30</text>
+  <text x="310" y="623" font-size="17" fill="#0F766E" font-weight="600">Eligibility preview</text>
+  <text x="310" y="662" font-size="14" fill="#0F172A" font-weight="400">
+    Intake: eligible · Allocation: eligible
+  </text>
+  <text x="310" y="699" font-size="14" fill="#0F172A" font-weight="400">
+    Same-day handover: before cutoff
+  </text>
+  <rect x="610" y="760" width="192" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="626" y="787" font-size="14" fill="#FFFFFF" font-weight="600">Save calendar</text>
+  <rect x="850" y="240" width="556" height="600" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="874" y="280" font-size="18" fill="#0F172A" font-weight="600">Schedule downtime</text>
+  <text x="874" y="325" font-size="13" fill="#475569" font-weight="600">Start / End</text>
+  <text x="959" y="325" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="874" y="335" width="508" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="886" y="361" font-size="14" fill="#0F172A" font-weight="400">
+    2026-11-02 08:00 → 2026-11-02 12:00
+  </text>
+  <text x="874" y="420" font-size="13" fill="#475569" font-weight="600">Reason</text>
+  <text x="924" y="420" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="874" y="430" width="508" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="886" y="456" font-size="14" fill="#0F172A" font-weight="400">Scheduled maintenance</text>
+  <text x="874" y="534" font-size="17" fill="#0F172A" font-weight="600">
+    Outstanding work remains visible
+  </text>
+  <text x="874" y="574" font-size="14" fill="#475569" font-weight="400">
+    Orders / active tasks / inventory are reviewed
+  </text>
+  <text x="874" y="610" font-size="14" fill="#475569" font-weight="400">
+    before a status or downtime decision.
+  </text>
+  <text x="874" y="674" font-size="13" fill="#475569" font-weight="400">
+    Version conflict: retain draft, reload and review.
+  </text>
+  <rect x="1160" y="760" width="222" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1176" y="787" font-size="14" fill="#FFFFFF" font-weight="600">Save downtime</text>
+  <text x="286" y="902" font-size="13" fill="#475569" font-weight="400">
+    Admin/Ops review calendar; assigned Manager edits. Staff has no approval or calendar-write
+    control.
+  </text>
+</svg>
