@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useLocation } from 'react-router-dom';
+
 import { Download, Plus, RefreshCw, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -16,6 +18,7 @@ import {
 } from '@/components/Common';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
+import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 
 import { GoogleSheetConnection } from './GoogleSheetConnection';
@@ -37,13 +40,29 @@ import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
 import { orderScope, sellerOrderAccess, sellerWithdrawalAccess } from '../lib/orderScope';
 
 export function SellerOrders() {
+  const linkedOrder = notificationTarget(useLocation().search, 'orderId');
   const scope = useAuthStore(orderScope);
   const access = sellerOrderAccess();
   if (!access.read) return <UnderConstruction />;
-  return <SellerOrdersSession key={scope} scope={scope} owner={access.create} />;
+  return (
+    <SellerOrdersSession
+      key={`${scope}:${linkedOrder ?? ''}`}
+      scope={scope}
+      owner={access.create}
+      initialId={linkedOrder}
+    />
+  );
 }
 
-function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }) {
+function SellerOrdersSession({
+  scope,
+  owner,
+  initialId,
+}: {
+  scope: string;
+  owner: boolean;
+  initialId: string | null;
+}) {
   const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
   const t = useTranslations('Orders');
   const locale = useLocale();
@@ -111,6 +130,31 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
       if (orderScope() === scope && !signal.aborted) setDetail(response);
     });
   }
+  useEffect(() => {
+    if (!initialId || orderScope() !== scope) return;
+    const controller = new AbortController();
+    controllers.current.add(controller);
+    setDetail(null);
+    setDetailId(initialId);
+    setModal('detail');
+    setError(null);
+    setBusy(true);
+    void ordersApi
+      .detail(initialId, owner, controller.signal)
+      .then((response) => {
+        if (!controller.signal.aborted && orderScope() === scope) setDetail(response);
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted && orderScope() === scope) {
+          setError(t(orderErrorKey(failure)));
+        }
+      })
+      .finally(() => {
+        controllers.current.delete(controller);
+        if (!controller.signal.aborted && orderScope() === scope) setBusy(false);
+      });
+    return () => controller.abort();
+  }, [initialId, owner, scope, t]);
   function importOrders(preview = false) {
     if (!files[0] || !files[0].name.toLowerCase().endsWith('.xlsx')) {
       setError(t('invalid_file'));
