@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>ORCA · Lợi Phan design mockups</title
+  ><style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font:
+        14px Archivo,
+        Arial,
+        sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    header {
+      padding: 20px 24px;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    h1 {
+      font-size: 23px;
+      margin: 0 0 8px;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 16px 24px;
+    }
+    button {
+      cursor: pointer;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #475569;
+    }
+    button[aria-pressed='true'] {
+      background: #0f766e;
+      color: white;
+    }
+    main {
+      padding: 0 24px 24px;
+    }
+    object {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1440/1000;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+    }
+    p {
+      margin: 6px 0;
+      line-height: 1.5;
+    }
+    a {
+      color: #0f766e;
+    }
+  </style>
+  <header>
+    <h1>ORCA · Product design handoff</h1>
+    <p>SS-1052 / SS-1058 / SS-1064 / SS-1081 · Lợi Phan · 26 October 2026</p>
+    <p>
+      Editable SVG mockups based on current UI contracts. All sample data is fictional. Figma is not
+      required, as agreed by the owner.
+    </p>
+  </header>
+  <nav>
+    <button data-file="SS-1052-sku-form.svg" type="button">SS-1052-sku-form</button
+    ><button data-file="SS-1052-sku-import.svg" type="button">SS-1052-sku-import</button
+    ><button data-file="SS-1052-sku-list.svg" type="button">SS-1052-sku-list</button
+    ><button data-file="SS-1058-calendar-downtime.svg" type="button">
+      SS-1058-calendar-downtime</button
+    ><button data-file="SS-1058-warehouse-form.svg" type="button">SS-1058-warehouse-form</button
+    ><button data-file="SS-1058-warehouse-layout.svg" type="button">SS-1058-warehouse-layout</button
+    ><button data-file="SS-1058-warehouse-list.svg" type="button">SS-1058-warehouse-list</button
+    ><button data-file="SS-1064-asn-detail.svg" type="button">SS-1064-asn-detail</button
+    ><button data-file="SS-1064-asn-form.svg" type="button">SS-1064-asn-form</button
+    ><button data-file="SS-1064-asn-list.svg" type="button">SS-1064-asn-list</button
+    ><button data-file="SS-1081-rules-editor.svg" type="button">SS-1081-rules-editor</button
+    ><button data-file="SS-1081-rules-history-carrier.svg" type="button">
+      SS-1081-rules-history-carrier</button
+    ><button data-file="SS-1081-rules-list.svg" type="button">SS-1081-rules-list</button>
+  </nav>
+  <main>
+    <p><a id="download" href="">Open or save editable SVG</a></p>
+    <object id="screen" type="image/svg+xml" aria-label="Selected editable mockup"></object>
+  </main>
+  <script>
+    const buttons = [...document.querySelectorAll('button[data-file]')];
+    function show(button) {
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
+      document.getElementById('screen').data = button.dataset.file;
+      document.getElementById('download').href = button.dataset.file;
+    }
+    buttons.forEach((b) => b.addEventListener('click', () => show(b)));
+    show(buttons[0]);
+  </script>
+</html>
