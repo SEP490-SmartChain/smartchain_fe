@@ -3711,6 +3711,17 @@
     "manual": "Đóng và tiếp tục nhập tay"
   },
   "Payouts": {
+    "notApproved": "Chưa duyệt",
+    "frozenSnapshot": "Bảng kê đã chốt dữ liệu",
+    "immutableHelp": "Giữ nguyên dòng nguồn và số tiền gốc. Mọi sửa sai phải có điều chỉnh riêng ở kỳ sau.",
+    "disputeSummary": "Phần đang chờ đối soát",
+    "openDisputes": "{count} dòng tranh chấp mở",
+    "frozenEligible": "Hạn mức đủ điều kiện tại giờ chốt",
+    "disputedCredits": "Khoản có đang tranh chấp",
+    "disputedDebits": "Khoản phí đang tranh chấp",
+    "disputeTotalsHelp": "Tổng của toàn bộ bảng kê, kể cả dòng ở trang khác. Khoản tranh chấp chưa làm thay đổi sổ tiền; Kế toán xét phần không tranh chấp theo số dư thực tế.",
+    "recordedTransfer": "Đã ghi nhận chuyển khoản thực tế",
+    "adjustmentReference": "Tham chiếu khoản điều chỉnh",
     "eyebrow": "Đối soát seller",
     "title": "Sổ tiền & sao kê",
     "description": "Theo dõi từng khoản đã ghi sổ, kiểm tra sao kê tuần và bằng chứng thanh toán.",
