@@ -10,6 +10,7 @@ import {
   payoutCommandSchema,
   payoutLineSchema,
   payoutStatementSchema,
+  payoutStatementDetailSchema,
   payoutSummarySchema,
 } from '../schemas/payoutSchema';
 
@@ -118,7 +119,7 @@ export const payoutApi = {
       `${statementPath(id)}${query({ tenantId })}`,
       { signal, silent: true },
     );
-    return payoutStatementSchema.parse(data);
+    return payoutStatementDetailSchema.parse(data);
   },
   async lines(id: string, filters: Omit<Filters, 'accountKind'>, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>(

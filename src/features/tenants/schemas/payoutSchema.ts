@@ -45,6 +45,26 @@ export const payoutStatementSchema = z.object({
   closedAt: timestamp.nullable(),
   isLegacy: z.boolean(),
 });
+// Additive detail contract: older deployed APIs can omit the new read model.
+export const payoutStatementDetailSchema = payoutStatementSchema.extend({
+  review: z
+    .object({
+      openDisputeCount: z.number().int().nonnegative(),
+      disputedCreditsVnd: money.refine((value) => BigInt(value) >= BigInt(0)),
+      disputedDebitsVnd: money.refine((value) => BigInt(value) >= BigInt(0)),
+    })
+    .optional(),
+  transfer: z
+    .object({
+      id: z.string().uuid(),
+      bankReference: z.string(),
+      amountVnd: money.refine((value) => BigInt(value) > BigInt(0)),
+      confirmedAt: timestamp,
+    })
+    .nullable()
+    .optional(),
+});
+export type PayoutStatementDetail = z.infer<typeof payoutStatementDetailSchema>;
 export const payoutLineSchema = z.object({
   id: z.string().uuid(),
   ledgerEntryId: z.string().uuid(),
