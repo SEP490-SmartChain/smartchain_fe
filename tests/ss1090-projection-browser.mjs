@@ -1,5 +1,6 @@
 // Actual React simulator with labelled synthetic transport. No .env, DB or provider calls.
 import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
 import { createServer } from 'vite';
 import react from '@vitejs/plugin-react';
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -51,7 +52,15 @@ const server = await createServer({
       },
     },
   ],
-  server: { host: '127.0.0.1', port: 24391, strictPort: true },
+  server: {
+    host: '127.0.0.1',
+    port: 24391,
+    strictPort: true,
+    fs: {
+      // Worktree dependencies can be symlinked; permit only the public font assets.
+      allow: [root, realpathSync(new URL('../node_modules/@fontsource/archivo', import.meta.url))],
+    },
+  },
 });
 await server.listen();
 console.log('Synthetic UI acceptance: http://127.0.0.1:24391/');
