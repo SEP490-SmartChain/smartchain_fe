@@ -86,7 +86,6 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
     if (!current) return;
     const c = new AbortController();
     setLoading(true);
-    setSelected(null);
     void Promise.all([
       putawayApi.list(current, cursor, c.signal),
       manager ? putawayApi.staff(current, c.signal) : Promise.resolve([]),
@@ -103,6 +102,23 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
             waitingCursor: waiting.nextCursor,
             staff,
           });
+          setSelected((previous) =>
+            previous
+              ? (data.items.find(
+                  (item) =>
+                    item.id === previous.id &&
+                    item.version === previous.version &&
+                    item.status === previous.status &&
+                    item.assigneeId === previous.assigneeId &&
+                    item.qty === previous.qty &&
+                    item.confirmedQty === previous.confirmedQty &&
+                    item.fromBinCode === previous.fromBinCode &&
+                    item.toBinCode === previous.toBinCode &&
+                    item.sku === previous.sku &&
+                    item.lotCode === previous.lotCode,
+                ) ?? null)
+              : null,
+          );
           setPreparation((previous) =>
             previous
               ? (waiting.items.find(
@@ -116,6 +132,7 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
       .catch((e) => {
         if (!c.signal.aborted) {
           setPage(null);
+          setSelected(null);
           setError(e instanceof ApiError ? e.message : t('loadError'));
         }
       })
@@ -337,9 +354,12 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
                   staff={visible.staff}
                   manager={manager}
                   onLock={setTaskLocked}
-                  disabled={relocationLocked || overrideLocked || preparationLocked}
-                  onSaved={() => {
-                    setCursor(null);
+                  disabled={loading || relocationLocked || overrideLocked || preparationLocked}
+                  onSaved={(keepDraft = false) => {
+                    if (!keepDraft) {
+                      setSelected(null);
+                      setCursor(null);
+                    }
                     setRefresh((v) => v + 1);
                   }}
                 />
@@ -384,7 +404,7 @@ function PutawayTaskForm({
   task: PutawayTask;
   staff: { id: string; fullName: string }[];
   manager: boolean;
-  onSaved: () => void;
+  onSaved: (keepDraft?: boolean) => void;
   onLock: (locked: boolean) => void;
   disabled: boolean;
 }) {
@@ -468,7 +488,7 @@ function PutawayTaskForm({
       if (e instanceof ApiError && [400, 403, 404, 409, 422].includes(e.status)) {
         setAttempt(null);
         toast.error(e.message);
-        onSaved();
+        if ([403, 404, 409].includes(e.status)) onSaved(e.status === 409);
       } else setAttempt(command);
     } finally {
       if (g === generation.current) setBusy(false);
