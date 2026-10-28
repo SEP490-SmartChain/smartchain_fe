@@ -478,6 +478,9 @@
     "invalidPartnerCode": "The shop code may contain letters, digits, hyphens or underscores (max 50)."
   },
   "Orders": {
+    "backorderHint": "There is not enough stock meeting allocation requirements. The order is waiting for eligible stock; allocation will retry when inventory is updated.",
+    "allocationQueuedHint": "The order is validated and waiting for allocation. Its status will update automatically when processing completes.",
+    "allocationLineValue": "Line declared value",
     "sheet_template": "Download Google Sheets template",
     "title": "Sales orders",
     "description": "Create, import and track your sales orders in one place.",
@@ -652,7 +655,11 @@
       "RESERVATION_RENEWAL_REQUIRED": "The stock hold expired and could not be fully renewed. ORCA must review this order before picking can continue.",
       "ALLOCATION_QUEUE_FAILED": "Allocation could not finish after retries. ORCA must review this order before processing can continue.",
       "VALIDATION_FAILED": "The address does not match the directory. Check its province/ward and contact ORCA to resolve this order.",
-      "ADDRESS_NORMALIZED": "The address has been checked and normalized."
+      "ADDRESS_NORMALIZED": "The address has been checked and normalized.",
+      "ELIGIBLE_STOCK_RESERVED": "Stock has been reserved and the order allocated for warehouse processing.",
+      "CONFIRM_HOLD": "The shop owner confirmed that processing should continue.",
+      "HOLD_RISKY_COD": "The shop owner must confirm before stock can be allocated.",
+      "ALL_CHILD_STATUS_ROLLUP": "Updated from the progress of the parcels in this order."
     },
     "errors": {
       "invalid_product": "This product is unavailable in your catalog. Choose an available product.",
@@ -772,12 +779,12 @@
     "collectionRequired": "Enter the collection total, or 0 for no collection.",
     "collectionHint": "The full amount the courier collects from the recipient, including any outstanding buyer shipping. Enter 0 for no collection; do not leave blank.",
     "deliveryNote": "Delivery instructions",
-    "freightSeparateHint": "Processing uses your plan allowance. ORCA freight is charged separately under your contract using actual packed measurements; it is separate from recipient collection.",
+    "freightSeparateHint": "ORCA bills the shop separately for freight under the contract and parcel measurements.",
     "declaredCatalogHint": "Leave blank to use declared SKU values at acceptance. Declared value differs from collection and does not guarantee compensation.",
-    "directCollectionSnapshot": "Total declared by the shop at intake, including all amounts to collect from the recipient. It does not establish how much the buyer has prepaid.",
+    "directCollectionSnapshot": "The shop-declared total includes all amounts still due from the recipient. It does not identify prior customer payments.",
     "allocationUnitValue": "Declared value per unit",
     "allocationTotalValue": "Total allocation value",
-    "allocationValueHint": "These catalog values were frozen for collection allocation across parcels; they are not order sale prices.",
+    "allocationValueHint": "Declared values weight collection across split parcels; they are not sale prices and may differ from the collection total.",
     "detailedTemplate": "Detailed payment template (optional)",
     "detailTabs": "Order detail views",
     "overviewTab": "Overview",
@@ -791,7 +798,11 @@
     "expiryFirst": "Published allocation policy prioritizes eligible expiry dates.",
     "allocationLot": "Lot {lot} · Bin {bin} · {qty} units",
     "withdrawalOrder": "Stock withdrawal",
-    "withdrawalFees": "Withdrawal has zero recipient COD and no sales-order quota. Contract service, materials and freight charges still apply; the goods value below is not a collection amount."
+    "withdrawalFees": "No COD or sales-order quota use. Contract handling, materials and freight fees apply.",
+    "withdrawalValueHint": "Catalog goods values are for reference, not recipient collection.",
+    "withdrawalAllocationExplanation": "Eligible stock is reserved from the warehouse and lot you selected.",
+    "withdrawalSelection": "Based on the warehouse and lot selected in the withdrawal request.",
+    "collectionExplanation": "How collection is calculated"
   },
   "Sidebar": {
     "freight_tariffs": "Freight tariffs",
@@ -3528,7 +3539,7 @@
   },
   "Withdrawal": {
     "title": "Request stock withdrawal",
-    "description": "Goods return to the registered seller address. No recipient COD or sales-order quota applies; service, materials and freight charges still apply.",
+    "description": "Deliver to the registered address, with no COD or sales-order quota use. Handling, materials and freight fees still apply.",
     "registeredAddress": "Registered return address",
     "recipientName": "Recipient name",
     "recipientPhone": "Phone number",
@@ -3541,7 +3552,7 @@
     "stock": "Warehouse · SKU · Lot (available quantity)",
     "qty": "Withdrawal quantity",
     "submit": "Request withdrawal",
-    "accepted": "Request accepted, awaiting allocation and warehouse processing.",
+    "accepted": "Withdrawal request accepted. Check order details for its processing status.",
     "more": "More eligible lots",
     "reload": "Reload data",
     "retrySame": "Retry the same request",
@@ -3556,7 +3567,24 @@
       "WITHDRAWAL_STOCK_UNAVAILABLE": "The named lot no longer has enough eligible stock. Reload the choices.",
       "WITHDRAWAL_FORBIDDEN": "Only a currently authorized Seller Owner can request withdrawal.",
       "IDEMPOTENCY_CONFLICT": "This reference was used with different content. Reload to check the request."
-    }
+    },
+    "recoveryUnavailable": "Recovery reference could not be saved. The request was not sent. Allow browser session storage and retry.",
+    "pendingReference": "Withdrawal {code}: {qty} units. If the outcome is unknown, retry only this request.",
+    "recovered": "Your previous withdrawal request was recovered; no new order was created. Check order details for its current status.",
+    "noStock": "No stock lots are currently eligible for withdrawal. Check available stock or reload after the warehouse updates it.",
+    "processing": "Loading or confirming data. Please wait for the result.",
+    "unsavedAddress": "Save address changes or restore the registered address before submitting.",
+    "revertAddress": "Restore registered address",
+    "eligibilityGuidance": "Withdrawal is not yet eligible. Review debt and contract/service status below, then try again. The deposit is separate from the operating balance.",
+    "reviewBalance": "Review balance and debt",
+    "reviewContract": "Review contract and service",
+    "selectionReview": "Review goods to withdraw",
+    "selectedProduct": "Product: {name} · SKU: {sku}",
+    "selectedWarehouse": "Warehouse: {name}",
+    "selectedLot": "Lot: {code}",
+    "selectedQuantity": "Requested quantity: {requested} · Available to withdraw: {available}",
+    "editAddress": "Edit delivery address",
+    "chooseGoods": "Goods to withdraw"
   },
   "Warehouse3D": {
     "title": "Warehouse 3D · {code}",

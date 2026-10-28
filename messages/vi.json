@@ -478,6 +478,9 @@
     "invalidPartnerCode": "Mã cửa hàng chỉ gồm chữ, số, gạch ngang hoặc gạch dưới (tối đa 50 ký tự)."
   },
   "Orders": {
+    "backorderHint": "Chưa đủ tồn kho đáp ứng điều kiện phân bổ. Đơn đang chờ bổ sung hàng đủ điều kiện; hệ thống sẽ thử lại khi tồn kho được cập nhật.",
+    "allocationQueuedHint": "Đơn đã được xác thực và đang chờ hệ thống phân bổ. Trạng thái sẽ tự cập nhật khi có kết quả.",
+    "allocationLineValue": "Tổng giá trị khai báo",
     "sheet_template": "Tải mẫu Google Sheets",
     "title": "Đơn bán hàng",
     "description": "Tạo đơn, nhập đơn hàng loạt và theo dõi giao hàng trong một nơi.",
@@ -652,7 +655,11 @@
       "RESERVATION_RENEWAL_REQUIRED": "Thời gian giữ hàng đã hết và hệ thống chưa thể giữ lại đủ hàng. ORCA cần kiểm tra trước khi tiếp tục lấy hàng.",
       "ALLOCATION_QUEUE_FAILED": "Phân bổ hàng chưa hoàn tất sau các lần thử lại. ORCA cần kiểm tra để tiếp tục xử lý đơn.",
       "VALIDATION_FAILED": "Địa chỉ chưa khớp danh mục. Kiểm tra tỉnh/phường và liên hệ ORCA để xử lý đơn này.",
-      "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa."
+      "ADDRESS_NORMALIZED": "Địa chỉ đã được kiểm tra và chuẩn hóa.",
+      "ELIGIBLE_STOCK_RESERVED": "Đã giữ đủ hàng và phân bổ đơn cho kho xử lý.",
+      "CONFIRM_HOLD": "Chủ shop đã xác nhận tiếp tục xử lý đơn.",
+      "HOLD_RISKY_COD": "Đơn cần chủ shop xác nhận trước khi phân bổ hàng.",
+      "ALL_CHILD_STATUS_ROLLUP": "Cập nhật theo tiến độ của các kiện trong đơn."
     },
     "errors": {
       "invalid_product": "Sản phẩm không có trong danh mục của bạn hoặc không còn hoạt động. Chọn lại sản phẩm.",
@@ -772,12 +779,12 @@
     "collectionRequired": "Nhập tổng tiền cần thu; nhập 0 nếu không thu tiền.",
     "collectionHint": "Toàn bộ số tiền shipper thu từ người nhận, gồm phí giao hàng còn thu khách nếu có. Nhập 0 nếu không thu; không để trống.",
     "deliveryNote": "Ghi chú giao hàng",
-    "freightSeparateHint": "Lượt xử lý áp dụng theo gói. Cước vận chuyển ORCA thu shop tính riêng theo hợp đồng và số đo kiện sau đóng gói; không phải số tiền thu hộ.",
+    "freightSeparateHint": "Cước ORCA thu shop được tính riêng theo hợp đồng và số đo kiện.",
     "declaredCatalogHint": "Để trống để ORCA lấy tổng giá trị khai báo từ SKU lúc tiếp nhận. Khai giá khác tiền thu hộ và không phải cam kết bồi thường.",
-    "directCollectionSnapshot": "Tổng thu hộ do shop khai báo lúc tạo đơn, đã bao gồm mọi khoản cần thu từ người nhận. Không thể suy ra khách đã trả bao nhiêu từ số tiền này.",
+    "directCollectionSnapshot": "Tổng shop khai báo, gồm các khoản còn thu từ người nhận. Không thể dùng số này để xác định khoản khách đã trả.",
     "allocationUnitValue": "Giá trị khai báo / sản phẩm",
     "allocationTotalValue": "Tổng giá trị làm căn cứ phân bổ",
-    "allocationValueHint": "Các giá trị sản phẩm dưới đây được chụp từ danh mục để phân bổ thu hộ khi tách kiện; không phải giá bán của đơn.",
+    "allocationValueHint": "Giá trị khai báo dùng để chia thu hộ khi tách kiện; không phải giá bán và có thể khác tiền thu khi giao.",
     "detailedTemplate": "Mẫu tính thanh toán chi tiết (tùy chọn)",
     "detailTabs": "Chi tiết đơn hàng",
     "overviewTab": "Tổng quan",
@@ -791,7 +798,11 @@
     "expiryFirst": "Chính sách đã phát hành ưu tiên lô hợp lệ gần hạn hơn.",
     "allocationLot": "Lô {lot} · Bin {bin} · {qty} sản phẩm",
     "withdrawalOrder": "Đơn rút hàng",
-    "withdrawalFees": "Đơn rút hàng không thu COD và không trừ hạn mức đơn bán. Phí dịch vụ, vật tư và vận chuyển được tính theo hợp đồng; giá trị hàng dưới đây không phải số tiền phải thu."
+    "withdrawalFees": "Đơn rút hàng không thu COD hoặc trừ hạn mức đơn bán. Phí xử lý, vật tư và vận chuyển theo hợp đồng.",
+    "withdrawalValueHint": "Giá trị hàng theo danh mục để đối chiếu; không phải số tiền thu người nhận.",
+    "withdrawalAllocationExplanation": "Hàng được giữ theo kho và lô bạn đã chọn, sau khi kiểm tra tồn đủ điều kiện.",
+    "withdrawalSelection": "Theo kho và lô đã chọn trong yêu cầu rút hàng.",
+    "collectionExplanation": "Cách tính số tiền thu"
   },
   "Sidebar": {
     "freight_tariffs": "Bảng cước",
@@ -3528,7 +3539,7 @@
   },
   "Withdrawal": {
     "title": "Yêu cầu rút hàng",
-    "description": "Hàng được giao về địa chỉ nhận đã đăng ký. Không thu COD từ người nhận và không trừ hạn mức đơn bán; vẫn áp dụng phí dịch vụ, vật tư và vận chuyển.",
+    "description": "Giao về địa chỉ đã đăng ký, không thu COD hoặc trừ hạn mức đơn bán. Phí xử lý, vật tư và vận chuyển vẫn áp dụng.",
     "registeredAddress": "Địa chỉ nhận hàng đã đăng ký",
     "recipientName": "Tên người nhận",
     "recipientPhone": "Số điện thoại",
@@ -3541,7 +3552,7 @@
     "stock": "Kho · SKU · Lô (số lượng có thể rút)",
     "qty": "Số lượng rút",
     "submit": "Gửi yêu cầu rút hàng",
-    "accepted": "Đã tiếp nhận yêu cầu, đang chờ phân bổ và xử lý tại kho.",
+    "accepted": "Đã tiếp nhận yêu cầu rút hàng. Xem trạng thái xử lý trong chi tiết đơn.",
     "more": "Xem thêm lô hàng",
     "reload": "Tải lại dữ liệu",
     "retrySame": "Thử lại cùng yêu cầu",
@@ -3556,7 +3567,24 @@
       "WITHDRAWAL_STOCK_UNAVAILABLE": "Lô đã chọn không còn đủ hàng đủ điều kiện. Tải lại để chọn hàng.",
       "WITHDRAWAL_FORBIDDEN": "Chỉ chủ tài khoản đang có quyền mới được yêu cầu rút hàng.",
       "IDEMPOTENCY_CONFLICT": "Tham chiếu này đã dùng cho nội dung khác. Tải lại để kiểm tra yêu cầu."
-    }
+    },
+    "recoveryUnavailable": "Chưa lưu được tham chiếu khôi phục. Yêu cầu chưa được gửi. Hãy cho phép lưu trữ phiên trên trình duyệt rồi thử lại.",
+    "pendingReference": "Yêu cầu rút {code}: {qty} đơn vị. Nếu kết quả chưa rõ, chỉ gửi lại đúng yêu cầu này.",
+    "recovered": "Đã tìm lại yêu cầu rút hàng trước đó; không tạo đơn mới. Xem trạng thái hiện tại trong chi tiết đơn.",
+    "noStock": "Hiện chưa có lô hàng đủ điều kiện rút. Kiểm tra tồn khả dụng hoặc tải lại sau khi kho cập nhật.",
+    "processing": "Đang tải hoặc xác nhận dữ liệu. Vui lòng chờ kết quả.",
+    "unsavedAddress": "Lưu thay đổi địa chỉ hoặc dùng lại địa chỉ đã đăng ký trước khi gửi.",
+    "revertAddress": "Dùng lại địa chỉ đã đăng ký",
+    "eligibilityGuidance": "Chưa đủ điều kiện rút hàng. Kiểm tra công nợ và hợp đồng/dịch vụ tại các mục dưới đây, rồi thử lại. Tiền cọc không dùng như số dư hoạt động.",
+    "reviewBalance": "Xem số dư và công nợ",
+    "reviewContract": "Xem hợp đồng và dịch vụ",
+    "selectionReview": "Kiểm tra hàng sẽ rút",
+    "selectedProduct": "Sản phẩm: {name} · SKU: {sku}",
+    "selectedWarehouse": "Kho: {name}",
+    "selectedLot": "Lô: {code}",
+    "selectedQuantity": "Số lượng yêu cầu: {requested} · Có thể rút: {available}",
+    "editAddress": "Sửa địa chỉ nhận hàng",
+    "chooseGoods": "Hàng cần rút"
   },
   "Warehouse3D": {
     "title": "Kho 3D · {code}",

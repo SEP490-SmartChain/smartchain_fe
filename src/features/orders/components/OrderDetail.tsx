@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Tabs } from '@/components/Common';
 
 import { OrderPaymentSummary } from './OrderPaymentSummary';
-import { orderReasonKey } from '../lib/orderFeedback';
+import { orderHistoryReasonKey, orderReasonKey } from '../lib/orderFeedback';
 import { formatOrderDate, formatOrderMoney, orderStatusTone } from '../lib/orderPresentation';
 
 import type { SellerOrderDetail } from '../api/ordersApi';
@@ -42,12 +42,24 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
           <time dateTime={order.createdAt}>{formatOrderDate(order.createdAt, locale)}</time>
         </p>
       </header>
-      {order.holdReason && <Alert variant="warning">{t(orderReasonKey(order.holdReason))}</Alert>}
-      {order.status === 'BACKORDER' && order.backorderReminder && (
-        <Alert variant="warning" role="status">
-          {t('backorderReminder')}
-        </Alert>
+      {order.status === 'VALIDATED' && order.holdReason !== 'CANCEL_PENDING' && (
+        <Alert role="status">{t('allocationQueuedHint')}</Alert>
       )}
+      {order.status === 'BACKORDER' &&
+        !order.backorderReminder &&
+        order.holdReason !== 'CANCEL_PENDING' && (
+          <Alert variant="warning" role="status">
+            {t('backorderHint')}
+          </Alert>
+        )}
+      {order.holdReason && <Alert variant="warning">{t(orderReasonKey(order.holdReason))}</Alert>}
+      {order.status === 'BACKORDER' &&
+        order.backorderReminder &&
+        order.holdReason !== 'CANCEL_PENDING' && (
+          <Alert variant="warning" role="status">
+            {t('backorderReminder')}
+          </Alert>
+        )}
       <Tabs
         label={t('detailTabs')}
         tabs={[
@@ -59,7 +71,13 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       />
       {detailTab === 'allocation' ? (
         <section className="space-y-4" aria-label={t('allocationTab')}>
-          <Alert>{t('allocationExplanation')}</Alert>
+          <Alert>
+            {t(
+              order.kind === 'WITHDRAWAL'
+                ? 'withdrawalAllocationExplanation'
+                : 'allocationExplanation',
+            )}
+          </Alert>
           {!order.fulfillmentOrders.length && <p>{t('allocationPending')}</p>}
           {order.fulfillmentOrders.map((child) => (
             <article
@@ -68,13 +86,15 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
             >
               <h4 className="font-semibold">{child.warehouseName ?? t('warehouse_unavailable')}</h4>
               <p className="mt-2 text-sm">
-                {child.allocation?.reason === 'EXPIRY_FIRST'
-                  ? t('expiryFirst')
-                  : child.allocation?.reason === 'TOTAL_COST'
-                    ? t('totalCost')
-                    : child.allocation?.reason === 'NEAREST_WAREHOUSE'
-                      ? t('nearestWarehouse')
-                      : t('allocationUnavailable')}
+                {order.kind === 'WITHDRAWAL'
+                  ? t('withdrawalSelection')
+                  : child.allocation?.reason === 'EXPIRY_FIRST'
+                    ? t('expiryFirst')
+                    : child.allocation?.reason === 'TOTAL_COST'
+                      ? t('totalCost')
+                      : child.allocation?.reason === 'NEAREST_WAREHOUSE'
+                        ? t('nearestWarehouse')
+                        : t('allocationUnavailable')}
               </p>
               <ul className="mt-3 space-y-2">
                 {child.allocation?.lots.map((lot) => (
@@ -118,7 +138,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
           <section>
             {direct && (
               <p className="mb-3 text-sm text-[var(--sc-text-secondary)]">
-                {t('allocationValueHint')}
+                {t(order.kind === 'WITHDRAWAL' ? 'withdrawalValueHint' : 'allocationValueHint')}
               </p>
             )}
             <h4 className={`${heading} mb-3`}>
@@ -166,7 +186,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                               </dd>
                             </div>
                             <div className="flex items-baseline justify-between gap-3">
-                              <dt className="text-[var(--sc-text-secondary)]">{t('line_total')}</dt>
+                              <dt className="text-[var(--sc-text-secondary)]">
+                                {t(direct ? 'allocationLineValue' : 'line_total')}
+                              </dt>
                               <dd className="shrink-0 font-medium tabular-nums">
                                 {item.unitPrice === undefined
                                   ? '—'
@@ -205,7 +227,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                               {t(direct ? 'allocationUnitValue' : 'unitPriceShort')}
                             </th>
                             <th scope="col" className="p-3 text-right font-medium">
-                              {t('line_total')}
+                              {t(direct ? 'allocationLineValue' : 'line_total')}
                             </th>
                           </>
                         )}
@@ -364,28 +386,29 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
               {t('history')} ({history.length})
             </summary>
             <ol className="mt-4 space-y-3">
-              {history.map((entry) => (
-                <li
-                  key={`${entry.changedAt}-${entry.fromStatus}-${entry.toStatus}-${entry.reason}`}
-                  className="border-l-2 border-[var(--sc-primary)] pl-3 text-sm"
-                >
-                  <time
-                    dateTime={entry.changedAt}
-                    className="text-xs text-[var(--sc-text-secondary)]"
+              {history.map((entry) => {
+                const reasonKey = orderHistoryReasonKey(entry.reason);
+                return (
+                  <li
+                    key={`${entry.changedAt}-${entry.fromStatus}-${entry.toStatus}-${entry.reason}`}
+                    className="border-l-2 border-[var(--sc-primary)] pl-3 text-sm"
                   >
-                    {formatOrderDate(entry.changedAt, locale)}
-                  </time>
-                  <p>
-                    {entry.fromStatus ? `${status(entry.fromStatus)} → ` : ''}
-                    {status(entry.toStatus)}
-                  </p>
-                  {entry.reason && (
-                    <p className="mt-1 text-[var(--sc-text-secondary)]">
-                      {t(orderReasonKey(entry.reason))}
+                    <time
+                      dateTime={entry.changedAt}
+                      className="text-xs text-[var(--sc-text-secondary)]"
+                    >
+                      {formatOrderDate(entry.changedAt, locale)}
+                    </time>
+                    <p>
+                      {entry.fromStatus ? `${status(entry.fromStatus)} → ` : ''}
+                      {status(entry.toStatus)}
                     </p>
-                  )}
-                </li>
-              ))}
+                    {reasonKey && (
+                      <p className="mt-1 text-[var(--sc-text-secondary)]">{t(reasonKey)}</p>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
             {!history.length && <p className="mt-3 text-sm">{t('history_empty')}</p>}
           </details>

@@ -31,6 +31,7 @@ import {
   type SellerOrder,
   type SellerOrderDetail,
 } from '../api/ordersApi';
+import { useOrderDetailRefresh } from '../hooks/useOrderDetailRefresh';
 import { useOrders } from '../hooks/useOrders';
 import { importRowFeedback, orderErrorKey, orderReasonKey } from '../lib/orderFeedback';
 import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
@@ -65,6 +66,14 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
   const [accepted, setAccepted] = useState<{ id: string; code: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  useOrderDetailRefresh({
+    scope,
+    owner,
+    detail,
+    active: modal === 'detail' && !busy,
+    setDetail,
+    setError,
+  });
   const running = useRef(false);
   const controllers = useRef(new Set<AbortController>());
   useEffect(() => {
@@ -103,7 +112,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
     }
   }
   function openDetail(id: string) {
-    setDetail(null);
+    setDetail((current) => (current?.id === id ? current : null));
     setDetailId(id);
     setModal('detail');
     void execute(async (signal) => {
@@ -552,7 +561,10 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
         title={t('detail')}
         width="850px"
         onClose={() => {
-          if (!busy) setModal(null);
+          if (!busy) {
+            setModal(null);
+            void orders.reload();
+          }
         }}
       >
         {busy && <p role="status">{t('loading')}</p>}
