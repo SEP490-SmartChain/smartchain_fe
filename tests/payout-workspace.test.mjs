@@ -87,6 +87,62 @@ test('rejects numeric money and unknown financial state before rendering', async
   globalThis.fetch = async () => ok([{ ...row, status: 'TRANSFER_ASSUMED' }], page);
   await assert.rejects(api.list({}));
 });
+
+test('reads immutable legacy PostgreSQL ledger IDs and cursors without rejecting their UUID version bits', async () => {
+  const legacyId = 'd43f6226-3025-c160-73a3-f43e2a695d69';
+  const entry = {
+    id: legacyId,
+    accountKind: 'OPERATING',
+    entryType: 'FEE',
+    amountVnd: '-35000',
+    sourceType: 'BILLABLE_EVENT',
+    sourceId: id,
+    componentKey: 'freight-fee-v1',
+    effectiveAt: deadline,
+    postedAt: deadline,
+    reversesEntryId: legacyId,
+  };
+  globalThis.fetch = async () => ok([entry], { ...page, hasNext: true, nextCursor: legacyId });
+  const result = await api.ledger({ accountKind: 'OPERATING' });
+  assert.equal(result.items[0].id, legacyId);
+  assert.equal(result.pagination.nextCursor, legacyId);
+  for (const bad of ['not-a-uuid', '../ledger', legacyId.replace('d43f', 'zzzz')])
+    assert.equal(schemas.ledgerEntrySchema.safeParse({ ...entry, id: bad }).success, false);
+});
+
+test('keeps legacy ledger references readable in invoice lines', async () => {
+  const { invoiceLineSchema } = await server.ssrLoadModule(
+    '/src/features/tenants/api/invoiceApi.ts',
+  );
+  const legacyId = 'd43f6226-3025-c160-73a3-f43e2a695d69';
+  const line = {
+    id,
+    lineNo: 1,
+    description: 'Freight',
+    quantity: '1',
+    unit: 'PARCEL',
+    unitPriceVnd: '35000',
+    amountVnd: '35000',
+    billableEventId: id,
+    ledgerEntryId: legacyId,
+    feeType: 'FREIGHT',
+    refType: 'PACKING_RECORD',
+    refId: id,
+    eventAt: deadline,
+    tariffVersionRef: id,
+  };
+  assert.equal(invoiceLineSchema.parse(line).ledgerEntryId, legacyId);
+});
+
+test('shows a localized retry message instead of raw schema internals on failed money reads', () => {
+  const parsed = schemas.ledgerEntrySchema.safeParse({ id: 'invalid' });
+  assert.equal(parsed.success, false);
+  assert.equal(schemas.payoutReadError(parsed.error, 'Localized retry'), 'Localized retry');
+  assert.equal(
+    schemas.payoutReadError(new Error('Access denied'), 'Localized retry'),
+    'Access denied',
+  );
+});
 test('strips private or purchase-only fields from the financial projection', () => {
   const parsed = schemas.payoutStatementSchema.parse({
     ...row,
