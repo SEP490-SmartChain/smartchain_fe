@@ -478,6 +478,78 @@ test('new owner breakdown is accepted while Staff financial projection remains s
 const viewMessages = JSON.parse(
   readFileSync(new URL('../messages/vi.json', import.meta.url), 'utf8'),
 );
+test('successful history explains child progress instead of suggesting an ongoing investigation', () => {
+  const html = renderDetail({
+    status: 'DISPATCHED',
+    holdReason: null,
+    statusHistory: [
+      {
+        fromStatus: 'ALLOCATED',
+        toStatus: 'DISPATCHED',
+        changedAt: '2026-10-26T01:00:00Z',
+        reason: 'ALL_CHILD_STATUS_ROLLUP',
+      },
+    ],
+  });
+  assert.ok(!html.includes(viewMessages.Orders.processing_reason));
+  assert.ok(html.includes(viewMessages.Orders.reasons.ALL_CHILD_STATUS_ROLLUP));
+});
+test('unknown historical reasons preserve the transition without inventing an investigation or exposing raw text', () => {
+  const raw = 'untrusted database detail / private internal reference';
+  const html = renderDetail({
+    status: 'ALLOCATED',
+    holdReason: null,
+    statusHistory: [
+      {
+        fromStatus: 'VALIDATED',
+        toStatus: 'ALLOCATED',
+        changedAt: '2026-10-26T00:00:00Z',
+        reason: raw,
+      },
+    ],
+  });
+  assert.ok(!html.includes(raw));
+  assert.ok(!html.includes(viewMessages.Orders.processing_reason));
+  assert.ok(html.includes('Đã phân bổ'));
+});
+test('saved recipient correction is an action awaiting validation, not another failed transition', () => {
+  const html = renderDetail({
+    status: 'BACKORDER',
+    holdReason: null,
+    statusHistory: [
+      {
+        fromStatus: 'FAILED',
+        toStatus: 'FAILED',
+        reason: 'CORRECTION',
+        changedAt: '2026-10-26T11:43:00Z',
+      },
+      {
+        fromStatus: 'FAILED',
+        toStatus: 'RECEIVED',
+        reason: 'REDISPATCH',
+        changedAt: '2026-10-26T11:44:00Z',
+      },
+    ],
+  });
+  assert.ok(html.includes('Đã cập nhật thông tin người nhận, chờ kiểm tra lại.'));
+  assert.ok(!html.includes('Thất bại → Thất bại'));
+  assert.ok(html.includes('Thất bại → Đã tiếp nhận'));
+  assert.ok(html.includes('2026-10-26T11:43:00Z'));
+});
+test('other same-state failures are not described as recipient corrections', () => {
+  const html = renderDetail({
+    statusHistory: [
+      {
+        fromStatus: 'FAILED',
+        toStatus: 'FAILED',
+        reason: 'VALIDATION_FAILED',
+        changedAt: '2026-10-26T11:43:00Z',
+      },
+    ],
+  });
+  assert.ok(html.includes('Thất bại → Thất bại'));
+  assert.ok(!html.includes('Đã cập nhật thông tin người nhận, chờ kiểm tra lại.'));
+});
 function renderDetail(overrides = {}, locale = 'vi') {
   const order = {
     ...summary,
@@ -898,4 +970,57 @@ test('expired-hold review state explains that picking needs ORCA review', () => 
     assert.ok(messages.Orders.reasons.RESERVATION_RENEWAL_REQUIRED.length > 20);
     assert.ok(messages.Orders.reasons.ALLOCATION_QUEUE_FAILED.length > 20);
   }
+});
+
+test('direct COD collection and catalog value have distinct labels on mobile and desktop', () => {
+  const html = renderDetail({
+    collectionMode: 'DIRECT',
+    codAmount: '1500000',
+    totalAmount: '750000',
+    items: [{ productId: id, productName: 'Test product', qty: 5, unitPrice: '150000' }],
+    paymentBreakdown: null,
+  });
+  assert.ok(html.includes('1.500.000 ₫'));
+  assert.ok(html.includes('750.000 ₫'));
+  assert.equal((html.match(/>Tổng giá trị khai báo</g) ?? []).length, 2);
+  assert.ok(!html.includes('Thành tiền'));
+  assert.ok(html.includes('không phải giá bán'));
+  assert.ok(renderDetail().includes('Thành tiền'));
+});
+test('allocation status explains both the pending worker and insufficient eligible stock', () => {
+  assert.ok(
+    renderDetail({ status: 'VALIDATED' }).includes(viewMessages.Orders.allocationQueuedHint),
+  );
+  assert.ok(renderDetail({ status: 'BACKORDER' }).includes(viewMessages.Orders.backorderHint));
+  assert.ok(
+    !renderDetail({ status: 'ALLOCATED' }).includes(viewMessages.Orders.allocationQueuedHint),
+  );
+});
+
+test('pending cancellation does not show allocation or replenishment instructions', () => {
+  for (const status of ['VALIDATED', 'BACKORDER']) {
+    const html = renderDetail({ status, holdReason: 'CANCEL_PENDING' });
+    assert.ok(!html.includes(viewMessages.Orders.allocationQueuedHint));
+    assert.ok(!html.includes(viewMessages.Orders.backorderHint));
+  }
+});
+
+test('direct collection explanations are collapsed while the amount and snapshot remain visible', () => {
+  const html = renderDetail({
+    collectionMode: 'DIRECT',
+    codAmount: '1500000',
+    totalAmount: '750000',
+    paymentBreakdown: null,
+  });
+  const explanation = viewMessages.Orders.directCollectionSnapshot;
+  const details = [...html.matchAll(/<details([^>]*)>([\s\S]*?)<\/details>/g)].find((m) =>
+    m[2].includes(explanation),
+  );
+  assert.ok(details, 'collection explanation must be available inside details');
+  assert.ok(!/\bopen\b/.test(details[1]), 'secondary explanation starts collapsed');
+  assert.ok(html.includes('1.500.000 ₫'));
+  assert.ok(
+    !details[2].includes('1.500.000 ₫'),
+    'primary amount stays outside the collapsed explanation',
+  );
 });

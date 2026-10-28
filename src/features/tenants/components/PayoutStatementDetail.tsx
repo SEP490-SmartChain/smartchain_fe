@@ -22,7 +22,7 @@ import {
   payoutTransferSchema,
   vietnamWednesday,
   type PayoutLine,
-  type PayoutStatement,
+  type PayoutStatementDetail,
 } from '../schemas/payoutSchema';
 
 import type { z } from 'zod';
@@ -47,7 +47,7 @@ export function PayoutStatementDetail({
   const t = useTranslations('Payouts');
   const locale = useLocaleStore((s) => s.locale);
   const { can } = useAccess();
-  const [row, setRow] = useState<PayoutStatement | null>(null),
+  const [row, setRow] = useState<PayoutStatementDetail | null>(null),
     [lines, setLines] = useState<PayoutLine[]>([]),
     [cursor, setCursor] = useState<string | null>(null),
     [error, setError] = useState<string | null>(null),
@@ -257,18 +257,71 @@ export function PayoutStatementDetail({
                   {t('deadline')}: {date(row.reviewDeadlineAt)}
                 </span>
               </div>
+              <Card padding="sm" className="bg-[var(--sc-primary-alpha-08)]">
+                <p className="text-xs font-medium uppercase text-[var(--sc-primary)]">
+                  {t('frozenSnapshot')}
+                </p>
+                <p className="mt-1 font-semibold">
+                  {row.periodStart} — {row.periodEnd}
+                </p>
+                <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">{t('immutableHelp')}</p>
+              </Card>
               <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ['opening', row.openingBalanceVnd],
-                  ['closing', row.closingBalanceVnd],
-                  ['approved', row.approvedAmountVnd ?? '0'],
-                ].map(([label, amount]) => (
+                {(
+                  [
+                    ['opening', row.openingBalanceVnd],
+                    ['closing', row.closingBalanceVnd],
+                    ['approved', row.approvedAmountVnd],
+                  ] as const
+                ).map(([label, amount]) => (
                   <Card key={label} padding="sm">
                     <p className="text-sm text-[var(--sc-text-secondary)]">{t(label)}</p>
-                    <p className="mt-2 font-semibold tabular-nums">{money(amount)}</p>
+                    <p className="mt-2 font-semibold tabular-nums">
+                      {amount === null ? t('notApproved') : money(amount)}
+                    </p>
                   </Card>
                 ))}
               </div>
+              {row.review && (
+                <Card padding="sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold">{t('disputeSummary')}</h3>
+                    <Badge
+                      status={row.review.openDisputeCount ? 'warning' : 'success'}
+                      label={t('openDisputes', { count: row.review.openDisputeCount })}
+                    />
+                  </div>
+                  <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+                    {[
+                      ['frozenEligible', row.eligibleAmountVnd],
+                      ['disputedCredits', row.review.disputedCreditsVnd],
+                      ['disputedDebits', row.review.disputedDebitsVnd],
+                    ].map(([label, amount]) => (
+                      <div key={label}>
+                        <dt className="text-xs text-[var(--sc-text-secondary)]">{t(label)}</dt>
+                        <dd className="mt-1 text-lg font-semibold tabular-nums">{money(amount)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="mt-3 text-xs text-[var(--sc-text-secondary)]">
+                    {t('disputeTotalsHelp')}
+                  </p>
+                </Card>
+              )}
+              {row.transfer && (
+                <Card padding="sm" className="border-[var(--sc-success-border)]">
+                  <Badge status="success" label={t('recordedTransfer')} />
+                  <p className="mt-3 text-xl font-semibold tabular-nums">
+                    {money(row.transfer.amountVnd)}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">
+                    {date(row.transfer.confirmedAt)}
+                  </p>
+                  <p className="mt-2 break-all text-sm">
+                    {t('bankReference')}: {row.transfer.bankReference}
+                  </p>
+                </Card>
+              )}
               <Alert variant="info">{row.isLegacy ? t('legacy') : t('reviewHelp')}</Alert>
               <div className="flex flex-wrap gap-2">
                 {can('statement.review') && reviewOpen && (
@@ -334,13 +387,29 @@ export function PayoutStatementDetail({
                             <p key={dispute.id} className="mt-2 text-xs">
                               {dispute.reason}
                               {dispute.resolutionReason && ` · ${dispute.resolutionReason}`}
+                              {dispute.adjustmentEntryId && (
+                                <span className="mt-1 block break-all text-[var(--sc-text-secondary)]">
+                                  {t('adjustmentReference')}: {dispute.adjustmentEntryId}
+                                </span>
+                              )}
                             </p>
                           ))}
                         </td>
                         <td className="whitespace-nowrap p-3 font-medium tabular-nums">
                           {money(line.amountVnd)}
                         </td>
-                        <td className="p-3">{t(`lineStatus.${line.lineStatus}`)}</td>
+                        <td className="p-3">
+                          <Badge
+                            status={
+                              line.lineStatus === 'DISPUTED' || line.lineStatus === 'DEFERRED'
+                                ? 'warning'
+                                : line.lineStatus === 'PAID'
+                                  ? 'success'
+                                  : 'info'
+                            }
+                            label={t(`lineStatus.${line.lineStatus}`)}
+                          />
+                        </td>
                         <td className="p-3">
                           {can('statement.review') &&
                             reviewOpen &&

@@ -1,0 +1,100 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1081 · Routing rules</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Warehouses</text>
+  <rect x="16" y="272" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="299" font-size="14" fill="#0F766E" font-weight="600">Rules</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">Rules / Routing rules</text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    ORCA Admin / Ops Dispatcher
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Routing rules</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Configure allocation and carrier policies; drafts take effect only after publication.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1081 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="1230" y="118" width="176" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1246" y="145" font-size="14" fill="#FFFFFF" font-weight="600">+ Create rule</text>
+  <rect x="286" y="247" width="180" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="302" y="274" font-size="14" fill="#FFFFFF" font-weight="600">Allocation rules</text>
+  <rect x="480" y="247" width="180" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="496" y="274" font-size="14" fill="#0F172A" font-weight="600">Carrier rules</text>
+  <rect x="1180" y="247" width="226" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1196" y="274" font-size="14" fill="#0F172A" font-weight="600">Open rule simulator</text>
+  <rect x="286" y="322" width="1120" height="223" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="287" y="323" width="1118" height="48" rx="10" fill="#F1F5F9" />
+  <text x="306" y="352" font-size="12" fill="#475569" font-weight="600">Priority</text>
+  <text x="416" y="352" font-size="12" fill="#475569" font-weight="600">Rule</text>
+  <text x="731" y="352" font-size="12" fill="#475569" font-weight="600">Scope</text>
+  <text x="931" y="352" font-size="12" fill="#475569" font-weight="600">Draft / published</text>
+  <text x="1151" y="352" font-size="12" fill="#475569" font-weight="600">Status</text>
+  <text x="1281" y="352" font-size="12" fill="#475569" font-weight="600">Actions</text>
+  <path d="M 286 373 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="403" font-size="13" fill="#0F172A" font-weight="600">10</text>
+  <text x="416" y="403" font-size="13" fill="#0F172A" font-weight="400">
+    Prefer nearby warehouse
+  </text>
+  <text x="731" y="403" font-size="13" fill="#0F172A" font-weight="400">Global</text>
+  <text x="931" y="403" font-size="13" fill="#0F172A" font-weight="400">v3 / v2</text>
+  <rect x="1151" y="384" width="85" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1161" y="402" font-size="12" fill="#0F766E" font-weight="600">Published</text>
+  <text x="1281" y="403" font-size="13" fill="#0F766E" font-weight="400">Edit / History</text>
+  <path d="M 286 429 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="459" font-size="13" fill="#0F172A" font-weight="600">20</text>
+  <text x="416" y="459" font-size="13" fill="#0F172A" font-weight="400">Expiry-first sample</text>
+  <text x="731" y="459" font-size="13" fill="#0F172A" font-weight="400">Seller exception</text>
+  <text x="931" y="459" font-size="13" fill="#0F172A" font-weight="400">v1 / —</text>
+  <rect x="1151" y="440" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1161" y="458" font-size="12" fill="#0F766E" font-weight="600">Draft</text>
+  <text x="1281" y="459" font-size="13" fill="#0F766E" font-weight="400">Edit / Publish</text>
+  <path d="M 286 485 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="515" font-size="13" fill="#0F172A" font-weight="600">30</text>
+  <text x="416" y="515" font-size="13" fill="#0F172A" font-weight="400">
+    Nearest warehouse default
+  </text>
+  <text x="731" y="515" font-size="13" fill="#0F172A" font-weight="400">Global</text>
+  <text x="931" y="515" font-size="13" fill="#0F172A" font-weight="400">v2 / v2</text>
+  <rect x="1151" y="496" width="85" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1161" y="514" font-size="12" fill="#0F766E" font-weight="600">Published</text>
+  <text x="1281" y="515" font-size="13" fill="#0F766E" font-weight="400">Edit / Simulate</text>
+  <rect x="286" y="601" width="1120" height="183" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="640" font-size="18" fill="#0F172A" font-weight="600">
+    Lifecycle and role boundaries
+  </text>
+  <text x="310" y="677" font-size="15" fill="#0F766E" font-weight="600">
+    Create draft → test saved version → review the change reason → publish
+  </text>
+  <text x="310" y="715" font-size="13" fill="#475569" font-weight="400">
+    Admin + Ops configure rules. Allocation simulation: Ops only. Carrier simulation: Admin + Ops.
+  </text>
+  <text x="310" y="751" font-size="13" fill="#475569" font-weight="400">
+    Seller exception first → lower priority → stable rule ID. Version conflicts preserve the editor.
+  </text>
+</svg>

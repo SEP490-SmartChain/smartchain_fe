@@ -269,3 +269,54 @@ test('keeps closeout operation keys and exact money unchanged across transport r
   await api.settle('offsets', payload);
   assert.deepEqual(bodies, [payload, payload]);
 });
+
+test('detail keeps whole-statement dispute totals independent of loaded line pages and strips private evidence', async () => {
+  globalThis.fetch = async () =>
+    ok({
+      ...row,
+      status: 'PAID',
+      review: {
+        openDisputeCount: 27,
+        disputedCreditsVnd: '9007199254740993',
+        disputedDebitsVnd: '100',
+        internalNote: 'private-marker',
+      },
+      transfer: {
+        id,
+        bankReference: 'SYNTHETIC-BANK',
+        amountVnd: '9007199254740993',
+        confirmedAt: deadline,
+        evidenceKey: 'private-marker',
+      },
+    });
+  const result = await api.detail(id);
+  assert.equal(result.review.openDisputeCount, 27);
+  assert.equal(result.review.disputedCreditsVnd, '9007199254740993');
+  assert.equal(result.review.disputedDebitsVnd, '100');
+  assert.equal(result.transfer.amountVnd, '9007199254740993');
+  assert.equal(result.transfer.bankReference, 'SYNTHETIC-BANK');
+  assert.ok(!JSON.stringify(result).includes('private-marker'));
+});
+
+test('validates additive detail summaries and actual transfer evidence without inventing money for older APIs', async () => {
+  globalThis.fetch = async () => ok(row);
+  const legacy = await api.detail(id);
+  assert.equal(legacy.review, undefined);
+  assert.equal(legacy.transfer, undefined);
+  for (const review of [
+    { openDisputeCount: -1, disputedCreditsVnd: '0', disputedDebitsVnd: '0' },
+    { openDisputeCount: 1, disputedCreditsVnd: '-1', disputedDebitsVnd: '0' },
+    { openDisputeCount: 1, disputedCreditsVnd: 9007199254740993, disputedDebitsVnd: '0' },
+  ]) {
+    globalThis.fetch = async () => ok({ ...row, review });
+    await assert.rejects(api.detail(id));
+  }
+  for (const amountVnd of ['0', '-100', 100]) {
+    globalThis.fetch = async () =>
+      ok({
+        ...row,
+        transfer: { id, bankReference: 'SYNTHETIC', amountVnd, confirmedAt: deadline },
+      });
+    await assert.rejects(api.detail(id));
+  }
+});
