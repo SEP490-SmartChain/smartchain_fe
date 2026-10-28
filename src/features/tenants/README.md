@@ -1,5 +1,17 @@
 # features/tenants
 
+## SS-1301 line disputes and immutable evidence
+
+Statement detail reads full-statement open-dispute totals and the allowlisted
+actual manual transfer from GET /v1/billing/statements/:id. These totals are
+independent of line pagination. The original snapshot remains visible; corrections
+show their ledger references and never edit issued invoices. Opening a dispute
+advances the server statement version, so stale tabs must reload before another
+review action. Existing Owner/Accountant/Admin policy and retry identities remain.
+Older APIs may omit additive detail fields; the UI does not invent zero totals.
+Backend contract: docs/SS-1301-STATEMENT-DISPUTES.md in smartchain_be.
+Regression: tests/payout-workspace.test.mjs. No live bank transfer is initiated.
+
 ## SS-1299 Owner contract entry
 
 The real Owner route, /settings/contract, mounts the quota/lifecycle panel for

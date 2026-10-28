@@ -14,6 +14,8 @@ export const packingFormSchema = z.object({
   materialQty: z.string().regex(/^[1-9]\d{0,5}$/),
 });
 export const handoverAckSchema = z.object({
-  carrierAckRef: z.string().trim().min(1).max(120),
+  confirmedParcelCount: z.number().int().min(1).max(100),
+  carrierAckRef: z.string().trim().max(120).optional(),
   carrierSignerName: z.string().trim().min(1).max(150),
+  evidenceKey: z.string().trim().min(1).max(500),
 });

@@ -1,0 +1,99 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1081 · Rule history &amp; carrier simulation</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Warehouses</text>
+  <rect x="16" y="272" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="299" font-size="14" fill="#0F766E" font-weight="600">Rules</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Rules / Rule history &amp; carrier simulation
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    ORCA Admin / Ops Dispatcher
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">
+    Rule history &amp; carrier simulation
+  </text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Review immutable versions and test a supplied tariff snapshot without booking.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1081 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="1120" height="223" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="287" y="241" width="1118" height="48" rx="10" fill="#F1F5F9" />
+  <text x="306" y="270" font-size="12" fill="#475569" font-weight="600">Version</text>
+  <text x="446" y="270" font-size="12" fill="#475569" font-weight="600">Operation</text>
+  <text x="666" y="270" font-size="12" fill="#475569" font-weight="600">Reason</text>
+  <text x="1036" y="270" font-size="12" fill="#475569" font-weight="600">Effective</text>
+  <text x="1216" y="270" font-size="12" fill="#475569" font-weight="600">Action</text>
+  <path d="M 286 291 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="321" font-size="13" fill="#0F172A" font-weight="600">v3</text>
+  <text x="446" y="321" font-size="13" fill="#0F172A" font-weight="400">Draft edit</text>
+  <text x="666" y="321" font-size="13" fill="#0F172A" font-weight="400">
+    Adjust expiry strategy
+  </text>
+  <text x="1036" y="321" font-size="13" fill="#0F172A" font-weight="400">Not published</text>
+  <text x="1216" y="321" font-size="13" fill="#0F766E" font-weight="400">Preview saved v3</text>
+  <path d="M 286 347 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="377" font-size="13" fill="#0F172A" font-weight="600">v2</text>
+  <rect x="446" y="358" width="85" height="26" rx="13" fill="#D1FAE5" />
+  <text x="456" y="376" font-size="12" fill="#0F766E" font-weight="600">Published</text>
+  <text x="666" y="377" font-size="13" fill="#0F172A" font-weight="400">Approved baseline</text>
+  <text x="1036" y="377" font-size="13" fill="#0F172A" font-weight="400">Current</text>
+  <text x="1216" y="377" font-size="13" fill="#0F766E" font-weight="400">View definition</text>
+  <path d="M 286 403 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="433" font-size="13" fill="#0F172A" font-weight="600">v1</text>
+  <text x="446" y="433" font-size="13" fill="#0F172A" font-weight="400">Created</text>
+  <text x="666" y="433" font-size="13" fill="#0F172A" font-weight="400">
+    Initial routing policy
+  </text>
+  <text x="1036" y="433" font-size="13" fill="#0F172A" font-weight="400">Historical</text>
+  <text x="1216" y="433" font-size="13" fill="#0F766E" font-weight="400">
+    Restore as new version
+  </text>
+  <rect x="286" y="500" width="1120" height="360" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="542" font-size="18" fill="#0F172A" font-weight="600">
+    Carrier simulation · synthetic parcel
+  </text>
+  <text x="310" y="582" font-size="14" fill="#0F172A" font-weight="400">
+    Weight 1,200 g · 10 × 10 × 10 cm · declared value 100,000 VND
+  </text>
+  <text x="310" y="631" font-size="15" fill="#475569" font-weight="400">
+    Primary service unavailable in supplied scenario
+  </text>
+  <text x="310" y="679" font-size="15" fill="#0F766E" font-weight="600">
+    Fallback service · sample tariff v1 · chargeable 1,500 g · estimated 25,000 VND
+  </text>
+  <text x="310" y="729" font-size="14" fill="#475569" font-weight="400">
+    No live tariff or credentials are read; no waybill or ledger entry is created.
+  </text>
+  <rect x="1135" y="784" width="247" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1151" y="811" font-size="14" fill="#FFFFFF" font-weight="600">
+    Run read-only simulation
+  </text>
+</svg>

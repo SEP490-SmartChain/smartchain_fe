@@ -7,6 +7,7 @@ export function isRejectedOperation(error: unknown): boolean {
     error.status >= 400 &&
     error.status < 500 &&
     error.status !== 408 &&
+    !error.code.endsWith('.CONTENTION') &&
     !error.code.endsWith('IDEMPOTENCY_CONFLICT')
   );
 }

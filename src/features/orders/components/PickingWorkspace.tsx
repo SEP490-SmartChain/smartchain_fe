@@ -227,7 +227,10 @@ function PickingScope() {
         <Button
           variant="outline"
           disabled={!!pending || busy || !!waveRequest}
-          onClick={() => setRefresh((x) => x + 1)}
+          onClick={() => {
+            setCursor(null);
+            setRefresh((x) => x + 1);
+          }}
         >
           {t('reload')}
         </Button>
@@ -277,19 +280,36 @@ function PickingScope() {
                   <Button
                     key={w.id}
                     variant={w.id === waveId ? 'primary' : 'outline'}
-                    className="w-full min-h-14 justify-between"
+                    aria-pressed={w.id === waveId}
+                    className="h-auto w-full min-h-14 flex-col items-start gap-1 whitespace-normal py-3 text-left"
                     disabled={!!pending || busy}
                     onClick={() => setWaveId(w.id)}
                   >
-                    <span className="truncate">
-                      {new Date(w.cutoffAt).toLocaleString(locale, {
-                        timeZone: 'Asia/Ho_Chi_Minh',
-                      })}
+                    <span className="break-all font-semibold">{w.waveCode}</span>
+                    <span className="text-xs">
+                      {t('cutoff')}:{' '}
+                      <time dateTime={w.cutoffAt}>
+                        {new Date(w.cutoffAt).toLocaleString(locale, {
+                          timeZone: 'Asia/Ho_Chi_Minh',
+                          dateStyle: 'short',
+                          timeStyle: 'medium',
+                        })}
+                      </time>
                     </span>
                     <span>{t(`statuses.${w.status}`)}</span>
                   </Button>
                 ))}
               </div>
+              {cursor && (
+                <Button
+                  variant="ghost"
+                  className="h-auto min-h-10 whitespace-normal text-left"
+                  disabled={!!pending || busy}
+                  onClick={() => setCursor(null)}
+                >
+                  {t('firstWaves')}
+                </Button>
+              )}
               {next && (
                 <Button
                   variant="ghost"
@@ -309,8 +329,10 @@ function PickingScope() {
                 <p role="status">{t('loading')}</p>
               ) : (
                 <>
-                  <div className="mb-4 flex items-center justify-between">
-                    <h2 className="font-semibold">{t('pickList')}</h2>
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                    <h2 className="min-w-0 break-all font-semibold">
+                      {t('pickList')} · {detail.waveCode}
+                    </h2>
                     <Badge
                       label={t(`statuses.${detail.status}`)}
                       status={detail.status === 'EXCEPTION' ? 'warning' : 'info'}

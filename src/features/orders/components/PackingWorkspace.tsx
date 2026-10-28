@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
+import { Link } from 'react-router-dom';
 
 import { Alert, Button, Card, Input, PageHeader, Select } from '@/components/Common';
 import { encodeLabelBarcode } from '@/features/catalog';
@@ -102,70 +103,86 @@ function PackingSession() {
     <div className="space-y-5">
       <PageHeader title={t('title')} description={t('hint')} />
       <Card>
-        <Select
-          label={t('warehouse')}
-          value={warehouse}
-          options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
-          onChange={(e) => {
-            request.current?.abort();
-            setWarehouse(e.target.value);
-          }}
-        />
-        <Button className="mt-3" variant="outline" onClick={() => setRefresh((n) => n + 1)}>
-          {t('reload')}
-        </Button>
+        <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <Select
+            label={t('warehouse')}
+            value={warehouse}
+            options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+            onChange={(e) => {
+              request.current?.abort();
+              setWarehouse(e.target.value);
+            }}
+          />
+          <Button variant="outline" onClick={() => setRefresh((n) => n + 1)}>
+            {t('reload')}
+          </Button>
+        </div>
       </Card>
       {error && <Alert variant="error">{error}</Alert>}
       {loading && <p role="status">{t('loading')}</p>}
       {warehouse && !loading && !queue.items.length && <Alert>{t('empty')}</Alert>}
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(180px,1fr)_3fr]">
-        <Card className="space-y-2">
-          {queue.items.map((p) => (
-            <Button
-              key={p.id}
-              variant="outline"
-              className="w-full justify-between"
-              onClick={() => void open(p.id)}
-            >
-              {t('parcel', { sequence: p.sequenceNo })} ·{' '}
-              {t.has(`statuses.${p.status}`) ? t(`statuses.${p.status}`) : p.status}
-            </Button>
-          ))}
-          {queue.nextCursor && (
-            <Button
-              onClick={() => {
-                const c = new AbortController();
-                request.current?.abort();
-                request.current = c;
-                void packingApi
-                  .list(warehouse, c.signal, queue.nextCursor ?? undefined)
-                  .then((q) => {
-                    if (!c.signal.aborted) {
-                      setQueue((old) => ({
-                        items: [...old.items, ...q.items],
-                        nextCursor: q.nextCursor,
-                      }));
-                    }
-                  })
-                  .catch(() => {
-                    if (!c.signal.aborted) setError(t('loadError'));
-                  });
-              }}
-            >
-              {t('more')}
-            </Button>
+      {queue.items.length > 0 && (
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(250px,1fr)_3fr]">
+          <Card className="space-y-2">
+            <h2 className="text-base font-semibold">
+              {t('packingQueue')} ({queue.items.length})
+            </h2>
+            {queue.items.map((p) => (
+              <Button
+                key={p.id}
+                variant={detail?.id === p.id ? 'primary' : 'outline'}
+                aria-pressed={detail?.id === p.id}
+                className="h-auto min-h-14 w-full flex-col items-start gap-1 whitespace-normal py-3 text-left"
+                onClick={() => void open(p.id)}
+              >
+                <span className="w-full break-all text-sm">{p.orderCode}</span>
+                <span className="text-xs">
+                  {t('parcel', { sequence: p.sequenceNo })} ·{' '}
+                  {t.has(`statuses.${p.status}`) ? t(`statuses.${p.status}`) : t('unknownStatus')}
+                </span>
+              </Button>
+            ))}
+            {queue.nextCursor && (
+              <Button
+                onClick={() => {
+                  const c = new AbortController();
+                  request.current?.abort();
+                  request.current = c;
+                  void packingApi
+                    .list(warehouse, c.signal, queue.nextCursor ?? undefined)
+                    .then((q) => {
+                      if (!c.signal.aborted) {
+                        setQueue((old) => ({
+                          items: [...old.items, ...q.items],
+                          nextCursor: q.nextCursor,
+                        }));
+                      }
+                    })
+                    .catch(() => {
+                      if (!c.signal.aborted) setError(t('loadError'));
+                    });
+                }}
+              >
+                {t('more')}
+              </Button>
+            )}
+          </Card>
+          {!detail && !loading && warehouse && queue.items.length > 0 && (
+            <Card>
+              <p>{t('chooseParcel')}</p>
+            </Card>
           )}
-        </Card>
-        {detail && (
-          <PackingForm
-            key={`${warehouse}:${detail.id}:${detail.version}`}
-            warehouse={warehouse}
-            detail={detail}
-            writable={can('warehouse.packing.confirm')}
-            onPacked={() => setRefresh((n) => n + 1)}
-          />
-        )}
-      </div>
+          {detail && (
+            <PackingForm
+              key={`${warehouse}:${detail.id}:${detail.version}`}
+              warehouse={warehouse}
+              detail={detail}
+              writable={can('warehouse.packing.confirm')}
+              onPacked={() => setRefresh((n) => n + 1)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -228,8 +245,9 @@ function PackingForm({
       }
     } catch (error: unknown) {
       if (!abort.current.signal.aborted) {
-        if (isRejectedOperation(error)) pending.current = null;
-        setError(t('writeError'));
+        const rejected = isRejectedOperation(error);
+        if (rejected) pending.current = null;
+        setError(t(rejected ? 'rejectedError' : 'writeError'));
       }
     } finally {
       running.current = false;
@@ -242,7 +260,7 @@ function PackingForm({
     tracking && /^[\x20-\x7e]{1,100}$/.test(tracking) ? encodeLabelBarcode(tracking) : null;
   return (
     <Card className="space-y-4">
-      <h2 className="text-lg font-semibold">{detail.orderCode}</h2>
+      <h2 className="break-all text-lg font-semibold">{detail.orderCode}</h2>
       {error && <Alert variant="error">{error}</Alert>}
       {detail.status === 'PICKED' && writable ? (
         <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
@@ -252,7 +270,9 @@ function PackingForm({
               key={item.id}
               type="number"
               min={1}
-              label={`${item.sku ?? item.name ?? t('item')} · ${t('expected', { qty: item.qty })}`}
+              max={item.qty}
+              required
+              label={`${item.name ?? t('item')}${item.sku ? ` · ${item.sku}` : ''} · ${t('expected', { qty: item.qty })}`}
               {...form.register(`contents.${index}.qty`, { valueAsNumber: true })}
               error={form.formState.errors.contents?.[index] ? t('invalidInput') : undefined}
               disabled={busy || !!pending.current}
@@ -262,6 +282,8 @@ function PackingForm({
             <Input
               label={t('weight')}
               type="number"
+              min={1}
+              required
               {...form.register('actualWeightG', { valueAsNumber: true })}
               error={form.formState.errors.actualWeightG ? t('invalidInput') : undefined}
               disabled={busy || !!pending.current}
@@ -271,6 +293,7 @@ function PackingForm({
                 key={name}
                 label={t(name)}
                 inputMode="decimal"
+                required
                 {...form.register(name)}
                 error={form.formState.errors[name] ? t('invalidInput') : undefined}
                 disabled={busy || !!pending.current}
@@ -284,14 +307,17 @@ function PackingForm({
               error={form.formState.errors.materialCode ? t('invalidInput') : undefined}
               disabled={busy || !!pending.current}
             />
-            <Input
-              label={t('materialQty')}
-              inputMode="numeric"
-              {...form.register('materialQty')}
-              error={form.formState.errors.materialQty ? t('invalidInput') : undefined}
-              disabled={busy || !!pending.current}
-            />
+            {form.watch('materialCode') && (
+              <Input
+                label={t('materialQty')}
+                inputMode="numeric"
+                {...form.register('materialQty')}
+                error={form.formState.errors.materialQty ? t('invalidInput') : undefined}
+                disabled={busy || !!pending.current}
+              />
+            )}
           </div>
+          <p className="text-sm text-[var(--sc-text-secondary)]">{t('materialHint')}</p>
           <Button type="submit" disabled={busy}>
             {pending.current ? t('retryOperation') : t('confirmPack')}
           </Button>
@@ -327,6 +353,13 @@ function PackingForm({
           <Button variant="outline" onClick={() => window.print()}>
             {t('printLabel')}
           </Button>
+          <p className="text-sm">{t('handoverNextStep')}</p>
+          <Link
+            className="inline-flex rounded text-[var(--sc-primary)] underline focus-visible:outline-2"
+            to="/warehouse/handover"
+          >
+            {t('openHandover')}
+          </Link>
         </>
       ) : (
         detail.status !== 'PICKED' && <Alert variant="warning">{t('awaitingLabel')}</Alert>

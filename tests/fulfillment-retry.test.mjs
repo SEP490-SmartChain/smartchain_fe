@@ -56,15 +56,20 @@ for (const [file, outer, inner, method] of cases) {
       const pending = { current: null },
         running = { current: false },
         calls = [];
-      let serial = 0;
+      let serial = 0,
+        feedback;
       const bindings = {
+        ApiError,
         pending,
         running,
         writable: true,
+        uploading: false,
         create: true,
         selected: ['shipment-A'],
         setBusy() {},
-        setError() {},
+        setError(value) {
+          feedback = value;
+        },
         setReload() {},
         onPacked() {},
         onSigned() {},
@@ -81,13 +86,18 @@ for (const [file, outer, inner, method] of cases) {
             calls.push(structuredClone(command));
             if (calls.length === 1)
               throw rejected
-                ? new ApiError('Rejected', 422, 'PACK.CONTENTS_MISMATCH')
+                ? new ApiError(
+                    'Rejected',
+                    422,
+                    method === 'sign' ? 'PACK.PARCEL_COUNT_MISMATCH' : 'PACK.CONTENTS_MISMATCH',
+                  )
                 : new TypeError('Network interrupted');
           },
         },
       };
       const run = callback(file, outer, inner, bindings);
       const first = {
+        confirmedParcelCount: 1,
         actualWeightG: 100,
         actualLengthCm: '10',
         actualWidthCm: '8',
@@ -96,9 +106,14 @@ for (const [file, outer, inner, method] of cases) {
         materialCode: '',
         carrierAckRef: 'first',
         carrierSignerName: 'Driver',
+        evidenceKey: 'verified-photo',
       };
       await run(first);
       assert.equal(pending.current === null, rejected);
+      assert.equal(
+        feedback,
+        rejected ? (method === 'sign' ? 'parcelCountMismatch' : 'rejectedError') : 'writeError',
+      );
       bindings.selected.splice(0, 1, 'shipment-B');
       await run({ ...first, contents: [{ itemId: 'item', qty: 1 }], carrierAckRef: 'corrected' });
       assert.equal(calls.length, 2);
@@ -114,6 +129,7 @@ test('timeout, server failure and idempotency conflict are not proof that a comm
     new ApiError('Timeout', 408, 'TIMEOUT'),
     new ApiError('Unavailable', 503, 'UNAVAILABLE'),
     new ApiError('Conflict', 409, 'PACK.IDEMPOTENCY_CONFLICT'),
+    new ApiError('Busy', 409, 'INVENTORY.CONTENTION'),
     new Error('Invalid response after commit'),
   ]) {
     assert.equal(isRejectedOperation(error), false);

@@ -1,0 +1,115 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1064 · ASN-DEMO-001</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Product catalog</text>
+  <rect x="16" y="219" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="246" font-size="14" fill="#0F766E" font-weight="600">Inbound ASN</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="405" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Inbound ASN / ASN-DEMO-001
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">
+    Seller Owner / Seller Staff
+  </text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">ASN-DEMO-001</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Submitted declaration and actual receiving progress are displayed separately.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1064 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="1120" height="165" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="281" font-size="20" fill="#0F172A" font-weight="600">
+    DN-01 · 20 cartons · submitted
+  </text>
+  <text x="310" y="325" font-size="17" fill="#0F766E" font-weight="600">
+    Declared: 200 Counted: 200 Accepted: 190 Quarantine: 10 Sellable: 190
+  </text>
+  <text x="310" y="369" font-size="14" fill="#475569" font-weight="400">
+    Only confirmed physical putaway makes accepted units sellable.
+  </text>
+  <rect x="286" y="430" width="730" height="390" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="470" font-size="18" fill="#0F172A" font-weight="600">Receiving timeline</text>
+  <text x="310" y="515" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ ASN submitted · carton references issued
+  </text>
+  <text x="310" y="562" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ Warehouse arrival recorded
+  </text>
+  <text x="310" y="609" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ Physical count + lot/date evidence captured
+  </text>
+  <text x="310" y="656" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ QC: 190 accepted / 10 quarantined
+  </text>
+  <text x="310" y="703" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ Manager review approved
+  </text>
+  <text x="310" y="750" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ Putaway confirmed: 190 sellable
+  </text>
+  <rect x="1040" y="430" width="366" height="390" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1064" y="470" font-size="18" fill="#0F172A" font-weight="600">Carton labels</text>
+  <rect x="1070" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1082" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1094" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1106" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1118" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1130" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1142" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1154" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1166" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1178" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1190" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1202" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1214" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1226" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1238" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1250" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1262" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1274" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1286" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1298" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1310" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1322" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <rect x="1334" y="510" width="6" height="90" rx="0" fill="#0F172A" />
+  <rect x="1346" y="510" width="3" height="90" rx="0" fill="#0F172A" />
+  <text x="1064" y="634" font-size="11" fill="#475569" font-weight="400">
+    SYNTHETIC-ASN-001 / CARTON-01
+  </text>
+  <rect x="1064" y="667" width="318" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1080" y="694" font-size="14" fill="#0F172A" font-weight="600">
+    Print submitted carton labels
+  </text>
+  <text x="1064" y="745" font-size="13" fill="#475569" font-weight="400">
+    Cancellation requires a reason.
+  </text>
+  <text x="1064" y="775" font-size="13" fill="#475569" font-weight="400">
+    Cancelled labels cannot be printed.
+  </text>
+</svg>

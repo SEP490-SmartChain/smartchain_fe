@@ -17,8 +17,13 @@ import { CloseoutSettlement } from './CloseoutSettlement';
 import { PayoutStatementDetail } from './PayoutStatementDetail';
 import { commercialApi } from '../api/commercialApi';
 import { payoutApi } from '../api/payoutApi';
-
-import type { LedgerEntry, PayoutStatement, PayoutSummary } from '../schemas/payoutSchema';
+import {
+  payoutReadError,
+  ledgerEntryLabelKey,
+  type LedgerEntry,
+  type PayoutStatement,
+  type PayoutSummary,
+} from '../schemas/payoutSchema';
 
 function SellerMoney({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('Payouts');
@@ -58,7 +63,12 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
       })
       .catch((failure) => {
         if (!abort.signal.aborted) {
-          setError(failure instanceof Error ? failure.message : t('loadError'));
+          setSummary(null);
+          setStatements([]);
+          setLedger([]);
+          setStatementCursor(null);
+          setLedgerCursor(null);
+          setError(payoutReadError(failure, t('loadError')));
         }
       })
       .finally(() => {
@@ -98,7 +108,7 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
       }
     } catch (failure) {
       if (!current.signal.aborted) {
-        setError(failure instanceof Error ? failure.message : t('loadError'));
+        setError(payoutReadError(failure, t('loadError')));
       }
     } finally {
       moreBusy.current = false;
@@ -254,8 +264,8 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
                         <tr key={entry.id} className="border-t border-[var(--sc-border-default)]">
                           <td className="whitespace-nowrap p-4">{date(entry.postedAt)}</td>
                           <td className="p-4">
-                            {t.has(`entry.${entry.entryType}`)
-                              ? t(`entry.${entry.entryType}`)
+                            {t.has(ledgerEntryLabelKey(entry))
+                              ? t(ledgerEntryLabelKey(entry))
                               : entry.entryType}
                           </td>
                           <td className="whitespace-nowrap p-4 font-medium tabular-nums">

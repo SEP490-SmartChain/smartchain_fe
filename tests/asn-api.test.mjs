@@ -297,3 +297,87 @@ test('allocation rejects a response missing hard-cap remainder', async () => {
   globalThis.fetch = async () => ok(malformed);
   await assert.rejects(() => api.getAllocationSuggestion({ productId: id, totalQuantity: 400 }));
 });
+
+const suggestionRequest = {
+  productId: id,
+  totalQuantity: 400,
+  declaredExpiryOn: '2026-10-29',
+};
+
+for (const [name, change] of [
+  ['another SKU', { productId: '00000000-0000-4000-8000-000000000099' }],
+  ['another quantity', { totalQuantity: 401, unallocatedQuantity: 68 }],
+  ['another expiry', { declaredExpiryOn: '2026-11-01' }],
+  ['missing requested expiry', { declaredExpiryOn: null, daysUntilExpiry: null }],
+  ['more units than requested', { unallocatedQuantity: 68 }],
+  ['fewer units than requested', { unallocatedQuantity: 66 }],
+  [
+    'duplicate destinations',
+    {
+      allocations: [
+        { ...suggestion.allocations[0], suggestedQty: 166 },
+        { ...suggestion.allocations[0], suggestedQty: 167 },
+      ],
+    },
+  ],
+  [
+    'quantity above expiry capacity',
+    { allocations: [{ ...suggestion.allocations[0], maxSellableBeforeExpiry: 332 }] },
+  ],
+  [
+    'redistribution above assigned quantity',
+    { allocations: [{ ...suggestion.allocations[0], redistributedQty: 334 }] },
+  ],
+  ['invalid calendar expiry', { declaredExpiryOn: '2026-02-30' }],
+]) {
+  test(`allocation rejects ${name} before the Seller can choose a warehouse`, async () => {
+    globalThis.fetch = async () => ok({ ...suggestion, ...change });
+
+    await assert.rejects(() => api.getAllocationSuggestion(suggestionRequest));
+  });
+}
+
+test('allocation accepts a conserved multi-warehouse split and the expiry remainder', async () => {
+  const split = {
+    ...suggestion,
+    allocations: [
+      { ...suggestion.allocations[0], suggestedQty: 200, sharePercent: 60 },
+      {
+        ...suggestion.allocations[0],
+        warehouseId: '00000000-0000-4000-8000-000000000002',
+        suggestedQty: 133,
+        sharePercent: 40,
+      },
+    ],
+  };
+  globalThis.fetch = async () => ok(split);
+
+  assert.deepEqual(await api.getAllocationSuggestion(suggestionRequest), split);
+});
+
+test('allocation accepts an empty destination set with every unit unallocated', async () => {
+  const empty = { ...suggestion, allocations: [], unallocatedQuantity: 400 };
+  globalThis.fetch = async () => ok(empty);
+
+  assert.deepEqual(await api.getAllocationSuggestion(suggestionRequest), empty);
+});
+
+test('allocation accepts a no-expiry baseline without inventing an expiry cap', async () => {
+  const baseline = {
+    ...suggestion,
+    declaredExpiryOn: null,
+    daysUntilExpiry: null,
+    hasSufficientHistory: false,
+    basis: 'CONFIGURED_REGIONAL_BASELINE',
+    unallocatedQuantity: 0,
+    allocations: [
+      { ...suggestion.allocations[0], suggestedQty: 400, maxSellableBeforeExpiry: null },
+    ],
+  };
+  globalThis.fetch = async () => ok(baseline);
+
+  assert.deepEqual(
+    await api.getAllocationSuggestion({ productId: id, totalQuantity: 400 }),
+    baseline,
+  );
+});
