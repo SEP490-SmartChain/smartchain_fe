@@ -202,6 +202,16 @@ success. Regression: tests/contract-lifecycle.test.mjs; full frontend typecheck,
 lint, tests and build. Isolated browser QA uses synthetic HTTP fixtures and does
 not verify a real bank transfer or project database.
 
+## SS-1035 notification links
+
+Owner email links to `/billing?invoiceId=...` or `/statements?statementId=...`
+select the existing scoped detail view after login. `/orders?orderId=...` reads
+order detail under the existing Owner/Staff projection and cancels stale reads
+on scope changes. A canonical single UUID is navigation only, never permission
+or an automatic confirm/dispute/pay/cancel command. Existing API/role gates stay
+in force. Regression: `tests/notification-links.test.mjs`; backend contract:
+`smartchain_be/docs/SS-1035-SELLER-NOTIFICATIONS.md`.
+
 ## SS-1041 finance rehearsal
 
 Owner financial views show the API-confirmed within-limit debt state, its contract
