@@ -3728,6 +3728,7 @@
     "ledgerDocument": "Tổng hợp phí đã ghi sổ",
     "noActiveObligation": "Hóa đơn chưa có nghĩa vụ thu đang hiệu lực. Liên hệ kế toán để đối chiếu trước khi thanh toán.",
     "feeTypes": {
+      "FREIGHT": "Cước vận chuyển",
       "STORAGE_M3_DAY": "Lưu kho hằng ngày",
       "PICK_PACK_ORDER": "Xử lý đơn hàng",
       "INBOUND_CARTON": "Tiếp nhận thùng hàng",
@@ -3828,6 +3829,8 @@
     "operatingHint": "Khoản có đã xác minh trừ phí và khoản đã chi trả.",
     "depositHint": "Chỉ dùng khi tất toán được duyệt; tách khỏi tiền hoạt động.",
     "debtHint": "API tính khoản nợ còn lại và tuổi nợ.",
+    "debtWithinLimit": "Nợ trong hạn mức, chưa quá hạn",
+    "debtWithinLimitHelp": "API chưa chặn nhận đơn vì công nợ. Trạng thái dịch vụ và các điều kiện tiếp nhận khác vẫn được kiểm tra riêng.",
     "debtBlocked": "Đang chặn nhận đơn mới do nợ",
     "debtHelp": "Cần thanh toán được xác minh. Công việc đã nhận vẫn tiếp tục; trả nợ không tự mở lại đình chỉ của Admin.",
     "creditLimit": "Hạn mức nợ",

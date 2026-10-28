@@ -3728,6 +3728,7 @@
     "ledgerDocument": "Summary of posted fees",
     "noActiveObligation": "This invoice has no active collectible obligation. Contact Accounting to reconcile it before paying.",
     "feeTypes": {
+      "FREIGHT": "Freight charge",
       "STORAGE_M3_DAY": "Daily storage",
       "PICK_PACK_ORDER": "Order handling",
       "INBOUND_CARTON": "Inbound cartons",
@@ -3828,6 +3829,8 @@
     "operatingHint": "Verified credits less posted charges and payouts.",
     "depositHint": "Reserved for approved closeout; separate from operating funds.",
     "debtHint": "The API calculates unpaid debt and its age.",
+    "debtWithinLimit": "Debt is within the limit and not overdue",
+    "debtWithinLimitHelp": "The API debt gate is open. Service status and other order acceptance conditions are checked separately.",
     "debtBlocked": "New orders are blocked by debt",
     "debtHelp": "Arrange verified payment. Accepted work continues; payment does not reopen an Admin suspension.",
     "creditLimit": "Credit limit",
