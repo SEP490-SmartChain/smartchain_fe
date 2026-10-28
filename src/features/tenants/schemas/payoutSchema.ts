@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 const money = z.string().regex(/^-?\d{1,20}$/);
 const timestamp = z.string().datetime({ offset: true });
+// Posted PostgreSQL UUIDs may predate RFC version/variant normalization.
+// Keep immutable ledger identities readable; command/actor UUIDs stay strict.
+export const ledgerIdSchema = z.guid();
+export function payoutReadError(failure: unknown, fallback: string): string {
+  return failure instanceof Error && !(failure instanceof z.ZodError) ? failure.message : fallback;
+}
 export const payoutSummarySchema = z.object({
   tenantId: z.string().uuid(),
   operatingBalanceVnd: money,
@@ -15,17 +21,42 @@ export const payoutSummarySchema = z.object({
   isDebtBlocked: z.boolean(),
 });
 export const ledgerEntrySchema = z.object({
-  id: z.string().uuid(),
+  id: ledgerIdSchema,
   accountKind: z.enum(['OPERATING', 'DEPOSIT']),
   entryType: z.string(),
   amountVnd: money,
   sourceType: z.string(),
   sourceId: z.string(),
   componentKey: z.string(),
+  feeType: z.string().nullable().optional().default(null),
+  orderKind: z.enum(['SALES', 'WITHDRAWAL']).nullable().optional().default(null),
   effectiveAt: timestamp,
   postedAt: timestamp,
-  reversesEntryId: z.string().uuid().nullable(),
+  reversesEntryId: ledgerIdSchema.nullable(),
 });
+export function ledgerEntryLabelKey(
+  entry: Pick<
+    z.infer<typeof ledgerEntrySchema>,
+    'entryType' | 'sourceType' | 'componentKey' | 'feeType' | 'orderKind'
+  >,
+): string {
+  if (entry.entryType !== 'FEE') return `entry.${entry.entryType}`;
+  if (['SUBSCRIPTION', 'ONBOARDING_PLAN_FEE'].includes(entry.sourceType)) return 'fee.subscription';
+  if (entry.sourceType === 'BILLABLE_EVENT') {
+    if (entry.feeType === 'FREIGHT' || entry.componentKey === 'freight-fee-v1') {
+      return 'fee.freight';
+    }
+    if (entry.feeType === 'PICK_PACK_ORDER') {
+      return entry.orderKind === 'WITHDRAWAL' ? 'fee.withdrawalHandling' : 'fee.orderHandling';
+    }
+    if (entry.feeType === 'INBOUND_CARTON') return 'fee.inbound';
+    if (entry.feeType === 'STORAGE_M3_DAY') return 'fee.storage';
+    if (entry.feeType === 'PACKING_MATERIAL') return 'fee.material';
+    if (entry.feeType === 'RETURN_HANDLING') return 'fee.returnHandling';
+    if (entry.feeType === 'COMBO') return 'fee.combo';
+  }
+  return 'fee.service';
+}
 export const payoutStatementSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
@@ -45,9 +76,29 @@ export const payoutStatementSchema = z.object({
   closedAt: timestamp.nullable(),
   isLegacy: z.boolean(),
 });
+// Additive detail contract: older deployed APIs can omit the new read model.
+export const payoutStatementDetailSchema = payoutStatementSchema.extend({
+  review: z
+    .object({
+      openDisputeCount: z.number().int().nonnegative(),
+      disputedCreditsVnd: money.refine((value) => BigInt(value) >= BigInt(0)),
+      disputedDebitsVnd: money.refine((value) => BigInt(value) >= BigInt(0)),
+    })
+    .optional(),
+  transfer: z
+    .object({
+      id: z.string().uuid(),
+      bankReference: z.string(),
+      amountVnd: money.refine((value) => BigInt(value) > BigInt(0)),
+      confirmedAt: timestamp,
+    })
+    .nullable()
+    .optional(),
+});
+export type PayoutStatementDetail = z.infer<typeof payoutStatementDetailSchema>;
 export const payoutLineSchema = z.object({
   id: z.string().uuid(),
-  ledgerEntryId: z.string().uuid(),
+  ledgerEntryId: ledgerIdSchema,
   amountVnd: money,
   lineStatus: z.enum(['ELIGIBLE', 'DISPUTED', 'CONFIRMED', 'PAID', 'DEFERRED']),
   carryForwardFromLineId: z.string().uuid().nullable(),
@@ -62,7 +113,7 @@ export const payoutLineSchema = z.object({
       status: z.enum(['OPEN', 'RESOLVED', 'REJECTED']),
       amountVnd: money,
       resolutionReason: z.string().nullable(),
-      adjustmentEntryId: z.string().uuid().nullable(),
+      adjustmentEntryId: ledgerIdSchema.nullable(),
     }),
   ),
 });

@@ -8,11 +8,11 @@ const parcel = z
     status: z.string(),
     version: z.number().int(),
     sequenceNo: z.number().int(),
+    orderCode: z.string(),
   })
   .strict();
 const detail = parcel
   .extend({
-    orderCode: z.string(),
     recipientName: z.string(),
     recipientPhone: z.string(),
     recipientAddress: z.string(),
@@ -73,8 +73,17 @@ const options = z
           parcelCount: z.number().int(),
           carrierAccountId: z.uuid(),
           carrierAckRef: z.string().nullable(),
+          signedAt: z.string().nullable(),
+          hasHandoverPhoto: z.boolean(),
           shipments: z.array(
-            z.object({ id: z.uuid(), trackingNumber: z.string().nullable() }).strict(),
+            z
+              .object({
+                id: z.uuid(),
+                trackingNumber: z.string().nullable(),
+                status: z.string(),
+                pickedUpAt: z.string().nullable(),
+              })
+              .strict(),
           ),
         })
         .strict(),
@@ -168,13 +177,32 @@ export const packingApi = {
   async sign(
     warehouseId: string,
     id: string,
-    input: { operationId: string; carrierAckRef: string; carrierSignerName: string },
+    input: {
+      operationId: string;
+      confirmedParcelCount: number;
+      carrierAckRef?: string;
+      carrierSignerName: string;
+      evidenceKey: string;
+    },
     signal?: AbortSignal,
   ) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `${base}/manifests/${id}/sign?warehouseId=${encodeURIComponent(warehouseId)}`,
       input,
       { signal, silent: true },
+    );
+    return operation.parse(data);
+  },
+  async removeDraftParcel(
+    warehouseId: string,
+    id: string,
+    input: { operationId: string; shipmentId: string },
+    signal?: AbortSignal,
+  ) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `${base}/manifests/${id}/remove-parcel`,
+      input,
+      { params: { warehouseId }, signal, silent: true },
     );
     return operation.parse(data);
   },

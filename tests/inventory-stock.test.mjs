@@ -189,8 +189,14 @@ test('inventory KPI values are pluralized and number-formatted per locale', asyn
   assert.equal(en('availableStockValue', { count: 14820 }), '14,820 units');
   assert.equal(vi('totalSkusValue', { count: 248 }), '248 SKU');
   assert.equal(vi('availableStockValue', { count: 14820 }), '14.820 đơn vị');
-  assert.equal(vi('availableStockHint'), 'Chỉ tính SKU đang bán tại kho đang hoạt động');
-  assert.equal(en('availableStockHint'), 'Only active SKUs in active warehouses');
+  assert.equal(
+    vi('availableStockHint'),
+    'Chỉ hàng bán được chưa giữ chỗ, đủ điều kiện lô/kệ tại SKU và kho đang hoạt động',
+  );
+  assert.equal(
+    en('availableStockHint'),
+    'Only unreserved saleable stock with eligible lots/bins, active SKUs and active warehouses',
+  );
 });
 
 test('running-low accepts the BE field names and forwards cancellation', async () => {

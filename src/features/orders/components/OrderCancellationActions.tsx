@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { useForm } from 'react-hook-form';
 
@@ -7,134 +7,187 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
-import { createUuid } from '@/lib/uuid';
+import { useAuthStore } from '@/stores/authStore';
 
-import { orderCancellationApi, type Cancellation } from '../api/orderCancellationApi';
+import { orderCancellationApi } from '../api/orderCancellationApi';
+import { createCancellationSession } from '../lib/cancellationSession';
+import { orderScope } from '../lib/orderScope';
 import { cancellationReasonSchema } from '../schemas/orderCancellationSchema';
-import { isRejectedOperation } from '../lib/fulfillmentRetry';
 
 import type { SellerOrderDetail } from '../api/ordersApi';
 import type { z } from 'zod';
 
-export function OrderCancellationActions({
-  order,
-  onChanged,
-}: {
+type Props = {
   order: Pick<SellerOrderDetail, 'id' | 'status' | 'holdReason' | 'version'>;
+  orderCode?: string;
   onChanged: () => void;
-}) {
-  const t = useTranslations('OrderCancellation'),
-    { can } = useAccess();
-  const [error, setError] = useState(''),
-    [busy, setBusy] = useState(false),
-    [cancel, setCancel] = useState<Cancellation | null>(null);
-  const running = useRef(false),
-    abort = useRef(new AbortController()),
-    pending = useRef<{ operationId: string; expectedVersion: number; reason: string } | null>(null);
+};
+export function OrderCancellationActions(props: Props) {
+  const { can } = useAccess();
+  const scope = useAuthStore(orderScope);
+  if (!can('orders.cancellation.manage') && !can('orders.cancellation.ops')) return null;
+  return <CancellationActionsSession key={`${scope}:${props.order.id}`} {...props} scope={scope} />;
+}
+function CancellationActionsSession({
+  order,
+  orderCode,
+  onChanged,
+  scope,
+}: Props & { scope: string }) {
+  const t = useTranslations('OrderCancellation');
+  const { can } = useAccess();
+  const [session] = useState(() =>
+    createCancellationSession({
+      scope,
+      orderId: order.id,
+      api: orderCancellationApi,
+      onCompleted: () => {
+        if (order.status !== 'CANCELLED') onChanged();
+      },
+    }),
+  );
+  const state = useSyncExternalStore(session.subscribe, session.getState, session.getState);
   const reason = useForm<z.infer<typeof cancellationReasonSchema>>({
     resolver: zodResolver(cancellationReasonSchema),
-    defaultValues: { reason: '' },
+    defaultValues: { reason: state.pending?.reason ?? '' },
   });
-  const allowed = can('orders.cancellation.manage') || can('orders.cancellation.ops');
   useEffect(() => {
-    const c = new AbortController();
-    abort.current = c;
-    return () => c.abort();
-  }, []);
-  async function run(action: () => Promise<void>) {
-    if (running.current || !allowed) return;
-    running.current = true;
-    setBusy(true);
-    setError('');
-    try {
-      await action();
-    } catch (error: unknown) {
-      if (!abort.current.signal.aborted) {
-        if (isRejectedOperation(error)) pending.current = null;
-        setError(t('writeError'));
-      }
-    } finally {
-      running.current = false;
-      if (!abort.current.signal.aborted) setBusy(false);
-    }
-  }
-  if (!allowed) return null;
+    void session.check();
+    return () => session.stop();
+  }, [session]);
   const cancellable = ![
     'DISPATCHED',
     'IN_TRANSIT',
     'PARTIALLY_DELIVERED',
+    'COMPLETED_WITH_EXCEPTION',
     'DELIVERED',
     'RETURNED',
     'CANCELLED',
   ].includes(order.status);
+  const cancelled = order.status === 'CANCELLED' || state.cancellation?.status === 'CANCELLED';
+  const processing =
+    !cancelled &&
+    (['PENDING', 'EXCEPTION'].includes(state.cancellation?.status ?? '') ||
+      order.holdReason === 'CANCEL_PENDING');
+  const canStart =
+    cancellable &&
+    !processing &&
+    state.checked &&
+    state.cancellation?.status === 'NOT_REQUESTED' &&
+    !state.pending;
   return (
     <section
-      className="space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
+      className="mt-5 space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
       aria-label={t('actions')}
     >
-      <h4 className="font-semibold">{t('actions')}</h4>
-      {error && <Alert variant="error">{error}</Alert>}
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={busy} onClick={onChanged}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="font-semibold">{t('actions')}</h4>
+        <Button variant="ghost" size="sm" disabled={state.busy} onClick={onChanged}>
           {t('reload')}
         </Button>
       </div>
-
-      {cancellable && order.holdReason !== 'CANCEL_PENDING' && !cancel && (
+      {!cancellable && !cancelled && <p className="text-sm">{t('unavailableAfterHandover')}</p>}
+      {state.errorKey && !(cancelled && state.errorKey === 'statusError') && (
+        <Alert variant="error" role="alert">
+          {t(state.errorKey)}
+        </Alert>
+      )}
+      {state.busy && <Alert role="status">{t('checkingOrSending')}</Alert>}
+      {!state.checked && !state.busy && !state.pending && !processing && !cancelled && (
+        <Alert>
+          <p>{t('checkBeforeNew')}</p>
+          <Button variant="outline" onClick={() => void session.check()}>
+            {t('checkCancellation')}
+          </Button>
+        </Alert>
+      )}
+      {state.pending && !cancelled && !processing && (
+        <Alert variant="warning">
+          <p>{t('pendingRecovery')}</p>
+          <p className="mt-2 break-words">{t('reviewReason', { reason: state.pending.reason })}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="outline" disabled={state.busy} onClick={() => void session.check()}>
+              {t('checkCancellation')}
+            </Button>
+            <Button variant="ghost" disabled={state.busy} onClick={() => void session.retry()}>
+              {t('retryCancellation')}
+            </Button>
+          </div>
+        </Alert>
+      )}
+      {canStart && !state.review && (
         <form
           className="space-y-3"
-          onSubmit={reason.handleSubmit((values) =>
-            run(async () => {
-              pending.current ??= {
-                operationId: createUuid(),
-                expectedVersion: order.version,
-                reason: values.reason,
-              };
-              const result = await orderCancellationApi.cancel(
-                order.id,
-                pending.current,
-                abort.current.signal,
-              );
-              if (!abort.current.signal.aborted) setCancel(result);
-            }),
-          )}
+          onSubmit={reason.handleSubmit((values) => {
+            session.review(values.reason, order.version);
+          })}
         >
           <Input
             label={t('cancelReason')}
+            required
             {...reason.register('reason')}
-            disabled={busy || !!pending.current}
+            disabled={state.busy}
             error={reason.formState.errors.reason ? t('invalidInput') : undefined}
           />
-          <Button type="submit" variant="danger" disabled={busy}>
-            {pending.current ? t('retryCancellation') : t('cancelOrder')}
+          <Button type="submit" variant="outline" disabled={state.busy}>
+            {t('reviewCancellation')}
           </Button>
         </form>
       )}
-      {(cancel || order.holdReason === 'CANCEL_PENDING') && (
-        <Alert variant={cancel?.status === 'CANCELLED' ? 'success' : 'warning'}>
-          {cancel?.status === 'CANCELLED'
-            ? t('cancelled')
-            : cancel?.status === 'EXCEPTION'
-              ? t('cancelException')
-              : t('cancelPending')}
-          <Button
-            variant="ghost"
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                const state = await orderCancellationApi.cancellation(
-                  order.id,
-                  abort.current.signal,
-                );
-                if (!abort.current.signal.aborted) {
-                  setCancel(state);
-                  if (state.status === 'CANCELLED') onChanged();
-                }
-              })
-            }
-          >
-            {t('checkCancellation')}
-          </Button>
+      {state.review && (
+        <section
+          className="space-y-3 rounded-xl border border-[var(--sc-warning-border)] p-4"
+          aria-label={t('reviewTitle')}
+        >
+          <h5 className="font-semibold">{t('reviewTitle')}</h5>
+          <p className="break-all">{t('reviewOrder', { code: orderCode ?? t('thisOrder') })}</p>
+          <p>{t('reviewConsequences')}</p>
+          <p className="break-words">{t('reviewReason', { reason: state.review.reason })}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={state.busy}
+              onClick={() => session.dismiss()}
+            >
+              {t('keepOrder')}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              className="h-auto min-h-[42px] max-w-full whitespace-normal py-2"
+              disabled={state.busy}
+              onClick={() => void session.confirm()}
+            >
+              {t('confirmWholeOrder')}
+            </Button>
+          </div>
+        </section>
+      )}
+      {(processing || cancelled) && (
+        <Alert variant={cancelled ? 'success' : 'warning'} role="status">
+          <p>
+            {cancelled
+              ? t('cancelled')
+              : state.cancellation?.status === 'EXCEPTION'
+                ? t('cancelException')
+                : t('cancelPending')}
+          </p>
+          {!cancelled && (
+            <>
+              <p className="mt-2">
+                {t(can('orders.cancellation.ops') ? 'opsPendingNext' : 'ownerPendingNext')}
+              </p>
+              <Button
+                className="mt-3"
+                variant="outline"
+                disabled={state.busy}
+                onClick={() => void session.check()}
+              >
+                {t('checkCancellation')}
+              </Button>
+            </>
+          )}
         </Alert>
       )}
     </section>

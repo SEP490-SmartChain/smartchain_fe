@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
+
 import { useForm } from 'react-hook-form';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
+
 import { Alert, Button, Card, Input, PageHeader } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
+
+import { OrderCancellationActions } from './OrderCancellationActions';
 import {
   operationsCancellationApi,
   type CancellationCandidate,
 } from '../api/operationsCancellationApi';
-import { OrderCancellationActions } from './OrderCancellationActions';
 import { orderScope } from '../lib/orderScope';
 
 const searchSchema = z.object({ search: z.string().trim().max(120) });
@@ -58,18 +62,21 @@ function CancellationSession() {
   return (
     <div className="space-y-5">
       <PageHeader title={t('opsTitle')} description={t('opsHint')} />
-      <Card>
+      <Card className="space-y-4">
         <form
           className="flex flex-wrap items-end gap-3"
           onSubmit={form.handleSubmit((values) =>
             setQuery({ search: values.search, cursor: undefined }),
           )}
         >
-          <Input
-            label={t('orderCode')}
-            {...form.register('search')}
-            error={form.formState.errors.search ? t('invalidInput') : undefined}
-          />
+          <div className="min-w-0 flex-1 sm:max-w-md">
+            <Input
+              label={t('orderCode')}
+              placeholder={t('exactOrderCodePlaceholder')}
+              {...form.register('search')}
+              error={form.formState.errors.search ? t('invalidInput') : undefined}
+            />
+          </div>
           <Button type="submit" disabled={loading}>
             {t('search')}
           </Button>
@@ -84,34 +91,37 @@ function CancellationSession() {
             {t('reload')}
           </Button>
         </form>
-      </Card>
-      {error && <Alert variant="error">{error}</Alert>}
-      <Card>
-        <DataTable<CancellationCandidate>
-          ariaLabel={t('opsTitle')}
-          data={page.items}
-          isLoading={loading}
-          emptyMessage={t('opsEmpty')}
-          getRowKey={(row) => row.id}
-          columns={[
-            { key: 'orderCode', label: t('orderCode') },
-            { key: 'sellerName', label: t('seller') },
-            {
-              key: 'warehouses',
-              label: t('warehouses'),
-              render: (row) => row.warehouses.join(', '),
-            },
-            {
-              key: 'action',
-              label: t('actions'),
-              render: (row) => (
-                <Button variant="outline" onClick={() => setSelected(row)}>
-                  {t('reviewOrder')}
-                </Button>
-              ),
-            },
-          ]}
-        />
+        {error ? (
+          <Alert variant="error" role="alert">
+            {error}
+          </Alert>
+        ) : (
+          <DataTable<CancellationCandidate>
+            ariaLabel={t('opsTitle')}
+            data={page.items}
+            isLoading={loading}
+            emptyMessage={t('opsEmpty')}
+            getRowKey={(row) => row.id}
+            columns={[
+              { key: 'orderCode', label: t('orderCode') },
+              { key: 'sellerName', label: t('seller') },
+              {
+                key: 'warehouses',
+                label: t('warehouses'),
+                render: (row) => row.warehouses.join(', '),
+              },
+              {
+                key: 'action',
+                label: t('tableActions'),
+                render: (row) => (
+                  <Button variant="outline" onClick={() => setSelected(row)}>
+                    {t('openOrder')}
+                  </Button>
+                ),
+              },
+            ]}
+          />
+        )}
       </Card>
       {page.nextCursor && (
         <Button
@@ -129,12 +139,20 @@ function CancellationSession() {
       >
         {selected && (
           <div className="space-y-3">
-            <p>
-              {selected.sellerName} · {selected.warehouses.join(', ')}
-            </p>
+            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+              <div className="min-w-0">
+                <dt className="text-[var(--sc-text-secondary)]">{t('seller')}</dt>
+                <dd className="break-words font-medium">{selected.sellerName}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[var(--sc-text-secondary)]">{t('warehouses')}</dt>
+                <dd className="break-words font-medium">{selected.warehouses.join(', ')}</dd>
+              </div>
+            </dl>
             <OrderCancellationActions
               key={`${selected.id}:${selected.version}`}
               order={selected}
+              orderCode={selected.orderCode}
               onChanged={() => setReload((n) => n + 1)}
             />
           </div>

@@ -167,7 +167,9 @@ FU-42/UC-77), and `rules.simulate.carrier` for PLATFORM Admin/Ops (FU-35/UC-98).
 The SS-1089 endpoint rechecks the actor and live database grants; sample seller
 references never authorize another tenant. Rules screen access is insufficient
 for Admin-only allocation simulation. Preview does not publish or perform stock,
-order, billing or booking effects; planning and price projections remain pending.
+order, billing or booking effects. Optional fictional stock/tariff snapshots now
+produce labelled pure projections; they do not grant live inventory/tariff reads.
+Omitting a snapshot keeps the corresponding projection pending.
 
 Source hiện có đã có `actorScope` và ORCA role policy. SS-1302 đã thu hẹp backend `contract.read` về Seller Owner và `contract.approve` về Admin, bổ sung ma trận bảy role cho API/UI cùng kiểm field và download trên các surface đã triển khai. Directory ASN dùng DTO kho riêng. Từ 16/10/2026, receipt receiving trả `declaredQty`/`cartonCount` cho Staff/Manager để đối chiếu; kiểm kê tồn kho mù giữ giới hạn expected quantity. Bằng chứng và giới hạn nằm ở [SS-1302 audit](SS-1302-PERMISSION-AUDIT.md). Core-auth audit grant và các workflow chưa triển khai vẫn cần đối chiếu khi phát triển consumer; không dùng screen matrix để mở mọi action.
 
