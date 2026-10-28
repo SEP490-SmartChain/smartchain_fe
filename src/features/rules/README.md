@@ -54,8 +54,11 @@ Current published policies are the default. Selecting a visible rule and an exac
 saved draft/historical version previews it alongside other published policies;
 it does not activate that version. Match traces explain priority, seller/warehouse
 exclusion and missing facts. Carrier primary/fallback names retain policy order.
-Planning/FEFO/split and tariff quote projections are shown as pending, without
-fabricating prices, chosen warehouses or operational effects.
+The optional scenario editor supplies fictional order/stock or parcel/tariff
+snapshots. The API uses allocation/rating-owned pure calculations to show candidate
+warehouses, FEFO eligibility, split/COD and carrier quotes/fallback. Results are
+explicitly marked as simulated input. Without a snapshot these projections remain
+pending; they do not discover live stock, contracts, rates or provider availability.
 
 The form retains input on errors, supports retry, cancels obsolete requests and
 only displays results for the current sample/configuration revision. Parent identity
@@ -64,5 +67,18 @@ Response validation rejects private fields, wrong kind/mode/version, inconsisten
 trace/match, reordered carrier chains and fake selections. English/Vietnamese text
 uses `RuleSimulator` messages. Tests: `tests/rule-simulator.test.mjs`.
 
-Order splitting, physical allocation and carrier booking belong to their owning
-workflows. Full SS-1088 acceptance awaits the verified P4/P5 projections.
+The scenario editor starts from a labelled example and keeps quantities, dates,
+eligibility and sample costs editable. Advanced JSON import supports up to 50
+SKU lines, 20 warehouses, 200 stock positions and 11 carrier tariffs. Invalid input
+retains the structured draft. Changing sample/kind/version clears prior results.
+Response validation binds fictional references, quantities, COD and tariff versions
+to the submitted snapshot and rejects private or unrequested projections.
+
+API schema and limits: BE `docs/SS-1089-SYNTHETIC-PROJECTIONS.md`. Allocation
+simulation remains Ops-only; carrier simulation remains Admin + Ops. Operational
+allocation, stock reservation and carrier booking remain separate workflows.
+
+Run `node tests/ss1090-projection-browser.mjs` for the real React component with
+explicitly synthetic HTTP responses at `http://127.0.0.1:24391/`. This validates
+UI states/role visibility, not live API or planning behavior. Owner algorithm/HTTP
+tests and restricted PostgreSQL policy tests run separately in BE.

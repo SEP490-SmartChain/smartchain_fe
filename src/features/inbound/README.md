@@ -220,6 +220,15 @@ or replace the attempted task are locked until replay resolves it. Identity/scop
 changes abort old requests and discard stale records. The backend posts physical
 movements through P3 and only confirmed accepted goods become SELLABLE.
 
+A rejected scan keeps the entered values and inline error. Validation responses
+400/422 do not reload the task. A 409 rechecks the directory while disabling the
+form, retaining it only if the task revision, assignee, status, quantities and
+physical scan references still match. Changed tasks and failed reads discard the
+form; 403/404 discard it immediately before reloading. Unknown replies still freeze
+the original command for exact replay. Browser regression scenarios are available
+in `tests/putaway-workflow-browser.mjs` (`scan-conflict`, `scan-validation`,
+`stale-confirmation`, `revoked-confirmation`, `lost-confirmation`).
+
 Whole-parent demo/UAT remains separate work; this page does not imply billing,
 Seller notification delivery or completed quarantine handling.
 

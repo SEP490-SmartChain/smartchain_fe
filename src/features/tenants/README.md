@@ -211,3 +211,11 @@ on scope changes. A canonical single UUID is navigation only, never permission
 or an automatic confirm/dispute/pay/cancel command. Existing API/role gates stay
 in force. Regression: `tests/notification-links.test.mjs`; backend contract:
 `smartchain_be/docs/SS-1035-SELLER-NOTIFICATIONS.md`.
+
+## SS-1041 finance rehearsal
+
+Owner financial views show the API-confirmed within-limit debt state, its contract
+credit limit and age threshold. This does not grant order acceptance or override
+service suspension. FREIGHT invoice lines have Vietnamese/English labels. The
+screen-six rehearsal uses the backend disposable runner and synthetic sessions;
+see `docs/SS-1041-FINANCE-REHEARSAL.md` in smartchain_be.
