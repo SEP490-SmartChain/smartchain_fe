@@ -135,6 +135,15 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
                 </p>
               </Alert>
             )}
+            {!summary.isDebtBlocked && summary.debtVnd !== '0' && (
+              <Alert variant="info" title={t('debtWithinLimit')}>
+                <p>
+                  {t('debt')}: {money(summary.debtVnd)} · {t('creditLimit')}:{' '}
+                  {money(summary.creditLimitVnd)} · {t('dueDays', { days: summary.debtDueDays })}
+                </p>
+                <p className="mt-2">{t('debtWithinLimitHelp')}</p>
+              </Alert>
+            )}
             <CloseoutSettlement
               tenantId={tenantId}
               onChanged={() => setRevision((value) => value + 1)}
