@@ -25,6 +25,8 @@ import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
 import { OrderDetail } from './OrderDetail';
 import { OrderLifecycleActions } from './OrderLifecycleActions';
+import { OrderPolicyActions } from './OrderPolicyActions';
+import { OrderCancellationActions } from './OrderCancellationActions';
 import { SellerWithdrawalForm } from './SellerWithdrawalForm';
 import {
   ORDER_STATUSES,
@@ -632,6 +634,23 @@ function SellerOrdersSession({
             <OrderLifecycleActions
               key={`OrderLifecycleActions:${detail.id}`}
               order={detail}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
+            <OrderPolicyActions
+              key={`OrderPolicyActions:${detail.id}`}
+              order={detail}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
+            <OrderCancellationActions
+              key={`OrderCancellationActions:${detail.id}`}
+              order={detail}
+              orderCode={detail.externalOrderCode}
               onChanged={() => {
                 openDetail(detail.id);
                 void orders.reload();
