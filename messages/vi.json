@@ -4215,6 +4215,26 @@
     "last24Hours": "Trong 24 giờ qua",
     "updatedCompact": "Cập nhật {time} · UTC+7"
   },
+  "OrderPolicy": {
+    "policyTitle": "Xác nhận đơn COD rủi ro",
+    "policyHint": "Giữ đơn COD rủi ro để chủ shop xác nhận trước khi phân bổ tồn.",
+    "holdEnabled": "Xác nhận đơn COD rủi ro trước khi xử lý",
+    "threshold": "Ngưỡng COD (VND)",
+    "invalidThreshold": "Nhập số tiền nguyên dương bằng VND.",
+    "loading": "Đang tải…",
+    "loadError": "Không tải được chính sách. Vui lòng thử lại.",
+    "writeError": "Chưa xác nhận được kết quả. Giữ nội dung đã nhập và tải lại trạng thái đơn trước khi tiếp tục.",
+    "reload": "Tải lại trạng thái",
+    "save": "Lưu chính sách",
+    "actions": "Xác nhận đơn COD đang giữ",
+    "confirmHold": "Xác nhận và tiếp tục phân bổ",
+    "invalidInput": "Kiểm tra giá trị này.",
+    "savedEnabled": "Đã lưu chính sách. Xác nhận đơn COD rủi ro đang bật.",
+    "savedDisabled": "Đã lưu chính sách. Xác nhận đơn COD rủi ro đang tắt.",
+    "thresholdHint": "Khi bật: giữ đơn COD từ ngưỡng này hoặc khách từng từ chối nhận hàng từ shop.",
+    "policyWriteError": "Chưa xác nhận được kết quả lưu chính sách. Nội dung đã nhập được giữ lại. Tải lại chính sách để kiểm tra trước khi lưu tiếp.",
+    "reloadPolicy": "Tải lại chính sách"
+  },
   "Packing": {
     "nextPage": "Trang tiếp",
     "printManifest": "In biên bản bàn giao",

@@ -4215,6 +4215,26 @@
     "last24Hours": "Last 24 hours",
     "updatedCompact": "Updated {time} · UTC+7"
   },
+  "OrderPolicy": {
+    "policyTitle": "Risky COD review",
+    "policyHint": "Hold risky COD orders for owner confirmation before stock allocation.",
+    "holdEnabled": "Review risky COD orders before fulfillment",
+    "threshold": "COD threshold (VND)",
+    "invalidThreshold": "Enter a positive whole VND amount.",
+    "loading": "Loading…",
+    "loadError": "Could not load this policy. Retry to continue.",
+    "writeError": "The result could not be confirmed. Keep your draft and reload the order state before continuing.",
+    "reload": "Reload state",
+    "save": "Save policy",
+    "actions": "Review held COD order",
+    "confirmHold": "Confirm and continue allocation",
+    "invalidInput": "Check this value.",
+    "savedEnabled": "Policy saved. Risky COD confirmation is enabled.",
+    "savedDisabled": "Policy saved. Risky COD confirmation is disabled.",
+    "thresholdHint": "When enabled: hold COD at or above this threshold, or recipients who previously refused this shop’s deliveries.",
+    "policyWriteError": "The policy save result could not be confirmed. Your changes are preserved. Reload the policy to check its state before saving again.",
+    "reloadPolicy": "Reload policy"
+  },
   "Packing": {
     "nextPage": "Next page",
     "printManifest": "Print manifest",

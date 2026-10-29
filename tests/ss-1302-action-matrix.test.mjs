@@ -68,6 +68,7 @@ const expected = {
   'rules.simulate.allocation': ['OPS_DISPATCHER'],
   'rules.simulate.carrier': AO,
   'orders.view': roles,
+  'orders.policy.manage': O,
   'orders.cancellation.manage': O,
   'warehouse.packing.confirm': S,
   'warehouse.handover.create': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],

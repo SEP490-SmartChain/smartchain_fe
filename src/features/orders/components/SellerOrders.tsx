@@ -24,6 +24,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
 import { OrderDetail } from './OrderDetail';
+import { OrderPolicyActions } from './OrderPolicyActions';
 import { OrderCancellationActions } from './OrderCancellationActions';
 import { SellerWithdrawalForm } from './SellerWithdrawalForm';
 import {
@@ -629,6 +630,14 @@ function SellerOrdersSession({
         {detail && (
           <>
             <OrderDetail order={detail} />
+            <OrderPolicyActions
+              key={`OrderPolicyActions:${detail.id}`}
+              order={detail}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
             <OrderCancellationActions
               key={`OrderCancellationActions:${detail.id}`}
               order={detail}
