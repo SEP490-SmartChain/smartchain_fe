@@ -12,3 +12,4 @@ export { OrderPolicySettings } from './components/OrderPolicySettings';
 export { PackingWorkspace } from './components/PackingWorkspace';
 
 export { HandoverWorkspace } from './components/HandoverWorkspace';
+export { OperationsCancellationWorkspace } from './components/OperationsCancellationWorkspace';

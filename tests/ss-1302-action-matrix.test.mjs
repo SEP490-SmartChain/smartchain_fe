@@ -28,6 +28,7 @@ const reporting = [
 ];
 // Independently reviewed UI action expectations; proposed actions remain denied.
 const expected = {
+  'orders.cancellation.ops': ['OPS_DISPATCHER'],
   'tariffs.manage': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'iam.warehouses.assign': A,
   'workspace.dashboard.view': reporting,
@@ -68,9 +69,11 @@ const expected = {
   'rules.simulate.carrier': AO,
   'orders.view': roles,
   'orders.policy.manage': O,
+  'orders.cancellation.manage': O,
   'warehouse.packing.confirm': S,
   'warehouse.handover.create': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'warehouse.handover.confirm': S,
+  'warehouse.putback.confirm': S,
   // UC-66/67 intake does not grant Staff writes or platform intake.
   'orders.seller.read': ['SELLER_OWNER', 'SELLER_STAFF'],
   'orders.create': O,

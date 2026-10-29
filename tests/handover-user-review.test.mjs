@@ -13,7 +13,7 @@ const tree = ts.createSourceFile(
   true,
   ts.ScriptKind.TSX,
 );
-function render(name, state, props) {
+function render(name, state, props, overrides = {}) {
   let index = 0;
   const form = {
     register: (name) => ({ name }),
@@ -50,6 +50,7 @@ function render(name, state, props) {
     PutbackForm: 'PutbackForm',
     carrierPickupRecorded: () => false,
     styles: {},
+    ...overrides,
   };
   const fn = tree.statements.find((n) => ts.isFunctionDeclaration(n) && n.name?.text === name);
   const code = ts.transpileModule(fn.getText(tree), {
@@ -59,6 +60,76 @@ function render(name, state, props) {
     ...Object.values(bindings),
   )(props);
 }
+
+test('confirmed putback stays visible after the last task leaves the pending list', () => {
+  const state = layoutState(layoutData);
+  state.push(null);
+  // Keep hook indexing local to each render, as React does.
+  function draw() {
+    let index = 0;
+    return render('WarehouseHandover', state, layoutProps, {
+      useState(initial) {
+        const slot = index++;
+        return [
+          slot in state ? state[slot] : initial,
+          (value) => {
+            state[slot] = typeof value === 'function' ? value(state[slot]) : value;
+          },
+        ];
+      },
+    });
+  }
+  state[1] = [{ id: 'task', sku: 'SKU-RETURN', qty: 2, binCode: 'A1', lotCode: 'L1' }];
+  const task = flatten(draw()).find((n) => n.type === 'PutbackForm');
+  task.props.onDone(2);
+  state[1] = [];
+  const ui = draw();
+  const notice = flatten(ui).find((n) => n.type === 'Alert' && n.props.variant === 'success');
+  assert.ok(notice, 'completion must remain visible when the task disappears');
+  assert.equal(notice.props.role, 'status');
+  assert.ok(JSON.stringify(notice).includes('SKU-RETURN'));
+  assert.ok(notice.children.join('').includes('"qty":2'));
+  const details = flatten(ui).find(
+    (n) => n.type === 'details' && JSON.stringify(n).includes('putbackTitle'),
+  );
+  assert.equal(details.props.open, false);
+  assert.ok(
+    !flatten(details).includes(notice),
+    'notice must be outside the collapsed pending section',
+  );
+});
+
+test('putback reports the submitted quantity only after server confirmation, never on rejection', async () => {
+  for (const rejected of [false, true]) {
+    let resolveRequest, rejectRequest;
+    const request = new Promise((resolve, reject) => {
+      resolveRequest = resolve;
+      rejectRequest = reject;
+    });
+    const completions = [];
+    const ui = render(
+      'PutbackForm',
+      ['', false],
+      {
+        warehouse: 'w',
+        task: { id: 'task', version: 1 },
+        onDone: (qty) => completions.push(qty),
+      },
+      {
+        putbackFormSchema: {},
+        createUuid: () => 'operation',
+        packingApi: { putback: () => request },
+        isRejectedOperation: () => true,
+      },
+    );
+    const submitting = ui.props.onSubmit({ binCode: 'A1', sku: 'SKU', lotCode: 'LOT', qty: 2 });
+    assert.deepEqual(completions, [], 'pending requests cannot announce success');
+    if (rejected) rejectRequest(new Error('Rejected'));
+    else resolveRequest([]);
+    await submitting;
+    assert.deepEqual(completions, rejected ? [] : [2]);
+  }
+});
 function flatten(root) {
   const all = [];
   function visit(n) {
@@ -76,7 +147,7 @@ test('handover explains grouping and hides connection UUID inside optional detai
     ],
     manifests: [],
   };
-  const ui = render('WarehouseHandover', [data, ['s'], 0, false, '', {}, null], {
+  const ui = render('WarehouseHandover', [data, [], ['s'], 0, false, '', {}, null, null], {
     warehouse: 'w',
     warehouseName: 'Kho',
     create: true,

@@ -52,6 +52,7 @@ export function orderReasonKey(code: string | null): string {
     [
       'VALIDATION_FAILED',
       'HOLD_RISKY_COD',
+      'CANCEL_PENDING',
       'ADDRESS_NORMALIZED',
       'RESERVATION_RENEWAL_REQUIRED',
       'ALLOCATION_QUEUE_FAILED',
