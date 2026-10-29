@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useLocation } from 'react-router-dom';
+
 import { BookOpen, CalendarDays, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -10,6 +12,7 @@ import { Card } from '@/components/Common/Card/Card';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -25,7 +28,7 @@ import {
   type PayoutSummary,
 } from '../schemas/payoutSchema';
 
-function SellerMoney({ tenantId }: { tenantId?: string }) {
+function SellerMoney({ tenantId, initialId }: { tenantId?: string; initialId: string | null }) {
   const t = useTranslations('Payouts');
   const locale = useLocaleStore((s) => s.locale);
   const [summary, setSummary] = useState<PayoutSummary | null>(null),
@@ -35,7 +38,7 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
     [ledgerCursor, setLedgerCursor] = useState<string | null>(null),
     [tab, setTab] = useState<'statements' | 'ledger'>('statements'),
     [accountKind, setAccountKind] = useState<'OPERATING' | 'DEPOSIT'>('OPERATING'),
-    [selected, setSelected] = useState<string | null>(null),
+    [selected, setSelected] = useState<string | null>(initialId),
     [error, setError] = useState<string | null>(null),
     [loading, setLoading] = useState(true),
     [moreLoading, setMoreLoading] = useState(false),
@@ -143,6 +146,15 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
                   {t('debt')}: {money(summary.debtVnd)} · {t('creditLimit')}:{' '}
                   {money(summary.creditLimitVnd)} · {t('dueDays', { days: summary.debtDueDays })}
                 </p>
+              </Alert>
+            )}
+            {!summary.isDebtBlocked && summary.debtVnd !== '0' && (
+              <Alert variant="info" title={t('debtWithinLimit')}>
+                <p>
+                  {t('debt')}: {money(summary.debtVnd)} · {t('creditLimit')}:{' '}
+                  {money(summary.creditLimitVnd)} · {t('dueDays', { days: summary.debtDueDays })}
+                </p>
+                <p className="mt-2">{t('debtWithinLimitHelp')}</p>
               </Alert>
             )}
             <CloseoutSettlement
@@ -320,6 +332,7 @@ function SellerMoney({ tenantId }: { tenantId?: string }) {
   );
 }
 function FinancialSellerPicker() {
+  const linkedStatement = notificationTarget(useLocation().search, 'statementId');
   const t = useTranslations('Payouts');
   const { actorScope } = useAccess();
   const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]),
@@ -375,7 +388,11 @@ function FinancialSellerPicker() {
         />
       )}
       {actorScope === 'TENANT' || selected ? (
-        <SellerMoney key={selected || 'own'} tenantId={selected || undefined} />
+        <SellerMoney
+          key={`${selected || 'own'}:${linkedStatement ?? ''}`}
+          tenantId={selected || undefined}
+          initialId={linkedStatement}
+        />
       ) : (
         <Alert>{t('chooseSeller')}</Alert>
       )}
