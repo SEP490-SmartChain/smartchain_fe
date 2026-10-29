@@ -888,6 +888,11 @@ test('direct entry requires an explicit total, strips stale detail fields and ac
   );
 });
 
+test('withdrawal details do not describe declared goods values as COD split weights', () => {
+  const html = renderDetail({ kind: 'WITHDRAWAL', codAmount: '0', paymentBreakdown: null });
+  assert.ok(!html.includes('phân bổ thu hộ'));
+  assert.ok(html.includes('Đơn rút hàng không thu COD'));
+});
 test('direct order detail identifies allocation values and does not invent payment history', () => {
   const html = renderDetail({
     collectionMode: 'DIRECT',

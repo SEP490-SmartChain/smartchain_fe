@@ -3544,7 +3544,7 @@
   },
   "Withdrawal": {
     "title": "Request stock withdrawal",
-    "description": "Goods return to the registered seller address. No recipient COD or sales-order quota applies; service, materials and freight charges still apply.",
+    "description": "Deliver to the registered address, with no COD or sales-order quota use. Handling, materials and freight fees still apply.",
     "registeredAddress": "Registered return address",
     "recipientName": "Recipient name",
     "recipientPhone": "Phone number",
@@ -3557,7 +3557,7 @@
     "stock": "Warehouse · SKU · Lot (available quantity)",
     "qty": "Withdrawal quantity",
     "submit": "Request withdrawal",
-    "accepted": "Request accepted, awaiting allocation and warehouse processing.",
+    "accepted": "Withdrawal request accepted. Check order details for its processing status.",
     "more": "More eligible lots",
     "reload": "Reload data",
     "retrySame": "Retry the same request",
@@ -3572,7 +3572,24 @@
       "WITHDRAWAL_STOCK_UNAVAILABLE": "The named lot no longer has enough eligible stock. Reload the choices.",
       "WITHDRAWAL_FORBIDDEN": "Only a currently authorized Seller Owner can request withdrawal.",
       "IDEMPOTENCY_CONFLICT": "This reference was used with different content. Reload to check the request."
-    }
+    },
+    "recoveryUnavailable": "Recovery reference could not be saved. The request was not sent. Allow browser session storage and retry.",
+    "pendingReference": "Withdrawal {code}: {qty} units. If the outcome is unknown, retry only this request.",
+    "recovered": "Your previous withdrawal request was recovered; no new order was created. Check order details for its current status.",
+    "noStock": "No stock lots are currently eligible for withdrawal. Check available stock or reload after the warehouse updates it.",
+    "processing": "Loading or confirming data. Please wait for the result.",
+    "unsavedAddress": "Save address changes or restore the registered address before submitting.",
+    "revertAddress": "Restore registered address",
+    "eligibilityGuidance": "Withdrawal is not yet eligible. Review debt and contract/service status below, then try again. The deposit is separate from the operating balance.",
+    "reviewBalance": "Review balance and debt",
+    "reviewContract": "Review contract and service",
+    "selectionReview": "Review goods to withdraw",
+    "selectedProduct": "Product: {name} · SKU: {sku}",
+    "selectedWarehouse": "Warehouse: {name}",
+    "selectedLot": "Lot: {code}",
+    "selectedQuantity": "Requested quantity: {requested} · Available to withdraw: {available}",
+    "editAddress": "Edit delivery address",
+    "chooseGoods": "Goods to withdraw"
   },
   "Warehouse3D": {
     "title": "Warehouse 3D · {code}",

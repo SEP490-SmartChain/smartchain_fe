@@ -3544,7 +3544,7 @@
   },
   "Withdrawal": {
     "title": "Yêu cầu rút hàng",
-    "description": "Hàng được giao về địa chỉ nhận đã đăng ký. Không thu COD từ người nhận và không trừ hạn mức đơn bán; vẫn áp dụng phí dịch vụ, vật tư và vận chuyển.",
+    "description": "Giao về địa chỉ đã đăng ký, không thu COD hoặc trừ hạn mức đơn bán. Phí xử lý, vật tư và vận chuyển vẫn áp dụng.",
     "registeredAddress": "Địa chỉ nhận hàng đã đăng ký",
     "recipientName": "Tên người nhận",
     "recipientPhone": "Số điện thoại",
@@ -3557,7 +3557,7 @@
     "stock": "Kho · SKU · Lô (số lượng có thể rút)",
     "qty": "Số lượng rút",
     "submit": "Gửi yêu cầu rút hàng",
-    "accepted": "Đã tiếp nhận yêu cầu, đang chờ phân bổ và xử lý tại kho.",
+    "accepted": "Đã tiếp nhận yêu cầu rút hàng. Xem trạng thái xử lý trong chi tiết đơn.",
     "more": "Xem thêm lô hàng",
     "reload": "Tải lại dữ liệu",
     "retrySame": "Thử lại cùng yêu cầu",
@@ -3572,7 +3572,24 @@
       "WITHDRAWAL_STOCK_UNAVAILABLE": "Lô đã chọn không còn đủ hàng đủ điều kiện. Tải lại để chọn hàng.",
       "WITHDRAWAL_FORBIDDEN": "Chỉ chủ tài khoản đang có quyền mới được yêu cầu rút hàng.",
       "IDEMPOTENCY_CONFLICT": "Tham chiếu này đã dùng cho nội dung khác. Tải lại để kiểm tra yêu cầu."
-    }
+    },
+    "recoveryUnavailable": "Chưa lưu được tham chiếu khôi phục. Yêu cầu chưa được gửi. Hãy cho phép lưu trữ phiên trên trình duyệt rồi thử lại.",
+    "pendingReference": "Yêu cầu rút {code}: {qty} đơn vị. Nếu kết quả chưa rõ, chỉ gửi lại đúng yêu cầu này.",
+    "recovered": "Đã tìm lại yêu cầu rút hàng trước đó; không tạo đơn mới. Xem trạng thái hiện tại trong chi tiết đơn.",
+    "noStock": "Hiện chưa có lô hàng đủ điều kiện rút. Kiểm tra tồn khả dụng hoặc tải lại sau khi kho cập nhật.",
+    "processing": "Đang tải hoặc xác nhận dữ liệu. Vui lòng chờ kết quả.",
+    "unsavedAddress": "Lưu thay đổi địa chỉ hoặc dùng lại địa chỉ đã đăng ký trước khi gửi.",
+    "revertAddress": "Dùng lại địa chỉ đã đăng ký",
+    "eligibilityGuidance": "Chưa đủ điều kiện rút hàng. Kiểm tra công nợ và hợp đồng/dịch vụ tại các mục dưới đây, rồi thử lại. Tiền cọc không dùng như số dư hoạt động.",
+    "reviewBalance": "Xem số dư và công nợ",
+    "reviewContract": "Xem hợp đồng và dịch vụ",
+    "selectionReview": "Kiểm tra hàng sẽ rút",
+    "selectedProduct": "Sản phẩm: {name} · SKU: {sku}",
+    "selectedWarehouse": "Kho: {name}",
+    "selectedLot": "Lô: {code}",
+    "selectedQuantity": "Số lượng yêu cầu: {requested} · Có thể rút: {available}",
+    "editAddress": "Sửa địa chỉ nhận hàng",
+    "chooseGoods": "Hàng cần rút"
   },
   "Warehouse3D": {
     "title": "Kho 3D · {code}",

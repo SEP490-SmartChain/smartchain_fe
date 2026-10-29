@@ -71,7 +71,13 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       />
       {detailTab === 'allocation' ? (
         <section className="space-y-4" aria-label={t('allocationTab')}>
-          <Alert>{t('allocationExplanation')}</Alert>
+          <Alert>
+            {t(
+              order.kind === 'WITHDRAWAL'
+                ? 'withdrawalAllocationExplanation'
+                : 'allocationExplanation',
+            )}
+          </Alert>
           {!order.fulfillmentOrders.length && <p>{t('allocationPending')}</p>}
           {order.fulfillmentOrders.map((child) => (
             <article
@@ -80,13 +86,15 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
             >
               <h4 className="font-semibold">{child.warehouseName ?? t('warehouse_unavailable')}</h4>
               <p className="mt-2 text-sm">
-                {child.allocation?.reason === 'EXPIRY_FIRST'
-                  ? t('expiryFirst')
-                  : child.allocation?.reason === 'TOTAL_COST'
-                    ? t('totalCost')
-                    : child.allocation?.reason === 'NEAREST_WAREHOUSE'
-                      ? t('nearestWarehouse')
-                      : t('allocationUnavailable')}
+                {order.kind === 'WITHDRAWAL'
+                  ? t('withdrawalSelection')
+                  : child.allocation?.reason === 'EXPIRY_FIRST'
+                    ? t('expiryFirst')
+                    : child.allocation?.reason === 'TOTAL_COST'
+                      ? t('totalCost')
+                      : child.allocation?.reason === 'NEAREST_WAREHOUSE'
+                        ? t('nearestWarehouse')
+                        : t('allocationUnavailable')}
               </p>
               <ul className="mt-3 space-y-2">
                 {child.allocation?.lots.map((lot) => (
@@ -130,7 +138,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
           <section>
             {direct && (
               <p className="mb-3 text-sm text-[var(--sc-text-secondary)]">
-                {t('allocationValueHint')}
+                {t(order.kind === 'WITHDRAWAL' ? 'withdrawalValueHint' : 'allocationValueHint')}
               </p>
             )}
             <h4 className={`${heading} mb-3`}>
