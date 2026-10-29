@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { createServer } from 'vite';
 
-let server, ApiError, isRejectedOperation;
+let server, ApiError, isRejectedOperation, createCancellationSession, auth, orderScope;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -19,6 +19,11 @@ before(async () => {
   ({ isRejectedOperation } = await server.ssrLoadModule(
     '/src/features/orders/lib/fulfillmentRetry.ts',
   ));
+  ({ createCancellationSession } = await server.ssrLoadModule(
+    '/src/features/orders/lib/cancellationSession.ts',
+  ));
+  ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
+  ({ orderScope } = await server.ssrLoadModule('/src/features/orders/lib/orderScope.ts'));
 });
 after(async () => server?.close());
 
@@ -49,6 +54,7 @@ const cases = [
   ['PackingWorkspace.tsx', 'PackingForm', 'submit', 'pack'],
   ['HandoverWorkspace.tsx', 'WarehouseHandover', 'manifest', 'manifest'],
   ['HandoverWorkspace.tsx', 'SignManifest', 'submit', 'sign'],
+  ['HandoverWorkspace.tsx', 'PutbackForm', 'submit', 'putback'],
 ];
 for (const [file, outer, inner, method] of cases) {
   for (const rejected of [true, false])
@@ -73,6 +79,8 @@ for (const [file, outer, inner, method] of cases) {
         setReload() {},
         onPacked() {},
         onSigned() {},
+        onDone() {},
+        task: { id: 'putback', version: 1 },
         createUuid: () => `operation-${++serial}`,
         detail: { id: 'parcel', version: 1 },
         warehouse: 'warehouse',
@@ -107,6 +115,10 @@ for (const [file, outer, inner, method] of cases) {
         carrierAckRef: 'first',
         carrierSignerName: 'Driver',
         evidenceKey: 'verified-photo',
+        binCode: 'BIN-A',
+        sku: 'SKU',
+        lotCode: 'LOT',
+        qty: 2,
       };
       await run(first);
       assert.equal(pending.current === null, rejected);
@@ -115,12 +127,18 @@ for (const [file, outer, inner, method] of cases) {
         rejected ? (method === 'sign' ? 'parcelCountMismatch' : 'rejectedError') : 'writeError',
       );
       bindings.selected.splice(0, 1, 'shipment-B');
-      await run({ ...first, contents: [{ itemId: 'item', qty: 1 }], carrierAckRef: 'corrected' });
+      await run({
+        ...first,
+        contents: [{ itemId: 'item', qty: 1 }],
+        carrierAckRef: 'corrected',
+        qty: 1,
+      });
       assert.equal(calls.length, 2);
       assert.equal(calls[0].operationId === calls[1].operationId, !rejected);
       if (!rejected) assert.deepEqual(calls[1], calls[0]);
       else if (method === 'pack') assert.equal(calls[1].contents[0].qty, 1);
       else if (method === 'sign') assert.equal(calls[1].carrierAckRef, 'corrected');
+      else if (method === 'putback') assert.equal(calls[1].qty, 1);
       else assert.deepEqual(calls[1].shipmentIds, ['shipment-B']);
     });
 }
@@ -136,3 +154,73 @@ test('timeout, server failure and idempotency conflict are not proof that a comm
   }
   assert.equal(isRejectedOperation(new ApiError('Stale', 409, 'PACK.STALE_VERSION')), true);
 });
+
+function cancellationSession(api, onCompleted) {
+  auth.getState().clear();
+  auth.getState().setSession({
+    accessToken: 'synthetic',
+    expiresIn: 60,
+    user: {
+      userId: '00000000-0000-4000-8000-000000000001',
+      tenantId: '00000000-0000-4000-8000-000000000001',
+      actorScope: 'TENANT',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+      email: 'synthetic@example.test',
+      fullName: 'Synthetic',
+      serviceStatus: 'ACTIVE',
+    },
+  });
+  return createCancellationSession({
+    scope: orderScope(),
+    orderId: 'order',
+    api,
+    requestId: () => 'cancel-operation',
+    onCompleted,
+  });
+}
+
+for (const rejected of [true, false])
+  test(`OrderCancellationActions: ${rejected ? 'explicit rejection unlocks reason' : 'uncertain outcome preserves pending cancellation'}`, async () => {
+    const command = { operationId: 'cancel-operation', expectedVersion: 1, reason: 'Original' };
+    const session = cancellationSession({
+      cancellation: async () => ({ id: 'order', status: 'NOT_REQUESTED', code: null }),
+      cancel: async () => {
+        throw rejected
+          ? new ApiError('Stale', 409, 'ORDERS.STALE_VERSION')
+          : new TypeError('Network interrupted');
+      },
+    });
+    await session.check();
+    assert.equal(session.review('Original', 1), true);
+    await session.confirm();
+    assert.equal(session.getState().busy, false);
+    assert.deepEqual(session.getState().pending, rejected ? null : command);
+    await session.check();
+    assert.equal(session.review('Corrected', 2), rejected);
+    session.stop();
+  });
+
+for (const status of ['CANCELLED', 'PENDING'])
+  test(
+    'cancellation ' + status + ' refreshes the parent only after confirmed completion',
+    async () => {
+      const effects = [];
+      const session = cancellationSession(
+        {
+          cancellation: async () => ({ id: 'order', status: 'NOT_REQUESTED', code: null }),
+          cancel: async () => ({ id: 'order', status, code: null }),
+        },
+        () => effects.push('refresh'),
+      );
+      await session.check();
+      session.subscribe(() => {
+        const value = session.getState().cancellation?.status;
+        if (value && value !== 'NOT_REQUESTED' && !effects.includes(value)) effects.push(value);
+      });
+      session.review('Customer request', 1);
+      await session.confirm();
+      assert.deepEqual(effects, status === 'CANCELLED' ? ['CANCELLED', 'refresh'] : ['PENDING']);
+      session.stop();
+    },
+  );
