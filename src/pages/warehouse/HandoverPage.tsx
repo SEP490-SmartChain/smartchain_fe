@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { HandoverWorkspace } from '@/features/orders';
 
 export default function HandoverPage() {
-  return <UnderConstruction />;
+  return <HandoverWorkspace />;
 }
