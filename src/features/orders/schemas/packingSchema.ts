@@ -19,3 +19,9 @@ export const handoverAckSchema = z.object({
   carrierSignerName: z.string().trim().min(1).max(150),
   evidenceKey: z.string().trim().min(1).max(500),
 });
+export const putbackFormSchema = z.object({
+  binCode: z.string().min(1).max(150),
+  sku: z.string().min(1).max(150),
+  lotCode: z.string().min(1).max(150),
+  qty: z.number().int().positive(),
+});
