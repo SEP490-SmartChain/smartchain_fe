@@ -7,6 +7,7 @@ import {
   closeoutOffsetSchema,
   closeoutRefundSchema,
   ledgerEntrySchema,
+  ledgerIdSchema,
   payoutCommandSchema,
   payoutLineSchema,
   payoutStatementSchema,
@@ -70,7 +71,7 @@ export const payoutApi = {
         status: z.enum(['OFFSET_RECORDED', 'REFUNDED']),
         operatingBalanceVnd: z.string().regex(/^-?\d+$/),
         depositBalanceVnd: z.string().regex(/^-?\d+$/),
-        entryIds: z.array(z.string().uuid()),
+        entryIds: z.array(ledgerIdSchema),
         transferId: z.string().uuid().optional(),
       })
       .parse(data);
@@ -101,7 +102,9 @@ export const payoutApi = {
     });
     return {
       items: z.array(ledgerEntrySchema).parse(response.data),
-      pagination: paginationSchema.parse(response.meta?.pagination),
+      pagination: paginationSchema
+        .extend({ nextCursor: ledgerIdSchema.nullable() })
+        .parse(response.meta?.pagination),
     };
   },
   async list(filters: Omit<Filters, 'accountKind'>, signal?: AbortSignal) {

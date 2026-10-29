@@ -9,3 +9,6 @@ export { SellerOrders } from './components/SellerOrders';
 export { PickingWorkspace } from './components/PickingWorkspace';
 
 export { OrderPolicySettings } from './components/OrderPolicySettings';
+export { PackingWorkspace } from './components/PackingWorkspace';
+
+export { HandoverWorkspace } from './components/HandoverWorkspace';

@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
+import { ledgerIdSchema } from '../schemas/payoutSchema';
+
 const money = z.string().regex(/^-?\d{1,20}$/);
 export const invoiceSchema = z.object({
   id: z.string().uuid(),
@@ -28,7 +30,7 @@ export const invoiceLineSchema = z.object({
   unitPriceVnd: money,
   amountVnd: money,
   billableEventId: z.string().uuid().nullable(),
-  ledgerEntryId: z.string().uuid().nullable(),
+  ledgerEntryId: ledgerIdSchema.nullable(),
   feeType: z.string().nullable(),
   refType: z.string().nullable(),
   refId: z.string().uuid().nullable(),
