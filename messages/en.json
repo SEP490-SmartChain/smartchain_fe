@@ -4215,6 +4215,27 @@
     "last24Hours": "Last 24 hours",
     "updatedCompact": "Updated {time} · UTC+7"
   },
+  "OrderLifecycle": {
+    "loading": "Loading…",
+    "loadError": "Could not load this policy. Retry to continue.",
+    "writeError": "The result could not be confirmed. Keep your draft and reload the order state before continuing.",
+    "reload": "Reload state",
+    "actions": "Correct and revalidate order",
+    "correct": "Correct recipient",
+    "revalidate": "Validate again",
+    "recipientName": "Recipient name",
+    "recipientPhone": "Phone",
+    "recipientAddress": "Address",
+    "toProvinceCode": "Province / city",
+    "toWardCode": "Ward / commune",
+    "invalidInput": "Check this value.",
+    "saveCorrection": "Save correction",
+    "locationError": "Address locations could not be loaded. Retry before saving.",
+    "retryLocations": "Reload locations",
+    "saveBeforeRevalidate": "Save recipient changes before revalidating.",
+    "correctionSaved": "Saved. Choose Revalidate order to continue.",
+    "backToActions": "Back to order actions"
+  },
   "OrderPolicy": {
     "policyTitle": "Risky COD review",
     "policyHint": "Hold risky COD orders for owner confirmation before stock allocation.",

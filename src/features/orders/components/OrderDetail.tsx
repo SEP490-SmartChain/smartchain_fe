@@ -380,6 +380,10 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
             <ol className="mt-4 space-y-3">
               {history.map((entry) => {
                 const reasonKey = orderHistoryReasonKey(entry.reason);
+                const isSavedCorrection =
+                  entry.reason === 'CORRECTION' &&
+                  entry.fromStatus === 'FAILED' &&
+                  entry.toStatus === 'FAILED';
                 return (
                   <li
                     key={`${entry.changedAt}-${entry.fromStatus}-${entry.toStatus}-${entry.reason}`}
@@ -392,8 +396,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                       {formatOrderDate(entry.changedAt, locale)}
                     </time>
                     <p>
-                      {entry.fromStatus ? `${status(entry.fromStatus)} → ` : ''}
-                      {status(entry.toStatus)}
+                      {isSavedCorrection
+                        ? t('history_correction_saved')
+                        : `${entry.fromStatus ? `${status(entry.fromStatus)} → ` : ''}${status(entry.toStatus)}`}
                     </p>
                     {reasonKey && (
                       <p className="mt-1 text-[var(--sc-text-secondary)]">{t(reasonKey)}</p>

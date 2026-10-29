@@ -512,6 +512,44 @@ test('unknown historical reasons preserve the transition without inventing an in
   assert.ok(!html.includes(viewMessages.Orders.processing_reason));
   assert.ok(html.includes('Đã phân bổ'));
 });
+test('saved recipient correction is an action awaiting validation, not another failed transition', () => {
+  const html = renderDetail({
+    status: 'BACKORDER',
+    holdReason: null,
+    statusHistory: [
+      {
+        fromStatus: 'FAILED',
+        toStatus: 'FAILED',
+        reason: 'CORRECTION',
+        changedAt: '2026-10-26T11:43:00Z',
+      },
+      {
+        fromStatus: 'FAILED',
+        toStatus: 'RECEIVED',
+        reason: 'REDISPATCH',
+        changedAt: '2026-10-26T11:44:00Z',
+      },
+    ],
+  });
+  assert.ok(html.includes('Đã cập nhật thông tin người nhận, chờ kiểm tra lại.'));
+  assert.ok(!html.includes('Thất bại → Thất bại'));
+  assert.ok(html.includes('Thất bại → Đã tiếp nhận'));
+  assert.ok(html.includes('2026-10-26T11:43:00Z'));
+});
+test('other same-state failures are not described as recipient corrections', () => {
+  const html = renderDetail({
+    statusHistory: [
+      {
+        fromStatus: 'FAILED',
+        toStatus: 'FAILED',
+        reason: 'VALIDATION_FAILED',
+        changedAt: '2026-10-26T11:43:00Z',
+      },
+    ],
+  });
+  assert.ok(html.includes('Thất bại → Thất bại'));
+  assert.ok(!html.includes('Đã cập nhật thông tin người nhận, chờ kiểm tra lại.'));
+});
 function renderDetail(overrides = {}, locale = 'vi') {
   const order = {
     ...summary,

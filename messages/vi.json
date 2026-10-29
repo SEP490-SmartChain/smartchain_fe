@@ -4215,6 +4215,27 @@
     "last24Hours": "Trong 24 giờ qua",
     "updatedCompact": "Cập nhật {time} · UTC+7"
   },
+  "OrderLifecycle": {
+    "loading": "Đang tải…",
+    "loadError": "Không tải được chính sách. Vui lòng thử lại.",
+    "writeError": "Chưa xác nhận được kết quả. Giữ nội dung đã nhập và tải lại trạng thái đơn trước khi tiếp tục.",
+    "reload": "Tải lại trạng thái",
+    "actions": "Sửa và kiểm tra lại đơn",
+    "correct": "Sửa người nhận",
+    "revalidate": "Kiểm tra lại đơn",
+    "recipientName": "Tên người nhận",
+    "recipientPhone": "Số điện thoại",
+    "recipientAddress": "Địa chỉ",
+    "toProvinceCode": "Tỉnh/thành phố",
+    "toWardCode": "Phường/xã",
+    "invalidInput": "Kiểm tra giá trị này.",
+    "saveCorrection": "Lưu thông tin sửa",
+    "locationError": "Không tải được danh mục địa chỉ. Hãy thử lại trước khi lưu.",
+    "retryLocations": "Tải lại địa chỉ",
+    "saveBeforeRevalidate": "Lưu thông tin người nhận trước khi kiểm tra lại đơn.",
+    "correctionSaved": "Đã lưu. Chọn Kiểm tra lại đơn để tiếp tục.",
+    "backToActions": "Quay lại thao tác đơn"
+  },
   "OrderPolicy": {
     "policyTitle": "Xác nhận đơn COD rủi ro",
     "policyHint": "Giữ đơn COD rủi ro để chủ shop xác nhận trước khi phân bổ tồn.",
