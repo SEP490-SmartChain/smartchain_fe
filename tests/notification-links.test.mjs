@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 let server, target;
 before(async () => {
-  server = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  server = await createServer({
+    configFile: false,
+    envFile: false,
+    optimizeDeps: { noDiscovery: true, include: [] },
+    root: fileURLToPath(new URL('..', import.meta.url)),
+    server: { middlewareMode: true, watch: null, ws: false },
+    appType: 'custom',
+  });
   target = (await server.ssrLoadModule('/src/lib/notificationTarget.ts')).notificationTarget;
 });
 after(async () => {
