@@ -17,6 +17,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
   const status = (value: string) =>
     t.has(`statuses.${value}`) ? t(`statuses.${value}`) : t('processing');
   const owner = order.codAmount !== undefined;
+  const allocationCost = order.fulfillmentOrders.find(
+    (child) => child.allocationCost,
+  )?.allocationCost;
   const direct = order.collectionMode === 'DIRECT' || order.kind === 'WITHDRAWAL';
   const heading = 'text-base font-semibold';
   const history = [...order.statusHistory].sort(
@@ -42,6 +45,28 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
           <time dateTime={order.createdAt}>{formatOrderDate(order.createdAt, locale)}</time>
         </p>
       </header>
+      {owner && allocationCost && (
+        <Alert>
+          <p className="font-semibold">{t('totalCostSummary')}</p>
+          <p>
+            {t('totalCostExtraFreight', {
+              amount:
+                allocationCost.extraShippingFeeVnd === null
+                  ? t('totalCostUnknown')
+                  : formatOrderMoney(allocationCost.extraShippingFeeVnd),
+            })}
+          </p>
+          <p>
+            {t('totalCostSavedGoods', {
+              amount:
+                allocationCost.savedGoodsValueVnd === null
+                  ? t('totalCostUnknown')
+                  : formatOrderMoney(allocationCost.savedGoodsValueVnd),
+            })}
+          </p>
+          <p className="mt-2 text-sm">{t('totalCostBoundedHint')}</p>
+        </Alert>
+      )}
       {order.status === 'VALIDATED' && order.holdReason !== 'CANCEL_PENDING' && (
         <Alert role="status">{t('allocationQueuedHint')}</Alert>
       )}

@@ -214,6 +214,79 @@ test('Staff schemas reject extra financial/PII fields, including nested lines an
     ),
   );
 });
+
+test('Owner receives exact TOTAL_COST evidence while Staff rejects the same financial payload', () => {
+  const allocationCost = {
+    extraShippingFeeVnd: '13000',
+    savedGoodsValueVnd: '90000',
+    globalOptimum: false,
+  };
+  const child = {
+    id,
+    warehouseId: id,
+    sequenceNo: 1,
+    status: 'STOCK_RESERVED',
+    items: [],
+    parcels: [],
+    shipments: [],
+    allocationCost,
+  };
+  const safe = { ...summary, items: [], fulfillmentOrders: [child], statusHistory: [] };
+  const owner = {
+    ...safe,
+    ...financial,
+    recipientName: 'Test',
+    recipientPhone: '0900000000',
+    recipientAddress: 'Test',
+    toProvinceCode: '01',
+    toWardCode: '00001',
+    fulfillmentOrders: [{ ...child, codAmount: '100000' }],
+  };
+
+  assert.deepEqual(
+    orders.parseOrderDetail(owner, true).fulfillmentOrders[0].allocationCost,
+    allocationCost,
+  );
+  assert.throws(() => orders.parseOrderDetail(safe, false));
+  assert.throws(() =>
+    orders.parseOrderDetail(
+      {
+        ...owner,
+        fulfillmentOrders: [
+          {
+            ...owner.fulfillmentOrders[0],
+            allocationCost: { ...allocationCost, extraShippingFeeVnd: '1.5' },
+          },
+        ],
+      },
+      true,
+    ),
+  );
+});
+
+test('TOTAL_COST order-level explanation renders once for a split order', () => {
+  const child = {
+    id,
+    warehouseId: id,
+    sequenceNo: 1,
+    status: 'STOCK_RESERVED',
+    items: [],
+    parcels: [],
+    shipments: [],
+    allocationCost: {
+      extraShippingFeeVnd: '13000',
+      savedGoodsValueVnd: '90000',
+      globalOptimum: false,
+    },
+  };
+  const html = renderDetail({
+    fulfillmentOrders: [child, { ...child, id: 'second', sequenceNo: 2 }],
+  });
+
+  assert.equal(html.split('13.000 ₫').length - 1, 1);
+  assert.equal(html.split('90.000 ₫').length - 1, 1);
+  assert.match(html, /Lý do chọn kho xuất hàng/);
+});
 test('manual validation rejects fractional/rounded money, invalid phone, duplicates and forged tenant', () => {
   assert.deepEqual(orders.manualOrderSchema.parse(draft), draft);
   for (const patch of [

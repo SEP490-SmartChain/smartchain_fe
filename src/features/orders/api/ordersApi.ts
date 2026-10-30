@@ -323,7 +323,21 @@ const ownerDetail = ownerOrder
     provinceName: z.string().nullable().optional(),
     wardName: z.string().nullable().optional(),
     items: z.array(item.extend({ unitPrice: money }).strict()),
-    fulfillmentOrders: z.array(child.extend({ codAmount: money }).strict()),
+    fulfillmentOrders: z.array(
+      child
+        .extend({
+          codAmount: money,
+          allocationCost: z
+            .object({
+              extraShippingFeeVnd: money.nullable(),
+              savedGoodsValueVnd: money.nullable(),
+              globalOptimum: z.literal(false),
+            })
+            .strict()
+            .optional(),
+        })
+        .strict(),
+    ),
   })
   .strict();
 const staffDetail = staffOrder
@@ -333,7 +347,14 @@ export type SellerOrder = z.infer<typeof staffOrder> & Partial<z.infer<typeof ow
 export type SellerOrderDetail = Omit<z.infer<typeof staffDetail>, 'items' | 'fulfillmentOrders'> &
   Partial<Omit<z.infer<typeof ownerDetail>, 'items' | 'fulfillmentOrders'>> & {
     items: (z.infer<typeof item> & { unitPrice?: string })[];
-    fulfillmentOrders: (z.infer<typeof child> & { codAmount?: string })[];
+    fulfillmentOrders: (z.infer<typeof child> & {
+      codAmount?: string;
+      allocationCost?: {
+        extraShippingFeeVnd: string | null;
+        savedGoodsValueVnd: string | null;
+        globalOptimum: false;
+      };
+    })[];
   };
 export const paginationSchema = z.object({
   limit: z.number().int().positive(),

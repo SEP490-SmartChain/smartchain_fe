@@ -1,5 +1,14 @@
 # Seller orders — Sprint 4
 
+## SS-1214 TOTAL_COST explanation
+
+Owner order detail accepts optional `fulfillmentOrders[].allocationCost` with nullable
+integer-string `extraShippingFeeVnd` and `savedGoodsValueVnd`, and `globalOptimum: false`.
+The values compare the selected order plan with the nearest feasible baseline and are
+displayed once per order. They are estimates already included in the selected freight,
+not an additional debit. Staff's strict schema rejects the financial projection.
+Backend contract, model assumptions and migration order: `smartchain_be/docs/SS-1214-TOTAL-COST.md`.
+
 19 October 2026: manual entry defaults to an explicit total recipient collection,
 including any outstanding buyer shipping; 0 means no collection, blank is invalid.
 Sale prices and payment breakdown are optional through the calculated entry mode
