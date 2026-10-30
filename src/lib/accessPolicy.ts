@@ -778,6 +778,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'ORCA-UI-REFACTOR-PLAN UI-03',
   ),
   capability(
+    'exceptions.manage',
+    'orders',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'Jira SS-1221; SRS UC-112/113/114',
+  ),
+  capability(
     'exceptions.view',
     'orders',
     'PLATFORM',
