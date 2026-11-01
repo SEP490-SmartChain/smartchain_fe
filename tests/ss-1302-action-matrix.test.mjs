@@ -28,6 +28,9 @@ const reporting = [
 ];
 // Independently reviewed UI action expectations; proposed actions remain denied.
 const expected = {
+  'webhooks.deliveries.view': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+  'inventory.workflows.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'inventory.notifications.override': ['OPS_DISPATCHER'],
   'tariffs.manage': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   'iam.warehouses.assign': A,
   'workspace.dashboard.view': reporting,
@@ -102,6 +105,18 @@ const expected = {
   'contract.sign': O,
   'asns.view': ['SELLER_OWNER', 'SELLER_STAFF'],
   'returns.view': O,
+  // Sprint 6 P3: UC-60–63/106–110, matching the separately tested API action grants.
+  'returns.operations.view': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'returns.disposition': O,
+  'returns.request': ['SELLER_OWNER', 'OPS_DISPATCHER'],
+  'returns.authorize': ['OPS_DISPATCHER'],
+  'returns.receive': S,
+  'returns.inspect': S,
+  'returns.review': M,
+  'returns.restock': S,
+  'inventory.trace': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+  'inventory.trace.forward': ['OPS_DISPATCHER'],
+  'inventory.recall': ['OPS_DISPATCHER'],
   'statements.view': O,
   // SS-1012 / UC-131–134: Owner reviews; Accountant posts evidenced payout.
   'statement.review': O,

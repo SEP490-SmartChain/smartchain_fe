@@ -30,7 +30,9 @@ export function SellerWithdrawalForm({
   isOpen,
   onClose,
   onAccepted,
+  initialLot,
 }: {
+  initialLot?: { warehouseId: string; lotId: string };
   scope: string;
   isOpen: boolean;
   onClose: () => void;
@@ -58,11 +60,15 @@ export function SellerWithdrawalForm({
   });
   const form = useForm<z.infer<typeof withdrawalFormSchema>>({
     resolver: zodResolver(withdrawalFormSchema),
-    defaultValues: { selection: '', qty: 1 },
+    defaultValues: { reason: undefined, selection: '', qty: 1 },
   });
   const province = address.watch('provinceCode'),
     selection = form.watch('selection');
-  const choices = data?.items ?? [],
+  const choices = initialLot
+      ? (data?.items ?? []).filter(
+          (item) => item.warehouseId === initialLot.warehouseId && item.lotId === initialLot.lotId,
+        )
+      : (data?.items ?? []),
     choice = choices.find(
       (item) => [item.warehouseId, item.productId, item.lotId].join(':') === selection,
     );
@@ -83,12 +89,41 @@ export function SellerWithdrawalForm({
     setBusy(true);
     setError('');
     void Promise.all([
-      withdrawalApi.options(controller.signal),
+      (async () => {
+        let options = await withdrawalApi.options(controller.signal);
+        if (initialLot) {
+          for (
+            let page = 0;
+            page < 20 &&
+            !options.items.some(
+              (i) => i.warehouseId === initialLot.warehouseId && i.lotId === initialLot.lotId,
+            ) &&
+            options.nextCursor;
+            page++
+          ) {
+            const next = await withdrawalApi.options(controller.signal, options.nextCursor);
+            options = {
+              ...options,
+              items: [...options.items, ...next.items],
+              nextCursor: next.nextCursor,
+            };
+          }
+        }
+        return options;
+      })(),
       withdrawalApi.locations(controller.signal),
     ])
       .then(([options, divisions]) => {
         if (controller.signal.aborted || orderScope() !== scope) return;
         setData(options);
+        if (initialLot) {
+          const item = options.items.find(
+            (i) => i.warehouseId === initialLot.warehouseId && i.lotId === initialLot.lotId,
+          );
+          if (item) {
+            form.setValue('selection', [item.warehouseId, item.productId, item.lotId].join(':'));
+          }
+        }
         setLocations(divisions);
         if (options.address) {
           address.reset(
@@ -109,7 +144,7 @@ export function SellerWithdrawalForm({
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, [isOpen, reload, scope, address, t]);
+  }, [isOpen, reload, scope, address, t, initialLot, form]);
   async function execute(command: Pending) {
     if (running.current || orderScope() !== scope || !sellerWithdrawalAccess()) return;
     running.current = true;
@@ -253,7 +288,12 @@ export function SellerWithdrawalForm({
           onInvalidCapture={() => setNotice('')}
           onSubmit={form.handleSubmit((values) => {
             setNotice('');
-            if (!choice || !data?.address || values.qty > choice.availableQty) {
+            if (
+              !choice ||
+              !data?.address ||
+              values.qty > choice.availableQty ||
+              (initialLot && !values.reason)
+            ) {
               setError(t('unavailable'));
               return;
             }
@@ -261,6 +301,7 @@ export function SellerWithdrawalForm({
               kind: 'WITHDRAWAL',
               input: {
                 clientRequestId: createUuid(),
+                ...(values.reason ? { reason: values.reason } : {}),
                 warehouseId: choice.warehouseId,
                 productId: choice.productId,
                 lotId: choice.lotId,
@@ -290,6 +331,14 @@ export function SellerWithdrawalForm({
             max={choice?.availableQty ?? 1000000}
             {...form.register('qty', { valueAsNumber: true })}
             error={form.formState.errors.qty ? t('invalid') : undefined}
+          />
+          <Input
+            label={t('reason')}
+            required={!!initialLot}
+            maxLength={1000}
+            disabled={disabled}
+            {...form.register('reason', { setValueAs: (value) => value || undefined })}
+            error={form.formState.errors.reason ? t('invalid') : undefined}
           />
           {data?.nextCursor && (
             <Button type="button" variant="outline" disabled={disabled} onClick={() => void more()}>

@@ -1,5 +1,6 @@
 // Visual fixture only; never imported by the production router.
 import React from 'react';
+import {BrowserRouter} from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
 import { NextIntlClientProvider } from 'next-intl';
 import '@fontsource/archivo/400.css';
@@ -258,7 +259,7 @@ createRoot(document.getElementById('root')!).render(
         <p className="mb-4 text-xs text-[var(--sc-text-secondary)]">
           Local preview · synthetic data · {role} · {scenario}
         </p>
-        <InventoryWorkspace />
+        <BrowserRouter><InventoryWorkspace /></BrowserRouter>
       </main>
     </NextIntlClientProvider>
   </React.StrictMode>,

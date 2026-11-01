@@ -521,6 +521,7 @@ test('sidebar derives from the same capability source for every role', () => {
     ],
     OPS_DISPATCHER: [
       'overview_heading',
+      'warehouse_ops_heading',
       'network_warehouses_heading',
       'shipping_heading',
       'operations_queue_heading',
