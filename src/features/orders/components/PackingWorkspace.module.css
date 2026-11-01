@@ -1,0 +1,38 @@
+.manifestPrint {
+  display: none;
+}
+.label {
+  border: 1px solid var(--sc-border-default);
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+@media print {
+  :global(body *) {
+    visibility: hidden;
+  }
+  .label,
+  .label *,
+  .manifestPrint,
+  .manifestPrint * {
+    visibility: visible;
+  }
+  .manifestPrint {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 180mm;
+    color: black;
+    background: white;
+  }
+  .label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100mm;
+    color: black;
+    background: white;
+    border: 0;
+  }
+}

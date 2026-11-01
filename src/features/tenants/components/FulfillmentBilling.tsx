@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { Controller, useForm } from 'react-hook-form';
+import { useLocation } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight, CalendarDays, FileText, Filter, RefreshCw, Wallet } from 'lucide-react';
@@ -13,6 +14,7 @@ import { MonthPicker } from '@/components/Common/DatePicker/MonthPicker';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -25,7 +27,15 @@ import type { z } from 'zod';
 
 type Filters = z.infer<typeof invoiceFiltersSchema>;
 
-function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filters }) {
+function InvoiceList({
+  tenantId,
+  filters,
+  initialId,
+}: {
+  tenantId?: string;
+  filters: Filters;
+  initialId: string | null;
+}) {
   const t = useTranslations('Invoices');
   const locale = useLocaleStore((s) => s.locale);
   const { can } = useAccess();
@@ -33,7 +43,7 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
     [loading, setLoading] = useState(true),
     [error, setError] = useState<string | null>(null),
     [cursor, setCursor] = useState<string | null>(null),
-    [selected, setSelected] = useState<string | null>(null),
+    [selected, setSelected] = useState<string | null>(initialId),
     [revision, setRevision] = useState(0),
     [notice, setNotice] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
@@ -400,6 +410,7 @@ function InvoiceList({ tenantId, filters }: { tenantId?: string; filters: Filter
 }
 
 export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: string }) {
+  const linkedInvoice = notificationTarget(useLocation().search, 'invoiceId');
   const t = useTranslations('Invoices');
   const scope = useAuthStore((s) => s.user?.actorScope);
   const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]),
@@ -519,7 +530,8 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
       </div>
       {scope === 'TENANT' || target ? (
         <InvoiceList
-          key={`${target ?? 'own'}:${filters.month}:${filters.documentType}`}
+          key={`${target ?? 'own'}:${filters.month}:${filters.documentType}:${linkedInvoice ?? ''}`}
+          initialId={linkedInvoice}
           tenantId={target}
           filters={filters}
         />

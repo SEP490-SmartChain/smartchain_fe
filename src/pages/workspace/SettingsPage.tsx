@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslations } from 'next-intl';
 
 import { Tabs } from '@/components/Common';
+import { OrderPolicySettings } from '@/features/orders';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
 import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
 import { ApiKeyManager, WebhookManager, SellerContractOnboarding } from '@/features/tenants';
@@ -47,6 +48,7 @@ export default function SettingsPage() {
       {activeTab === 'profile' && (
         <ProfileSettings key={keyContext}>
           {can('workspace.settings.manage') && <WorkspaceGeneralSettings />}
+          <OrderPolicySettings />
         </ProfileSettings>
       )}
 

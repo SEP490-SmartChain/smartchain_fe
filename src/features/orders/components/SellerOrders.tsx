@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useLocation } from 'react-router-dom';
+
 import { Download, Plus, RefreshCw, Upload } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -16,11 +18,15 @@ import {
 } from '@/components/Common';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
+import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 
 import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
 import { OrderDetail } from './OrderDetail';
+import { OrderLifecycleActions } from './OrderLifecycleActions';
+import { OrderPolicyActions } from './OrderPolicyActions';
+import { OrderCancellationActions } from './OrderCancellationActions';
 import { SellerWithdrawalForm } from './SellerWithdrawalForm';
 import {
   ORDER_STATUSES,
@@ -31,19 +37,36 @@ import {
   type SellerOrder,
   type SellerOrderDetail,
 } from '../api/ordersApi';
+import { useOrderDetailRefresh } from '../hooks/useOrderDetailRefresh';
 import { useOrders } from '../hooks/useOrders';
 import { importRowFeedback, orderErrorKey, orderReasonKey } from '../lib/orderFeedback';
 import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
 import { orderScope, sellerOrderAccess, sellerWithdrawalAccess } from '../lib/orderScope';
 
 export function SellerOrders() {
+  const linkedOrder = notificationTarget(useLocation().search, 'orderId');
   const scope = useAuthStore(orderScope);
   const access = sellerOrderAccess();
   if (!access.read) return <UnderConstruction />;
-  return <SellerOrdersSession key={scope} scope={scope} owner={access.create} />;
+  return (
+    <SellerOrdersSession
+      key={`${scope}:${linkedOrder ?? ''}`}
+      scope={scope}
+      owner={access.create}
+      initialId={linkedOrder}
+    />
+  );
 }
 
-function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }) {
+function SellerOrdersSession({
+  scope,
+  owner,
+  initialId,
+}: {
+  scope: string;
+  owner: boolean;
+  initialId: string | null;
+}) {
   const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
   const t = useTranslations('Orders');
   const locale = useLocale();
@@ -65,6 +88,14 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
   const [accepted, setAccepted] = useState<{ id: string; code: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  useOrderDetailRefresh({
+    scope,
+    owner,
+    detail,
+    active: modal === 'detail' && !busy,
+    setDetail,
+    setError,
+  });
   const running = useRef(false);
   const controllers = useRef(new Set<AbortController>());
   useEffect(() => {
@@ -103,7 +134,7 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
     }
   }
   function openDetail(id: string) {
-    setDetail(null);
+    setDetail((current) => (current?.id === id ? current : null));
     setDetailId(id);
     setModal('detail');
     void execute(async (signal) => {
@@ -111,6 +142,31 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
       if (orderScope() === scope && !signal.aborted) setDetail(response);
     });
   }
+  useEffect(() => {
+    if (!initialId || orderScope() !== scope) return;
+    const controller = new AbortController();
+    controllers.current.add(controller);
+    setDetail(null);
+    setDetailId(initialId);
+    setModal('detail');
+    setError(null);
+    setBusy(true);
+    void ordersApi
+      .detail(initialId, owner, controller.signal)
+      .then((response) => {
+        if (!controller.signal.aborted && orderScope() === scope) setDetail(response);
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted && orderScope() === scope) {
+          setError(t(orderErrorKey(failure)));
+        }
+      })
+      .finally(() => {
+        controllers.current.delete(controller);
+        if (!controller.signal.aborted && orderScope() === scope) setBusy(false);
+      });
+    return () => controller.abort();
+  }, [initialId, owner, scope, t]);
   function importOrders(preview = false) {
     if (!files[0] || !files[0].name.toLowerCase().endsWith('.xlsx')) {
       setError(t('invalid_file'));
@@ -552,7 +608,10 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
         title={t('detail')}
         width="850px"
         onClose={() => {
-          if (!busy) setModal(null);
+          if (!busy) {
+            setModal(null);
+            void orders.reload();
+          }
         }}
       >
         {busy && <p role="status">{t('loading')}</p>}
@@ -569,7 +628,36 @@ function SellerOrdersSession({ scope, owner }: { scope: string; owner: boolean }
             </Button>
           </Alert>
         )}
-        {detail && <OrderDetail order={detail} />}
+        {detail && (
+          <>
+            <OrderDetail order={detail} />
+            <OrderLifecycleActions
+              key={`OrderLifecycleActions:${detail.id}`}
+              order={detail}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
+            <OrderPolicyActions
+              key={`OrderPolicyActions:${detail.id}`}
+              order={detail}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
+            <OrderCancellationActions
+              key={`OrderCancellationActions:${detail.id}`}
+              order={detail}
+              orderCode={detail.externalOrderCode}
+              onChanged={() => {
+                openDetail(detail.id);
+                void orders.reload();
+              }}
+            />
+          </>
+        )}
       </Modal>
     </div>
   );

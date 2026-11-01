@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { PackingWorkspace } from '@/features/orders';
 
 export default function PackingPage() {
-  return <UnderConstruction />;
+  return <PackingWorkspace />;
 }
