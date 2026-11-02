@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { WebhookDeliveryWorkspace } from '@/features/analytics';
 
 export default function WebhooksPage() {
-  return <UnderConstruction />;
+  return <WebhookDeliveryWorkspace />;
 }

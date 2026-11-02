@@ -7,6 +7,7 @@ export const SERVICE_FEE_UNITS = {
   STORAGE_M3_DAY: 'M3_DAY',
   COMBO: 'COMBO',
   PACKING_MATERIAL: 'UNIT',
+  DISPOSAL: 'UNIT',
 } as const;
 
 const quantity = z.string().regex(/^(0|[1-9]\d{0,13})(\.\d{1,6})?$/);
@@ -19,6 +20,7 @@ export const serviceTariffLineSchema = z.object({
     'STORAGE_M3_DAY',
     'COMBO',
     'PACKING_MATERIAL',
+    'DISPOSAL',
   ]),
   unit: z.string(),
   lowerBound: quantity,

@@ -18,11 +18,13 @@ import { useAuthStore } from '@/stores/authStore';
 import { ActiveReservationsPanel } from './ActiveReservationsPanel';
 import { InventoryDetailPanel } from './InventoryDetailPanel';
 import { InventoryState } from './InventoryState';
+import { LotTracePanel } from './LotTracePanel';
 import { NearExpiryPanel } from './NearExpiryPanel';
+import { OpsNotificationSettings } from './OpsNotificationSettings';
 import { StockLevelsPanel } from './StockLevelsPanel';
 import { useWarehouseOptions } from '../hooks/useWarehouseOptions';
 
-type InventoryTab = 'stock' | 'positions' | 'expiry' | 'ledger' | 'reservations';
+type InventoryTab = 'stock' | 'positions' | 'expiry' | 'ledger' | 'reservations' | 'trace';
 
 // Scope changes remount every reader, including legacy aggregate/reservation hooks.
 export function InventoryWorkspace() {
@@ -40,6 +42,7 @@ function InventoryWorkspaceContent() {
       'inventory.positions.view',
       'inventory.expiry.view',
       'inventory.ledger.view',
+      'inventory.trace',
     ].some(can),
   );
   const [activeTab, setActiveTab] = useState('stock');
@@ -75,6 +78,12 @@ function InventoryWorkspaceContent() {
       label: t('tabReservations'),
       icon: <LockKeyhole size={16} aria-hidden="true" />,
       capability: 'inventory.reservations.view',
+    },
+    {
+      id: 'trace',
+      label: t('tabTrace'),
+      icon: <History size={16} aria-hidden="true" />,
+      capability: 'inventory.trace',
     },
   ];
   const tabs = definitions.filter((tab) => can(tab.capability));
@@ -144,6 +153,9 @@ function InventoryWorkspaceContent() {
           />
         </section>
       )}
+      {can('inventory.notifications.override') && warehouseId && (
+        <OpsNotificationSettings warehouseId={warehouseId} key={warehouseId} />
+      )}
       <div
         role="tabpanel"
         id={`inventory-panel-${visibleTab}`}
@@ -163,6 +175,7 @@ function InventoryWorkspaceContent() {
             )}
             {visibleTab === 'expiry' && <NearExpiryPanel warehouseId={warehouseId} />}
             {visibleTab === 'reservations' && <ActiveReservationsPanel />}
+            {visibleTab === 'trace' && <LotTracePanel warehouseId={warehouseId} />}
           </div>
         ) : (
           <section className="sc-surface">
