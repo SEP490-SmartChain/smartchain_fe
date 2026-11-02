@@ -230,6 +230,35 @@ SS-1029 UI consolidation: /dashboard is the canonical role-report workspace.
 Dashboard entry uses the existing workspace.dashboard.view capability (six
 reporting roles, never Warehouse Staff). No capability or API authority changed.
 
+## Sprint 6 P3 returns and lot recall
+
+`returns.view` and `/returns` remain TENANT Seller Owner only. New
+`returns.operations.view` gates `/warehouse/returns` for PLATFORM Ops, assigned
+Manager and Staff. `returns.request` is Owner/Ops; `returns.authorize` is Ops;
+`returns.receive`, `returns.inspect` and `returns.restock` are Staff;
+`returns.review` is Manager. The APIs use returns.read/create/update,
+return_receipt.update, return_qc.update, return_review.update and inventory.update,
+respectively. Current assignment, original seller/warehouse, source quantity,
+version, evidence and review are checked again by the backend and RLS on replay.
+
+`returns.disposition` is Owner consent through the existing disposal workflow;
+it does not perform disposal. Owner withdrawal reuses orders.withdrawal.create
+and the existing server eligibility checks. Silence never authorizes a stock loss.
+
+`inventory.trace` allows reverse parcel trace for Ops/Manager. Forward trace,
+masked affected-recipient export and `inventory.recall` are Ops-only through
+trace.read/recall.update. Recall requires live assignment to every warehouse
+affected by the lot. The export does not expose full customer contacts or money.
+Admin, Accountant, Seller Staff, mixed/legacy/unknown scopes gain no actions.
+`POST trace/lots/:id/notifications` reuses recall.update for assigned Ops and
+server-selected affected deliveries. The UI queues up to 50 notices per page,
+retains operation identity on uncertain responses and cannot supply customer
+contacts or change seller/warehouse scope. Signed webhook delivery to the seller
+channel is independent of stock and recall. It does not claim the customer has
+received the message. Ops return authorization supplies measured dimensions;
+carrier confirmation and tracking remain server-owned. The local visual fixture
+uses synthetic fetch data.
+
 ## SS-1311 cancellation
 
 `orders.cancellation.manage` remains TENANT Seller Owner only. The separate

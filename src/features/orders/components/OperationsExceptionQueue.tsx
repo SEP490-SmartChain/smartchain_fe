@@ -99,7 +99,9 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
         >
           <Select
             label={t('status')}
-            options={['', 'OPEN', 'ASSIGNED', 'RESOLVED'].map((value) => ({
+            placeholder={t('all')}
+            isPlaceholderDisabled={false}
+            options={['OPEN', 'ASSIGNED', 'RESOLVED'].map((value) => ({
               value,
               label: value ? t(`statuses.${value}`) : t('all'),
             }))}
@@ -107,7 +109,9 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
           />
           <Select
             label={t('type')}
-            options={['', 'ORDER', 'DISPATCH', 'PICK_WAVE', 'QUEUE', 'OTHER'].map((value) => ({
+            placeholder={t('all')}
+            isPlaceholderDisabled={false}
+            options={['ORDER', 'DISPATCH', 'PICK_WAVE', 'QUEUE', 'OTHER'].map((value) => ({
               value,
               label: value ? t(`types.${value}`) : t('all'),
             }))}
@@ -115,8 +119,9 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
           />
           <Select
             label={t('warehouse')}
+            placeholder={t('allWarehouses')}
+            isPlaceholderDisabled={false}
             options={[
-              { value: '', label: t('allWarehouses') },
               ...(page?.warehouses.map((row) => ({ value: row.id, label: row.name })) ?? []),
             ]}
             {...form.register('warehouseId')}
@@ -383,11 +388,10 @@ function ExceptionInvestigation({
               {kind === 'ASSIGN' && (
                 <Select
                   label={t('assignee')}
+                  placeholder={t('unassigned')}
+                  isPlaceholderDisabled={false}
                   disabled={busy || !!pending}
-                  options={[
-                    { value: '', label: t('unassigned') },
-                    ...detail.assignees.map((row) => ({ value: row.id, label: row.name })),
-                  ]}
+                  options={[...detail.assignees.map((row) => ({ value: row.id, label: row.name }))]}
                   {...form.register('assignedToPlatformUserId')}
                 />
               )}
