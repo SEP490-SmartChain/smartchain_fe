@@ -517,6 +517,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'operations_queue_heading',
       'finance_heading',
       'monitoring_heading',
+      'claims_heading',
       'account_heading',
     ],
     OPS_DISPATCHER: [
@@ -525,6 +526,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'shipping_heading',
       'operations_queue_heading',
       'monitoring_heading',
+      'claims_heading',
       'account_heading',
     ],
     WAREHOUSE_MANAGER: [
@@ -537,7 +539,13 @@ test('sidebar derives from the same capability source for every role', () => {
     ],
     WAREHOUSE_STAFF: ['warehouse_ops_heading', 'account_heading'],
     // UC-94/118 now have a tariff-only entry, without carrier credential grants.
-    ORCA_ACCOUNTANT: ['overview_heading', 'shipping_heading', 'finance_heading', 'account_heading'],
+    ORCA_ACCOUNTANT: [
+      'overview_heading',
+      'shipping_heading',
+      'finance_heading',
+      'claims_heading',
+      'account_heading',
+    ],
     SELLER_OWNER: [
       'overview_heading',
       'goods_heading',
@@ -545,6 +553,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'finance_heading',
       'integrations_heading',
       'workspace_settings_heading',
+      'claims_heading',
       'account_heading',
     ],
     SELLER_STAFF: ['overview_heading', 'goods_heading', 'orders_heading', 'account_heading'],

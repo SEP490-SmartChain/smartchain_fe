@@ -260,13 +260,15 @@ export function InvoiceDetail({
                       <tr key={line.id} className="border-t border-[var(--sc-border-default)]">
                         <td className="px-4 py-3">
                           <span className="font-medium">
-                            {line.feeType && t.has(`feeTypes.${line.feeType}`)
-                              ? t(`feeTypes.${line.feeType}`)
-                              : invoice.documentType === 'PLAN'
-                                ? t('kinds.PLAN')
-                                : line.ledgerEntryId
-                                  ? t('kinds.ADJUSTMENT')
-                                  : line.description}
+                            {line.description === 'CLAIM_CREDIT'
+                              ? t('feeTypes.CLAIM_CREDIT')
+                              : line.feeType && t.has(`feeTypes.${line.feeType}`)
+                                ? t(`feeTypes.${line.feeType}`)
+                                : invoice.documentType === 'PLAN'
+                                  ? t('kinds.PLAN')
+                                  : line.ledgerEntryId
+                                    ? t('kinds.ADJUSTMENT')
+                                    : line.description}
                           </span>
                           <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
                             {t.has(`units.${line.unit}`) ? t(`units.${line.unit}`) : line.unit}

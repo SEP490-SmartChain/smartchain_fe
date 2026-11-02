@@ -30,6 +30,7 @@ const InventoryPage = React.lazy(() => import('@/pages/workspace/InventoryPage')
 const RulesPage = React.lazy(() => import('@/pages/workspace/RulesPage'));
 const ShipmentsPage = React.lazy(() => import('@/pages/workspace/ShipmentsPage'));
 const ReconciliationPage = React.lazy(() => import('@/pages/workspace/ReconciliationPage'));
+const ClaimsPage = React.lazy(() => import('@/pages/workspace/ClaimsPage'));
 const AnalyticsPage = React.lazy(() => import('@/pages/workspace/AnalyticsPage'));
 const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
 const BillingPage = React.lazy(() => import('@/pages/workspace/BillingPage'));
@@ -154,6 +155,8 @@ function App() {
                   <Route path="/rules" element={<RulesPage />} />
                   <Route path="/shipments" element={<ShipmentsPage />} />
                   <Route path="/exceptions" element={<ExceptionsPage />} />
+                  <Route path="/claims" element={<ClaimsPage />} />
+                  <Route path="/claims/:claimId" element={<ClaimsPage />} />
                   <Route path="/reconciliation" element={<ReconciliationPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings/:tab" element={<SettingsPage />} />

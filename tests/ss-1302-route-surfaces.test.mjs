@@ -18,6 +18,7 @@ const A = ['ORCA_ADMIN'],
 const reporting = roles.filter((role) => role !== 'WAREHOUSE_STAFF');
 const financial = ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'];
 const routes = {
+  '/claims': ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
   '/admin/tariffs': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   '/admin/staff': A,
   '/dashboard': reporting,

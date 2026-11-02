@@ -785,6 +785,46 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'APPROVED',
     'ORCA-UI-REFACTOR-PLAN UI-03',
   ),
+  capability(
+    'claims.view',
+    'finance',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
+    'APPROVED',
+    'SS-1314 / UC-115–116: private claim evidence and decision queue',
+  ),
+  capability(
+    'claims.create',
+    'finance',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1314 / UC-115: Owner or assigned Ops opens an item claim',
+  ),
+  capability(
+    'claims.evidence.add',
+    'finance',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1314 / UC-115: verified private evidence',
+  ),
+  capability(
+    'claims.investigate',
+    'finance',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1314 / UC-115: assigned Ops responsibility investigation',
+  ),
+  capability(
+    'claims.decide',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'SS-1314 / UC-116: Accountant approves capped credit or rejects',
+  ),
 ];
 
 export const CAPABILITY_ROLES: Readonly<Record<string, readonly OrcaRole[]>> = Object.freeze(
@@ -812,6 +852,7 @@ export interface RoutePolicy {
 }
 
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
+  { path: '/claims', prefix: true, capability: 'claims.view' },
   { path: '/admin/tariffs', capability: 'tariffs.manage' },
   { path: '/admin/staff', capability: 'iam.warehouses.assign' },
   { path: '/dashboard', capability: 'workspace.dashboard.view' },
@@ -1055,6 +1096,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
 
   // 4. CHUNG (MỌI ROLE)
+  {
+    key: 'claims_heading',
+    scope: 'shared',
+    items: [{ key: 'claims', href: '/claims', capability: 'claims.view' }],
+  },
   {
     key: 'account_heading',
     scope: 'shared',
