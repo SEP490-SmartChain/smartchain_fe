@@ -4,14 +4,23 @@ import { useTranslations } from 'next-intl';
 
 import { UnderConstruction } from '@/components/Common';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
-import { CarrierSettlementBatches, SepayUnmatchedTransfers } from '@/features/reconciliation';
+import {
+  CarrierDisputes,
+  CarrierSettlementBatches,
+  SepayUnmatchedTransfers,
+} from '@/features/reconciliation';
 import { useAccess } from '@/hooks/useAccess';
 
 export default function ReconciliationPage() {
   const t = useTranslations('ReconciliationPage');
   const { can } = useAccess();
   const tabs = [
-    ...(can('reconciliation.operate') ? [{ id: 'carrier', label: t('carrierTab') }] : []),
+    ...(can('reconciliation.operate')
+      ? [
+          { id: 'carrier', label: t('carrierTab') },
+          { id: 'disputes', label: t('disputesTab') },
+        ]
+      : []),
     ...(can('invoice.bankReceipt.post') ? [{ id: 'sepay', label: t('sepayTab') }] : []),
   ];
   const [activeId, setActiveId] = useState(tabs[0]?.id ?? '');
@@ -26,7 +35,13 @@ export default function ReconciliationPage() {
       {tabs.length > 1 && (
         <Tabs tabs={tabs} activeId={current} onChange={setActiveId} label={t('tabsLabel')} />
       )}
-      {current === 'carrier' ? <CarrierSettlementBatches /> : <SepayUnmatchedTransfers />}
+      {current === 'carrier' ? (
+        <CarrierSettlementBatches />
+      ) : current === 'disputes' ? (
+        <CarrierDisputes />
+      ) : (
+        <SepayUnmatchedTransfers />
+      )}
     </div>
   );
 }

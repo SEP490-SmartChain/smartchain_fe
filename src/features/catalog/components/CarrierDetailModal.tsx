@@ -80,10 +80,11 @@ export function CarrierDetailModal({
                 label: t('mode'),
                 render: (row) => t(`mode_${row.transportMode}`),
               },
-              { key: 'volumetricDivisor', label: t('volumetric') },
+              { key: 'volumetricDivisor', label: t('volumetric'), align: 'right' },
               {
                 key: 'maxWeightG',
                 label: t('maxWeightG'),
+                align: 'right',
                 render: (row) => (row.maxWeightG === null ? '—' : row.maxWeightG.toLocaleString()),
               },
               {
@@ -99,10 +100,13 @@ export function CarrierDetailModal({
               {
                 key: 'actions',
                 label: t('col_actions'),
+                align: 'right',
                 render: (row) => (
-                  <Button variant="outline" size="sm" onClick={() => setEditingService(row)}>
-                    {t('editService')}
-                  </Button>
+                  <div className="flex justify-end">
+                    <Button variant="soft" size="sm" onClick={() => setEditingService(row)}>
+                      {t('editService')}
+                    </Button>
+                  </div>
                 ),
               },
             ]}

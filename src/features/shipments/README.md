@@ -7,3 +7,9 @@ It uses the existing shipment capability, bounded pages and a closed Zod project
 recipient/financial/raw webhook fields. Auth revision changes remount the feature; pending
 requests are aborted on unmount. Empty/error/loading states do not fabricate tracking events.
 Carrier live tests, channel sync and SLA are separate acceptance work.
+
+## SS-1319 SLA alerts (UC-104)
+
+`SlaExceptionsPanel` on the operations exception queue (`/exceptions`, sidebar "Hàng đợi sự cố") (`shipments.sla.view`: Admin, Ops Dispatcher, Warehouse Manager)
+lists overdue handover and stalled carrier progress for the warehouses the server allows. Admin/Ops can take
+ownership (`shipments.sla.assign`); alerts close automatically after handover or carrier progress.

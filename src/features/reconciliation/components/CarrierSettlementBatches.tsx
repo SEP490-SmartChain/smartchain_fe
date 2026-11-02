@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
 
@@ -14,6 +14,7 @@ import { Select } from '@/components/Common/Select/Select';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
+import { SettlementExceptionsModal } from './SettlementExceptionsModal';
 import { carrierSettlementApi } from '../api/carrierSettlementApi';
 import { useSettlementBatches } from '../hooks/useSettlementBatches';
 import {
@@ -22,16 +23,10 @@ import {
   type SettlementUploadValues,
 } from '../schemas/settlementUploadSchema';
 
-import type { SettlementBatch, SettlementRecord } from '../types/carrierSettlement.types';
+import type { SettlementBatch } from '../types/carrierSettlement.types';
 
 interface UploadFormProps {
   onUploaded: (message: string) => Promise<void>;
-}
-
-interface ExceptionsModalProps {
-  batch: SettlementBatch;
-  formatMoney: (value: string | null) => string;
-  onClose: () => void;
 }
 
 function isBatchReady(batch: SettlementBatch): boolean {
@@ -126,113 +121,6 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
   );
 }
 
-function ExceptionsModal({ batch, formatMoney, onClose }: ExceptionsModalProps) {
-  const t = useTranslations('CarrierSettlement');
-  const [records, setRecords] = useState<SettlementRecord[]>([]);
-  const [nextRow, setNextRow] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const controller = useRef<AbortController | null>(null);
-  const loadErrorMessage = t('loadError');
-
-  const load = useCallback(
-    async (afterRow: number, shouldAppend: boolean) => {
-      controller.current?.abort();
-      const abort = new AbortController();
-      controller.current = abort;
-      setIsLoading(true);
-      setError(null);
-      try {
-        const page = await carrierSettlementApi.exceptions(batch.id, afterRow, abort.signal);
-        if (abort.signal.aborted) return;
-        setRecords((current) => (shouldAppend ? [...current, ...page.items] : page.items));
-        setNextRow(page.pagination.nextCursor ? Number(page.pagination.nextCursor) : null);
-      } catch (failure) {
-        if (!abort.signal.aborted) {
-          setError(failure instanceof Error ? failure.message : loadErrorMessage);
-        }
-      } finally {
-        if (!abort.signal.aborted) setIsLoading(false);
-      }
-    },
-    [batch.id, loadErrorMessage],
-  );
-
-  useEffect(() => {
-    void load(0, false);
-    return () => controller.current?.abort();
-  }, [load]);
-
-  // Row errors arrive as INVALID_ROW:<reason>; unknown codes are shown as received, never hidden.
-  const describeDiscrepancy = (code: string) => {
-    if (code.startsWith('INVALID_ROW:')) {
-      const reason = code.slice('INVALID_ROW:'.length);
-      return t('discrepancy.INVALID_ROW', {
-        reason: t.has(`rowError.${reason}`) ? t(`rowError.${reason}`) : reason,
-      });
-    }
-    return t.has(`discrepancy.${code}`) ? t(`discrepancy.${code}`) : code;
-  };
-
-  const columns: ColumnDef<SettlementRecord>[] = [
-    { key: 'rowNumber', label: t('row') },
-    { key: 'trackingNumber', label: t('waybill') },
-    {
-      key: 'matchStatus',
-      label: t('result'),
-      render: (row) => (
-        <span>
-          {t.has(`status.${row.matchStatus}`) ? t(`status.${row.matchStatus}`) : row.matchStatus}
-          {row.discrepancies.length > 0 &&
-            ` · ${row.discrepancies.map(describeDiscrepancy).join(', ')}`}
-        </span>
-      ),
-    },
-    {
-      key: 'fee',
-      label: t('fee'),
-      render: (row) => `${formatMoney(row.actualFeeVnd)} / ${formatMoney(row.expectedFeeVnd)}`,
-    },
-    {
-      key: 'cod',
-      label: t('cod'),
-      render: (row) => `${formatMoney(row.collectedCodVnd)} / ${formatMoney(row.expectedCodVnd)}`,
-    },
-  ];
-
-  return (
-    <Modal
-      isOpen
-      onClose={onClose}
-      title={t('exceptionsTitle', { file: batch.fileName })}
-      width="860px"
-    >
-      <div className="space-y-3">
-        <p className="text-sm text-[var(--sc-text-secondary)]">{t('exceptionsHelp')}</p>
-        {error ? (
-          <Alert variant="error">{error}</Alert>
-        ) : (
-          <DataTable
-            ariaLabel={t('exceptionsLabel')}
-            columns={columns}
-            data={records}
-            isLoading={isLoading && records.length === 0}
-            getRowKey={(row) => row.rowNumber}
-            emptyMessage={t('noExceptions')}
-          />
-        )}
-        {nextRow !== null && !error && (
-          <div className="flex justify-center">
-            <Button variant="ghost" isLoading={isLoading} onClick={() => void load(nextRow, true)}>
-              {t('loadMore')}
-            </Button>
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
 /** SS-1288 / UC-137–141: upload carrier settlement files, review exceptions, complete and lock. */
 export function CarrierSettlementBatches() {
   const t = useTranslations('CarrierSettlement');
@@ -245,6 +133,7 @@ export function CarrierSettlementBatches() {
   const [reviewing, setReviewing] = useState<SettlementBatch | null>(null);
   const [confirming, setConfirming] = useState<SettlementBatch | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [exportingId, setExportingId] = useState<string | null>(null);
 
   const localeTag = locale === 'vi' ? 'vi-VN' : 'en-US';
   const formatMoney = (value: string | null) =>
@@ -254,6 +143,26 @@ export function CarrierSettlementBatches() {
   const handleUploaded = async (message: string) => {
     setNotice(message);
     await refetch();
+  };
+
+  const handleExport = async (batch: SettlementBatch) => {
+    setExportingId(batch.id);
+    setActionError(null);
+    const revision = authRevision;
+    try {
+      const blob = await carrierSettlementApi.exportXlsx(batch.id, true);
+      if (revision !== useAuthStore.getState().revision) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reconciliation-${batch.id}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (failure) {
+      setActionError(failure instanceof Error ? failure.message : t('exportError'));
+    } finally {
+      setExportingId(null);
+    }
   };
 
   const handleComplete = async () => {
@@ -320,6 +229,16 @@ export function CarrierSettlementBatches() {
           <Button size="sm" variant="ghost" onClick={() => setReviewing(row)}>
             {t('viewExceptions')}
           </Button>
+          {row.totalRows > 0 && row.processedRows === row.totalRows && (
+            <Button
+              size="sm"
+              variant="ghost"
+              isLoading={exportingId === row.id}
+              onClick={() => void handleExport(row)}
+            >
+              {t('export')}
+            </Button>
+          )}
           {isBatchReady(row) && (
             <Button
               size="sm"
@@ -380,11 +299,15 @@ export function CarrierSettlementBatches() {
         </div>
       )}
       {reviewing && (
-        <ExceptionsModal
+        <SettlementExceptionsModal
           key={reviewing.id}
           batch={reviewing}
           formatMoney={formatMoney}
           onClose={() => setReviewing(null)}
+          onChanged={(message) => {
+            setNotice(message);
+            void refetch();
+          }}
         />
       )}
       <Modal

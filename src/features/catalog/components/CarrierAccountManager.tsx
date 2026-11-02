@@ -48,7 +48,7 @@ function AccountManager() {
       const seen = new Set<string>();
       do {
         const page = await carrierCatalogApi.list({ isActive: true, limit: 50, cursor });
-        carriers.push(...page.items.filter((row) => ['GHN', 'GHTK'].includes(row.code)));
+        carriers.push(...page.items);
         cursor = page.pagination.hasNext ? (page.pagination.nextCursor ?? undefined) : undefined;
         if (cursor && seen.has(cursor)) throw new Error('Invalid carrier pagination');
         if (cursor) seen.add(cursor);
@@ -150,12 +150,13 @@ function AccountManager() {
     {
       key: 'actions',
       label: t('actions'),
+      align: 'right',
       render: (row) =>
         row.status !== 'REVOKED' && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button
               size="sm"
-              variant="outline"
+              variant="soft"
               disabled={busy !== null}
               onClick={() => setEditing(row)}
             >
@@ -171,7 +172,7 @@ function AccountManager() {
             </Button>
             <Button
               size="sm"
-              variant="outline"
+              variant="softDanger"
               disabled={busy !== null}
               onClick={() => setRevoking(row)}
             >

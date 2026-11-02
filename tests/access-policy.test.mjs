@@ -513,8 +513,8 @@ test('sidebar derives from the same capability source for every role', () => {
       'platform_staff_heading',
       'platform_tenants_heading',
       'network_warehouses_heading',
+      'carrier_setup_heading',
       'shipping_heading',
-      'operations_queue_heading',
       'finance_heading',
       'monitoring_heading',
       'account_heading',
@@ -523,7 +523,6 @@ test('sidebar derives from the same capability source for every role', () => {
       'overview_heading',
       'network_warehouses_heading',
       'shipping_heading',
-      'operations_queue_heading',
       'monitoring_heading',
       'account_heading',
     ],
@@ -532,12 +531,16 @@ test('sidebar derives from the same capability source for every role', () => {
       'warehouse_ops_heading',
       'network_warehouses_heading',
       'shipping_heading',
-      'operations_queue_heading',
       'account_heading',
     ],
     WAREHOUSE_STAFF: ['warehouse_ops_heading', 'account_heading'],
     // UC-94/118 now have a tariff-only entry, without carrier credential grants.
-    ORCA_ACCOUNTANT: ['overview_heading', 'shipping_heading', 'finance_heading', 'account_heading'],
+    ORCA_ACCOUNTANT: [
+      'overview_heading',
+      'carrier_setup_heading',
+      'finance_heading',
+      'account_heading',
+    ],
     SELLER_OWNER: [
       'overview_heading',
       'goods_heading',
@@ -553,6 +556,25 @@ test('sidebar derives from the same capability source for every role', () => {
   for (const [role, scope] of ALL_ROLES) {
     assert.deepEqual(groupKeys([role], scope), expected[role], `${role} sidebar groups`);
   }
+});
+
+test('shipping navigation follows the operator workflow without exposing seller-only order UI', () => {
+  const opsFlow = policy
+    .getVisibleNavGroups(effective(OPS, PLATFORM), false)
+    .find((group) => group.key === 'shipping_heading');
+  assert.deepEqual(
+    opsFlow?.items.map((item) => item.key),
+    ['rules', 'shipments', 'exceptions'],
+  );
+  assert.equal(
+    policy.getSearchLinks(effective(OPS, PLATFORM), false).some((item) => item.href === '/orders'),
+    false,
+  );
+
+  const sellerOrders = policy
+    .getVisibleNavGroups(effective(OWNER, TENANT), false)
+    .find((group) => group.key === 'orders_heading');
+  assert.deepEqual(sellerOrders?.items.map((item) => item.key), ['orders', 'returns']);
 });
 
 test('every visible nav/search href is route-allowed for that role (single source)', () => {

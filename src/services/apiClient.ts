@@ -6,11 +6,14 @@ import { signedStorageUrl } from '@/lib/signedStorageUrl';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MAX_XLSX_BYTES = 200 * 1024 * 1024;
+
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
   requiresAuth?: boolean;
   silent?: boolean;
-  responseMode?: 'pdf';
+  responseMode?: 'pdf' | 'xlsx';
 }
 
 export interface ApiPaginationMeta {
@@ -209,6 +212,21 @@ class ApiClient {
         }
         return blob as T;
       }
+      if (response.ok && options.responseMode === 'xlsx') {
+        // UC-142 export: only a real workbook (ZIP container) from the API is handed to the browser.
+        if (response.headers.get('Content-Type')?.split(';')[0] !== XLSX_MIME) {
+          throw new ApiError('Invalid export response', response.status, 'API.INVALID_RESPONSE');
+        }
+        const blob = await response.blob();
+        const signature = await blob.slice(0, 2).text();
+        if (revision !== useAuthStore.getState().revision) {
+          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+        }
+        if (blob.size > MAX_XLSX_BYTES || signature !== 'PK') {
+          throw new ApiError('Invalid export response', response.status, 'API.INVALID_RESPONSE');
+        }
+        return blob as T;
+      }
       const body: unknown = await response.json().catch(() => null);
       // Responses from a previous seller/grant/assignment must never enter a new view/cache.
       if (requiresAuth && revision !== useAuthStore.getState().revision) {
@@ -395,6 +413,9 @@ class ApiClient {
   }
   downloadPdf(endpoint: string, options?: FetchOptions): Promise<Blob> {
     return this.request<Blob>(endpoint, { ...options, method: 'GET', responseMode: 'pdf' });
+  }
+  downloadXlsx(endpoint: string, options?: FetchOptions): Promise<Blob> {
+    return this.request<Blob>(endpoint, { ...options, method: 'GET', responseMode: 'xlsx' });
   }
   post<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) });

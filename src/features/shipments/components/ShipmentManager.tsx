@@ -245,12 +245,6 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 <dt className="text-[var(--sc-text-secondary)]">{t('packageId')}</dt>
                 <dd className="break-all">{row.packingRecordId ?? '—'}</dd>
               </div>
-              {row.failureCode && (
-                <div>
-                  <dt>{t('failure')}</dt>
-                  <dd>{row.failureCode}</dd>
-                </div>
-              )}
             </dl>
             {cancelResult && <Alert variant="info">{t(`cancelResults.${cancelResult}`)}</Alert>}
             {row.bookingState === 'CANCEL_UNKNOWN' && (

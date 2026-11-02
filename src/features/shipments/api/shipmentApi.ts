@@ -8,9 +8,30 @@ import {
   breakerSchema,
   trackingEventSchema,
   cancelResultSchema,
+  slaExceptionPageSchema,
 } from '../schemas/shipmentSchema';
 
 export const shipmentApi = {
+  /** UC-104: SLA breaches of the warehouses the operator may access. */
+  async slaExceptions(isOpenOnly: boolean, before: string | null, signal?: AbortSignal) {
+    const response = await apiClient.get<ApiResponse<unknown>>('/v1/sla-exceptions', {
+      params: { openOnly: String(isOpenOnly), limit: '50', ...(before ? { before } : {}) },
+      signal,
+      silent: true,
+    });
+    return slaExceptionPageSchema.parse({
+      items: response.data,
+      pagination: response.meta.pagination,
+    });
+  },
+  async assignSlaException(id: string, signal?: AbortSignal) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/sla-exceptions/${encodeURIComponent(id)}/assign`,
+      {},
+      { signal, silent: true },
+    );
+    return z.object({ id: z.string().uuid(), status: z.literal('ASSIGNED') }).parse(data);
+  },
   async timeline(id: string, cursor?: string, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>(
       `/v1/shipments/${encodeURIComponent(id)}/timeline`,

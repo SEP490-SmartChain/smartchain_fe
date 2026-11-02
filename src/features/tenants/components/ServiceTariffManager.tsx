@@ -148,23 +148,26 @@ function Manager() {
                 key: 'lines',
                 label: t('rates'),
                 render: (row) => (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 py-1 min-w-[340px] max-w-[500px]">
+                  <div className="grid grid-cols-1 gap-2 py-1 min-w-[250px] max-w-[420px]">
                     {row.lines.map((line) => (
                       <div
                         key={`${line.feeType}:${line.lowerBound}`}
-                        className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-[var(--sc-bg-secondary)] border border-[var(--sc-border-default)] text-xs transition-colors hover:border-[var(--sc-border-strong)]"
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-3 py-2 text-xs"
                       >
                         <span
-                          className="font-medium text-[var(--sc-text-primary)] truncate"
+                          className="font-medium text-[var(--sc-text-primary)]"
                           title={t(`fee_${line.feeType}`)}
                         >
                           {t(`fee_${line.feeType}`)}
                         </span>
-                        <span className="font-semibold text-[var(--sc-primary)] whitespace-nowrap">
-                          {BigInt(line.unitPriceVnd).toLocaleString(locale)} đ
-                          <span className="text-[10px] text-[var(--sc-text-tertiary)] font-normal ml-0.5">
-                            /{line.unit}
-                          </span>
+                        <span className="whitespace-nowrap text-right font-semibold tabular-nums text-[var(--sc-primary)]">
+                          {BigInt(line.unitPriceVnd).toLocaleString(locale)} đ/
+                          {t(`unit_${line.unit}`)}
+                        </span>
+                        <span className="col-span-2 text-[var(--sc-text-secondary)]">
+                          {line.upperBound
+                            ? t('quantityRange', { from: line.lowerBound, to: line.upperBound })
+                            : t('quantityFrom', { from: line.lowerBound })}
                         </span>
                       </div>
                     ))}

@@ -39,12 +39,12 @@ const matchSchema = z.object({
 /** UC-127: ORCA Accountant review of verified SePay transfers that were not auto-matched. */
 export const sepayReconciliationApi = {
   async unmatched(before: string | null, signal?: AbortSignal): Promise<UnmatchedSepayPage> {
-    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/commercial/sepay/unmatched', {
+    const response = await apiClient.get<ApiResponse<unknown>>('/v1/commercial/sepay/unmatched', {
       params: before ? { limit: '20', before } : { limit: '20' },
       signal,
       silent: true,
     });
-    return pageSchema.parse(data);
+    return pageSchema.parse({ items: response.data, pagination: response.meta.pagination });
   },
   async match(
     notificationId: string,
