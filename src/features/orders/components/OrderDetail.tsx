@@ -100,7 +100,11 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
             {t(
               order.kind === 'WITHDRAWAL'
                 ? 'withdrawalAllocationExplanation'
-                : 'allocationExplanation',
+                : order.fulfillmentOrders.some(
+                      (child) => child.allocation?.reason === 'TOTAL_COST',
+                    ) || allocationCost
+                  ? 'totalCostAllocationExplanation'
+                  : 'allocationExplanation',
             )}
           </Alert>
           {!order.fulfillmentOrders.length && <p>{t('allocationPending')}</p>}

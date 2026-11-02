@@ -60,3 +60,9 @@ Each row contains one product; equal order codes form one order, with recipient/
 Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: orca_be PR #120; n8n setup and sample storefront: orca_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.
 
 Managed Sheets đã kết nối có mẫu cũ sẽ hiện Cập nhật mẫu nhập đơn. Cùng endpoint POST không nhận dữ liệu từ seller, tạo bảng v4 mới và chuyển feed; UI giữ link bảng cũ để tra cứu, giải thích dòng chưa gửi không tự chuyển và email được cấp quyền. Binding operator không được nâng cấp qua màn hình này.
+
+## SS-1214 review correction — 2 November 2026
+
+TOTAL_COST explanation now explicitly allows splitting warehouses to reduce the compared total cost; the default nearest-warehouse explanation remains separate. The Owner comparison is shown once per parent order, even for multiple children, and never appears for Staff. `PREVIEW_TOTAL_COST=1 node tests/fixtures/preview-orders.mjs` serves the isolated two-warehouse fixture at port 2326; add `?role=staff` for the privacy view. This preview uses real UI components and synthetic API responses, not a live full-stack environment.
+
+Verification: TypeScript, lint, format, 1,376 FE tests and production build passed. Chrome UI checked Owner totals once, two warehouses, allocation explanation, consistent item quantities, and Staff without financial values. Actual database migration/role behavior is validated separately by the BE disposable allocation suite (74 cases).

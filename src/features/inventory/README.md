@@ -27,3 +27,35 @@ Design decisions, state matrix, verification and limits:
 [Inventory UI review](../../../docs/INVENTORY-UI-REVIEW.md).
 Local visual fixture: `node tests/inventory-ui-browser.mjs`. Role/render regressions:
 `node --test tests/inventory-ui.test.mjs`.
+
+## Sprint 6 returns and trace
+
+`ReturnsWorkspace` uses the warehouse-scoped return API. Owner `/returns` can
+request a partial post-delivery return and reuse the existing disposal/withdrawal
+forms for quarantined stock. `/warehouse/returns` gives Ops authorization,
+Staff arrival/QC/scanned stock and independent Manager review. Each action has
+its own capability; hidden controls do not replace backend action/RLS checks.
+Scope changes unmount pending forms and readers. An uncertain mutation retains
+its operation ID and exact command for retry.
+
+`LotTracePanel` is the last Inventory tab for Ops/Manager. Manager receives reverse
+parcel trace; Ops also receives forward trace, masked audited CSV and recall.
+CSV output neutralizes spreadsheet formulas. Return/trace Zod response schemas
+reject unexpected financial/contact fields. Evidence bytes use the signed upload
+URL without application authorization headers.
+
+Contract/policy regressions: `node --test tests/sprint6-p3.test.mjs`. Synthetic
+visual fixture: `node tests/fixtures/sprint6-preview-server.mjs`, then
+`http://127.0.0.1:2346/tests/fixtures/sprint6-p3-preview.html?role=SELLER_OWNER`.
+It overrides fetch with fictional local data; it is not a live-API acceptance
+environment. Role may be OPS_DISPATCHER, WAREHOUSE_MANAGER or WAREHOUSE_STAFF;
+locale and empty/error states are fixture options in its source.
+
+Ops authorization now requires declared reverse-parcel weight/dimensions. The
+queue shows verified reverse tracking and warehouse SMTP status without contacts
+or money. An authorized request remains pending until carrier confirmation.
+Ops can queue customer recall notices in bounded pages through the configured
+seller webhook; the UI reports queued work and the webhook report shows ACKs.
+The seller channel contacts the customer, as selected for this workflow.
+Backend contract and migration limits:
+`smartchain_be/docs/SPRINT6-P3-RETURNS-RECALL.md` in the sibling repository.

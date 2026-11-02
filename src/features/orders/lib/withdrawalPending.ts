@@ -11,7 +11,7 @@ function key() {
   return `orca:withdrawal-pending:v1:${user.userId}:${user.tenantId}`;
 }
 
-/** Only IDs, quantity and address version; never store tokens or recipient data. */
+/** Only the retry command, including its reason; no tokens or recipient/address fields. */
 export function readPendingWithdrawal(): Command | null {
   try {
     const scope = key();

@@ -41,7 +41,9 @@ function toForm(value: InventoryNotificationSetting): SettingForm {
   };
 }
 
-export function InventoryNotificationSettingsCard() {
+export function InventoryNotificationSettingsCard({
+  scope,
+}: { scope?: { tenantId: string; warehouseId: string } } = {}) {
   const t = useTranslations('InventoryExpiry');
   const [form, setForm] = useState<SettingForm>(EMPTY);
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -54,10 +56,10 @@ export function InventoryNotificationSettingsCard() {
   useEffect(() => {
     let current = true;
     inventoryNotificationSettingsApi
-      .get()
+      .get(scope)
       .then((value) => {
         if (!current) return;
-        setTenantId(value.tenantId);
+        setTenantId(scope?.tenantId ?? value.tenantId);
         setLowStockAvailable(value.lowStockAvailable);
         setForm(toForm(value));
       })
@@ -70,7 +72,7 @@ export function InventoryNotificationSettingsCard() {
     return () => {
       current = false;
     };
-  }, []);
+  }, [scope]);
 
   const set = <K extends keyof SettingForm>(key: K, value: SettingForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -85,12 +87,24 @@ export function InventoryNotificationSettingsCard() {
       const input: InventoryNotificationSettingInput = {
         ...form,
         tenantId,
-        warehouseId: null,
+        warehouseId: scope?.warehouseId ?? null,
       };
+      const payload = scope
+        ? {
+            tenantId,
+            warehouseId: scope.warehouseId,
+            expectedVersion: form.expectedVersion,
+            expiryEnabled: form.expiryEnabled,
+            lowStockEnabled: form.lowStockEnabled,
+            warningDays: form.warningDays,
+            transitDays: form.transitDays,
+            bufferDays: form.bufferDays,
+          }
+        : input;
       const result =
         form.expectedVersion === 0
-          ? await inventoryNotificationSettingsApi.create(input)
-          : await inventoryNotificationSettingsApi.update(input);
+          ? await inventoryNotificationSettingsApi.create(payload)
+          : await inventoryNotificationSettingsApi.update(payload);
       setForm(toForm(result));
       setSaved(true);
     } catch {
@@ -162,35 +176,41 @@ export function InventoryNotificationSettingsCard() {
           disabled={loading || saving || !lowStockAvailable}
           onChange={(event) => set('bufferDays', Number(event.target.value))}
         />
-        <Input
-          type="email"
-          label={t('emailRecipient')}
-          value={form.emailRecipient ?? ''}
-          disabled={loading || saving}
-          onChange={(event) => set('emailRecipient', event.target.value || null)}
-        />
-        <Input
-          type="tel"
-          label={t('zaloRecipient')}
-          value={form.zaloRecipient ?? ''}
-          disabled={loading || saving}
-          onChange={(event) => set('zaloRecipient', event.target.value || null)}
-        />
+        {!scope && (
+          <>
+            <Input
+              type="email"
+              label={t('emailRecipient')}
+              value={form.emailRecipient ?? ''}
+              disabled={loading || saving}
+              onChange={(event) => set('emailRecipient', event.target.value || null)}
+            />
+            <Input
+              type="tel"
+              label={t('zaloRecipient')}
+              value={form.zaloRecipient ?? ''}
+              disabled={loading || saving}
+              onChange={(event) => set('zaloRecipient', event.target.value || null)}
+            />
+          </>
+        )}
       </div>
-      <div className="flex flex-wrap gap-5">
-        <Checkbox
-          label={t('emailChannel')}
-          checked={form.channels.includes('EMAIL')}
-          disabled={loading || saving}
-          onChange={(event) => toggleChannel('EMAIL', event.target.checked)}
-        />
-        <Checkbox
-          label={t('zaloChannel')}
-          checked={form.channels.includes('ZALO')}
-          disabled={loading || saving}
-          onChange={(event) => toggleChannel('ZALO', event.target.checked)}
-        />
-      </div>
+      {!scope && (
+        <div className="flex flex-wrap gap-5">
+          <Checkbox
+            label={t('emailChannel')}
+            checked={form.channels.includes('EMAIL')}
+            disabled={loading || saving}
+            onChange={(event) => toggleChannel('EMAIL', event.target.checked)}
+          />
+          <Checkbox
+            label={t('zaloChannel')}
+            checked={form.channels.includes('ZALO')}
+            disabled={loading || saving}
+            onChange={(event) => toggleChannel('ZALO', event.target.checked)}
+          />
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <Button disabled={loading || saving} onClick={() => void save()}>
           {saving ? t('savingSettings') : t('saveSettings')}
