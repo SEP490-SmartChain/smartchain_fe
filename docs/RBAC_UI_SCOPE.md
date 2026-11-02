@@ -258,3 +258,15 @@ channel is independent of stock and recall. It does not claim the customer has
 received the message. Ops return authorization supplies measured dimensions;
 carrier confirmation and tracking remain server-owned. The local visual fixture
 uses synthetic fetch data.
+
+## SS-1311 cancellation
+
+`orders.cancellation.manage` remains TENANT Seller Owner only. The separate
+PLATFORM capability `orders.cancellation.ops` belongs to Ops Dispatcher and opens
+the cancellation workspace at `/orders`. GET
+`/v1/orders/operations/cancellation-candidates` returns a bounded operational
+projection only for parents whose every child warehouse has a live assignment to
+the Ops actor. Search uses an order code; the UI sends no seller or warehouse grant.
+POST `/v1/orders/:id/cancel` and GET `/v1/orders/:id/cancellation` recheck that same
+scope. An assignment revocation removes the parent and denies a stale command.
+No seller intake, financial fields or cross-scope role fallback are granted.

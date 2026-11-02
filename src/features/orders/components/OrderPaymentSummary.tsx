@@ -43,11 +43,6 @@ export function OrderPaymentSummary({ payment, isSnapshot = false }: OrderPaymen
       {isSnapshot && (
         <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">{t('intakeSnapshot')}</p>
       )}
-      {direct && (
-        <p className="mt-3 text-sm text-[var(--sc-text-secondary)]">
-          {t('directCollectionSnapshot')}
-        </p>
-      )}
       {total !== '0' && !direct && (
         <dl className="mt-3 space-y-2 text-sm">
           {row(t('goodsDueShort'), payment.codAmount)}
@@ -86,7 +81,13 @@ export function OrderPaymentSummary({ payment, isSnapshot = false }: OrderPaymen
         </details>
       )}
       {direct && (
-        <p className="mt-3 text-xs text-[var(--sc-text-secondary)]">{t('freightSeparateHint')}</p>
+        <details className="mt-3 text-sm">
+          <summary className="rounded font-medium focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+            {t('collectionExplanation')}
+          </summary>
+          <p className="mt-2 text-[var(--sc-text-secondary)]">{t('directCollectionSnapshot')}</p>
+          <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">{t('freightSeparateHint')}</p>
+        </details>
       )}
     </section>
   );

@@ -1,5 +1,7 @@
-import { SellerOrders } from '@/features/orders';
+import { SellerOrders, OperationsCancellationWorkspace } from '@/features/orders';
+import { useAccess } from '@/hooks/useAccess';
 
 export default function OrdersPage() {
-  return <SellerOrders />;
+  const { can } = useAccess();
+  return can('orders.cancellation.ops') ? <OperationsCancellationWorkspace /> : <SellerOrders />;
 }

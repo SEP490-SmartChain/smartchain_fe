@@ -51,10 +51,21 @@ export function orderReasonKey(code: string | null): string {
   return code &&
     [
       'VALIDATION_FAILED',
+      'HOLD_RISKY_COD',
+      'CANCEL_PENDING',
       'ADDRESS_NORMALIZED',
       'RESERVATION_RENEWAL_REQUIRED',
       'ALLOCATION_QUEUE_FAILED',
+      'ELIGIBLE_STOCK_RESERVED',
+      'CONFIRM_HOLD',
+      'HOLD_RISKY_COD',
+      'ALL_CHILD_STATUS_ROLLUP',
     ].includes(code)
     ? `reasons.${code}`
     : 'processing_reason';
+}
+
+export function orderHistoryReasonKey(code: string | null): string | null {
+  const key = orderReasonKey(code);
+  return key === 'processing_reason' ? null : key;
 }
