@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { ReturnsWorkspace } from '@/features/inventory';
 
 export default function ReturnsPage() {
-  return <UnderConstruction />;
+  return <ReturnsWorkspace />;
 }

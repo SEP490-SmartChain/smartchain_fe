@@ -72,12 +72,9 @@ function ClaimsWorkspace() {
                   : '/claims',
               );
             }}
-            placeholder={t('chooseWarehouse')}
+            placeholder={t(needsWarehouse ? 'chooseWarehouse' : 'allWarehouses')}
             isPlaceholderDisabled={needsWarehouse}
-            options={[
-              ...(!needsWarehouse ? [{ value: '', label: t('allWarehouses') }] : []),
-              ...warehouses.map((w) => ({ value: w.id, label: w.name })),
-            ]}
+            options={[...warehouses.map((w) => ({ value: w.id, label: w.name }))]}
           />
           {warehouseError && <Alert variant="error">{t('warehouseError')}</Alert>}
         </div>
@@ -165,10 +162,11 @@ function ClaimsQueue({
         <div className="w-full sm:w-64">
           <Select
             label={t('status')}
+            placeholder={t('allStatuses')}
+            isPlaceholderDisabled={false}
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             options={[
-              { value: '', label: t('allStatuses') },
               ...['OPEN', 'INVESTIGATING', 'APPROVED', 'REJECTED', 'CREDITED'].map((value) => ({
                 value,
                 label: t(`statuses.${value}`),

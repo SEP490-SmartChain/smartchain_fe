@@ -73,6 +73,10 @@ function ClaimDetailContent({
         : failure instanceof Error
           ? failure.message.replace(/^(CLAIM|UPLOAD)\./, '')
           : '';
+    if (code === 'EVIDENCE_EXPIRED') {
+      uploadIntent.current = null;
+      if (fileInput.current) fileInput.current.value = '';
+    }
     setError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('errors.generic'));
   };
   useEffect(() => {

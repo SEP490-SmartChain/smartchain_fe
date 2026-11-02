@@ -38,7 +38,7 @@ export function CreateClaimForm({
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [pending, setPending] = useState(() => getPendingClaim('create', 'new'));
+    [pending, setPending] = useState(() => getPendingClaim('create', 'new', scope));
   const restore = pending?.kind === 'create' ? pending.input : undefined;
   const pageRequest = useRef<AbortController | null>(null);
   const form = useForm<Values>({
@@ -127,7 +127,7 @@ export function CreateClaimForm({
     } catch (e) {
       if (!signal.aborted) {
         fail(e);
-        setPending(getPendingClaim('create', 'new'));
+        setPending(getPendingClaim('create', 'new', scope));
       }
     } finally {
       if (!signal.aborted) setBusy(false);
@@ -138,12 +138,12 @@ export function CreateClaimForm({
     setBusy(true);
     setError('');
     try {
-      const result = await retryClaimCommand(pending, signal);
+      const result = await retryClaimCommand(pending, signal, scope);
       if (!signal.aborted) onCreated(result.id);
     } catch (e) {
       if (!signal.aborted) {
         fail(e);
-        setPending(getPendingClaim('create', 'new'));
+        setPending(getPendingClaim('create', 'new', scope));
       }
     } finally {
       if (!signal.aborted) setBusy(false);
@@ -152,7 +152,7 @@ export function CreateClaimForm({
   return (
     <section className="sc-card space-y-5 p-5" aria-label={t('newClaim')}>
       <h2 className="text-lg font-semibold">{t('newClaim')}</h2>
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && !pending && <Alert variant="error">{error}</Alert>}
       {pending && (
         <Alert variant="warning">
           <p>{t('pendingRequest')}</p>
@@ -244,6 +244,7 @@ export function CreateClaimForm({
           </div>
           {selected?.declaredCostVnd !== null && selected ? (
             <Input
+              key="snapshot-cost"
               label={t('declaredCost')}
               value={selected.declaredCostVnd ?? ''}
               readOnly
@@ -251,6 +252,7 @@ export function CreateClaimForm({
             />
           ) : (
             <Input
+              key="declared-cost"
               label={t('declaredCost')}
               inputMode="numeric"
               {...form.register('declaredCostVnd')}

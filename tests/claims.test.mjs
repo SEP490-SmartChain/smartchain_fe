@@ -19,13 +19,11 @@ const user = (roles = ['SELLER_OWNER'], scope = 'TENANT') => ({
   fullName: 'Synthetic claim user',
 });
 const login = (roles, scope) =>
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-claims-token',
-      expiresIn: 900,
-      user: user(roles, scope),
-    });
+  auth.getState().setSession({
+    accessToken: 'synthetic-claims-token',
+    expiresIn: 900,
+    user: user(roles, scope),
+  });
 const input = {
   fulfillmentItemId: item,
   affectedQty: 2,
@@ -134,7 +132,7 @@ test('uncertain creation retries the original operation and exact payload once',
     await assert.rejects(
       commands.sendClaimCommand({ kind: 'create', id: 'new', scope: {}, input }, signal),
     );
-    const pending = commands.getPendingClaim('create', 'new');
+    const pending = commands.getPendingClaim('create', 'new', {});
     assert.ok(pending);
     await assert.rejects(
       commands.sendClaimCommand(
@@ -144,10 +142,10 @@ test('uncertain creation retries the original operation and exact payload once',
       /PENDING_DIFFERENT_REQUEST/,
     );
     assert.equal(calls.length, 1);
-    const replay = await commands.retryClaimCommand(pending, signal);
+    const replay = await commands.retryClaimCommand(pending, signal, {});
     assert.equal(replay.id, pending.operationId);
     assert.deepEqual(calls[1], calls[0]);
-    assert.equal(commands.getPendingClaim('create', 'new'), undefined);
+    assert.equal(commands.getPendingClaim('create', 'new', {}), undefined);
   } finally {
     client.post = post;
   }
@@ -171,7 +169,7 @@ test('definitive stale decisions require refreshed review instead of retaining a
         signal,
       ),
     );
-    assert.equal(commands.getPendingClaim('decide', id), undefined);
+    assert.equal(commands.getPendingClaim('decide', id, {}), undefined);
   } finally {
     client.post = post;
   }
@@ -191,9 +189,9 @@ test('role and actor-scope changes clear private pending requests and deny Staff
         new AbortController().signal,
       ),
     );
-    assert.ok(commands.getPendingClaim('create', 'new'));
+    assert.ok(commands.getPendingClaim('create', 'new', {}));
     login(['SELLER_STAFF']);
-    assert.equal(commands.getPendingClaim('create', 'new'), undefined);
+    assert.equal(commands.getPendingClaim('create', 'new', {}), undefined);
     await assert.rejects(
       commands.sendClaimCommand(
         { kind: 'create', id: 'new', scope: {}, input },
@@ -236,7 +234,7 @@ test('a late command result from a replaced session cannot publish to the new sc
     login(['ORCA_ADMIN'], 'PLATFORM');
     resolve();
     await checked;
-    assert.equal(commands.getPendingClaim('create', 'new'), undefined);
+    assert.equal(commands.getPendingClaim('create', 'new', {}), undefined);
   } finally {
     client.post = post;
   }
@@ -384,5 +382,67 @@ test('a confirmed photo with a lost response reconciles from the authorized clai
   } finally {
     client.post = post;
     client.get = get;
+  }
+});
+
+test('pending creates stay with their selected warehouse and replay the original reference when returning', async () => {
+  const other = '00001314-0000-4000-8000-000000000004';
+  auth
+    .getState()
+    .setSession({
+      accessToken: 'synthetic-ops',
+      expiresIn: 900,
+      user: { ...user(['OPS_DISPATCHER'], 'PLATFORM'), warehouseIds: [warehouse, other] },
+    });
+  const post = client.post,
+    calls = [];
+  client.post = async (url, body) => {
+    calls.push({ url, body });
+    throw new Error('synthetic lost response');
+  };
+  const a = { warehouseId: warehouse },
+    b = { warehouseId: other },
+    signal = new AbortController().signal;
+  try {
+    await assert.rejects(
+      commands.sendClaimCommand({ kind: 'create', id: 'new', scope: a, input }, signal),
+    );
+    const pendingA = commands.getPendingClaim('create', 'new', a);
+    assert.ok(pendingA);
+    assert.equal(commands.getPendingClaim('create', 'new', b), undefined);
+    await assert.rejects(commands.retryClaimCommand(pendingA, signal, b), /SCOPE_CHANGED/);
+    assert.equal(calls.length, 1);
+    await assert.rejects(
+      commands.sendClaimCommand(
+        {
+          kind: 'create',
+          id: 'new',
+          scope: b,
+          input: { ...input, note: 'Independent warehouse B claim' },
+        },
+        signal,
+      ),
+    );
+    const pendingB = commands.getPendingClaim('create', 'new', b);
+    assert.ok(pendingB);
+    assert.notEqual(pendingB.operationId, pendingA.operationId);
+    assert.equal(commands.getPendingClaim('create', 'new', a), pendingA);
+    client.post = async (url, body) => {
+      calls.push({ url, body });
+      return { data: { ...result, id: body.operationId } };
+    };
+    await commands.retryClaimCommand(pendingA, signal, a);
+    assert.equal(calls[2].body.operationId, calls[0].body.operationId);
+    assert.ok(calls[2].url.includes(warehouse));
+    assert.equal(commands.getPendingClaim('create', 'new', a), undefined);
+    assert.equal(commands.getPendingClaim('create', 'new', b), pendingB);
+    login();
+    await assert.rejects(
+      commands.retryClaimCommand(pendingB, new AbortController().signal, b),
+      /SCOPE_CHANGED/,
+    );
+  } finally {
+    client.post = post;
+    login();
   }
 });

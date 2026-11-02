@@ -10,6 +10,20 @@ export interface WebhookEventTopicDefinition {
  * Grouped logically into categories for user-centric UI display.
  */
 export const WEBHOOK_EVENT_TOPICS: WebhookEventTopicDefinition[] = [
+  ...[
+    ['return.requested', 'ReturnRequested'],
+    ['return.expected', 'ReturnExpected'],
+    ['return.disposition_reminded', 'ReturnDisposition'],
+    ['return.reverse_booked', 'ReturnBooked'],
+    ['return.tracking_changed', 'ReturnTracking'],
+    ['lot.recalled', 'LotRecalled'],
+    ['recall.customer_notification', 'RecallCustomer'],
+  ].map(([id, key]) => ({
+    id,
+    category: 'shipping' as const,
+    nameKey: `topic${key}`,
+    descKey: `topic${key}Desc`,
+  })),
   {
     id: 'order.ingested',
     category: 'orders',

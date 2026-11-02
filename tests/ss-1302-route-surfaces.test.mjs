@@ -19,6 +19,9 @@ const reporting = roles.filter((role) => role !== 'WAREHOUSE_STAFF');
 const financial = ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'];
 const routes = {
   '/claims': ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
+  '/admin/webhooks': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+  '/warehouse/inventory-workflows': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  '/inventory/workflows': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   '/admin/tariffs': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   '/admin/staff': A,
   '/dashboard': reporting,
@@ -26,6 +29,7 @@ const routes = {
   '/asns': sellers,
   '/orders': roles,
   '/returns': O,
+  '/warehouse/returns': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   '/billing': financial,
   '/statements': O,
   '/warehouses': [

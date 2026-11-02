@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 
+import { Link } from 'react-router-dom';
+
 import { CalendarClock, RefreshCw, Search, Settings2, ShieldAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -7,12 +9,14 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
+import { SellerWithdrawalForm, orderScope } from '@/features/orders';
 import { useAccess } from '@/hooks/useAccess';
 import { useDebounce } from '@/hooks/useDebounce';
 
 import { InventoryNotificationSettingsCard } from './InventoryNotificationSettingsCard';
 import { InventoryReadError } from './InventoryReadError';
 import { InventoryState } from './InventoryState';
+import { InventoryWorkflowAction } from './InventoryWorkflowAction';
 import { useInventoryExpiry } from '../hooks/useInventoryExpiry';
 
 import type { NearExpiryPosition } from '../api/inventoryExpiryApi';
@@ -23,6 +27,17 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
   const detail = useTranslations('InventoryDetail');
   const locale = useLocale();
   const { can } = useAccess();
+  const [selectedAction, setSelectedAction] = useState<{
+    kind: 'withdrawal' | 'disposal';
+    row: NearExpiryPosition;
+  } | null>(null);
+  const initialLot = useMemo(
+    () =>
+      selectedAction
+        ? { warehouseId: selectedAction.row.warehouseId, lotId: selectedAction.row.lotId }
+        : undefined,
+    [selectedAction],
+  );
   const [search, setSearch] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const debouncedSearch = useDebounce(search, 400);
@@ -39,6 +54,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
     () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }),
     [locale],
   );
+  const workflow = useTranslations('InventoryWorkflows');
   const columns: ColumnDef<NearExpiryPosition>[] = [
     {
       key: 'sku',
@@ -118,9 +134,66 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
         </span>
       ),
     },
+    ...(can('orders.withdrawal.create')
+      ? [
+          {
+            key: 'actions' as const,
+            label: workflow('actions'),
+            render: (row: NearExpiryPosition) => (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={row.availableQty === 0 || row.isBlocked}
+                  onClick={() => setSelectedAction({ kind: 'withdrawal', row })}
+                >
+                  {workflow('withdrawal')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={row.availableQty === 0}
+                  onClick={() => setSelectedAction({ kind: 'disposal', row })}
+                >
+                  {workflow('disposalRequest')}
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
   return (
     <div className="space-y-4">
+      {can('inventory.workflows.view') && (
+        <Link to="/inventory/workflows">{workflow('title')}</Link>
+      )}
+      {selectedAction?.kind === 'withdrawal' && (
+        <SellerWithdrawalForm
+          scope={orderScope()}
+          isOpen
+          initialLot={initialLot}
+          onClose={() => setSelectedAction(null)}
+          onAccepted={() => {
+            setSelectedAction(null);
+            void refetch();
+          }}
+        />
+      )}
+      {selectedAction?.kind === 'disposal' && (
+        <InventoryWorkflowAction
+          warehouseId={selectedAction.row.warehouseId}
+          action={{
+            kind: 'disposalRequest',
+            stockId: selectedAction.row.id,
+            maxQty: selectedAction.row.availableQty,
+          }}
+          onClose={() => setSelectedAction(null)}
+          onAccepted={() => {
+            setSelectedAction(null);
+            void refetch();
+          }}
+        />
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="m-0 text-lg font-semibold">{t('title')}</h2>

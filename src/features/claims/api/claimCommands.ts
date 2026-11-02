@@ -51,9 +51,15 @@ function currentScope(): string {
   }
   return key;
 }
-const keyFor = (kind: ClaimPending['kind'], id: string) => `${currentScope()}/${kind}/${id}`;
-export function getPendingClaim(kind: ClaimPending['kind'], id: string): ClaimPending | undefined {
-  return pending.get(keyFor(kind, id));
+const warehouseKey = (scope: ClaimScope) => scope.warehouseId?.toLowerCase() ?? '';
+const keyFor = (kind: ClaimPending['kind'], id: string, scope: ClaimScope) =>
+  `${currentScope()}/${warehouseKey(scope)}/${kind}/${id}`;
+export function getPendingClaim(
+  kind: ClaimPending['kind'],
+  id: string,
+  scope: ClaimScope,
+): ClaimPending | undefined {
+  return pending.get(keyFor(kind, id, scope));
 }
 export async function sendClaimCommand(
   command:
@@ -77,7 +83,7 @@ export async function sendClaimCommand(
   ) {
     throw new Error('CLAIM.FORBIDDEN');
   }
-  const key = keyFor(command.kind, command.id),
+  const key = keyFor(command.kind, command.id, command.scope),
     existing = pending.get(key);
   if (
     existing &&
@@ -121,7 +127,17 @@ export async function sendClaimCommand(
     throw error;
   }
 }
-export async function retryClaimCommand(request: ClaimPending, signal: AbortSignal) {
+export async function retryClaimCommand(
+  request: ClaimPending,
+  signal: AbortSignal,
+  activeScope: ClaimScope,
+) {
+  if (
+    warehouseKey(request.scope) !== warehouseKey(activeScope) ||
+    pending.get(keyFor(request.kind, request.id, activeScope)) !== request
+  ) {
+    throw new Error('CLAIM.SCOPE_CHANGED');
+  }
   if (request.kind === 'create') {
     return sendClaimCommand(
       { kind: 'create', id: 'new', input: request.input, scope: request.scope },

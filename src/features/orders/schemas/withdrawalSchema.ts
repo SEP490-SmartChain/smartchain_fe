@@ -12,12 +12,14 @@ export const withdrawalAddressFormSchema = z
 export const withdrawalFormSchema = z
   .object({
     selection: z.string().min(1),
+    reason: z.string().trim().min(3).max(1000).optional(),
     qty: z.number().int().min(1).max(1000000),
   })
   .strict();
 export const withdrawalCommandSchema = z
   .object({
     clientRequestId: z.uuid(),
+    reason: z.string().trim().min(3).max(1000).optional(),
     warehouseId: z.uuid(),
     productId: z.uuid(),
     lotId: z.uuid(),

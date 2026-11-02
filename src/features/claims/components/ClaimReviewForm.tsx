@@ -37,7 +37,7 @@ export function ClaimReviewForm({
     { can } = useAccess();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [pending, setPending] = useState(() => getPendingClaim(mode, claim.id));
+    [pending, setPending] = useState(() => getPendingClaim(mode, claim.id, scope));
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -100,7 +100,7 @@ export function ClaimReviewForm({
     } catch (e) {
       if (!signal.aborted) {
         fail(e);
-        setPending(getPendingClaim(mode, claim.id));
+        setPending(getPendingClaim(mode, claim.id, scope));
         onChanged();
       }
     } finally {
@@ -112,7 +112,7 @@ export function ClaimReviewForm({
     setBusy(true);
     setError('');
     try {
-      await retryClaimCommand(pending, signal);
+      await retryClaimCommand(pending, signal, scope);
       if (!signal.aborted) {
         setPending(undefined);
         onChanged();
@@ -120,7 +120,7 @@ export function ClaimReviewForm({
     } catch (e) {
       if (!signal.aborted) {
         fail(e);
-        setPending(getPendingClaim(mode, claim.id));
+        setPending(getPendingClaim(mode, claim.id, scope));
         onChanged();
       }
     } finally {
@@ -133,7 +133,7 @@ export function ClaimReviewForm({
       <h3 className="font-semibold">
         {t(mode === 'investigate' ? 'investigate' : 'accountantDecision')}
       </h3>
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && !pending && <Alert variant="error">{error}</Alert>}
       {pending && (
         <Alert variant="warning">
           <p>{t('pendingRequest')}</p>

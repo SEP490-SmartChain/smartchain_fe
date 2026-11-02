@@ -29,15 +29,33 @@ export type InventoryNotificationSettingInput = Omit<
   'updatedAt' | 'version' | 'lowStockAvailable'
 > & { expectedVersion: number };
 
+export type InventoryNotificationOverrideInput = Pick<
+  InventoryNotificationSettingInput,
+  | 'tenantId'
+  | 'warehouseId'
+  | 'expectedVersion'
+  | 'expiryEnabled'
+  | 'lowStockEnabled'
+  | 'warningDays'
+  | 'transitDays'
+  | 'bufferDays'
+>;
 export const inventoryNotificationSettingsApi = {
-  async get() {
+  async sellers(warehouseId: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      '/v1/inventory/notification-settings/sellers',
+      { params: { warehouseId }, signal, silent: true },
+    );
+    return z.array(z.object({ id: z.uuid(), name: z.string() })).parse(data);
+  },
+  async get(scope?: { tenantId: string; warehouseId: string }) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       '/v1/inventory/notification-settings',
-      { silent: true },
+      { silent: true, params: scope },
     );
     return settingSchema.parse(data);
   },
-  async create(input: InventoryNotificationSettingInput) {
+  async create(input: InventoryNotificationSettingInput | InventoryNotificationOverrideInput) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       '/v1/inventory/notification-settings',
       input,
@@ -45,7 +63,7 @@ export const inventoryNotificationSettingsApi = {
     );
     return settingSchema.parse(data);
   },
-  async update(input: InventoryNotificationSettingInput) {
+  async update(input: InventoryNotificationSettingInput | InventoryNotificationOverrideInput) {
     const { data } = await apiClient.put<ApiResponse<unknown>>(
       '/v1/inventory/notification-settings',
       input,

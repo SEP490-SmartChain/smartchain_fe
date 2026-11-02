@@ -11,6 +11,7 @@ const command = {
   lotId: '00000000-0000-4000-8000-000000000004',
   qty: 2,
   addressVersion: 1,
+  reason: 'Withdraw the selected near-expiry lot',
 };
 const user = {
   userId: 'owner-A',
@@ -76,6 +77,9 @@ test('a new UUID or modified payload cannot overwrite an unresolved command', ()
   pending.persistPendingWithdrawal(command);
   assert.doesNotThrow(() => pending.persistPendingWithdrawal({ ...command }));
   assert.throws(() => pending.persistPendingWithdrawal({ ...command, qty: 3 }));
+  assert.throws(() =>
+    pending.persistPendingWithdrawal({ ...command, reason: 'A different withdrawal reason' }),
+  );
   assert.throws(() =>
     pending.persistPendingWithdrawal({ ...command, clientRequestId: command.productId }),
   );
