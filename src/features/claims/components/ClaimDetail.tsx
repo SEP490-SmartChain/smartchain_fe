@@ -223,7 +223,9 @@ function ClaimDetailContent({
       <section className="space-y-3">
         <h3 className="font-semibold">{t('evidence')}</h3>
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('evidenceHint')}</p>
-        {claim.evidence.length === 0 && <Alert variant="warning">{t('missingEvidence')}</Alert>}
+        {claim.evidence.every((photo) => !photo.verifiedAt) && (
+          <Alert variant="warning">{t('missingEvidence')}</Alert>
+        )}
         <ul className="space-y-2">
           {claim.evidence.map((photo, index) => (
             <li
