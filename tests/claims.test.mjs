@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { createServer } from 'vite';
 
-let server, api, commands, auth, client, ApiError, schemas;
+let server, api, commands, auth, client, ApiError, schemas, selection;
 const id = '00001314-0000-4000-8000-000000000001',
   warehouse = '00001314-0000-4000-8000-000000000002',
   item = '00001314-0000-4000-8000-000000000003';
@@ -82,6 +82,7 @@ before(async () => {
     server: { middlewareMode: true, watch: null, ws: false },
   });
   schemas = await server.ssrLoadModule('/src/features/claims/api/claimsApi.ts');
+  selection = await server.ssrLoadModule('/src/features/claims/lib/claimSourceSelection.ts');
   api = schemas.claimsApi;
   commands = await server.ssrLoadModule('/src/features/claims/api/claimCommands.ts');
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
@@ -89,6 +90,21 @@ before(async () => {
   login();
 });
 after(async () => server?.close());
+test('a complete search selects its only claimable item, excluding exhausted sources', () => {
+  const source = { fulfillmentItemId: item, remainingQty: 1, declaredCostVnd: '150000' };
+  assert.equal(selection.soleClaimSource([source], null), source);
+  assert.equal(selection.soleClaimSource([{ ...source, remainingQty: 0 }, source], null), source);
+});
+test('ambiguous, incomplete and exhausted claim searches never select a parcel implicitly', () => {
+  const source = { fulfillmentItemId: item, remainingQty: 1 };
+  assert.equal(selection.soleClaimSource([], null), undefined);
+  assert.equal(selection.soleClaimSource([{ ...source, remainingQty: 0 }], null), undefined);
+  assert.equal(
+    selection.soleClaimSource([source, { ...source, fulfillmentItemId: id }], null),
+    undefined,
+  );
+  assert.equal(selection.soleClaimSource([source], id), undefined);
+});
 test('claims retain exact VND strings and reject financial/recipient fields outside the contract', () => {
   assert.equal(schemas.claimSchema.parse(claim).declaredCostVnd, '9007199254740993');
   for (const value of [
@@ -387,13 +403,11 @@ test('a confirmed photo with a lost response reconciles from the authorized clai
 
 test('pending creates stay with their selected warehouse and replay the original reference when returning', async () => {
   const other = '00001314-0000-4000-8000-000000000004';
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-ops',
-      expiresIn: 900,
-      user: { ...user(['OPS_DISPATCHER'], 'PLATFORM'), warehouseIds: [warehouse, other] },
-    });
+  auth.getState().setSession({
+    accessToken: 'synthetic-ops',
+    expiresIn: 900,
+    user: { ...user(['OPS_DISPATCHER'], 'PLATFORM'), warehouseIds: [warehouse, other] },
+  });
   const post = client.post,
     calls = [];
   client.post = async (url, body) => {

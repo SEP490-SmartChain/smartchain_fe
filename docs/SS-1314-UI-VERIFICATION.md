@@ -40,3 +40,31 @@ The fresh run passed all these steps after the change. UI assertions additionall
 Proof artifacts in the parent workspace `outputs/`: `qa-claims-history-duplicate-red.md`, `qa-claims-history-green-back1-b.txt`, `qa-claims-history-green-back2-a.txt/.png`, `qa-claims-history-green-forward1-b.txt`, `qa-claims-history-green-forward2-b.txt/.png`, `qa-claims-history-green-a-replayed.txt`, `qa-claims-history-green-evidence-expired.txt`, `qa-claims-history-green-ops-reviewed.txt`, `qa-claims-history-green-accountant.txt/.png`, and `qa-claims-history-green-checks.json`. These contain synthetic data only. Native file chooser, browser download and live browser-to-database E2E remain outside this acceptance.
 
 Post-change verification: TypeScript, lint (zero errors;35existingwarnings), source formatting, all1,415Node tests (zero failed/skipped), and production build passed. The existing Vite large-chunk warning remains. The browser RED/GREEN proof is the maintained scenario above; no source-text assertion or production test hook was added.
+
+## 3 November live search usability correction
+
+An explicit search previously filtered the parcel-item dropdown but left its placeholder
+selected even when the server returned only one eligible result. The live Seller Owner
+page reproduced this with an exact order reference. The result now selects automatically
+after an explicit nonempty search only when the complete result has exactly one item
+with remaining claimable quantity. Exhausted items and incomplete pages never cause an
+implicit selection. Multiple and empty results have localized status feedback.
+
+A new search clears the previous source, entered unit cost and quantity, while keeping
+the incident description. Changing the selected source also clears its prior cost and
+resets quantity. Submit stays disabled while loading. Enter in the search field performs
+the lookup instead of submitting the claim. Pending uncertain commands retain their
+disabled form and original payload/reference.
+
+Current-profile Chrome verified the production localhost API: exact order search
+selected its one item without opening the dropdown; a shared SKU returned three
+results and required an explicit choice; an unmatched reference displayed the empty
+message and disabled creation. The previous entered cost cleared on search. The form
+was returned to the user's exact order, selected, without creating a claim. Snapshot
+evidence is in the parent workspace outputs `claims-search-single-green.txt/.jpg`,
+`claims-search-many.txt` and `claims-search-none.txt`.
+
+The selection regression failed before implementation and passed afterward, including
+exhausted, ambiguous and paginated results. Final TypeScript, lint (zero errors,35existing
+warnings), format check, all1,417Node tests (zero failed/skipped), and production build
+passed. No BE or database change was needed.

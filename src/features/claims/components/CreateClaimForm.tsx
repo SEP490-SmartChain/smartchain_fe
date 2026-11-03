@@ -11,6 +11,7 @@ import { ApiError } from '@/services/apiClient';
 
 import { getPendingClaim, retryClaimCommand, sendClaimCommand } from '../api/claimCommands';
 import { claimsApi, type ClaimScope, type ClaimSource } from '../api/claimsApi';
+import { soleClaimSource } from '../lib/claimSourceSelection';
 
 const schema = z.object({
   fulfillmentItemId: z.string().uuid(),
@@ -52,6 +53,17 @@ export function CreateClaimForm({
     },
   });
   const selected = sources.find((s) => s.fulfillmentItemId === form.watch('fulfillmentItemId'));
+  const soleSource = soleClaimSource(sources, cursor);
+  const eligibleCount = sources.filter((s) => s.remainingQty > 0).length;
+  const sourceField = form.register('fulfillmentItemId');
+  const searchSources = () => {
+    form.resetField('fulfillmentItemId', { defaultValue: '' });
+    form.resetField('declaredCostVnd', { defaultValue: '' });
+    form.resetField('affectedQty', { defaultValue: 1 });
+    setLoading(true);
+    setFilter(search.trim());
+    setSearchVersion((n) => n + 1);
+  };
   const fail = (failure: unknown) => {
     const code =
       failure instanceof ApiError
@@ -77,6 +89,13 @@ export function CreateClaimForm({
         if (!controller.signal.aborted) {
           setSources(page.items);
           setCursor(page.nextCursor);
+          if (searchVersion > 0 && filter.trim() && !pending) {
+            form.setValue(
+              'fulfillmentItemId',
+              soleClaimSource(page.items, page.nextCursor)?.fulfillmentItemId ?? '',
+              { shouldValidate: false },
+            );
+          }
         }
       })
       .catch((e) => {
@@ -168,19 +187,32 @@ export function CreateClaimForm({
               label={t('searchParcel')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  searchSources();
+                }
+              }}
               maxLength={100}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setFilter(search);
-                setSearchVersion((n) => n + 1);
-              }}
-            >
+            <Button type="button" variant="secondary" onClick={searchSources}>
               {t('search')}
             </Button>
           </div>
+          {!loading && !error && !pending && searchVersion > 0 && (
+            <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
+              {t(
+                soleSource && selected?.fulfillmentItemId === soleSource.fulfillmentItemId
+                  ? 'searchSelected'
+                  : cursor
+                    ? 'searchMore'
+                    : eligibleCount > 0
+                      ? 'searchChoose'
+                      : 'noSources',
+                { count: eligibleCount },
+              )}
+            </p>
+          )}
           <Select
             label={t('parcelItem')}
             placeholder={loading ? t('loading') : t('chooseParcel')}
@@ -189,7 +221,14 @@ export function CreateClaimForm({
               label: `${s.orderReference} · #${s.sequenceNo} · ${s.sku ?? s.productName ?? t('item')} · ${t('remaining', { qty: s.remainingQty })}`,
               disabled: s.remainingQty === 0,
             }))}
-            {...form.register('fulfillmentItemId')}
+            {...sourceField}
+            onChange={(event) => {
+              if (event.target.value !== form.getValues('fulfillmentItemId')) {
+                form.resetField('declaredCostVnd', { defaultValue: '' });
+                form.resetField('affectedQty', { defaultValue: 1 });
+              }
+              void sourceField.onChange(event);
+            }}
             error={form.formState.errors.fulfillmentItemId ? t('required') : undefined}
           />
           {cursor && (
@@ -221,7 +260,7 @@ export function CreateClaimForm({
               {t('loadMore')}
             </Button>
           )}
-          {!loading && sources.length === 0 && (
+          {!loading && !error && searchVersion === 0 && sources.length === 0 && (
             <p className="text-sm text-[var(--sc-text-secondary)]">{t('noSources')}</p>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -278,7 +317,7 @@ export function CreateClaimForm({
           <Button
             type="submit"
             isLoading={busy}
-            disabled={!selected || selected.remainingQty === 0}
+            disabled={loading || !selected || selected.remainingQty === 0}
           >
             {t('create')}
           </Button>
