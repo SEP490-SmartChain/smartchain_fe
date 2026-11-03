@@ -48,22 +48,30 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       {owner && allocationCost && (
         <Alert>
           <p className="font-semibold">{t('totalCostSummary')}</p>
-          <p>
-            {t('totalCostExtraFreight', {
-              amount:
-                allocationCost.extraShippingFeeVnd === null
-                  ? t('totalCostUnknown')
-                  : formatOrderMoney(allocationCost.extraShippingFeeVnd),
-            })}
-          </p>
-          <p>
-            {t('totalCostSavedGoods', {
-              amount:
-                allocationCost.savedGoodsValueVnd === null
-                  ? t('totalCostUnknown')
-                  : formatOrderMoney(allocationCost.savedGoodsValueVnd),
-            })}
-          </p>
+          {allocationCost.extraShippingFeeVnd === null &&
+          allocationCost.savedGoodsValueVnd === null ? (
+            <p>{t('totalCostUnknown')}</p>
+          ) : allocationCost.extraShippingFeeVnd === '0' &&
+            allocationCost.savedGoodsValueVnd === '0' ? (
+            <p>{t('totalCostNoDifference')}</p>
+          ) : (
+            <>
+              {allocationCost.extraShippingFeeVnd !== null && (
+                <p>
+                  {t('totalCostExtraFreight', {
+                    amount: formatOrderMoney(allocationCost.extraShippingFeeVnd),
+                  })}
+                </p>
+              )}
+              {allocationCost.savedGoodsValueVnd !== null && (
+                <p>
+                  {t('totalCostSavedGoods', {
+                    amount: formatOrderMoney(allocationCost.savedGoodsValueVnd),
+                  })}
+                </p>
+              )}
+            </>
+          )}
           <p className="mt-2 text-sm">{t('totalCostBoundedHint')}</p>
         </Alert>
       )}
