@@ -29,6 +29,15 @@ export const shipmentSchema = z.object({
   labelAvailable: z.boolean(),
 });
 export type Shipment = z.infer<typeof shipmentSchema>;
+export const trackingEventSchema = z.object({
+  id,
+  eventCode: z.string().max(50),
+  standardStatus: z.string().max(50),
+  eventTime: z.string().datetime(),
+  isApplied: z.boolean(),
+  ignoreReason: z.string().max(100).nullable(),
+});
+export type TrackingEvent = z.infer<typeof trackingEventSchema>;
 export const paginationSchema = z.object({
   limit: z.number().int().min(1).max(50),
   hasNext: z.boolean(),
@@ -56,3 +65,40 @@ export const breakerSchema = z.discriminatedUnion('available', [
   }),
 ]);
 export type CarrierBreaker = z.infer<typeof breakerSchema>;
+export const cancelResultSchema = z.enum([
+  'REQUESTED',
+  'ALREADY_REQUESTED',
+  'ALREADY_CANCELLED',
+  'RETRY_SCHEDULED',
+]);
+export type CancelResult = z.infer<typeof cancelResultSchema>;
+
+/** SS-1319 / UC-104 SLA breach; the API projection carries no money or recipient fields. */
+export const slaExceptionSchema = z.object({
+  id: z.string().uuid(),
+  reasonCode: z.enum(['SLA.HANDOVER_OVERDUE', 'SLA.TRACKING_STALLED']),
+  status: z.enum(['OPEN', 'ASSIGNED', 'RESOLVED']),
+  aggregateType: z.enum(['fulfillment_order', 'shipment']),
+  aggregateId: z.string().uuid(),
+  warehouseId: z.string().uuid(),
+  warehouseCode: z.string().max(100),
+  trackingNumber: z.string().max(100).nullable(),
+  readyAt: z.string().datetime().nullable(),
+  deadline: z.string().datetime().nullable(),
+  lastProgressAt: z.string().datetime().nullable(),
+  stallHours: z.number().int().positive().nullable(),
+  isAssigned: z.boolean(),
+  isAssignedToMe: z.boolean(),
+  resolution: z.enum(['AUTO:HANDED_OVER', 'AUTO:CARRIER_PROGRESS']).nullable(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type SlaException = z.infer<typeof slaExceptionSchema>;
+export const slaExceptionPageSchema = z.object({
+  items: z.array(slaExceptionSchema),
+  pagination: z.object({
+    limit: z.number().int().positive(),
+    hasNext: z.boolean(),
+    nextCursor: z.string().datetime().nullable(),
+  }),
+});

@@ -77,7 +77,6 @@ function Panel() {
               label: t('warehouse'),
               render: (r) => <span title={r.warehouse_id}>{r.warehouse_id.slice(0, 8)}</span>,
             },
-            { key: 'environment', label: t('environment') },
             {
               key: 'state',
               label: t('state'),

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
-import { Alert, Button, Input, Select } from '@/components/Common';
+import { Alert, Button, Input, RequiredNote, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 
 import { carrierAccountApi, type CarrierAccount } from '../api/carrierAccountApi';
@@ -57,7 +57,7 @@ export function CarrierAccountModal({
       const code =
         account?.orcaCarrier.code ??
         carriers.find((carrier) => carrier.id === values.carrierId)?.code;
-      if (!code || !['GHN', 'GHTK'].includes(code)) {
+      if (!code) {
         ctx.addIssue({ code: 'custom', path: ['carrierId'], message: t('required') });
       }
       if ((!account || values.apiToken.length > 0) && values.apiToken.trim().length < 4) {
@@ -107,7 +107,9 @@ export function CarrierAccountModal({
     const pickupMapping: Record<string, string> =
       code === 'GHN'
         ? { shop_id: values.shopId }
-        : { pick_address_id: values.pick_address_id.trim() };
+        : code === 'GHTK'
+          ? { pick_address_id: values.pick_address_id.trim() }
+          : {};
     try {
       if (account) await carrierAccountApi.update(account.id, { credentials, pickupMapping });
       else if (credentials) {
@@ -138,6 +140,7 @@ export function CarrierAccountModal({
             {t('verifyHint')}
           </Alert>
         )}
+        <RequiredNote />
         {account ? (
           <>
             <Input
@@ -156,6 +159,7 @@ export function CarrierAccountModal({
           <>
             <Select
               label={t('warehouse')}
+              isRequired
               options={warehouses.map((row) => ({
                 value: row.id,
                 label: `${row.code} — ${row.name}`,
@@ -166,6 +170,7 @@ export function CarrierAccountModal({
             />
             <Select
               label={t('carrier')}
+              isRequired
               options={carriers.map((row) => ({ value: row.id, label: row.name }))}
               {...register('carrierId')}
               error={errors.carrierId?.message}
@@ -175,6 +180,7 @@ export function CarrierAccountModal({
         )}
         <Input
           label={t('token')}
+          isRequired={!account}
           type="password"
           autoComplete="new-password"
           maxLength={500}
@@ -186,6 +192,7 @@ export function CarrierAccountModal({
         {code === 'GHN' && (
           <Input
             label={t('shopId')}
+            isRequired
             maxLength={50}
             {...register('shopId')}
             error={errors.shopId?.message}
@@ -205,6 +212,7 @@ export function CarrierAccountModal({
         {code === 'GHTK' && (
           <Input
             label={t('pickupAddressId')}
+            isRequired
             helperText={t('pickupAddressHint')}
             {...register('pick_address_id')}
             error={errors.pick_address_id?.message}

@@ -9,6 +9,13 @@ displayed once per order. They are estimates already included in the selected fr
 not an additional debit. Staff's strict schema rejects the financial projection.
 Backend contract, model assumptions and migration order: `smartchain_be/docs/SS-1214-TOTAL-COST.md`.
 
+3 November 2026 UI regression: aggregate comparison amounts accept exact nonnegative
+integer strings beyond the intake's 12-digit limit; manual order input limits stay unchanged.
+Missing cost inputs now explain the manual review in both seller feedback and history,
+in Vietnamese and English. Real API UI verified split, null, legacy and 13-digit totals,
+Staff privacy, foreign-seller denial, and the 390px detail layout. Historical comparison
+snapshots were seeded for presentation checks; this does not re-run the allocation search.
+
 19 October 2026: manual entry defaults to an explicit total recipient collection,
 including any outstanding buyer shipping; 0 means no collection, blank is invalid.
 Sale prices and payment breakdown are optional through the calculated entry mode

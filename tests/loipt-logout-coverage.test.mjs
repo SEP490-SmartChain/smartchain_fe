@@ -53,22 +53,20 @@ const payload = {
 };
 const downtime = { id, warehouseId: id, ...payload };
 function signIn() {
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-token',
-      expiresIn: 900,
-      user: {
-        userId: id,
-        tenantId: id,
-        sessionId: id,
-        actorScope: 'TENANT',
-        email: 'unit@example.test',
-        fullName: 'Unit Tester',
-        roles: ['SELLER_OWNER'],
-        permissions: [],
-      },
-    });
+  auth.getState().setSession({
+    accessToken: 'synthetic-token',
+    expiresIn: 900,
+    user: {
+      userId: id,
+      tenantId: id,
+      sessionId: id,
+      actorScope: 'TENANT',
+      email: 'unit@example.test',
+      fullName: 'Unit Tester',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+    },
+  });
 }
 function crc32(bytes) {
   let crc = 0xffffffff;

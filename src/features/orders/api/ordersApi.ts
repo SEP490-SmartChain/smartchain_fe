@@ -21,6 +21,7 @@ export const ORDER_STATUSES = [
   'BACKORDER',
 ] as const;
 const money = z.string().regex(/^(0|[1-9]\d{0,11})$/);
+const aggregateMoney = z.string().regex(/^(0|[1-9]\d*)$/);
 export const paymentBreakdownSchema = z
   .object({
     discountAmount: money,
@@ -329,8 +330,8 @@ const ownerDetail = ownerOrder
           codAmount: money,
           allocationCost: z
             .object({
-              extraShippingFeeVnd: money.nullable(),
-              savedGoodsValueVnd: money.nullable(),
+              extraShippingFeeVnd: aggregateMoney.nullable(),
+              savedGoodsValueVnd: aggregateMoney.nullable(),
               globalOptimum: z.literal(false),
             })
             .strict()

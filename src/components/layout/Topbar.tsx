@@ -51,7 +51,7 @@ export default function Topbar() {
   const avatarUrl = useAvatarUrl(user?.avatarUrl);
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
 
-  const displayName = user?.fullName ?? user?.email ?? t('member');
+  const displayName = user?.fullName?.replace(/\s*\(local\)$/i, '') || user?.email || t('member');
   const { roles } = useAccess();
 
   const roleLabels: Record<string, string> = {

@@ -18,6 +18,7 @@ const ADMIN_LABEL_KEYS: Record<string, string> = {
   '/admin/tenants': 'admin_tenants',
   '/admin/warehouses': 'admin_warehouses',
   '/admin/carriers': 'admin_carriers',
+  '/admin/tariffs': 'freight_tariffs',
   '/admin/plans': 'subscription_plans',
   '/admin/health': 'platform_health',
   '/admin/audit': 'admin_audit_trail',

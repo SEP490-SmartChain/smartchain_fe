@@ -194,6 +194,14 @@ test('trims name/reason and converts optional form references to null', () => {
     'Create tested rule',
   );
   assert.equal(schema.ruleFormSchema('invalid').safeParse({ ...form, reason: ' ' }).success, false);
+  assert.equal(
+    schema.ruleFormSchema('invalid', false).safeParse({ ...form, reason: ' ' }).success,
+    true,
+  );
+  assert.equal(
+    schema.ruleFormSchema('invalid', false).safeParse({ ...form, reason: 'ab' }).success,
+    false,
+  );
 });
 for (const override of [
   { version: 0 },

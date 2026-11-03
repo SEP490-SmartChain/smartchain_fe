@@ -29,6 +29,14 @@ loading the latest version shows the server configuration for review before an
 explicit save. Mutations update the list only after server confirmation. Identity,
 role and scope changes unmount forms and cancel pending reads.
 
+## Layout
+
+A one-line hint replaces the long explanation. On the carrier tab a summary card shows the
+effective default chain (first enabled, unconditional, unscoped carrier rule): primary service
+first, fallbacks in order. Rules show On/Off, Default and Unapplied-draft badges; Publish and Edit
+are text buttons while History, Disable and Delete are icon buttons. A service missing from the
+active target list shows as "Unavailable" (for example a paused carrier) once the list has loaded.
+
 ## API and access
 
 All requests use `apiClient` and validate responses with Zod. Routes: `GET/POST
@@ -45,7 +53,8 @@ repository gate documented in `AGENTS.md` before committing.
 
 ## Simulator (SS-1090 / SS-1088)
 
-The inline simulator consumes `POST /v1/rules/simulate` from SS-1089. Ops may preview
+The simulator sits under the rule list in a collapsed "Try a sample order" section and
+consumes `POST /v1/rules/simulate` from SS-1089. Ops may preview
 ALLOCATION; Admin/Ops may preview CARRIER, through separate central capabilities.
 Sample seller/warehouse references never change authenticated scope. Typed optional
 facts retain zero/false and canonical VND strings; empty fields stay absent.
