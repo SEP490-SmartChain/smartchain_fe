@@ -53,6 +53,7 @@ const carrier = {
   endpointsCount: 1,
   servicesCount: 2,
   connectedTenantsCount: 0,
+  monthlyPurchaseVolumeCount: 0,
   createdAt: warehouse.createdAt,
   updatedAt: warehouse.updatedAt,
 };

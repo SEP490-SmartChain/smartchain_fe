@@ -71,6 +71,7 @@ export function InboundWorkspace() {
     <div className="space-y-5">
       <PageHeader
         title={sidebar('warehouse_intake')}
+        description={flow('description')}
         actionsClassName="w-full sm:w-72 lg:w-80"
         actions={
           <Select

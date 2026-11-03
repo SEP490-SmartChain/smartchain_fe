@@ -163,7 +163,7 @@ test('warehouse detail navigation preserves Manager, Admin and Ops action bounda
     assert.match(markup, /Business calendar/);
     assert.match(markup, /Downtime schedule/);
     assert.equal(markup.includes('Edit warehouse'), role === 'WAREHOUSE_MANAGER');
-    assert.equal(markup.includes('Storage areas'), role !== 'OPS_DISPATCHER');
+    assert.equal(markup.includes('Zones &amp; locations'), role !== 'OPS_DISPATCHER');
     assert.match(markup, /role="tablist"/);
     assert.match(markup, /role="tab"[^>]*id="[^"]+-overview"[^>]*aria-selected="true"/);
     assert.match(markup, /role="tab"[^>]*id="[^"]+-calendar"[^>]*aria-selected="false"/);

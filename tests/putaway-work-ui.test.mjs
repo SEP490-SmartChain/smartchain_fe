@@ -99,12 +99,12 @@ const work = (roles, change = {}, disabled = false, scope) =>
 
 test('capacity blocker lets Manager arrange storage in place while Staff waits', () => {
   const manager = waiting(['WAREHOUSE_MANAGER']);
-  assert.match(manager, /QC approved\. Arrange storage first/);
+  assert.match(manager, /These goods are approved but still need a suitable storage location\./);
   assert.match(manager, /<button(?![^>]*disabled="")[^>]*>Arrange putaway<\/button>/);
   assert.doesNotMatch(manager, /Assign Staff<\/button>|Claim this task<\/button>/);
   const staff = waiting(['WAREHOUSE_STAFF']);
   assert.match(staff, /<button[^>]*disabled=""[^>]*>Claim this task<\/button>/);
-  assert.match(staff, /Waiting for a manager/);
+  assert.match(staff, /Waiting for the manager to prepare storage space/);
   assert.doesNotMatch(staff, /Arrange putaway|Assign Staff/);
 });
 
