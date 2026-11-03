@@ -5032,6 +5032,10 @@
     "confirmPhoto": "Xác minh ảnh đã tải",
     "cancelPhoto": "Hủy ảnh đang chờ",
     "addPhoto": "Thêm ảnh riêng tư",
+    "choosePhoto": "Chọn ảnh",
+    "photoUploadHint": "Chọn ảnh JPEG, PNG hoặc WebP, tối đa 5 MB. Ảnh sẽ tự động tải lên và xác minh sau khi chọn.",
+    "selectedPhoto": "Ảnh đã chọn: {name}",
+    "photoProcessing": "Đang xử lý ảnh. Vui lòng chờ xác nhận.",
     "retryPhoto": "Tải lại ảnh đã chọn",
     "history": "50 thay đổi xử lý gần nhất",
     "legacy": "Hồ sơ lịch sử cần rà soát riêng nguồn dữ liệu và bằng chứng trước khi thay đổi kết quả.",
@@ -5070,6 +5074,7 @@
     },
     "errors": {
       "EVIDENCE_EXPIRED": "Phiên tải ảnh đã hết hạn. Chọn lại ảnh để bắt đầu lượt tải mới.",
+      "STORAGE_UNAVAILABLE": "Chưa kết nối được kho lưu trữ ảnh. Giữ ảnh đã chọn và bấm Tải lại ảnh đã chọn khi kết nối hoạt động trở lại.",
       "generic": "Chưa thực hiện được thao tác. Làm mới hồ sơ rồi thử lại.",
       "FORBIDDEN": "Vai trò hoặc phân công hiện tại không cho phép thao tác này.",
       "NOT_FOUND": "Không có quyền xem hồ sơ hoặc kiện hàng trong phạm vi hiện tại.",

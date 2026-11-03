@@ -68,3 +68,34 @@ The selection regression failed before implementation and passed afterward, incl
 exhausted, ambiguous and paginated results. Final TypeScript, lint (zero errors,35existing
 warnings), format check, all1,417Node tests (zero failed/skipped), and production build
 passed. No BE or database change was needed.
+
+## 3 November private photo area and local storage recovery
+
+Replaced the plain native file field with a grouped, bordered photo area: upload icon,
+visible Choose photo button, supported formats/5MB guidance, selected filename,
+processing status and a visible retry action. The component uses the existing Common
+Button and preserves the original file input reference, evidence ID and upload/confirm
+workflow. It does not claim drag/drop support or bypass byte/checksum verification.
+
+The reported confirmation failure was a real HTTP503 `UPLOAD.STORAGE_UNAVAILABLE`,
+not an approval/quantity validation failure. Local MinIO on port9000 reset connections.
+Restarting the existing storage container preserved its volume and restored access;
+the existing bucket was accessible, but HEAD showed that the pending photo's bytes had
+not reached storage. Retrying the already selected file used its original evidence ID,
+completed PUT/confirm, and the live UI displayed verified evidence. Read-only DB/S3
+checks confirmed the original photo's verified timestamp, MIME type and394041-byte
+length. No migration, backend source change, credential change or database reset.
+
+Added localized actionable `STORAGE_UNAVAILABLE` feedback rather than the generic
+refresh message. The UI regression first failed against the plain file field/missing
+message, then passed for the visible action, image guidance, pending filename/retry,
+busy state and both language catalogs. Final checks: TypeScript, formatting, all1420
+Node tests and build passed; final lint has zero errors and35existing warnings.
+
+Native Windows screenshot verified the new area and verified-photo state on the live
+claim. DOM browser automation detached during the extra file-chooser cancellation
+check; that roundtrip is not claimed as a completed automated test. The successful
+original-image retry/confirmation and DB/S3 integrity checks above completed before
+the interruption. Parent-workspace evidence: `outputs/claims-photo-fixed.jpg`,
+`claims-photo-upload-new-ui.txt`, `claims-evidence-before-retry.json`,
+`claims-evidence-diagnosis.json`, and `claims-photo-ui-red.log`/`claims-photo-ui-green.log`.

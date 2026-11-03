@@ -8,6 +8,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useLocaleStore } from '@/stores/localeStore';
 
+import { ClaimPhotoUpload } from './ClaimPhotoUpload';
 import { ClaimReviewForm } from './ClaimReviewForm';
 import { claimsApi, type Claim, type ClaimScope } from '../api/claimsApi';
 import { useClaimSignal } from '../useClaimSignal';
@@ -278,36 +279,21 @@ function ClaimDetailContent({
           ))}
         </ul>
         {claim.canAddEvidence && can('claims.evidence.add') && (
-          <div>
-            <label className="block text-sm font-medium" htmlFor={`claim-photo-${id}`}>
-              {t('addPhoto')}
-            </label>
-            <input
-              id={`claim-photo-${id}`}
-              ref={fileInput}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={busy}
-              className="mt-2 block w-full text-sm"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) upload(file);
-              }}
-            />
-            {uploadIntent.current && (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy}
-                onClick={() => {
-                  const intent = uploadIntent.current;
-                  if (intent) upload(intent.file);
-                }}
-              >
-                {t('retryPhoto')}
-              </Button>
-            )}
-          </div>
+          <ClaimPhotoUpload
+            id={`claim-photo-${id}`}
+            inputRef={fileInput}
+            busy={busy}
+            fileName={uploadIntent.current?.file.name ?? null}
+            onFile={upload}
+            onRetry={
+              uploadIntent.current
+                ? () => {
+                    const intent = uploadIntent.current;
+                    if (intent) upload(intent.file);
+                  }
+                : undefined
+            }
+          />
         )}
       </section>
       {preview && (

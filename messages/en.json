@@ -5032,6 +5032,10 @@
     "confirmPhoto": "Verify uploaded photo",
     "cancelPhoto": "Cancel pending photo",
     "addPhoto": "Add private photo",
+    "choosePhoto": "Choose photo",
+    "photoUploadHint": "Choose a JPEG, PNG or WebP image up to 5 MB. It will upload and verify automatically after selection.",
+    "selectedPhoto": "Selected photo: {name}",
+    "photoProcessing": "Processing the photo. Please wait for confirmation.",
     "retryPhoto": "Retry selected photo",
     "history": "50 most recent workflow changes",
     "legacy": "Historical case: evidence and source snapshots require a separate review before workflow changes.",
@@ -5070,6 +5074,7 @@
     },
     "errors": {
       "EVIDENCE_EXPIRED": "This image upload intent expired. Select the image again to start a new upload.",
+      "STORAGE_UNAVAILABLE": "Photo storage is temporarily unreachable. Keep the selected image and use Upload selected photo again when the connection is restored.",
       "generic": "Unable to complete this action. Refresh the claim and retry.",
       "FORBIDDEN": "Your current role or assignment does not allow this action.",
       "NOT_FOUND": "This claim or parcel is not visible in the current scope.",
