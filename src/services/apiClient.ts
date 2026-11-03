@@ -1,13 +1,19 @@
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import type { ActorScope } from '@/lib/accessPolicy';
+import { signedStorageUrl } from '@/lib/signedStorageUrl';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
+
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MAX_XLSX_BYTES = 200 * 1024 * 1024;
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
   requiresAuth?: boolean;
   silent?: boolean;
+  responseMode?: 'pdf' | 'xlsx';
 }
 
 export interface ApiPaginationMeta {
@@ -34,13 +40,31 @@ export interface LoginInput {
   workspaceSlug?: string;
 }
 
+/**
+ * `actorScope` là trường server-owned (contract v0.2 §1/§5). Mọi giá trị không
+ * phải `TENANT`/`PLATFORM` (thiếu, `null`, sai kiểu, giá trị lạ) được chuẩn hóa
+ * về `null` ⇒ policy fail-closed, KHÔNG tự suy ra portal mặc định.
+ */
+const actorScopeSchema = z
+  .unknown()
+  .transform((value): ActorScope | null =>
+    value === 'TENANT' || value === 'PLATFORM' ? value : null,
+  );
+
 const profileSchema = z.object({
   userId: z.string(),
   tenantId: z.string().nullable(),
   email: z.string(),
   fullName: z.string(),
+  phone: z.string().nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  actorScope: actorScopeSchema,
+  serviceStatus: z.enum(['PENDING_ACTIVATION', 'ACTIVE', 'SUSPENDED', 'CLOSED']).nullish(),
   roles: z.array(z.string()),
   permissions: z.array(z.string()),
+  warehouseIds: z
+    .array(z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i))
+    .optional(),
 });
 const sessionSchema = z.object({
   accessToken: z.string().min(1),
@@ -49,6 +73,10 @@ const sessionSchema = z.object({
 });
 const errorSchema = z.object({
   error: z.object({ code: z.string(), message: z.string(), details: z.unknown().optional() }),
+});
+const businessLookupSchema = z.object({
+  code: z.string(),
+  data: z.object({ name: z.string(), address: z.string().nullish() }).nullish(),
 });
 
 export class ApiError extends Error {
@@ -73,11 +101,71 @@ class ApiClient {
     return useLocaleStore.getState().locale === 'en' ? en : vi;
   }
 
+  /** Private object PUT: send only signed headers, never application cookies or bearer tokens. */
+  async uploadSignedImage(
+    url: string,
+    file: File,
+    headers: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const destination = signedStorageUrl(url);
+    const response = await fetch(destination, {
+      method: 'PUT',
+      body: file,
+      headers,
+      credentials: 'omit',
+      redirect: 'error',
+      signal: signal ?? AbortSignal.timeout(30000),
+    });
+    if (!response.ok) throw new Error(`Image storage rejected upload (${response.status})`);
+  }
+
+  /** Public VietQR lookup: never send the orca session or cookies to a third party. */
+  async lookupBusinessTaxId(
+    taxId: string,
+  ): Promise<{ name: string; address: string | null } | null> {
+    const response = await fetch(`https://api.vietqr.io/v2/business/${encodeURIComponent(taxId)}`, {
+      method: 'GET',
+      credentials: 'omit',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      throw new ApiError(
+        'Business lookup is unavailable',
+        response.status,
+        'TAX_LOOKUP.UNAVAILABLE',
+      );
+    }
+    const payload: unknown = await response.json();
+    const parsed = businessLookupSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new ApiError(
+        'Invalid business lookup response',
+        response.status,
+        'TAX_LOOKUP.INVALID_RESPONSE',
+      );
+    }
+    if (parsed.data.code !== '00' || !parsed.data.data?.name.trim()) return null;
+    return {
+      name: parsed.data.data.name.trim(),
+      address: parsed.data.data.address?.trim() || null,
+    };
+  }
+
   private async send(endpoint: string, options: FetchOptions, token: string | null) {
-    const { params, requiresAuth: _auth, silent: _silent, headers, ...config } = options;
+    const {
+      params,
+      requiresAuth: _auth,
+      silent: _silent,
+      responseMode: _mode,
+      headers,
+      ...config
+    } = options;
     const url = `${this.baseURL}${endpoint}${params ? `?${new URLSearchParams(params)}` : ''}`;
     const requestHeaders = new Headers(headers);
-    requestHeaders.set('Content-Type', 'application/json');
+    if (config.body instanceof FormData) requestHeaders.delete('Content-Type');
+    else requestHeaders.set('Content-Type', 'application/json');
     requestHeaders.set('Accept-Language', useLocaleStore.getState().locale);
     if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
     return fetch(url, {
@@ -98,29 +186,71 @@ class ApiClient {
       const token = requiresAuth ? useAuthStore.getState().accessToken : null;
       const revision = useAuthStore.getState().revision;
       let response = await this.send(endpoint, options, token);
+      // 401 = phiên không hợp lệ/hết hạn ⇒ refresh rồi replay tối đa một lần.
+      // 403 = đã xác thực nhưng thiếu quyền ⇒ KHÔNG refresh, KHÔNG clear phiên
+      // (contract v0.2 §5/§8; docs/RBAC_UI_SCOPE.md mục 10).
       if (requiresAuth && response.status === 401) {
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw this.scopeChanged();
         }
         // A parallel request may already have rotated this access token.
         if (useAuthStore.getState().accessToken === token) await this.refreshSession();
+        if (revision !== useAuthStore.getState().revision) throw this.scopeChanged();
         response = await this.send(endpoint, options, useAuthStore.getState().accessToken);
-        if (response.status === 401 && revision === useAuthStore.getState().revision) {
-          useAuthStore.getState().clear();
+      }
+      if (response.ok && options.responseMode === 'pdf') {
+        if (response.headers.get('Content-Type')?.split(';')[0] !== 'application/pdf') {
+          throw new ApiError('Invalid label response', response.status, 'API.INVALID_RESPONSE');
         }
+        const blob = await response.blob();
+        const signature = await blob.slice(0, 5).text();
+        if (revision !== useAuthStore.getState().revision) {
+          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+        }
+        if (blob.size > 4 * 1024 * 1024 || signature !== '%PDF-') {
+          throw new ApiError('Invalid label response', response.status, 'API.INVALID_RESPONSE');
+        }
+        return blob as T;
+      }
+      if (response.ok && options.responseMode === 'xlsx') {
+        // UC-142 export: only a real workbook (ZIP container) from the API is handed to the browser.
+        if (response.headers.get('Content-Type')?.split(';')[0] !== XLSX_MIME) {
+          throw new ApiError('Invalid export response', response.status, 'API.INVALID_RESPONSE');
+        }
+        const blob = await response.blob();
+        const signature = await blob.slice(0, 2).text();
+        if (revision !== useAuthStore.getState().revision) {
+          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+        }
+        if (blob.size > MAX_XLSX_BYTES || signature !== 'PK') {
+          throw new ApiError('Invalid export response', response.status, 'API.INVALID_RESPONSE');
+        }
+        return blob as T;
       }
       const body: unknown = await response.json().catch(() => null);
+      // Responses from a previous seller/grant/assignment must never enter a new view/cache.
+      if (requiresAuth && revision !== useAuthStore.getState().revision) {
+        throw this.scopeChanged();
+      }
+      if (requiresAuth && response.status === 401) useAuthStore.getState().clear();
       if (!response.ok) {
         const parsed = errorSchema.safeParse(body);
+        // 403 phải hiển thị là "thiếu quyền", không phải lỗi phiên/mạng.
+        const forbidden = response.status === 403;
         throw new ApiError(
           parsed.success
             ? parsed.data.error.message
-            : this.message(
-                'Không thể gọi API. Vui lòng thử lại.',
-                'Unable to reach the API. Please retry.',
-              ),
+            : forbidden
+              ? this.message(
+                  'Bạn không có quyền thực hiện thao tác này.',
+                  'You do not have permission to perform this action.',
+                )
+              : this.message(
+                  'Không thể gọi API. Vui lòng thử lại.',
+                  'Unable to reach the API. Please retry.',
+                ),
           response.status,
-          parsed.success ? parsed.data.error.code : 'HTTP.ERROR',
+          parsed.success ? parsed.data.error.code : forbidden ? 'AUTH.FORBIDDEN' : 'HTTP.ERROR',
           parsed.success ? parsed.data.error.details : undefined,
         );
       }
@@ -140,6 +270,12 @@ class ApiClient {
       }
       return body as T;
     } catch (error) {
+      if (
+        (error instanceof DOMException && error.name === 'AbortError') ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) {
+        throw error;
+      }
       const failure =
         error instanceof ApiError
           ? error
@@ -151,9 +287,21 @@ class ApiClient {
               0,
               'NETWORK.ERROR',
             );
-      if (!silent) toast.error(failure.message);
+      if (!silent && failure.code !== 'AUTH.SCOPE_CHANGED') toast.error(failure.message);
       throw failure;
     }
+  }
+
+  private scopeChanged() {
+    return new ApiError(
+      this.message('Phạm vi truy cập đã thay đổi.', 'Your access scope has changed.'),
+      0,
+      'AUTH.SCOPE_CHANGED',
+    );
+  }
+
+  uploadForm<T>(endpoint: string, body: FormData, options: FetchOptions = {}): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
 
   refreshSession(): Promise<void> {
@@ -171,15 +319,18 @@ class ApiClient {
     )
       .then(({ data }) => {
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw this.scopeChanged();
         }
         useAuthStore.getState().setSession(sessionSchema.parse(data));
       })
       .catch((error: unknown) => {
+        // Contract v0.2 §5: CHỈ `401` nghĩa là refresh hết hạn/không hợp lệ ⇒
+        // clear phiên để guard đưa về login. `403` là thiếu quyền ⇒ giữ phiên,
+        // không được coi là logout (sửa P1 `apiClient.ts:180-189`).
         if (
           revision === useAuthStore.getState().revision &&
           error instanceof ApiError &&
-          [401, 403].includes(error.status)
+          error.status === 401
         ) {
           useAuthStore.getState().clear();
         }
@@ -233,7 +384,15 @@ class ApiClient {
     const pendingRefresh = this.refreshPromise;
     this.logoutPromise = (async () => {
       await pendingRefresh?.catch(() => undefined);
-      await this.post<ApiResponse<null>>('/v1/auth/logout', {}, { requiresAuth: false });
+      const accessToken = useAuthStore.getState().accessToken;
+      await this.post<ApiResponse<null>>(
+        '/v1/auth/logout',
+        {},
+        {
+          requiresAuth: false,
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        },
+      );
       useAuthStore.getState().clear();
     })().finally(() => {
       this.logoutPromise = null;
@@ -241,10 +400,10 @@ class ApiClient {
     return this.logoutPromise;
   }
 
-  async currentUser() {
+  async currentUser(signal?: AbortSignal) {
     const revision = useAuthStore.getState().revision;
-    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me');
-    if (revision === useAuthStore.getState().revision) {
+    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me', { signal });
+    if (!signal?.aborted && revision === useAuthStore.getState().revision) {
       useAuthStore.getState().setUser(profileSchema.parse(data));
     }
   }
@@ -252,8 +411,17 @@ class ApiClient {
   get<T>(endpoint: string, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
+  downloadPdf(endpoint: string, options?: FetchOptions): Promise<Blob> {
+    return this.request<Blob>(endpoint, { ...options, method: 'GET', responseMode: 'pdf' });
+  }
+  downloadXlsx(endpoint: string, options?: FetchOptions): Promise<Blob> {
+    return this.request<Blob>(endpoint, { ...options, method: 'GET', responseMode: 'xlsx' });
+  }
   post<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'POST', body: JSON.stringify(body) });
+  }
+  postForm<T>(endpoint: string, body: FormData, options?: FetchOptions) {
+    return this.request<T>(endpoint, { ...options, method: 'POST', body });
   }
   put<T>(endpoint: string, body: unknown, options?: FetchOptions) {
     return this.request<T>(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) });

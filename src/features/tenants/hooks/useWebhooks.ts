@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { webhookApi } from '../api/webhookApi';
+
 import type {
   CreateWebhookPayload,
   UpdateWebhookPayload,
@@ -56,9 +57,7 @@ export function useWebhooks() {
   const updateWebhook = useCallback(
     async (id: string, payload: UpdateWebhookPayload): Promise<WebhookEndpoint> => {
       const updated = await webhookApi.update(id, payload);
-      setWebhooks((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, ...updated } : item)),
-      );
+      setWebhooks((prev) => prev.map((item) => (item.id === id ? { ...item, ...updated } : item)));
       return updated;
     },
     [],

@@ -5,7 +5,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Bell,
   Command,
-  Globe2,
   LogOut,
   Monitor,
   Moon,
@@ -16,11 +15,13 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Avatar } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { getSearchLinks } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
-import { useAuthStore, useLocaleStore, useUiStore } from '@/stores';
+import { useAuthStore, useUiStore } from '@/stores';
 import type { ThemeMode } from '@/stores/uiStore';
 
 import { NAV_ICONS } from './navIcons';
@@ -45,33 +46,34 @@ export default function Topbar() {
   const t = useTranslations('Topbar');
   const sidebar = useTranslations('Sidebar');
   const locale = useLocale();
-  const { setLocale } = useLocaleStore();
   const { logout, isLoggingOut } = useAuth();
   const user = useAuthStore((state) => state.user);
+  const avatarUrl = useAvatarUrl(user?.avatarUrl);
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
 
-  const displayName = user?.fullName ?? user?.email ?? t('member');
-  const initials = displayName
-    .split(' ')
-    .map((word) => word[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const displayName =
+    user?.fullName?.replace(/\s*\(local\)$/i, '') || user?.email || t('member');
+  const { roles } = useAccess();
+
   const roleLabels: Record<string, string> = {
-    SUPER_ADMIN: t('role_super_admin'),
-    TENANT_ADMIN: t('role_tenant_admin'),
-    DISPATCHER: t('role_dispatcher'),
-    ACCOUNTANT: t('role_accountant'),
+    ORCA_ADMIN: t('role_orca_admin'),
+    OPS_DISPATCHER: t('role_ops_dispatcher'),
+    WAREHOUSE_MANAGER: t('role_warehouse_manager'),
+    WAREHOUSE_STAFF: t('role_warehouse_staff'),
+    ORCA_ACCOUNTANT: t('role_orca_accountant'),
+    SELLER_OWNER: t('role_seller_owner'),
+    SELLER_STAFF: t('role_seller_staff'),
   };
-  const role = roleLabels[user?.roles[0] ?? ''] ?? t('member');
+  // Hiển thị TOÀN BỘ role ORCA hiệu lực (contract §8). Phiên thiếu `actorScope`
+  // hoặc role lạ ⇒ `roles` rỗng, không rơi về nhãn legacy.
+  const roleSummary =
+    roles.length > 0 ? roles.map((roleCode) => roleLabels[roleCode]).join(', ') : t('member');
 
   const themeOptions: Array<{ id: ThemeMode; label: string; icon: typeof Sun }> = [
     { id: 'light', label: t('theme_light'), icon: Sun },
     { id: 'dark', label: t('theme_dark'), icon: Moon },
     { id: 'system', label: t('theme_system'), icon: Monitor },
   ];
-
-  const { roles } = useAccess();
 
   const searchItems = useMemo<SearchItem[]>(
     () =>
@@ -349,15 +351,13 @@ export default function Topbar() {
             onClick={() => togglePopover('profile')}
             className="flex items-center gap-2 rounded-lg text-left"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--sc-primary-lighter)] text-[11px] font-semibold text-[var(--sc-primary-dark)]">
-              {initials}
-            </span>
+            <Avatar src={avatarUrl} fallback={displayName} size="md" className="rounded-full" />
             <span className="hidden min-w-0 sm:block">
               <span className="block max-w-36 truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
                 {displayName}
               </span>
               <span className="mt-0.5 block max-w-36 truncate text-xs leading-4 text-[var(--sc-text-tertiary)]">
-                {role}
+                {roleSummary}
               </span>
             </span>
           </button>
@@ -368,25 +368,11 @@ export default function Topbar() {
               className="sc-popover-enter absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[220px] rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-2 shadow-[var(--sc-shadow-popover)]"
             >
               <div className="flex flex-col items-center px-3 py-2 text-center">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--sc-primary-lighter)] text-sm font-semibold text-[var(--sc-primary-dark)]">
-                  {initials}
-                </span>
+                <Avatar src={avatarUrl} fallback={displayName} size="xl" className="rounded-full" />
                 <p className="mb-0 mt-2 max-w-full truncate text-sm font-medium">{displayName}</p>
-                <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{role}</p>
+                <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{roleSummary}</p>
               </div>
               <div className="my-2 h-px bg-[var(--sc-border-default)]" />
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-3 rounded-lg p-2 text-sm hover:bg-[var(--sc-bg-secondary)]"
-                onClick={() => setLocale(locale === 'vi' ? 'en' : 'vi')}
-              >
-                <Globe2 size={16} strokeWidth={1.5} />
-                <span>{t('language')}</span>
-                <span className="ml-auto text-xs uppercase text-[var(--sc-text-tertiary)]">
-                  {locale}
-                </span>
-              </button>
               <Link
                 to="/settings"
                 role="menuitem"

@@ -21,19 +21,37 @@ Logout waits for pending refresh and prevents new rotations until revocation com
 logout keeps the session visible so the user can retry. Tenant context and permissions come
 from the verified profile, never a client-supplied tenant header.
 
-SUPER_ADMIN lands on /admin/tenants; workspace users land on /dashboard. Protected redirects
-preserve an allowed internal destination. Admin menus and routes require SUPER_ADMIN; the API
-remains responsible for enforcing permissions. Workspace slug can disambiguate shared emails.
+Portal redirects use the verified roles through `accessPolicy.ts`: Admin lands on
+`/admin/tenants`, Ops on `/shipments`, Warehouse Manager/Staff on `/warehouse/inbound`,
+Accountant on `/reconciliation`, and Seller Owner/Staff on `/dashboard`. Protected redirects
+preserve only an allowed internal destination. Missing, legacy or mixed-scope roles fail closed.
+Menus, search and routes share the same policy; the API remains responsible for enforcing
+permissions. Workspace slug can disambiguate shared emails.
 
 Run `npm test` for contract, validation, session restoration, concurrent refresh, logout,
 permission and redirect regression tests. Tests use Node's test runner and Vite's module loader;
 only the fetch boundary is mocked. No additional test dependency is required.
+
+SS-985 retains the server's current `warehouseIds`; identity/grant/assignment changes
+invalidate protected feature state and reject pending responses from the previous scope.
+Token rotation without a scope change preserves state. See
+[scope isolation](../../../docs/SS-985-SCOPE-ISOLATION.md).
 
 Local integration: Vite proxies /api to VITE_API_TARGET; BE AUTH_WEB_ORIGIN must exactly match
 http://localhost:2324 (or the actual FE origin). BE NODE_ENV=development permits HTTP cookies.
 Production requires HTTPS, a same-site API, and preferably a reverse proxy retaining /api.
 The refresh cookie is SameSite=Strict and scoped to /api/v1/auth; unrelated-site API URLs will
 not support refresh.
+
+## Business tax ID lookup during registration
+
+The optional lookup button calls VietQR's public `/v2/business/:taxCode` endpoint directly from
+the browser through `apiClient.lookupBusinessTaxId`. This request uses `credentials: omit` and
+never includes a orca Bearer token. It fills only the company name; the returned address
+is shown for reference because the registration API does not currently persist an address.
+Lookup failure never blocks manual registration. Do not automatically call on every keystroke:
+the provider rate-limits requests. VietQR states this endpoint will stop on 2027-03-01, so
+replace the provider before then; Xinvoice's successor API requires server-held credentials.
 
 ## Password Reset Request (SS-346)
 

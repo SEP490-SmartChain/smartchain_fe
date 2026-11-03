@@ -15,15 +15,16 @@ import { toast } from 'sonner';
 
 import { Button, Card, CardHeader } from '@/components/Common';
 
+import { WebhookCard } from './WebhookCard';
+import { WebhookFormModal } from './WebhookFormModal';
+import { WebhookSecretRevealModal } from './WebhookSecretRevealModal';
 import { useWebhooks } from '../hooks/useWebhooks';
+
 import type {
   CreateWebhookPayload,
   UpdateWebhookPayload,
   WebhookEndpoint,
 } from '../types/webhook.types';
-import { WebhookCard } from './WebhookCard';
-import { WebhookFormModal } from './WebhookFormModal';
-import { WebhookSecretRevealModal } from './WebhookSecretRevealModal';
 
 export function WebhookManager() {
   const t = useTranslations('Webhooks');
@@ -190,12 +191,7 @@ export function WebhookManager() {
                 <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
                 {t('refresh')}
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleOpenCreate}
-                className="gap-1.5"
-              >
+              <Button type="button" size="sm" onClick={handleOpenCreate} className="gap-1.5">
                 <Plus size={16} />
                 {t('addWebhook')}
               </Button>

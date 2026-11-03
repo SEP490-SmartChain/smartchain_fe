@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1180" viewBox="0 0 1440 1180">
+  <defs>
+    <style>
+      text { font-family: Archivo, Arial, sans-serif; fill: #1e293b; font-size: 15px; }
+      .title { font-size: 24px; font-weight: 700; }
+      .heading { font-size: 19px; font-weight: 700; }
+      .muted { fill: #64748b; font-size: 13px; }
+      .label { font-size: 13px; font-weight: 600; }
+      .mono { font-family: Consolas, monospace; font-size: 13px; }
+      .white { fill: white; font-weight: 600; }
+      .surface { fill: white; stroke: #e2e8f0; }
+      .field { fill: white; stroke: #cbd5e1; rx: 8; }
+    </style>
+  </defs>
+  <rect width="1440" height="1180" fill="#f1f5f9"/>
+  <text x="40" y="45" class="title">SS-1160 · Settings / API Keys</text>
+  <text x="40" y="72" class="muted">Sprint 3 · SELLER_OWNER · Review mockup / import this SVG into Figma</text>
+  <rect x="40" y="100" width="1360" height="400" rx="12" class="surface"/>
+  <text x="64" y="137" class="heading">API Keys</text>
+  <text x="64" y="163" class="muted">Cấp key để kênh bán tự động gửi đơn hàng vào ORCA.</text>
+  <rect x="1170" y="121" width="202" height="42" rx="8" fill="#0f766e"/>
+  <text x="1194" y="148" class="white">+ Tạo API key</text>
+  <rect x="64" y="188" width="1312" height="110" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="84" y="215" class="label">Thông tin kết nối · Endpoint tiếp nhận đơn hàng</text>
+  <text x="84" y="242" class="mono">POST {publicApiBase}/v1/ingest/orders</text>
+  <text x="84" y="266" class="muted">X-Api-Key + X-Idempotency-Key · Retry giữ nguyên key và nội dung · 202: đã tiếp nhận, kiểm tra địa chỉ bất đồng bộ.</text>
+  <text x="84" y="287" class="muted">Khi chưa cấu hình API công khai: hiển thị hướng dẫn liên hệ quản trị, không tạo địa chỉ giả.</text>
+  <rect x="64" y="316" width="1312" height="38" fill="#f8fafc"/>
+  <text x="84" y="341" class="label">Tên</text><text x="360" y="341" class="label">Key</text><text x="620" y="341" class="label">Quyền</text><text x="855" y="341" class="label">Trạng thái</text><text x="1040" y="341" class="label">Hết hạn</text><text x="1220" y="341" class="label">Thao tác</text>
+  <text x="84" y="382">Website đơn hàng</text><text x="360" y="382" class="mono">0123456789abcdef…</text><text x="620" y="382">Gửi đơn hàng</text>
+  <rect x="855" y="362" width="120" height="28" rx="14" fill="#d1fae5"/><text x="868" y="381" style="fill:#0f766e;font-size:13px">Đang hoạt động</text>
+  <text x="1040" y="382">Không hết hạn</text><text x="1220" y="382" style="fill:#b91c1c">Thu hồi</text>
+  <line x1="64" y1="403" x2="1376" y2="403" stroke="#e2e8f0"/>
+  <text x="84" y="436">ERP danh mục</text><text x="360" y="436" class="mono">fedcba9876543210…</text><text x="620" y="436">Đồng bộ danh mục SKU</text><text x="855" y="436" class="muted">Đã thu hồi</text><text x="1040" y="436">07/01/2027</text>
+  <text x="84" y="477" class="muted">Loading: skeleton · Empty: tạo key đầu tiên · Error: thông báo + Thử lại · Pagination: 10 key/trang</text>
+  <rect x="40" y="525" width="430" height="510" rx="12" class="surface"/>
+  <text x="64" y="565" class="heading">Tạo API key</text><text x="64" y="603" class="label">Tên key *</text>
+  <rect x="64" y="619" width="382" height="43" class="field"/><text x="80" y="647">Website đơn hàng</text>
+  <text x="64" y="693" class="label">Quyền *</text>
+  <rect x="64" y="709" width="19" height="19" rx="4" fill="#0f766e"/><text x="68" y="724" class="white">✓</text><text x="95" y="725">Gửi đơn hàng</text>
+  <rect x="64" y="744" width="19" height="19" rx="4" fill="white" stroke="#cbd5e1"/><text x="95" y="760">Đồng bộ danh mục SKU</text>
+  <text x="64" y="790" class="muted">Mặc định chỉ orders:write; quyền theo nhu cầu.</text>
+  <text x="64" y="828" class="label">Thời hạn</text><rect x="64" y="845" width="382" height="43" class="field"/><text x="80" y="873">Không hết hạn</text><text x="417" y="873">⌄</text>
+  <text x="64" y="916" class="muted">Tên 3–100 ký tự · Ít nhất một quyền</text>
+  <rect x="64" y="957" width="120" height="43" rx="8" fill="#f1f5f9"/><text x="108" y="985">Huỷ</text>
+  <rect x="206" y="957" width="240" height="43" rx="8" fill="#0f766e"/><text x="263" y="985" class="white">Tạo API key</text>
+  <rect x="495" y="525" width="430" height="510" rx="12" class="surface"/>
+  <text x="519" y="565" class="heading">API key đã được tạo</text>
+  <rect x="519" y="590" width="382" height="102" rx="8" fill="#fffbeb" stroke="#fde68a"/>
+  <text x="535" y="619" class="label">Chỉ hiển thị một lần</text><text x="535" y="647" class="muted">Sao chép và lưu key ở nơi an toàn.</text><text x="535" y="670" class="muted">Sau khi đóng, không thể xem lại key đầy đủ.</text>
+  <text x="519" y="731" class="label">Website đơn hàng · orders:write</text>
+  <rect x="519" y="751" width="382" height="82" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="535" y="785" class="mono">orca_[prefix]_[secret]</text><text x="535" y="812" class="muted">Placeholder thiết kế, không phải key thật.</text>
+  <rect x="519" y="856" width="382" height="43" rx="8" fill="#0f766e"/><text x="629" y="884" class="white">Sao chép API key</text>
+  <text x="519" y="928" class="muted">Secret chỉ trong memory; đổi tài khoản/tenant</text><text x="519" y="949" class="muted">hoặc đóng modal sẽ xoá khỏi màn hình.</text>
+  <rect x="519" y="973" width="382" height="38" rx="8" fill="#f1f5f9"/><text x="665" y="998">Đã lưu key</text>
+  <rect x="950" y="525" width="450" height="350" rx="12" class="surface"/>
+  <text x="974" y="565" class="heading">Thu hồi API key?</text><text x="974" y="608">Website đơn hàng</text>
+  <text x="974" y="645" class="muted">Kênh bán dùng key này sẽ không thể tiếp tục</text><text x="974" y="668" class="muted">gửi request. Thao tác thu hồi không thể hoàn tác.</text>
+  <rect x="974" y="700" width="402" height="57" rx="8" fill="#fef2f2"/><text x="990" y="734" style="fill:#b91c1c;font-size:13px">Tạo key mới để kết nối lại khi cần.</text>
+  <rect x="974" y="795" width="160" height="43" rx="8" fill="#f1f5f9"/><text x="1034" y="822">Huỷ</text><rect x="1156" y="795" width="220" height="43" rx="8" fill="#dc2626"/><text x="1210" y="822" class="white">Thu hồi key</text>
+  <text x="950" y="914" class="heading">Hành vi / accessibility</text><text x="950" y="950" class="muted">Modal focus, Escape/close và nút có nhãn.</text><text x="950" y="978" class="muted">Disable submit khi đang gửi; lỗi server được giữ rõ.</text><text x="950" y="1006" class="muted">SELLER_STAFF / PLATFORM không có tab API Keys.</text>
+  <text x="40" y="1084" class="muted">Mockup hỗ trợ review và import Figma. UI thực dùng Common components + design tokens của repo; dữ liệu minh hoạ.</text>
+  <text x="40" y="1112" class="muted">SS-1160 chưa được xuất bản lên Figma: đang chờ file đích. SS-1165 triển khai tại /settings/api-keys, có cả vi/en.</text>
+</svg>

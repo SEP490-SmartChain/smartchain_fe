@@ -33,8 +33,7 @@ export function TenantStatusModal({
   const t = useTranslations('AdminTenants');
   const isSuspending = tenant?.status === 'ACTIVE';
 
-  const [suspensionReason, setSuspensionReason] =
-    useState<SuspensionReason>('PAYMENT_DEFAULT');
+  const [suspensionReason, setSuspensionReason] = useState<SuspensionReason>('PAYMENT_DEFAULT');
   const [activationReason, setActivationReason] = useState('');
   const [internalNote, setInternalNote] = useState('');
   const [error, setError] = useState<string | null>(null);

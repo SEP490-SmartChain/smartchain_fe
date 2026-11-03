@@ -1,6 +1,6 @@
-export type DeploymentEnvironment = 'SANDBOX' | 'STAGING' | 'PRODUCTION';
+export type DeploymentEnvironment = 'SANDBOX' | 'PRODUCTION';
 
-export type TransportMode = 'ROAD' | 'AIR' | 'SEA' | 'RAIL';
+export type TransportMode = 'ROAD' | 'AIR' | 'SEA' | 'MULTIMODAL';
 
 export interface CarrierEndpoint {
   id: string;
@@ -36,9 +36,10 @@ export interface CarrierSummary {
   name: string;
   logoUrl: string | null;
   isActive: boolean;
+  monthlyPurchaseVolumeCount: number;
   endpointsCount: number;
   servicesCount: number;
-  connectedTenantsCount: number;
+  connectedTenantsCount: number | null;
   createdAt: string;
   updatedAt: string;
 }

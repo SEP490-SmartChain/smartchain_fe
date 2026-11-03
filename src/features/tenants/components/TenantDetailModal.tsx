@@ -13,7 +13,6 @@ import {
   Receipt,
   ShieldAlert,
   ShieldCheck,
-  Truck,
   Warehouse,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -27,6 +26,7 @@ import Modal from '@/components/Common/Modal/Modal';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
 
 import type { TenantDetail } from '../types/tenant.types';
+import { TenantContractTab } from './TenantContractTab';
 
 interface TenantDetailModalProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ interface TenantDetailModalProps {
   onToggleStatusClick: () => void;
 }
 
-type DetailTab = 'overview' | 'metrics' | 'audit';
+type DetailTab = 'overview' | 'metrics' | 'audit' | 'contract';
 
 export function TenantDetailModal({
   isOpen,
@@ -44,6 +44,7 @@ export function TenantDetailModal({
   onToggleStatusClick,
 }: TenantDetailModalProps) {
   const t = useTranslations('AdminTenants');
+  const commercial = useTranslations('CommercialAdmin');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -61,18 +62,12 @@ export function TenantDetailModal({
       ? Math.min(Math.round((tenant.quota.ordersUsed / tenant.quota.ordersTotal) * 100), 100)
       : 0;
 
-  const apiCallsPercentage =
-    tenant.quota.apiCallsTotal > 0
-      ? Math.min(Math.round((tenant.quota.apiCallsUsed / tenant.quota.apiCallsTotal) * 100), 100)
-      : 0;
-
   const isSuspended = tenant.status === 'SUSPENDED';
 
   const warehouseCount = tenant.aggregates?.activeWarehouseCount ?? 0;
   const orderCount = tenant.aggregates?.currentMonthOrderCount ?? tenant.quota.ordersUsed;
-  const carrierCount = tenant.aggregates?.connectedCarrierCount ?? 0;
 
-  const domainUrl = `${tenant.slug}.smartchain.vn`;
+  const domainUrl = `${tenant.slug}.orca.vn`;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="" width="680px">
@@ -153,6 +148,7 @@ export function TenantDetailModal({
                 { id: 'overview', label: 'Tổng quan' },
                 { id: 'metrics', label: 'Chỉ số & Quota' },
                 { id: 'audit', label: 'Trạng thái & Lịch sử' },
+                { id: 'contract', label: commercial('contractTab') },
               ]}
             />
           </div>
@@ -160,6 +156,7 @@ export function TenantDetailModal({
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-6 text-sm">
+          {activeTab === 'contract' && <TenantContractTab key={tenant.id} tenantId={tenant.id} />}
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-4">
@@ -245,8 +242,8 @@ export function TenantDetailModal({
                       tenant.subscription?.planCode === 'ENTERPRISE'
                         ? 'info'
                         : tenant.subscription?.planCode === 'PRO'
-                        ? 'success'
-                        : 'default'
+                          ? 'success'
+                          : 'default'
                     }
                     label={tenant.subscription?.planCode || 'STANDARD'}
                   />
@@ -277,13 +274,15 @@ export function TenantDetailModal({
           {activeTab === 'metrics' && (
             <div className="space-y-4">
               {/* Aggregates row */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 text-center">
                   <Warehouse className="mx-auto mb-1.5 text-[var(--sc-primary)]" size={20} />
                   <div className="text-2xl font-semibold text-[var(--sc-text-primary)]">
                     {warehouseCount}
                   </div>
-                  <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{t('warehouses')}</div>
+                  <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">
+                    {t('warehouses')}
+                  </div>
                 </div>
 
                 <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 text-center">
@@ -291,15 +290,9 @@ export function TenantDetailModal({
                   <div className="text-2xl font-semibold text-[var(--sc-text-primary)]">
                     {orderCount.toLocaleString()}
                   </div>
-                  <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{t('monthly_orders')}</div>
-                </div>
-
-                <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 text-center">
-                  <Truck className="mx-auto mb-1.5 text-[var(--sc-primary)]" size={20} />
-                  <div className="text-2xl font-semibold text-[var(--sc-text-primary)]">
-                    {carrierCount}
+                  <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">
+                    {t('monthly_orders')}
                   </div>
-                  <div className="mt-0.5 text-xs text-[var(--sc-text-tertiary)]">{t('connected_carriers')}</div>
                 </div>
               </div>
 
@@ -313,7 +306,9 @@ export function TenantDetailModal({
                   {/* Orders bar */}
                   <div>
                     <div className="flex justify-between text-xs">
-                      <span className="font-medium text-[var(--sc-text-primary)]">{t('orders_quota')}</span>
+                      <span className="font-medium text-[var(--sc-text-primary)]">
+                        {t('orders_quota')}
+                      </span>
                       <span className="text-[var(--sc-text-tertiary)]">
                         <strong className="text-[var(--sc-text-primary)]">
                           {tenant.quota.ordersUsed.toLocaleString()}
@@ -330,25 +325,6 @@ export function TenantDetailModal({
                       />
                     </div>
                   </div>
-
-                  {/* API Calls bar */}
-                  <div>
-                    <div className="flex justify-between text-xs">
-                      <span className="font-medium text-[var(--sc-text-primary)]">{t('api_calls_quota')}</span>
-                      <span className="text-[var(--sc-text-tertiary)]">
-                        <strong className="text-[var(--sc-text-primary)]">
-                          {tenant.quota.apiCallsUsed.toLocaleString()}
-                        </strong>{' '}
-                        / {tenant.quota.apiCallsTotal.toLocaleString()} ({apiCallsPercentage}%)
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--sc-bg-muted)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--sc-primary)] transition-all duration-500"
-                        style={{ width: `${apiCallsPercentage}%` }}
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -361,9 +337,13 @@ export function TenantDetailModal({
                 <div className="rounded-xl border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] p-4 text-xs text-[var(--sc-error-dark)]">
                   <div className="font-medium">Nhật ký Tạm dừng hoạt động</div>
                   <div className="mt-2 space-y-1">
-                    <div>Lý do: <strong>{tenant.suspension.reason}</strong></div>
+                    <div>
+                      Lý do: <strong>{tenant.suspension.reason}</strong>
+                    </div>
                     <div>Người thực hiện: {tenant.suspension.suspendedBy}</div>
-                    <div>Thời điểm: {new Date(tenant.suspension.suspendedAt).toLocaleString('vi-VN')}</div>
+                    <div>
+                      Thời điểm: {new Date(tenant.suspension.suspendedAt).toLocaleString('vi-VN')}
+                    </div>
                     {tenant.suspension.internalNote && (
                       <div className="mt-2 rounded bg-[var(--sc-bg-surface)] p-2 font-mono text-[11px]">
                         Ghi chú nội bộ: {tenant.suspension.internalNote}
@@ -386,7 +366,10 @@ export function TenantDetailModal({
                   <div className="mt-2 space-y-1">
                     <div>Giải trình: {tenant.restoration.reason}</div>
                     <div>Người mở khóa: {tenant.restoration.unsuspendedBy}</div>
-                    <div>Thời điểm: {new Date(tenant.restoration.unsuspendedAt).toLocaleString('vi-VN')}</div>
+                    <div>
+                      Thời điểm:{' '}
+                      {new Date(tenant.restoration.unsuspendedAt).toLocaleString('vi-VN')}
+                    </div>
                   </div>
                 </div>
               )}

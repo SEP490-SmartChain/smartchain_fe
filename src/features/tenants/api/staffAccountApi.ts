@@ -7,15 +7,16 @@ import type {
   StaffAccountFilters,
   StaffAccountPage,
   StaffAccountStatus,
-  StaffRole,
 } from '../types/staffAccount.types';
 
 const staffAccountSchema = z.object({
   userId: z.string().uuid(),
   fullName: z.string(),
   email: z.string().email(),
-  roles: z.array(z.enum(['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'])),
+  roles: z.array(z.enum(['SELLER_OWNER', 'SELLER_STAFF'])),
   lastSessionAt: z.string().datetime().nullable(),
+  phone: z.string().nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
   status: z.enum(['ACTIVE', 'LOCKED', 'PENDING']),
 });
 const staffAccountListSchema = z.array(staffAccountSchema);
@@ -25,10 +26,23 @@ const paginationSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 
+const updateProfileResponseSchema = z
+  .object({
+    userId: z.string().optional(),
+    fullName: z.string().optional(),
+    email: z.string().optional(),
+    phone: z.string().nullable().optional(),
+    avatarUrl: z.string().nullable().optional(),
+    roles: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
 export const staffAccountApi = {
-  
   async create(data: { email: string; fullName: string; roleCode: string }): Promise<StaffAccount> {
-    const { data: responseData } = await apiClient.post<ApiResponse<unknown>>('/v1/iam/users', data);
+    const { data: responseData } = await apiClient.post<ApiResponse<unknown>>(
+      '/v1/iam/users',
+      data,
+    );
     return staffAccountSchema.parse(responseData);
   },
 
@@ -56,11 +70,14 @@ export const staffAccountApi = {
     return staffAccountSchema.parse(data);
   },
 
-  async updateRoles(userId: string, roles: StaffRole[]): Promise<StaffAccount> {
-    const { data } = await apiClient.patch<ApiResponse<unknown>>(
-      `/v1/iam/users/${encodeURIComponent(userId)}/roles`,
-      { roles },
+  async updateProfile(
+    userId: string,
+    data: { fullName?: string; phone?: string | null; avatarUrl?: string | null },
+  ) {
+    const { data: responseData } = await apiClient.patch<ApiResponse<unknown>>(
+      `/v1/iam/users/${encodeURIComponent(userId)}`,
+      data,
     );
-    return staffAccountSchema.parse(data);
+    return updateProfileResponseSchema.parse(responseData);
   },
 };

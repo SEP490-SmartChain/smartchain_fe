@@ -1,0 +1,20 @@
+{
+  "owner": "Lợi Phan",
+  "date": "2026-10-26",
+  "delivery": "Editable SVG and HTML preview; Figma explicitly waived by user",
+  "tasks": {
+    "SS-1052": ["SS-1052-sku-form.svg", "SS-1052-sku-import.svg", "SS-1052-sku-list.svg"],
+    "SS-1058": [
+      "SS-1058-calendar-downtime.svg",
+      "SS-1058-warehouse-form.svg",
+      "SS-1058-warehouse-layout.svg",
+      "SS-1058-warehouse-list.svg"
+    ],
+    "SS-1064": ["SS-1064-asn-detail.svg", "SS-1064-asn-form.svg", "SS-1064-asn-list.svg"],
+    "SS-1081": [
+      "SS-1081-rules-editor.svg",
+      "SS-1081-rules-history-carrier.svg",
+      "SS-1081-rules-list.svg"
+    ]
+  }
+}

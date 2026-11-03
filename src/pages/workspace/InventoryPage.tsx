@@ -1,5 +1,5 @@
-import { ProductCatalogTable } from '@/features/catalog';
+import { InventoryWorkspace } from '@/features/inventory';
 
 export default function InventoryPage() {
-  return <ProductCatalogTable />;
+  return <InventoryWorkspace />;
 }

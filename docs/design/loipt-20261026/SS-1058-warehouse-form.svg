@@ -1,0 +1,109 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1058 · Create warehouse</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <rect x="16" y="219" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="246" font-size="14" fill="#0F766E" font-weight="600">Warehouses</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Rules</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Warehouses / Create warehouse
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">ORCA Admin</text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Create warehouse</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Admin creates platform-owned warehouses. Required fields follow the current form contract.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1058 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="1120" height="650" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="285" font-size="13" fill="#475569" font-weight="600">Warehouse code</text>
+  <text x="416" y="285" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="295" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="321" font-size="14" fill="#0F172A" font-weight="400">DN-01</text>
+  <text x="670" y="285" font-size="13" fill="#475569" font-weight="600">Warehouse name</text>
+  <text x="776" y="285" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="670" y="295" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="321" font-size="14" fill="#0F172A" font-weight="400">Đà Nẵng warehouse</text>
+  <text x="1030" y="285" font-size="13" fill="#475569" font-weight="600">Address</text>
+  <text x="1087" y="285" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="1030" y="295" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1042" y="321" font-size="14" fill="#0F172A" font-weight="400">
+    Synthetic demo address
+  </text>
+  <text x="310" y="385" font-size="13" fill="#475569" font-weight="600">Province / Ward</text>
+  <text x="423" y="385" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="395" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="421" font-size="14" fill="#0F172A" font-weight="400">
+    Đà Nẵng / selected ward
+  </text>
+  <text x="670" y="385" font-size="13" fill="#475569" font-weight="600">Region</text>
+  <text x="720" y="385" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="670" y="395" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="421" font-size="14" fill="#0F172A" font-weight="400">Central</text>
+  <text x="1030" y="385" font-size="13" fill="#475569" font-weight="600">Time zone</text>
+  <text x="1101" y="385" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="1030" y="395" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1042" y="421" font-size="14" fill="#0F172A" font-weight="400">Asia/Ho_Chi_Minh</text>
+  <text x="310" y="485" font-size="13" fill="#475569" font-weight="600">Latitude</text>
+  <text x="374" y="485" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="495" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="521" font-size="14" fill="#0F172A" font-weight="400">Selected on map</text>
+  <text x="670" y="485" font-size="13" fill="#475569" font-weight="600">Longitude</text>
+  <text x="741" y="485" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="670" y="495" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="521" font-size="14" fill="#0F172A" font-weight="400">Selected on map</text>
+  <text x="1030" y="485" font-size="13" fill="#475569" font-weight="600">Daily capacity</text>
+  <text x="1136" y="485" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="1030" y="495" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1042" y="521" font-size="14" fill="#0F172A" font-weight="400">300 cartons</text>
+  <text x="310" y="585" font-size="13" fill="#475569" font-weight="600">Operating hours</text>
+  <text x="423" y="585" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="595" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="621" font-size="14" fill="#0F172A" font-weight="400">08:00 – 18:00</text>
+  <text x="670" y="585" font-size="13" fill="#475569" font-weight="600">Cutoff</text>
+  <text x="720" y="585" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="670" y="595" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="621" font-size="14" fill="#0F172A" font-weight="400">14:00</text>
+  <text x="1030" y="585" font-size="13" fill="#475569" font-weight="600">Contact name</text>
+  <rect x="1030" y="595" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1042" y="621" font-size="14" fill="#0F172A" font-weight="400">Optional</text>
+  <text x="310" y="685" font-size="13" fill="#475569" font-weight="600">Contact phone</text>
+  <rect x="310" y="695" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="721" font-size="14" fill="#0F172A" font-weight="400">Optional</text>
+  <text x="670" y="685" font-size="13" fill="#475569" font-weight="600">Contact email</text>
+  <rect x="670" y="695" width="336" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="721" font-size="14" fill="#0F172A" font-weight="400">Optional</text>
+  <rect x="1042" y="816" width="150" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1058" y="843" font-size="14" fill="#0F172A" font-weight="600">Cancel</text>
+  <rect x="1208" y="816" width="174" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1224" y="843" font-size="14" fill="#FFFFFF" font-weight="600">Create warehouse</text>
+  <text x="310" y="925" font-size="13" fill="#475569" font-weight="400">
+    Validation: valid map coordinates; cutoff inside operating hours; positive capacity; optional
+    contact fields.
+  </text>
+</svg>

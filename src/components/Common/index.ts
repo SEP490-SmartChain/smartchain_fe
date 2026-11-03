@@ -1,10 +1,11 @@
 /**
- * SmartChain Common Components
- * SmartChain design system adapted from the SaaSable Hosting theme.
+ * ORCA Common Components
+ * ORCA design system adapted from the SaaSable Hosting theme.
  */
 
 // Layout
 export { Card, CardHeader, CardContent, CardFooter } from './Card/Card';
+export { PageHeader } from './PageHeader/PageHeader';
 
 // Forms
 export { Button } from './Button/Button';
@@ -21,11 +22,16 @@ export { Tabs } from './Tabs/Tabs';
 export type { TabsProps, TabItem } from './Tabs/Tabs';
 export { DatePicker } from './DatePicker/DatePicker';
 export type { DatePickerProps } from './DatePicker/DatePicker';
+export { MonthPicker } from './DatePicker/MonthPicker';
+export type { MonthPickerProps } from './DatePicker/MonthPicker';
 export { Avatar } from './Avatar/Avatar';
 export type { AvatarProps } from './Avatar/Avatar';
 export { Toaster } from './Toast/Toaster';
 export { Select } from './Select/Select';
+export { RequiredNote } from './RequiredNote/RequiredNote';
 export type { SelectProps } from './Select/Select';
+export { SearchableSelect } from './Select/SearchableSelect';
+export type { SearchableSelectProps, SearchableSelectOption } from './Select/SearchableSelect';
 export { Dropzone } from './Dropzone/Dropzone';
 export type { DropzoneProps } from './Dropzone/Dropzone';
 
@@ -33,6 +39,11 @@ export type { DropzoneProps } from './Dropzone/Dropzone';
 export { Alert } from './Alert/Alert';
 export type { AlertProps } from './Alert/Alert';
 export { Badge } from './Badge/Badge';
+export { SecretRevealModal } from './SecretRevealModal/SecretRevealModal';
+export type {
+  SecretRevealModalLabels,
+  SecretRevealModalProps,
+} from './SecretRevealModal/SecretRevealModal';
 
 // Navigation
 export { Breadcrumb } from './Breadcrumb';

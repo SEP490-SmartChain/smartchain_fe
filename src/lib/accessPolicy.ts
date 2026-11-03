@@ -1,33 +1,64 @@
 /**
- * Access policy trung tâm cho giao diện theo vai trò SmartChain.
+ * Access policy trung tâm ORCA cho giao diện theo vai trò.
  *
- * Module này là hàm/thuần (không import React/store) để Sidebar, route guard,
- * global search, breadcrumb, settings tab và action-level visibility dùng CHUNG
- * một nguồn sự thật, đồng thời test được bằng Node qua Vite `ssrLoadModule`.
+ * Đây là NGUỒN DUY NHẤT cho route guard, sidebar, global search, breadcrumb,
+ * settings tab và action-level visibility. Module thuần (không React/store) để
+ * test bằng Node qua Vite `ssrLoadModule`.
  *
- * Nguồn: `docs/RBAC_UI_SCOPE.md` (mục 4–8). Giai đoạn hiện tại policy dùng ROLE
- * làm nguồn và ánh xạ role → capability nội bộ. Khi backend có seed permission
- * và contract chính thức, chuyển nguồn policy sang permission server qua feature
- * flag/contract version rõ ràng — KHÔNG union ngầm hai nguồn.
+ * Mô hình (contract v0.2 §2, §3, §8, §11):
+ * - 7 role ORCA, 2 actor scope `TENANT`/`PLATFORM`; hợp quyền (union) CHỈ trong
+ *   một scope, cấm trộn scope trong một principal.
+ * - Thiếu scope, role rỗng, role lạ hoặc role legacy ⇒ DENY (fail-closed).
+ *   Không union với bất kỳ fallback role cũ nào.
+ * - Capability catalog bám ma trận màn hình `R3 line 407–424` (D2 baseline).
+ *   Capability chưa có nguồn được duyệt mang `provenance: 'PROPOSED'` và không
+ *   cấp quyền, kể cả khi đã có role dự kiến trong catalog.
  */
 
-export type AuthRole = 'SUPER_ADMIN' | 'TENANT_ADMIN' | 'DISPATCHER' | 'ACCOUNTANT';
+/** Hai phạm vi actor của ORCA. Thiếu/không hợp lệ ⇒ deny. */
+export type ActorScope = 'TENANT' | 'PLATFORM';
 
-export const AUTH_ROLES: readonly AuthRole[] = [
-  'SUPER_ADMIN',
-  'TENANT_ADMIN',
-  'DISPATCHER',
-  'ACCOUNTANT',
-];
+export const ACTOR_SCOPES: readonly ActorScope[] = ['TENANT', 'PLATFORM'];
 
-/** Role workspace có thể gán cho thành viên (loại trừ SUPER_ADMIN — role nền tảng). */
-export type WorkspaceRole = Exclude<AuthRole, 'SUPER_ADMIN'>;
+/** Bảy role ORCA (SRS line 906; R3 line 84–90). */
+export const ORCA_ROLES = [
+  'ORCA_ADMIN',
+  'OPS_DISPATCHER',
+  'WAREHOUSE_MANAGER',
+  'WAREHOUSE_STAFF',
+  'ORCA_ACCOUNTANT',
+  'SELLER_OWNER',
+  'SELLER_STAFF',
+] as const;
 
-export const WORKSPACE_ROLES: readonly WorkspaceRole[] = [
-  'TENANT_ADMIN',
-  'DISPATCHER',
-  'ACCOUNTANT',
-];
+export type OrcaRole = (typeof ORCA_ROLES)[number];
+
+/** Mỗi role ORCA thuộc đúng một actor scope (contract §3). */
+export const ROLE_ACTOR_SCOPE: Readonly<Record<OrcaRole, ActorScope>> = Object.freeze({
+  ORCA_ADMIN: 'PLATFORM',
+  OPS_DISPATCHER: 'PLATFORM',
+  WAREHOUSE_MANAGER: 'PLATFORM',
+  WAREHOUSE_STAFF: 'PLATFORM',
+  ORCA_ACCOUNTANT: 'PLATFORM',
+  SELLER_OWNER: 'TENANT',
+  SELLER_STAFF: 'TENANT',
+});
+
+/**
+ * Bốn role legacy của orca trước ORCA. Chỉ giữ để migration/compile-time:
+ * chúng được nhận diện nhưng **không cấp bất kỳ quyền nào** (deny-by-default).
+ */
+export const LEGACY_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] as const;
+
+export type LegacyRole = (typeof LEGACY_ROLES)[number];
+
+export function isOrcaRole(role: string): role is OrcaRole {
+  return (ORCA_ROLES as readonly string[]).includes(role);
+}
+
+export function isLegacyRole(role: string): role is LegacyRole {
+  return (LEGACY_ROLES as readonly string[]).includes(role);
+}
 
 export type CapabilityDomain =
   | 'workspace'
@@ -43,89 +74,928 @@ export type CapabilityDomain =
   | 'analytics'
   | 'integration'
   | 'audit'
-  | 'platform';
+  | 'platform'
+  | 'finance'
+  | 'apikey';
+
+export type CapabilityProvenance = 'APPROVED' | 'PROPOSED';
+
+/** Capability gắn với scope: `ANY` nghĩa là dùng chung cho cả hai scope. */
+export type CapabilityScope = ActorScope | 'ANY';
 
 export interface CapabilityDef {
   code: string;
   domain: CapabilityDomain;
-  roles: readonly AuthRole[];
+  scope: CapabilityScope;
+  roles: readonly OrcaRole[];
+  provenance: CapabilityProvenance;
+  /** Nguồn yêu cầu (R3/SRS/contract) hoặc nhãn PROPOSED khi chưa được duyệt. */
+  source: string;
 }
 
+const R3_MATRIX = 'R3 line 407–424 (screen authorization matrix, D2 baseline)';
+const D8_PROPOSED = 'FE aggregate capability chưa có action tương ứng trong D8 v3';
+const D8_APPROVED = 'proposed-permission-matrix.md v3 §2 (đã duyệt)';
+const CONTRACT_SECURITY = 'contract v0.2 §11 (security DoD)';
+
+function capability(
+  code: string,
+  domain: CapabilityDomain,
+  scope: CapabilityScope,
+  roles: readonly OrcaRole[],
+  provenance: CapabilityProvenance,
+  source: string,
+): CapabilityDef {
+  return { code, domain, scope, roles, provenance, source };
+}
+
+const ALL_ORCA_ROLES: readonly OrcaRole[] = ORCA_ROLES;
+
 /**
- * Catalog capability UI (mục 8) + một vài capability nội bộ cần thiết cho route
- * không có mã trong mục 8 (`workspace.billing.view`, `integration.errors.view`).
+ * Catalog capability UI. Mọi ô không khai báo ở đây ⇒ DENY.
+ * Role trong cùng một capability phải cùng scope với `scope` (hoặc `ANY`).
  */
 export const CAPABILITIES: readonly CapabilityDef[] = [
-  {
-    code: 'workspace.dashboard.view',
-    domain: 'workspace',
-    roles: ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'],
-  },
-  { code: 'workspace.settings.manage', domain: 'workspace', roles: ['TENANT_ADMIN'] },
-  { code: 'workspace.billing.view', domain: 'workspace', roles: ['TENANT_ADMIN'] },
-  { code: 'iam.users.manage', domain: 'iam', roles: ['TENANT_ADMIN'] },
-  { code: 'iam.roles.assign', domain: 'iam', roles: ['TENANT_ADMIN'] },
-  { code: 'carriers.credentials.manage', domain: 'carriers', roles: ['TENANT_ADMIN'] },
-  { code: 'warehouses.view', domain: 'warehouses', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'warehouses.manage', domain: 'warehouses', roles: ['TENANT_ADMIN'] },
-  { code: 'catalog.products.view', domain: 'catalog', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'catalog.products.manage', domain: 'catalog', roles: ['TENANT_ADMIN'] },
-  { code: 'inventory.view', domain: 'inventory', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'rules.view', domain: 'rules', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'rules.create_delete', domain: 'rules', roles: ['TENANT_ADMIN'] },
-  { code: 'rules.operate', domain: 'rules', roles: ['DISPATCHER'] },
-  { code: 'orders.view', domain: 'orders', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'orders.operate', domain: 'orders', roles: ['DISPATCHER'] },
-  { code: 'shipments.view', domain: 'shipments', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'shipments.operate', domain: 'shipments', roles: ['DISPATCHER'] },
-  { code: 'reconciliation.view', domain: 'reconciliation', roles: ['TENANT_ADMIN', 'ACCOUNTANT'] },
-  { code: 'reconciliation.operate', domain: 'reconciliation', roles: ['ACCOUNTANT'] },
-  { code: 'analytics.operations.view', domain: 'analytics', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'analytics.finance.view', domain: 'analytics', roles: ['TENANT_ADMIN', 'ACCOUNTANT'] },
-  { code: 'integration.errors.view', domain: 'integration', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { code: 'audit.tenant.view', domain: 'audit', roles: ['TENANT_ADMIN'] },
-  { code: 'audit.platform.view', domain: 'audit', roles: ['SUPER_ADMIN'] },
-  { code: 'platform.tenants.manage', domain: 'platform', roles: ['SUPER_ADMIN'] },
-  { code: 'platform.carriers.manage', domain: 'platform', roles: ['SUPER_ADMIN'] },
-  { code: 'platform.plans.manage', domain: 'platform', roles: ['SUPER_ADMIN'] },
-  { code: 'platform.observability.view', domain: 'platform', roles: ['SUPER_ADMIN'] },
+  capability(
+    'webhooks.deliveries.view',
+    'platform',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1259: report_health.read, metadata-only webhook delivery report with live warehouse RLS',
+  ),
+  capability(
+    'tariffs.manage',
+    'carriers',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'R3 UC-94/118; /v1/platform/tariffs v1, separate from carrier secrets',
+  ),
+  capability(
+    'iam.warehouses.assign',
+    'iam',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    'SS-980/SS-982; R3 UC-07: PUT /v1/admin/staff/:id/warehouses',
+  ),
+  capability(
+    'workspace.dashboard.view',
+    'workspace',
+    'ANY',
+    [
+      'ORCA_ADMIN',
+      'OPS_DISPATCHER',
+      'WAREHOUSE_MANAGER',
+      'ORCA_ACCOUNTANT',
+      'SELLER_OWNER',
+      'SELLER_STAFF',
+    ],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'workspace.settings.manage',
+    'workspace',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'workspace.billing.view',
+    'workspace',
+    'ANY',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'iam.users.manage',
+    'iam',
+    'ANY',
+    ['ORCA_ADMIN', 'SELLER_OWNER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'iam.roles.assign',
+    'iam',
+    'ANY',
+    ['ORCA_ADMIN', 'SELLER_OWNER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'carriers.credentials.manage',
+    'carriers',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    'R3 UC-92/93: ORCA Admin quản lý account hãng theo kho tại admin/carriers',
+  ),
+  capability(
+    'warehouses.view',
+    'warehouses',
+    'ANY',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF', 'SELLER_OWNER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability('warehouses.manage', 'warehouses', 'PLATFORM', ['ORCA_ADMIN'], 'APPROVED', R3_MATRIX),
+  capability(
+    'warehouses.update',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'RP3 UC-19 assigned warehouses',
+  ),
+  capability(
+    'warehouses.layout.view',
+    'warehouses',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'RP3 UC-24',
+  ),
+  capability(
+    'warehouses.layout.manage',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'RP3 UC-21–23 assigned warehouses',
+  ),
+  capability(
+    'warehouses.downtime.view',
+    'warehouses',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'WAREHOUSE_MANAGER', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 UC-25 affected work',
+  ),
+  capability(
+    'warehouses.downtime.manage',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'RP3 UC-25 assigned warehouses',
+  ),
+  capability(
+    'catalog.products.view',
+    'catalog',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-26–30: current priced catalog API is Owner-only; operational SKU lookups use scoped inbound/inventory APIs',
+  ),
+  capability(
+    'catalog.products.manage',
+    'catalog',
+    'ANY',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'R3 §2.1 Seller Staff; UC-26–UC-30: SKU write belongs to Seller Owner',
+  ),
+  capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
+  capability(
+    'inventory.stocks.view',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    'UC-45: GET /v1/inventory/stocks and /summary require SELLER_OWNER or SELLER_STAFF and an authenticated tenant',
+  ),
+  capability(
+    'inventory.workflows.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'Sprint5 physical count, putback and disposal workflows',
+  ),
+  capability(
+    'inventory.notifications.override',
+    'inventory',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-53 assigned warehouse notification overrides',
+  ),
+  capability(
+    'inventory.expiry.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'Sprint5 UC-52: GET /v1/lots/near-expiry, own seller or assigned warehouse',
+  ),
+  capability(
+    'inventory.notifications.manage',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'Sprint5 UC-52: owner-managed notification thresholds and destinations',
+  ),
+  capability(
+    'inventory.positions.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1118 / UC-46: GET /v1/inventory/positions, own seller or assigned warehouse',
+  ),
+  capability(
+    'inventory.ledger.view',
+    'inventory',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1118 / UC-47: GET /v1/inventory/ledger, own seller or assigned warehouse',
+  ),
+  capability(
+    'inventory.reservations.view',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'PROPOSED',
+    'SS-507 tenant-owned reservation API chưa có mapping ORCA được duyệt',
+  ),
+  capability(
+    'warehouse.picking.manage',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1186/SS-1312 UC-80/81/84: execution.create/update in assigned warehouse',
+  ),
+  capability(
+    'warehouse.picking.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1186 UC-82/83: assigned pick and shortage evidence via inventory.update',
+  ),
+  capability(
+    'inventory.reservations.release',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'PROPOSED',
+    'SS-507 manual release chưa có action trong D8 v3',
+  ),
+  capability(
+    'rules.view',
+    'rules',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'routing.rule.set',
+    'rules',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 UC-76/96/97, BR-42; SS-1084 /v1/rules action contract',
+  ),
+  capability('rules.create_delete', 'rules', 'PLATFORM', ['ORCA_ADMIN'], 'APPROVED', R3_MATRIX),
+  capability('rules.operate', 'rules', 'PLATFORM', ['OPS_DISPATCHER'], 'APPROVED', R3_MATRIX),
+  capability(
+    'rules.simulate.allocation',
+    'rules',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 FU-42 / UC-77; SS-1089 POST /v1/rules/simulate kind ALLOCATION',
+  ),
+  capability(
+    'rules.simulate.carrier',
+    'rules',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'RP3 FU-35 / UC-98; SS-1089 POST /v1/rules/simulate kind CARRIER',
+  ),
+  capability('orders.view', 'orders', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
+  capability(
+    'orders.lifecycle.manage',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-50/72/101: orders.update and order_cancel.create/read, own seller only',
+  ),
+  capability(
+    'orders.policy.manage',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-71: GET/PUT /v1/orders/policy, order_policy.read/update',
+  ),
+  capability(
+    'warehouse.putback.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-50: exact physical putback scan, inventory.update in live assigned warehouse',
+  ),
+  capability(
+    'orders.cancellation.manage',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-50/72/101: orders.update and order_cancel.create/read, own seller only',
+  ),
+  capability(
+    'orders.cancellation.ops',
+    'orders',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-50/101: order_cancel.read/create; server requires live assignments for every child warehouse',
+  ),
+  capability(
+    'warehouse.packing.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-85–87: packing.create in live assigned warehouse',
+  ),
+  capability(
+    'warehouse.handover.create',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-88: handover.create in live assigned warehouse',
+  ),
+  capability(
+    'warehouse.handover.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-89/90: handover.update in live assigned warehouse',
+  ),
+  capability(
+    'orders.seller.read',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    'R3 FU-30/UC-65, own seller order read; GET /v1/orders',
+  ),
+  capability(
+    'orders.withdrawal.create',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'UC-79: /v1/orders/withdrawals; withdrawal.create/update, registered address and debt gate',
+  ),
+  capability(
+    'orders.create',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'R3 UC-66/67 and D8 orders.create; POST /v1/orders and /import',
+  ),
+  capability(
+    'orders.operate',
+    'orders',
+    'ANY',
+    ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER'],
+    'APPROVED',
+    'R3 §2.1 Seller Staff; UC-65–UC-72: Seller Staff has order read only',
+  ),
+  capability(
+    'shipments.view',
+    'shipments',
+    'ANY',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'shipments.label.download',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-81 label print; GET /v1/shipments/:id/label; PDF includes COD/recipient data; RLS shipment.read',
+  ),
+  capability(
+    'shipments.cancel',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-101 waybill cancel; owner-approved 20/10/2026; POST /v1/shipments/:id/cancel; RLS shipment.update',
+  ),
+  capability(
+    'shipments.sla.view',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'UC-104 SLA breach queue; GET /v1/sla-exceptions; RLS shipment.read + warehouse assignment',
+  ),
+  capability(
+    'shipments.sla.assign',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-104 actor Ops Dispatcher; POST /v1/sla-exceptions/:id/assign; RLS shipment.update',
+  ),
+  capability(
+    'shipments.operate',
+    'shipments',
+    'ANY',
+    ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'reconciliation.view',
+    'reconciliation',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'reconciliation.operate',
+    'reconciliation',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'analytics.operations.view',
+    'analytics',
+    'ANY',
+    [
+      'ORCA_ADMIN',
+      'OPS_DISPATCHER',
+      'WAREHOUSE_MANAGER',
+      'ORCA_ACCOUNTANT',
+      'SELLER_OWNER',
+      'SELLER_STAFF',
+    ],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'analytics.finance.view',
+    'analytics',
+    'ANY',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'integration.errors.view',
+    'integration',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'R3 §3.1.3, UC-154: integration health belongs to Admin and Ops',
+  ),
+  capability(
+    'audit.tenant.view',
+    'audit',
+    'TENANT',
+    [],
+    'PROPOSED',
+    'R3 §3.1.3, UC-152: technical audit is Admin only; seller evidence stays in business screens',
+  ),
+  capability('audit.platform.view', 'audit', 'PLATFORM', ['ORCA_ADMIN'], 'APPROVED', R3_MATRIX),
+  capability(
+    'platform.tenants.manage',
+    'platform',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'platform.carriers.manage',
+    'platform',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    'R3 UC-91: ORCA Admin quản lý carrier catalog',
+  ),
+  capability(
+    'platform.plans.manage',
+    'platform',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  capability(
+    'platform.observability.view',
+    'platform',
+    'PLATFORM',
+    ['ORCA_ADMIN'],
+    'APPROVED',
+    R3_MATRIX,
+  ),
+  // Hành động nhạy cảm: warehouse staff bị DENY (contract §11; R3 line 407 note).
+  capability(
+    'finance.view',
+    'finance',
+    'ANY',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+    'PROPOSED',
+    `${D8_PROPOSED}; ${CONTRACT_SECURITY}`,
+  ),
+  capability(
+    'contract.sign',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA Report 3 BR-59 / SS-990: Seller Owner accepts their standard agreement',
+  ),
+  capability(
+    'cod.view',
+    'finance',
+    'ANY',
+    ['ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+    'APPROVED',
+    D8_APPROVED,
+  ),
+  capability(
+    'invoice.view',
+    'finance',
+    'ANY',
+    ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'],
+    'APPROVED',
+    D8_APPROVED,
+  ),
+  capability(
+    'invoice.bankReceipt.post',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-127 / SS-990: Accountant verifies bank evidence and posts once',
+  ),
+  capability(
+    'invoice.period.close',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'ORCA Report 3 UC-123 / SS-1022: Accountant closes a completed seller statement',
+  ),
+  capability(
+    'statement.review',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'SS-1012 / UC-131–132: own statement confirmation and line disputes via statement_review.update / payout_review.create',
+  ),
+  capability(
+    'payout.manage',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'SS-1012 / UC-133–136: evidenced statement approval, manual transfers and approved closeout settlement via finance.create',
+  ),
+  capability(
+    'apikey.manage',
+    'apikey',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    `${D8_APPROVED}; SRS line 213`,
+  ),
+  capability(
+    'asns.view',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER', 'SELLER_STAFF'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'returns.view',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'SS-1134/1307 UC-105–110: returns.read, own seller or assigned warehouse',
+  ),
+  capability(
+    'returns.operations.view',
+    'orders',
+    'PLATFORM',
+    ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1134/1307 UC-105–110: returns.read in the assigned warehouse',
+  ),
+  capability(
+    'returns.disposition',
+    'orders',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'SS-1134 UC-111 / BR-30: disposition.create with explicit bounded Owner consent',
+  ),
+  capability(
+    'returns.request',
+    'orders',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1307 UC-106: returns.create, original delivered child and 7-day window',
+  ),
+  capability(
+    'returns.authorize',
+    'orders',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1307 UC-106: returns.update, reverse booking intent',
+  ),
+  capability(
+    'returns.receive',
+    'orders',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1134 UC-107: return_receipt.update, physical arrival',
+  ),
+  capability(
+    'returns.inspect',
+    'orders',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1134 UC-108: return_qc.update, evidenced classification',
+  ),
+  capability(
+    'returns.review',
+    'orders',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1134 UC-108: return_review.update, independent classification approval',
+  ),
+  capability(
+    'returns.restock',
+    'orders',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1134 UC-109/110: inventory.update, reviewed original-lot physical scan',
+  ),
+  capability(
+    'inventory.trace',
+    'inventory',
+    'PLATFORM',
+    ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1139 UC-60/61: trace.read, original provenance',
+  ),
+  capability(
+    'inventory.trace.forward',
+    'inventory',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1139 UC-60: trace.read, forward lot investigation',
+  ),
+  capability(
+    'inventory.recall',
+    'inventory',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1139 UC-62/63: recall.update and audited trace.read affected recipients',
+  ),
+  capability(
+    'statements.view',
+    'finance',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'warehouse.operations.view',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'warehouse.asn.checkIn',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-37; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/arrival',
+  ),
+  capability(
+    'warehouse.asn.recordCount',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-38; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:id/receiving/counts',
+  ),
+  capability(
+    'warehouse.asn.uploadPhoto',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-39; assigned warehouse, private receipt evidence presign/confirm',
+  ),
+  capability(
+    'warehouse.asn.packagingAssist',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 UC-158 / SS-1095: own verified receipt photo; assigned Staff only, receipt_ai.read/create/update; explicit confirmation, no count/QC/stock effect',
+  ),
+  capability(
+    'warehouse.asn.review',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'RP3 FU-21/UC-41; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/reviews',
+  ),
+  capability(
+    'warehouse.asn.postStock',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'SS-1072 / RP3 FU-21; assigned warehouse, Manager-reviewed physical receipt through InventoryFacade.receive',
+  ),
+  capability(
+    'warehouse.asn.reportDiscrepancy',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-40; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/discrepancies',
+  ),
+  capability(
+    'warehouse.putaway.overrideBin',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1304 / RP3 FU-22 UC-42: Manager overrides suggested bin with immutable audit; existing putaway.update scope',
+  ),
+  capability(
+    'warehouse.putaway.assign',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-42; assigned warehouse, Manager assignment or Staff self-claim',
+  ),
+  capability(
+    'warehouse.putaway.relocate',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-44; same assigned warehouse, physical scans and unreserved stock',
+  ),
+  capability(
+    'warehouse.putaway.confirm',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-22/UC-43; assigned task and physical scans, InventoryFacade.move',
+  ),
+  capability(
+    'warehouse.asn.inspect',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'RP3 FU-21/UC-39; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/records/:recordId/inspections',
+  ),
+  capability(
+    'platform.warehouses.view',
+    'warehouses',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'exceptions.view',
+    'orders',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
 ];
 
-export const CAPABILITY_ROLES: Readonly<Record<string, readonly AuthRole[]>> = Object.freeze(
-  CAPABILITIES.reduce<Record<string, AuthRole[]>>((acc, capability) => {
-    acc[capability.code] = [...capability.roles];
+export const CAPABILITY_ROLES: Readonly<Record<string, readonly OrcaRole[]>> = Object.freeze(
+  CAPABILITIES.reduce<Record<string, readonly OrcaRole[]>>((acc, capabilityDef) => {
+    acc[capabilityDef.code] = [...capabilityDef.roles];
     return acc;
   }, {}),
 );
 
-/** Ma trận route cấp cao (mục 6). `prefix` áp dụng cho cả nhánh con. */
+const CAPABILITY_BY_CODE: Readonly<Record<string, CapabilityDef>> = Object.freeze(
+  CAPABILITIES.reduce<Record<string, CapabilityDef>>((acc, capabilityDef) => {
+    acc[capabilityDef.code] = capabilityDef;
+    return acc;
+  }, {}),
+);
+
+/** Ma trận route cấp cao. `prefix` áp dụng cho cả nhánh con. */
 export interface RoutePolicy {
   path: string;
   prefix?: boolean;
-  roles: readonly AuthRole[];
+  capability?: string;
+  anyCapability?: readonly string[];
+  /** Route thuộc catalog phát triển, chỉ tồn tại khi DEV. */
+  devOnly?: boolean;
 }
 
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
-  { path: '/dashboard', roles: ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] },
-  { path: '/orders', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { path: '/warehouses', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { path: '/inventory', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { path: '/rules', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { path: '/shipments', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  { path: '/reconciliation', roles: ['TENANT_ADMIN', 'ACCOUNTANT'] },
-  { path: '/analytics', roles: ['TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] },
-  { path: '/billing', roles: ['TENANT_ADMIN'] },
-  { path: '/iam/users', roles: ['TENANT_ADMIN'] },
-  { path: '/roles-permissions', prefix: true, roles: ['TENANT_ADMIN'] },
-  { path: '/settings/profile', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'DISPATCHER', 'ACCOUNTANT'] },
-  { path: '/settings/general', roles: ['TENANT_ADMIN'] },
-  { path: '/settings/integrations', roles: ['TENANT_ADMIN'] },
-  { path: '/settings/webhooks', roles: ['TENANT_ADMIN'] },
-  { path: '/audit', roles: ['TENANT_ADMIN'] },
-  { path: '/integration-errors', roles: ['TENANT_ADMIN', 'DISPATCHER'] },
-  // Catalog phát triển: chỉ tồn tại khi DEV; trong DEV mọi role đăng nhập đều xem được.
-  { path: '/components', prefix: true, roles: AUTH_ROLES },
-  { path: '/admin', prefix: true, roles: ['SUPER_ADMIN'] },
+  { path: '/admin/webhooks', capability: 'webhooks.deliveries.view' },
+  { path: '/admin/tariffs', capability: 'tariffs.manage' },
+  { path: '/admin/staff', capability: 'iam.warehouses.assign' },
+  { path: '/dashboard', capability: 'workspace.dashboard.view' },
+  { path: '/catalog/skus', capability: 'catalog.products.view' },
+  { path: '/asns', capability: 'asns.view' },
+  { path: '/orders', capability: 'orders.view' },
+  { path: '/returns', capability: 'returns.view' },
+  { path: '/warehouse/returns', capability: 'returns.operations.view' },
+  { path: '/billing', capability: 'workspace.billing.view' },
+  { path: '/statements', capability: 'statements.view' },
+  { path: '/warehouses', capability: 'warehouses.view' },
+  { path: '/inventory', capability: 'inventory.view' },
+  { path: '/warehouse/inventory-workflows', capability: 'inventory.workflows.view' },
+  { path: '/inventory/workflows', capability: 'inventory.workflows.view' },
+  { path: '/warehouse', prefix: true, capability: 'warehouse.operations.view' },
+  { path: '/rules', capability: 'rules.view' },
+  { path: '/shipments', capability: 'shipments.view' },
+  { path: '/exceptions', capability: 'exceptions.view' },
+  { path: '/reconciliation', capability: 'reconciliation.view' },
+  {
+    path: '/analytics',
+    anyCapability: ['analytics.operations.view', 'analytics.finance.view'],
+  },
+  { path: '/iam/users', capability: 'iam.users.manage' },
+  // Profile chỉ cần đăng nhập + scope/role hợp lệ, mọi role ORCA đều xem được.
+  { path: '/settings/profile' },
+  // Legacy seller-profile links keep their existing guard and redirect to the merged profile.
+  { path: '/settings/general', capability: 'workspace.settings.manage' },
+  { path: '/settings/api-keys', capability: 'apikey.manage' },
+  { path: '/settings/webhooks', capability: 'workspace.settings.manage' },
+  { path: '/settings/contract', capability: 'contract.sign' },
+  { path: '/audit', capability: 'audit.tenant.view' },
+  { path: '/integration-errors', capability: 'integration.errors.view' },
+  // Catalog phát triển: chỉ tồn tại khi DEV.
+  { path: '/components', prefix: true, devOnly: true },
+  { path: '/admin/warehouses', capability: 'platform.warehouses.view' },
+  {
+    path: '/admin',
+    prefix: true,
+    anyCapability: [
+      'platform.tenants.manage',
+      'platform.carriers.manage',
+      'platform.plans.manage',
+      'platform.observability.view',
+      'audit.platform.view',
+    ],
+  },
 ];
 
 export interface NavLink {
@@ -137,6 +1007,20 @@ export interface NavLink {
 
 export interface NavItem extends NavLink {
   children?: NavLink[];
+  activePaths?: readonly string[];
+}
+
+export const WAREHOUSE_INBOUND_TABS = [
+  { key: 'warehouse_inbound', href: '/warehouse/inbound' },
+  { key: 'warehouse_receiving', href: '/warehouse/receiving' },
+  { key: 'warehouse_putaway', href: '/warehouse/putaway' },
+] as const;
+
+export function isNavItemActive(item: NavItem, pathname: string): boolean {
+  const current = normalizePathname(pathname);
+  return (item.activePaths ?? [item.href]).some(
+    (href) => current === href || current.startsWith(`${href}/`),
+  );
 }
 
 export type NavScope = 'platform' | 'workspace' | 'shared';
@@ -148,15 +1032,154 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** Template sidebar (mục 5) dùng chung; lọc theo capability để ra template từng role. */
+/** Template sidebar dùng chung lọc theo 3 cổng; lọc theo capability để ra template từng role. */
 export const NAV_GROUPS: readonly NavGroup[] = [
   {
-    key: 'platform_heading',
+    key: 'overview_heading',
+    scope: 'shared',
+    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
+  },
+  {
+    key: 'platform_staff_heading',
+    scope: 'platform',
+    items: [{ key: 'platform_staff', href: '/admin/staff', capability: 'iam.warehouses.assign' }],
+  },
+  // 1. CỔNG NGƯỜI BÁN (TENANT)
+  {
+    key: 'goods_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'skus', href: '/catalog/skus', capability: 'catalog.products.view' },
+      { key: 'asns', href: '/asns', capability: 'asns.view' },
+      { key: 'inventory', href: '/inventory', capability: 'inventory.view' },
+      { key: 'warehouses', href: '/warehouses', capability: 'warehouses.view' },
+    ],
+  },
+  {
+    key: 'orders_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'orders', href: '/orders', capability: 'orders.view' },
+      { key: 'returns', href: '/returns', capability: 'returns.view' },
+    ],
+  },
+  {
+    key: 'finance_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
+      { key: 'statements', href: '/statements', capability: 'statements.view' },
+    ],
+  },
+  {
+    key: 'integrations_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'api_keys', href: '/settings/api-keys', capability: 'apikey.manage' },
+      { key: 'webhooks', href: '/settings/webhooks', capability: 'workspace.settings.manage' },
+    ],
+  },
+  {
+    key: 'workspace_settings_heading',
+    scope: 'workspace',
+    items: [
+      { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
+      { key: 'contract', href: '/settings/contract', capability: 'contract.sign' },
+    ],
+  },
+
+  // 2. CỔNG NHÂN VIÊN KHO (PLATFORM / WAREHOUSE)
+  {
+    key: 'warehouse_ops_heading',
+    scope: 'platform',
+    items: [
+      {
+        key: 'warehouse_intake',
+        href: '/warehouse/inbound',
+        capability: 'warehouse.operations.view',
+        activePaths: WAREHOUSE_INBOUND_TABS.map((tab) => tab.href),
+      },
+      {
+        key: 'inventory_workflows',
+        href: '/warehouse/inventory-workflows',
+        capability: 'inventory.workflows.view',
+      },
+      {
+        key: 'warehouse_picking',
+        href: '/warehouse/picking',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_packing',
+        href: '/warehouse/packing',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_handover',
+        href: '/warehouse/handover',
+        capability: 'warehouse.operations.view',
+      },
+      {
+        key: 'warehouse_returns',
+        href: '/warehouse/returns',
+        capability: 'returns.operations.view',
+      },
+      {
+        key: 'warehouse_counts',
+        href: '/warehouse/counts',
+        capability: 'warehouse.operations.view',
+      },
+    ],
+  },
+
+  // 3. CỔNG VẬN HÀNH ORCA (PLATFORM)
+  {
+    key: 'platform_tenants_heading',
     scope: 'platform',
     items: [
       { key: 'admin_tenants', href: '/admin/tenants', capability: 'platform.tenants.manage' },
+    ],
+  },
+  {
+    key: 'network_warehouses_heading',
+    scope: 'platform',
+    items: [
+      {
+        key: 'inventory',
+        href: '/inventory',
+        anyCapability: ['inventory.positions.view', 'inventory.ledger.view'],
+      },
+      {
+        key: 'admin_warehouses',
+        href: '/admin/warehouses',
+        capability: 'platform.warehouses.view',
+      },
+    ],
+  },
+  {
+    key: 'carrier_setup_heading',
+    scope: 'platform',
+    items: [
       { key: 'admin_carriers', href: '/admin/carriers', capability: 'platform.carriers.manage' },
+      { key: 'freight_tariffs', href: '/admin/tariffs', capability: 'tariffs.manage' },
+    ],
+  },
+  {
+    key: 'shipping_heading',
+    scope: 'platform',
+    items: [
+      { key: 'rules', href: '/rules', capability: 'rules.view' },
+      { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
+      { key: 'exceptions', href: '/exceptions', capability: 'exceptions.view' },
+    ],
+  },
+  {
+    key: 'finance_heading',
+    scope: 'platform',
+    items: [
+      { key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' },
       { key: 'subscription_plans', href: '/admin/plans', capability: 'platform.plans.manage' },
+      { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
     ],
   },
   {
@@ -164,6 +1187,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'platform',
     items: [
       { key: 'platform_health', href: '/admin/health', capability: 'platform.observability.view' },
+      { key: 'webhooks', href: '/admin/webhooks', capability: 'webhooks.deliveries.view' },
       { key: 'admin_audit_trail', href: '/admin/audit', capability: 'audit.platform.view' },
       {
         key: 'api_traffic_logs',
@@ -171,142 +1195,78 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         capability: 'platform.observability.view',
       },
       {
-        key: 'system_observability',
-        href: '/admin/observability',
-        capability: 'platform.observability.view',
-      },
-      {
-        key: 'webhook_delivery_logs',
-        href: '/admin/webhooks',
-        capability: 'platform.observability.view',
-      },
-      { key: 'quota_management', href: '/admin/quotas', capability: 'platform.observability.view' },
-    ],
-  },
-  {
-    key: 'workspace_heading',
-    scope: 'workspace',
-    items: [{ key: 'dashboard', href: '/dashboard', capability: 'workspace.dashboard.view' }],
-  },
-  {
-    key: 'operations_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'orders', href: '/orders', capability: 'orders.view' },
-      { key: 'warehouses', href: '/warehouses', capability: 'warehouses.manage' },
-      { key: 'inventory', href: '/inventory', capability: 'warehouses.view' },
-      { key: 'rules', href: '/rules', capability: 'rules.view' },
-      { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
-    ],
-  },
-  {
-    key: 'finance_heading',
-    scope: 'workspace',
-    items: [{ key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' }],
-  },
-  {
-    key: 'reports_heading',
-    scope: 'workspace',
-    items: [
-      {
-        key: 'analytics',
-        href: '/analytics',
-        anyCapability: ['analytics.operations.view', 'analytics.finance.view'],
-      },
-    ],
-  },
-  {
-    key: 'integrations_heading',
-    scope: 'workspace',
-    items: [
-      {
-        key: 'carrier_connections',
-        href: '/settings/integrations',
-        capability: 'carriers.credentials.manage',
-      },
-    ],
-  },
-  {
-    key: 'manage_accounts_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'staff_accounts', href: '/iam/users', capability: 'iam.users.manage' },
-      {
-        key: 'roles_permissions',
-        href: '/roles-permissions/roles',
-        capability: 'iam.roles.assign',
-      },
-    ],
-  },
-  {
-    key: 'workspace_settings_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'general', href: '/settings/general', capability: 'workspace.settings.manage' },
-      { key: 'webhooks', href: '/settings/webhooks', capability: 'workspace.settings.manage' },
-      { key: 'usage', href: '/billing', capability: 'workspace.billing.view' },
-    ],
-  },
-  {
-    key: 'monitoring_heading',
-    scope: 'workspace',
-    items: [
-      { key: 'audit_trail', href: '/audit', capability: 'audit.tenant.view' },
-      {
         key: 'integration_errors',
         href: '/integration-errors',
         capability: 'integration.errors.view',
       },
     ],
   },
+
+  // 4. CHUNG (MỌI ROLE)
   {
     key: 'account_heading',
     scope: 'shared',
     items: [{ key: 'profile', href: '/settings/profile' }],
   },
-  {
-    key: 'ui_heading',
-    scope: 'shared',
-    devOnly: true,
-    items: [
-      {
-        key: 'components',
-        href: '/components/data-table',
-        children: [
-          { key: 'data_table', href: '/components/data-table' },
-          { key: 'buttons', href: '/components/buttons' },
-          { key: 'dropzone', href: '/components/dropzone' },
-          { key: 'data_display', href: '/components/data-display' },
-        ],
-      },
-    ],
-  },
 ];
 
-export function getEffectiveRoles(roles: readonly string[]): AuthRole[] {
-  const normalized = roles.filter((role): role is AuthRole =>
-    (AUTH_ROLES as readonly string[]).includes(role),
-  );
-  // SUPER_ADMIN là tài khoản nền tảng, không trộn menu/capability workspace vào.
-  if (normalized.includes('SUPER_ADMIN')) return ['SUPER_ADMIN'];
-  return normalized;
+/**
+ * Scope hiệu lực của một tập role. Bất kỳ role lạ/legacy hoặc role khác scope
+ * đều làm principal không hợp lệ, kể cả khi có role ORCA hợp lệ đi kèm.
+ */
+export function resolveActorScope(roles: readonly string[]): ActorScope | null {
+  let scope: ActorScope | null = null;
+  for (const role of roles) {
+    if (!isOrcaRole(role)) return null;
+    const roleScope = ROLE_ACTOR_SCOPE[role];
+    if (scope === null) {
+      scope = roleScope;
+    } else if (scope !== roleScope) {
+      return null;
+    }
+  }
+  return scope;
 }
 
-export function isSuperAdmin(roles: readonly AuthRole[]): boolean {
-  return roles.includes('SUPER_ADMIN');
+/**
+ * Chuẩn hóa role từ server về tập role ORCA hợp lệ **trong đúng một scope**.
+ * Fail-closed: thiếu scope, hoặc bất kỳ code nào không thuộc bảy role ORCA
+ * (legacy/khoảng trắng/lạ) ⇒ mảng rỗng (deny **toàn bộ** principal), kể cả khi
+ * các code còn lại hợp lệ. Không bao giờ union với role fallback cũ.
+ */
+export function getEffectiveRoles(
+  roles: readonly string[],
+  actorScope: ActorScope | null | undefined,
+): OrcaRole[] {
+  if (actorScope !== 'TENANT' && actorScope !== 'PLATFORM') return [];
+
+  const effective: OrcaRole[] = [];
+  for (const role of roles) {
+    // Một code ngoài bảy role ORCA (legacy hoặc lạ) ⇒ deny toàn bộ principal,
+    // không bỏ qua rồi tiếp tục với các role hợp lệ còn lại.
+    if (!isOrcaRole(role)) return [];
+    // Một role thuộc scope khác ⇒ toàn bộ principal bị deny (không trộn scope).
+    if (ROLE_ACTOR_SCOPE[role] !== actorScope) return [];
+    if (!effective.includes(role)) effective.push(role);
+  }
+  return effective;
 }
 
-export function can(roles: readonly AuthRole[], capability: string): boolean {
-  const allowed = CAPABILITY_ROLES[capability];
-  if (!allowed) return false;
-  return roles.some((role) => allowed.includes(role));
+export function can(roles: readonly string[], capability: string): boolean {
+  const def = CAPABILITY_BY_CODE[capability];
+  if (!def || def.provenance !== 'APPROVED') return false;
+
+  const roleScope = resolveActorScope(roles);
+  if (roleScope === null) return false;
+  if (def.scope !== 'ANY' && def.scope !== roleScope) return false;
+  return roles.some((role) => (def.roles as readonly string[]).includes(role));
 }
 
-export function canAny(roles: readonly AuthRole[], capabilities: readonly string[]): boolean {
+export function canAny(roles: readonly string[], capabilities: readonly string[]): boolean {
   return capabilities.some((capability) => can(roles, capability));
 }
 
-export function canAll(roles: readonly AuthRole[], capabilities: readonly string[]): boolean {
+export function canAll(roles: readonly string[], capabilities: readonly string[]): boolean {
   return capabilities.every((capability) => can(roles, capability));
 }
 
@@ -318,24 +1278,76 @@ function normalizePathname(pathname: string): string {
   return pathname;
 }
 
-export function isRouteAllowed(roles: readonly AuthRole[], pathname: string): boolean {
-  const normalized = normalizePathname(pathname);
-  return ROUTE_POLICY.some((route) => {
-    const matches = route.prefix
-      ? normalized === route.path || normalized.startsWith(`${route.path}/`)
-      : normalized === route.path;
-    return matches && roles.some((role) => route.roles.includes(role));
-  });
+function matchesRoute(route: RoutePolicy, pathname: string): boolean {
+  if (route.prefix) {
+    return pathname === route.path || pathname.startsWith(`${route.path}/`);
+  }
+  return pathname === route.path;
 }
 
-/** Route mặc định sau đăng nhập (mục 4.8). */
-export function getDefaultPath(roles: readonly AuthRole[]): string {
-  return isSuperAdmin(roles) ? '/admin/tenants' : '/dashboard';
+export function isRouteAllowed(roles: readonly string[], pathname: string, isDev = false): boolean {
+  if (resolveActorScope(roles) === null) return false;
+
+  const route = ROUTE_POLICY.find((candidate) =>
+    matchesRoute(candidate, normalizePathname(pathname)),
+  );
+  if (!route) return false;
+  if (route.devOnly === true && !isDev) return false;
+  if (route.capability !== undefined && !can(roles, route.capability)) return false;
+  if (route.anyCapability !== undefined && !canAny(roles, route.anyCapability)) return false;
+  return true;
 }
 
-function isLinkAllowed(roles: readonly AuthRole[], link: NavLink): boolean {
-  if (link.capability && !can(roles, link.capability)) return false;
-  if (link.anyCapability && !canAny(roles, link.anyCapability)) return false;
+const SETTINGS_TABS = ['profile', 'api-keys', 'webhooks', 'contract'] as const;
+export type SettingTab = (typeof SETTINGS_TABS)[number];
+
+/** One profile tab; legacy seller-profile links and invalid tabs resolve to it. */
+export function getSettingsNavigation(roles: readonly string[], requestedTab?: string) {
+  const tabs = SETTINGS_TABS.filter((id) => isRouteAllowed(roles, `/settings/${id}`));
+  const activeTab: SettingTab = tabs.find((id) => id === requestedTab) ?? 'profile';
+  const redirectTo = requestedTab && requestedTab !== activeTab ? '/settings/profile' : null;
+  return { tabs, activeTab, redirectTo };
+}
+
+const DEFAULT_PATHS: Readonly<Record<OrcaRole, string>> = Object.freeze({
+  ORCA_ADMIN: '/admin/tenants',
+  OPS_DISPATCHER: '/shipments',
+  WAREHOUSE_MANAGER: '/warehouse/inbound',
+  WAREHOUSE_STAFF: '/warehouse/inbound',
+  ORCA_ACCOUNTANT: '/reconciliation',
+  SELLER_OWNER: '/dashboard',
+  SELLER_STAFF: '/dashboard',
+});
+
+/** Route mặc định sau đăng nhập; không có role hợp lệ ⇒ `/403` (fail-closed). */
+export function getDefaultPath(roles: readonly string[]): string {
+  if (resolveActorScope(roles) === null) return '/403';
+  for (const role of ORCA_ROLES) {
+    if ((roles as readonly string[]).includes(role)) return DEFAULT_PATHS[role];
+  }
+  return '/403';
+}
+
+/** URL chooses an accessible platform portal; profile keeps the role's home portal. */
+export function getPortal(
+  roles: readonly string[],
+  pathname: string,
+): 'seller' | 'warehouse' | 'operations' | null {
+  const scope = resolveActorScope(roles);
+  if (scope === null) return null;
+  if (scope === 'TENANT') return 'seller';
+  if (pathname === '/warehouse' || pathname.startsWith('/warehouse/')) {
+    return can(roles, 'warehouse.operations.view') ? 'warehouse' : null;
+  }
+  if (pathname === '/settings/profile' && getDefaultPath(roles).startsWith('/warehouse/')) {
+    return 'warehouse';
+  }
+  return 'operations';
+}
+
+function isLinkAllowed(roles: readonly string[], link: NavLink): boolean {
+  if (link.capability !== undefined && !can(roles, link.capability)) return false;
+  if (link.anyCapability !== undefined && !canAny(roles, link.anyCapability)) return false;
   return true;
 }
 
@@ -346,29 +1358,43 @@ export interface VisibleNavGroup {
 
 /**
  * Sidebar builder: chỉ giữ group/menu có ít nhất một route được phép (mục 9).
- * `isDev` bật các group `devOnly` (catalog `/components/*`).
+ * Group `devOnly` chỉ hiện khi `isDev`; các group trùng key (vd "Giám sát" của
+ * platform và workspace) được gộp để không trùng React key.
  */
-export function getVisibleNavGroups(roles: readonly AuthRole[], isDev: boolean): VisibleNavGroup[] {
-  const platform = isSuperAdmin(roles);
-  return NAV_GROUPS.filter((group) => {
-    if (group.devOnly) return isDev;
-    if (group.scope === 'platform') return platform;
-    if (group.scope === 'workspace') return !platform;
-    return true;
-  })
-    .map((group) => ({
-      key: group.key,
-      items: group.items
-        .map((item) => ({
-          ...item,
-          children: item.children?.filter((child) => isLinkAllowed(roles, child)),
-        }))
-        .filter((item) => {
-          if (item.children) return item.children.length > 0;
-          return isLinkAllowed(roles, item);
-        }),
-    }))
-    .filter((group) => group.items.length > 0);
+export function getVisibleNavGroups(roles: readonly string[], isDev: boolean): VisibleNavGroup[] {
+  const actorScope = resolveActorScope(roles);
+  if (actorScope === null) return [];
+
+  const visible: VisibleNavGroup[] = [];
+  for (const group of NAV_GROUPS) {
+    if (group.devOnly === true && !isDev) continue;
+    if (
+      group.scope !== 'shared' &&
+      group.scope !== (actorScope === 'TENANT' ? 'workspace' : 'platform')
+    ) {
+      continue;
+    }
+
+    const items = group.items
+      .map((item) => ({
+        ...item,
+        children: item.children?.filter((child) => isLinkAllowed(roles, child)),
+      }))
+      .filter((item) => {
+        if (item.children) return item.children.length > 0;
+        return isLinkAllowed(roles, item);
+      });
+
+    if (items.length === 0) continue;
+
+    const existing = visible.find((candidate) => candidate.key === group.key);
+    if (existing) {
+      existing.items.push(...items);
+    } else {
+      visible.push({ key: group.key, items });
+    }
+  }
+  return visible;
 }
 
 export interface SearchLink {
@@ -378,7 +1404,7 @@ export interface SearchLink {
 }
 
 /** Global search policy: chỉ trả route mà vai trò được truy cập (mục 4.4). */
-export function getSearchLinks(roles: readonly AuthRole[], isDev: boolean): SearchLink[] {
+export function getSearchLinks(roles: readonly string[], isDev: boolean): SearchLink[] {
   return getVisibleNavGroups(roles, isDev).flatMap((group) =>
     group.items.flatMap((item) => {
       if (item.children && item.children.length > 0) {

@@ -30,19 +30,14 @@ export const createWebhookFormSchema = z.object({
     .refine((val) => val.startsWith('https://'), {
       message: 'urlMustBeHttps',
     }),
-  eventTypes: z
-    .array(z.string())
-    .min(1, { message: 'atLeastOneEventRequired' }),
+  eventTypes: z.array(z.string()).min(1, { message: 'atLeastOneEventRequired' }),
   secret: z
     .string()
     .trim()
     .optional()
-    .refine(
-      (val) => !val || /^whsec_[A-Za-z0-9_-]{32,}$/.test(val),
-      {
-        message: 'secretInvalidFormat',
-      },
-    ),
+    .refine((val) => !val || /^whsec_[A-Za-z0-9_-]{32,}$/.test(val), {
+      message: 'secretInvalidFormat',
+    }),
   isActive: z.boolean(),
 });
 
@@ -58,20 +53,14 @@ export const updateWebhookFormSchema = z.object({
       message: 'urlMustBeHttps',
     })
     .optional(),
-  eventTypes: z
-    .array(z.string())
-    .min(1, { message: 'atLeastOneEventRequired' })
-    .optional(),
+  eventTypes: z.array(z.string()).min(1, { message: 'atLeastOneEventRequired' }).optional(),
   secret: z
     .string()
     .trim()
     .optional()
-    .refine(
-      (val) => !val || /^whsec_[A-Za-z0-9_-]{32,}$/.test(val),
-      {
-        message: 'secretInvalidFormat',
-      },
-    ),
+    .refine((val) => !val || /^whsec_[A-Za-z0-9_-]{32,}$/.test(val), {
+      message: 'secretInvalidFormat',
+    }),
   isActive: z.boolean().optional(),
 });
 

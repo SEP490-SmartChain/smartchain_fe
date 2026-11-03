@@ -6,12 +6,14 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   label?: string;
   error?: string;
   helperText?: string;
+  /** Shows the red required marker and sets aria-required without browser-native validation. */
+  isRequired?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, leftIcon, rightIcon, className, id, ...props }, ref) => {
+  ({ label, error, helperText, isRequired, leftIcon, rightIcon, className, id, ...props }, ref) => {
     const reactId = React.useId();
     const inputId = id || reactId;
 
@@ -23,7 +25,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
           >
             {label}
-            {props.required && <span className="ml-1 text-[var(--sc-error)]">*</span>}
+            {(isRequired || props.required) && (
+              <span aria-hidden="true" className="ml-1 text-[var(--sc-error)]">
+                *
+              </span>
+            )}
           </label>
         )}
 
@@ -49,6 +55,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               className,
             )}
             aria-invalid={error ? true : props['aria-invalid']}
+            aria-required={isRequired || props['aria-required']}
             {...props}
           />
           {rightIcon && (

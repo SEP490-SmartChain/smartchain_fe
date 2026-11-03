@@ -1,0 +1,319 @@
+import { useEffect, useRef, useState } from 'react';
+
+import { Building2, Camera, CheckCircle2, Copy, Save, Trash2, Undo2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+
+import { Button, Input } from '@/components/Common';
+import { uploadApi, UploadStorageConnectionError } from '@/services/uploadApi';
+
+import { SettingsMatrixCard } from './SettingsMatrixCard';
+import { workspaceSettingsApi, type WorkspaceSettings } from '../api/workspaceSettingsApi';
+
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export default function WorkspaceGeneralSettings() {
+  const t = useTranslations('Settings');
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const [saved, setSaved] = useState<WorkspaceSettings | null>(null);
+  const [name, setName] = useState('');
+  const [logoKey, setLogoKey] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [savedLogoUrl, setSavedLogoUrl] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [nameError, setNameError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    workspaceSettingsApi
+      .get()
+      .then(async (settings) => {
+        if (!active) return;
+        setSaved(settings);
+        setName(settings.name);
+        setLogoKey(settings.logoKey);
+        if (settings.logoKey) {
+          try {
+            const signed = await uploadApi.workspaceLogoUrl(settings.logoKey);
+            if (active) {
+              setLogoUrl(signed.downloadUrl);
+              setSavedLogoUrl(signed.downloadUrl);
+            }
+          } catch {
+            // Signed URL error fallback
+          }
+        }
+      })
+      .catch(() => {
+        if (active) toast.error(t('workspaceLoadFailed'));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [t]);
+
+  useEffect(
+    () => () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    },
+    [previewUrl],
+  );
+
+  const selectLogo = (file: File | undefined) => {
+    if (!file) return;
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type) || file.size > MAX_LOGO_BYTES) {
+      toast.error(t('workspaceLogoInvalid'));
+      return;
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setImageError(false);
+    setLogoFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const discard = () => {
+    if (!saved) return;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setName(saved.name);
+    setLogoKey(saved.logoKey);
+    setLogoUrl(savedLogoUrl);
+    setLogoFile(null);
+    setPreviewUrl(null);
+    setImageError(false);
+    setNameError('');
+  };
+
+  const removeLogo = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setLogoFile(null);
+    setPreviewUrl(null);
+    setLogoUrl(null);
+    setLogoKey(null);
+    setImageError(false);
+  };
+
+  const save = async () => {
+    const trimmedName = name.trim();
+    if (trimmedName.length < 3 || trimmedName.length > 150) {
+      setNameError(t('workspaceNameInvalid'));
+      return;
+    }
+
+    setNameError('');
+    setSaving(true);
+    try {
+      let nextLogoKey = logoKey;
+      let nextLogoUrl = logoUrl;
+      if (logoFile) {
+        const presigned = await uploadApi.presignWorkspaceLogo(logoFile);
+        await uploadApi.uploadDirect(presigned.uploadUrl, logoFile, presigned.headers);
+        nextLogoKey = presigned.objectKey;
+        const signed = await uploadApi.workspaceLogoUrl(nextLogoKey);
+        nextLogoUrl = signed.downloadUrl;
+      }
+
+      const updated = await workspaceSettingsApi.update({
+        name: trimmedName,
+        logoKey: nextLogoKey,
+      });
+      setSaved(updated);
+      setName(updated.name);
+      setLogoKey(updated.logoKey);
+      setLogoUrl(nextLogoUrl);
+      setSavedLogoUrl(nextLogoUrl);
+      setLogoFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      setImageError(false);
+      toast.success(t('workspaceSaved'));
+    } catch (error) {
+      toast.error(
+        error instanceof UploadStorageConnectionError
+          ? t('uploadStorageFailed')
+          : t('workspaceSaveFailed'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayedLogo = previewUrl ?? logoUrl;
+  const isDirty =
+    saved !== null &&
+    (name.trim() !== saved.name || logoFile !== null || logoKey !== (saved.logoKey ?? null));
+
+  const copyTenantId = async () => {
+    if (!saved?.tenantId) return;
+    try {
+      await navigator.clipboard.writeText(saved.tenantId);
+      toast.success(t('workspaceIdCopied'));
+    } catch {
+      toast.error(t('workspaceIdCopyFailed'));
+    }
+  };
+
+  if (loading) {
+    return (
+      <SettingsMatrixCard title={t('generalTitle')} description={t('generalDescription')}>
+        <div className="space-y-6 p-5 sm:p-7">
+          <div className="h-20 w-full animate-pulse rounded-xl bg-[var(--sc-bg-secondary)]" />
+          <div className="h-12 w-full animate-pulse rounded-xl bg-[var(--sc-bg-secondary)]" />
+        </div>
+      </SettingsMatrixCard>
+    );
+  }
+
+  return (
+    <div className="space-y-7">
+      <SettingsMatrixCard title={t('generalTitle')} description={t('generalDescription')}>
+        {/* Seller logo and store name share one row so their relationship is clear. */}
+        <div className="grid gap-5 p-5 sm:px-7 sm:py-5 md:grid-cols-2 md:items-center">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="group relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
+              <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]">
+                {displayedLogo && !imageError ? (
+                  <img
+                    src={displayedLogo}
+                    alt={t('workspaceLogoAlt')}
+                    className="h-full w-full object-cover"
+                    onError={() => setImageError(true)}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                    <Building2 size={24} strokeWidth={1.75} />
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-label={t('changeWorkspaceLogo')}
+                title={t('changeWorkspaceLogo')}
+                disabled={loading || saving}
+                onClick={() => fileInput.current?.click()}
+                className="absolute -bottom-1 -right-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-primary)] text-white shadow-sm transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:h-7 sm:w-7"
+              >
+                <Camera size={13} aria-hidden="true" />
+              </button>
+              {(displayedLogo || logoKey) && (
+                <button
+                  type="button"
+                  aria-label={t('removeWorkspaceLogo')}
+                  title={t('removeWorkspaceLogo')}
+                  disabled={saving}
+                  onClick={removeLogo}
+                  className="absolute -right-1 -top-1 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-error)] text-white opacity-100 shadow-sm transition-opacity hover:bg-[var(--sc-error-dark)] group-focus-within:opacity-100 disabled:cursor-not-allowed sm:h-7 sm:w-7 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            <div className="min-w-0 space-y-1">
+              <p className="m-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+                {t('workspaceLogo')}
+              </p>
+              <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                {t('workspaceLogoHint')}
+              </p>
+              <input
+                ref={fileInput}
+                type="file"
+                className="sr-only"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => selectLogo(event.target.files?.[0])}
+              />
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <Input
+              label={t('workspaceName')}
+              value={name}
+              minLength={3}
+              maxLength={150}
+              required
+              disabled={loading || saving}
+              error={nameError}
+              helperText={t('workspaceNameHint')}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (nameError) setNameError('');
+              }}
+            />
+          </div>
+
+          {saved?.tenantId && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-xs md:col-span-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium text-[var(--sc-text-secondary)]">
+                  {t('workspaceId')}:
+                </span>
+                <code className="rounded border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--sc-primary)]">
+                  {saved.tenantId}
+                </code>
+              </div>
+              <button
+                type="button"
+                onClick={() => void copyTenantId()}
+                className="inline-flex items-center gap-1 font-medium text-[var(--sc-primary)] hover:underline"
+              >
+                <Copy size={13} />
+                {t('copyWorkspaceId')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Action Footer */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-4 sm:px-7">
+          <div>
+            {isDirty ? (
+              <span className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--sc-warning-dark)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--sc-warning)] animate-pulse" />
+                {t('unsavedChanges')}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-xs text-[var(--sc-text-tertiary)]">
+                <CheckCircle2 size={15} className="text-[var(--sc-accent)]" />
+                {t('workspaceSynced')}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!isDirty || loading || saving}
+              onClick={discard}
+            >
+              <Undo2 size={16} />
+              {t('discard')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              isLoading={saving}
+              disabled={!isDirty || loading}
+              onClick={save}
+            >
+              <Save size={16} />
+              {t('saveWorkspaceProfile')}
+            </Button>
+          </div>
+        </div>
+      </SettingsMatrixCard>
+    </div>
+  );
+}

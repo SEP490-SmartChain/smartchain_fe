@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useAuthStore } from '@/stores/authStore';
+
 import { productApi } from '../api/productApi';
 
 import type { Product, ProductFilters } from '../types/product.types';
 
 export function useProducts(filters: ProductFilters) {
+  const scopeRevision = useAuthStore((state) => state.revision);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,9 +40,16 @@ export function useProducts(filters: ProductFilters) {
     [filters],
   );
 
+  const invalidateRequests = useCallback(() => {
+    requestRevision.current++;
+  }, []);
+
   useEffect(() => {
+    setProducts([]);
+    setNextCursor(null);
     void loadPage();
-  }, [loadPage]);
+    return invalidateRequests;
+  }, [loadPage, scopeRevision, invalidateRequests]);
 
   return {
     products,

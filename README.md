@@ -1,6 +1,6 @@
-# SmartChain — Frontend
+# orca — Frontend
 
-React 19 + Vite SPA cho SmartChain — Automated Logistics Orchestration System.
+React 19 + Vite SPA cho orca — Automated Logistics Orchestration System.
 Cấu trúc thư mục ánh xạ 1-1 với **FE Package Diagram (Figure 2)**, Report 4 – SDD mục 1.2.1.
 Chi tiết quy ước xem `convention.md`.
 
@@ -9,7 +9,7 @@ Chi tiết quy ước xem `convention.md`.
 Feature-Sliced Design. Mỗi thư mục dưới đây là một package trong Package Diagram.
 
 ```text
-smartchain_fe/
+orca_fe/
 ├── messages/                 # [10] Tài nguyên đa ngữ (en.json, vi.json) — NGOÀI src/
 └── src/
     ├── main.tsx              # [01] Application Entry — composition root, router, guard, provider

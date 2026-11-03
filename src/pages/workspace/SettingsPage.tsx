@@ -2,52 +2,41 @@ import { useEffect } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Save } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
-import {
-  Button,
-  Card,
-  CardHeader,
-  Input,
-  Select,
-  Switch,
-  Tabs,
-  UnderConstruction,
-} from '@/components/Common';
-import { CarrierConnectionsManager } from '@/features/catalog';
+import { Tabs } from '@/components/Common';
+import { OrderPolicySettings } from '@/features/orders';
 import ProfileSettings from '@/features/settings/components/ProfileSettings';
-import { WebhookManager } from '@/features/tenants';
+import WorkspaceGeneralSettings from '@/features/settings/components/WorkspaceGeneralSettings';
+import { ApiKeyManager, WebhookManager, SellerContractOnboarding } from '@/features/tenants';
 import { useAccess } from '@/hooks/useAccess';
-
-const ALL_SETTING_TABS = ['profile', 'general', 'integrations', 'webhooks'] as const;
-type SettingTab = (typeof ALL_SETTING_TABS)[number];
-const WORKSPACE_TABS: readonly SettingTab[] = ['general', 'integrations', 'webhooks'];
+import { getSettingsNavigation } from '@/lib/accessPolicy';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function SettingsPage() {
   const t = useTranslations('Settings');
   const navigate = useNavigate();
-  const { can } = useAccess();
+  const { can, roles } = useAccess();
+  const keyContext = useAuthStore((state) =>
+    [
+      state.revision,
+      state.user?.userId,
+      state.user?.tenantId,
+      state.user?.actorScope,
+      state.user?.roles.join(','),
+    ].join(':'),
+  );
   const { tab } = useParams<{ tab?: string }>();
-  const activeTab: SettingTab = ALL_SETTING_TABS.includes(tab as SettingTab)
-    ? (tab as SettingTab)
-    : 'profile';
-
-  const canManageWorkspace = can('workspace.settings.manage');
-  const visibleTabs: SettingTab[] = ['profile', ...(canManageWorkspace ? WORKSPACE_TABS : [])];
+  const { tabs: visibleTabs, activeTab, redirectTo } = getSettingsNavigation(roles, tab);
 
   useEffect(() => {
-    if (tab && !ALL_SETTING_TABS.includes(tab as SettingTab)) {
-      navigate('/settings/profile', { replace: true });
-    }
-  }, [navigate, tab]);
+    if (redirectTo) navigate(redirectTo, { replace: true });
+  }, [navigate, redirectTo]);
 
-  const save = () => toast.success(t('saved'));
   const tabs = visibleTabs.map((id) => ({ id, label: t(id) }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-3.5">
       <h1 className="sr-only">{t('title')}</h1>
       <Tabs
         tabs={tabs}
@@ -56,38 +45,17 @@ export default function SettingsPage() {
         className="gap-7 border-b-0 sm:gap-8"
       />
 
-      {activeTab === 'profile' && <ProfileSettings />}
-
-      {activeTab === 'general' && (
-        <Card>
-          <CardHeader title={t('generalTitle')} description={t('generalDescription')} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label={t('workspaceName')} defaultValue="SmartChain Logistics" />
-            <Select
-              label={t('defaultWarehouse')}
-              defaultValue="north"
-              options={[
-                { value: 'north', label: t('northHub') },
-                { value: 'central', label: t('centralHub') },
-                { value: 'south', label: t('southHub') },
-              ]}
-            />
-          </div>
-          <div className="mt-6 space-y-4 border-t border-[var(--sc-border-default)] pt-6">
-            <Switch defaultChecked label={t('emailNotifications')} />
-            <Switch defaultChecked label={t('inventoryAlerts')} />
-            <Switch label={t('weeklyDigest')} />
-          </div>
-          <Button type="button" className="mt-6" onClick={save}>
-            <Save size={16} />
-            {t('saveChanges')}
-          </Button>
-        </Card>
+      {activeTab === 'profile' && (
+        <ProfileSettings key={keyContext}>
+          {can('workspace.settings.manage') && <WorkspaceGeneralSettings />}
+          <OrderPolicySettings />
+        </ProfileSettings>
       )}
 
-      {activeTab === 'integrations' && <CarrierConnectionsManager />}
+      {activeTab === 'api-keys' && <ApiKeyManager key={keyContext} />}
 
       {activeTab === 'webhooks' && <WebhookManager />}
+      {activeTab === 'contract' && <SellerContractOnboarding key={keyContext} />}
     </div>
   );
 }

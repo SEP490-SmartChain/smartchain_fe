@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 import type {
@@ -7,6 +9,33 @@ import type {
   TenantListQuery,
   UpdateTenantStatusPayload,
 } from '../types/tenant.types';
+
+const tenantSummarySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
+  status: z.enum(['ACTIVE', 'SUSPENDED']),
+  adminEmail: z.string().nullable(),
+  subscription: z.object({
+    planCode: z.string().nullable(),
+    status: z.string().nullable(),
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
+  }),
+  quota: z.object({
+    ordersUsed: z.number().nonnegative(),
+    ordersTotal: z.number().nonnegative(),
+    apiCallsUsed: z.number().nonnegative(),
+    apiCallsTotal: z.number().nonnegative(),
+  }),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+const paginationSchema = z.object({
+  limit: z.number().int().positive(),
+  hasNext: z.boolean(),
+  nextCursor: z.string().nullable(),
+});
 
 export const tenantManagementApi = {
   async getOverview(): Promise<SystemDashboardOverview> {
@@ -26,11 +55,14 @@ export const tenantManagementApi = {
     if (query.registeredFrom) params.registeredFrom = query.registeredFrom;
     if (query.registeredTo) params.registeredTo = query.registeredTo;
 
-    const { data } = await apiClient.get<ApiResponse<TenantListPage>>('/v1/platform/tenants', {
+    const { data, meta } = await apiClient.get<ApiResponse<unknown>>('/v1/platform/tenants', {
       params,
       silent: true,
     });
-    return data;
+    return {
+      items: z.array(tenantSummarySchema).parse(data),
+      pagination: paginationSchema.parse(meta.pagination),
+    };
   },
 
   async getDetail(idOrSlug: string): Promise<TenantDetail> {

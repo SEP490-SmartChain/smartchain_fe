@@ -9,7 +9,10 @@ export interface ColumnDef<T> {
   key: Extract<keyof T, string> | string;
   label: string | React.ReactNode;
   render?: (row: T) => React.ReactNode;
+  align?: 'left' | 'center' | 'right';
 }
+
+const ALIGN_CLASS = { left: 'text-left', center: 'text-center', right: 'text-right' } as const;
 
 interface DataTableProps<T> {
   ariaLabel?: string;
@@ -17,6 +20,7 @@ interface DataTableProps<T> {
   data: T[];
   isLoading?: boolean;
   getRowKey?: (row: T) => React.Key;
+  emptyMessage?: React.ReactNode;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -30,6 +34,7 @@ export default function DataTable<T extends object>({
   data,
   isLoading,
   getRowKey,
+  emptyMessage,
   pagination,
 }: DataTableProps<T>) {
   const t = useTranslations('Common');
@@ -43,7 +48,7 @@ export default function DataTable<T extends object>({
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className="border-b border-[var(--sc-border-default)] px-4 py-3 text-xs font-medium text-[var(--sc-text-secondary)] whitespace-nowrap"
+                  className={`border-b border-[var(--sc-border-default)] px-4 py-3 text-xs font-medium text-[var(--sc-text-secondary)] whitespace-nowrap ${ALIGN_CLASS[column.align ?? 'left']}`}
                 >
                   {column.label}
                 </th>
@@ -69,7 +74,7 @@ export default function DataTable<T extends object>({
                   colSpan={columns.length}
                   className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
                 >
-                  {t('no_data')}
+                  {emptyMessage ?? t('no_data')}
                 </td>
               </tr>
             ) : (
@@ -81,7 +86,7 @@ export default function DataTable<T extends object>({
                   {columns.map((column) => (
                     <td
                       key={String(column.key)}
-                      className="px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle"
+                      className={`px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
                     >
                       {column.render
                         ? column.render(row)

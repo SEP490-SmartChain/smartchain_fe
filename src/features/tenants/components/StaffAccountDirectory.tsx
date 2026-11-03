@@ -19,7 +19,6 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import profileAvatar from '@/assets/images/settings/profile-avatar.png';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Avatar } from '@/components/Common/Avatar/Avatar';
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -28,8 +27,10 @@ import { Can } from '@/components/Common/Can/Can';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -45,6 +46,11 @@ import type {
 
 const INITIAL_FILTERS: StaffAccountFilters = { search: '', role: '', status: '' };
 const PAGE_SIZE = 10;
+/**
+ * UI-04: Backend tạo nhân viên với role cố định SELLER_STAFF. Giữ nút thêm ẩn cho tới
+ * khi form tạo nhân viên được cập nhật theo contract này.
+ */
+const STAFF_CREATE_SUPPORTED: boolean = false;
 
 type SortKey = 'profile' | 'lastSessionAt' | 'status';
 type SortDirection = 'asc' | 'desc';
@@ -53,6 +59,19 @@ interface ActionMenuState {
   account: StaffAccount;
   top: number;
   left: number;
+}
+
+function StaffAvatar({ account }: { account: StaffAccount }) {
+  const avatarUrl = useAvatarUrl(account.avatarUrl);
+
+  return (
+    <Avatar
+      src={avatarUrl}
+      fallback={account.fullName}
+      size="lg"
+      className="rounded-full border-[var(--sc-border-default)]"
+    />
+  );
 }
 
 function relativeTime(timestamp: string | null, locale: string, fallback: string) {
@@ -110,9 +129,8 @@ export function StaffAccountDirectory() {
   const roleLabel = useCallback(
     (role: StaffRole): string => {
       const labels: Record<StaffRole, string> = {
-        TENANT_ADMIN: t('roleTenantAdmin'),
-        DISPATCHER: t('roleDispatcher'),
-        ACCOUNTANT: t('roleAccountant'),
+        SELLER_OWNER: t('roleSellerOwner'),
+        SELLER_STAFF: t('roleSellerStaff'),
       };
       return labels[role];
     },
@@ -235,17 +253,19 @@ export function StaffAccountDirectory() {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
-          {t('title')}
-        </h1>
-        <Can capability="iam.users.manage">
-          <Button type="button" onClick={() => setAddModalOpen(true)}>
-            <Plus size={17} aria-hidden="true" />
-            {t('addNew')}
-          </Button>
-        </Can>
-      </header>
+      <PageHeader
+        title={t('title')}
+        actions={
+          STAFF_CREATE_SUPPORTED && (
+            <Can capability="iam.users.manage">
+              <Button type="button" onClick={() => setAddModalOpen(true)}>
+                <Plus size={17} aria-hidden="true" />
+                {t('addNew')}
+              </Button>
+            </Can>
+          )
+        }
+      />
 
       {error ? (
         <Alert variant="error" title={t('loadError')}>
@@ -309,9 +329,8 @@ export function StaffAccountDirectory() {
                 placeholder={t('allRoles')}
                 isPlaceholderDisabled={false}
                 options={[
-                  { value: 'TENANT_ADMIN', label: t('roleTenantAdmin') },
-                  { value: 'DISPATCHER', label: t('roleDispatcher') },
-                  { value: 'ACCOUNTANT', label: t('roleAccountant') },
+                  { value: 'SELLER_OWNER', label: t('roleSellerOwner') },
+                  { value: 'SELLER_STAFF', label: t('roleSellerStaff') },
                 ]}
                 onChange={(event) => handleFilter('role', event.target.value)}
               />
@@ -463,12 +482,7 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <div className="flex min-w-0 items-center gap-3">
-                              <Avatar
-                                src={isSelf ? profileAvatar : undefined}
-                                fallback={account.fullName}
-                                size="lg"
-                                className="rounded-full border-[var(--sc-border-default)]"
-                              />
+                              <StaffAvatar account={account} />
                               <span className="min-w-0">
                                 <span className="block truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
                                   {account.fullName}
@@ -489,7 +503,11 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="block text-sm leading-[18px] text-[var(--sc-text-primary)]">
-                              {account.status === 'ACTIVE' ? t('signedIn') : account.status === 'PENDING' ? t('pending') : t('accountLocked')}
+                              {account.status === 'ACTIVE'
+                                ? t('signedIn')
+                                : account.status === 'PENDING'
+                                  ? t('pending')
+                                  : t('accountLocked')}
                             </span>
                             <span className="mt-0.5 block text-xs text-[var(--sc-text-tertiary)]">
                               {relativeTime(account.lastSessionAt, locale, t('never'))}
@@ -506,8 +524,20 @@ export function StaffAccountDirectory() {
                           </td>
                           <td className="px-4 py-3.5">
                             <Badge
-                              status={account.status === 'ACTIVE' ? 'success' : account.status === 'PENDING' ? 'warning' : 'error'}
-                              label={account.status === 'ACTIVE' ? t('active') : account.status === 'PENDING' ? t('pending') : t('blocked')}
+                              status={
+                                account.status === 'ACTIVE'
+                                  ? 'success'
+                                  : account.status === 'PENDING'
+                                    ? 'warning'
+                                    : 'error'
+                              }
+                              label={
+                                account.status === 'ACTIVE'
+                                  ? t('active')
+                                  : account.status === 'PENDING'
+                                    ? t('pending')
+                                    : t('blocked')
+                              }
                               size="md"
                             />
                           </td>
@@ -530,7 +560,7 @@ export function StaffAccountDirectory() {
                               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.25fr_1fr_1fr_1.2fr_auto] xl:items-center">
                                 {[
                                   [t('emailAddress'), account.email],
-                                  [t('contactNumber'), t('notProvided')],
+                                  [t('contactNumber'), account.phone || t('notProvided')],
                                   [
                                     t('assignedRole'),
                                     account.roles.map(roleLabel).join(', ') || t('notProvided'),
@@ -555,7 +585,11 @@ export function StaffAccountDirectory() {
                                   type="button"
                                   size="sm"
                                   variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
-                                  disabled={isSelf || updatingUserId === account.userId || account.status === 'PENDING'}
+                                  disabled={
+                                    isSelf ||
+                                    updatingUserId === account.userId ||
+                                    account.status === 'PENDING'
+                                  }
                                   isLoading={updatingUserId === account.userId}
                                   title={isSelf ? t('cannotLockSelf') : undefined}
                                   onClick={() => setSelectedAccount(account)}
@@ -612,7 +646,10 @@ export function StaffAccountDirectory() {
               <button
                 type="button"
                 role="menuitem"
-                disabled={actionMenu.account.userId === currentUserId || actionMenu.account.status === 'PENDING'}
+                disabled={
+                  actionMenu.account.userId === currentUserId ||
+                  actionMenu.account.status === 'PENDING'
+                }
                 onClick={() => {
                   setSelectedAccount(actionMenu.account);
                   setActionMenu(null);
@@ -631,7 +668,13 @@ export function StaffAccountDirectory() {
           document.body,
         )}
 
-      <AddStaffAccountModal isOpen={addModalOpen} onClose={() => setAddModalOpen(false)} onSuccess={() => refetch()} />
+      {STAFF_CREATE_SUPPORTED && (
+        <AddStaffAccountModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSuccess={() => refetch()}
+        />
+      )}
 
       <Modal
         isOpen={selectedAccount !== null}

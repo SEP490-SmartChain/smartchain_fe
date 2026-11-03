@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Mail, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, ShieldCheck, CheckCircle2, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import { cn } from '@/lib/utils';
+import { apiClient } from '@/services/apiClient';
 
 import { useEmailVerification } from '../hooks/useEmailVerification';
 import { useRegisterBusiness } from '../hooks/useRegisterBusiness';
@@ -304,10 +305,16 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
   const { register: registerBusiness } = useRegisterBusiness();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLookingUpTaxId, setIsLookingUpTaxId] = useState(false);
+  const [lookupAddress, setLookupAddress] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    getValues,
+    setValue,
+    trigger,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(useMemo(() => getRegisterSchema(t), [t])),
@@ -319,6 +326,33 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
     const response = await registerBusiness(data);
     if (response.success) {
       toast.success(tAuth('register_success'));
+    }
+  };
+
+  const taxId = watch('taxId');
+
+  const handleTaxIdLookup = async () => {
+    const requestedTaxId = getValues('taxId')?.trim();
+    if (!requestedTaxId || !(await trigger('taxId'))) return;
+
+    setIsLookingUpTaxId(true);
+    setLookupAddress(null);
+    try {
+      const business = await apiClient.lookupBusinessTaxId(requestedTaxId);
+      if (getValues('taxId')?.trim() !== requestedTaxId) return;
+      if (!business) {
+        toast.error(tAuth('tax_lookup_not_found'));
+        return;
+      }
+      setValue('companyName', business.name, { shouldValidate: true, shouldDirty: true });
+      setLookupAddress(business.address);
+      toast.success(tAuth('tax_lookup_found'));
+    } catch {
+      if (getValues('taxId')?.trim() === requestedTaxId) {
+        toast.error(tAuth('tax_lookup_error'));
+      }
+    } finally {
+      setIsLookingUpTaxId(false);
     }
   };
 
@@ -362,6 +396,37 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
         autoComplete="off"
       />
 
+      {/* Tax ID (Optional) */}
+      <div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <Input
+            label={tAuth('tax_id_label')}
+            placeholder={tAuth('tax_id_placeholder')}
+            helperText={tAuth('tax_id_helper')}
+            {...register('taxId', { onChange: () => setLookupAddress(null) })}
+            error={errors.taxId?.message}
+            inputMode="numeric"
+            autoComplete="off"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTaxIdLookup}
+            isLoading={isLookingUpTaxId}
+            disabled={!taxId || isLookingUpTaxId || isSubmitting}
+            className="w-full shrink-0 sm:mt-[28px] sm:w-auto"
+          >
+            {!isLookingUpTaxId && <Search size={16} aria-hidden="true" />}
+            {isLookingUpTaxId ? tAuth('tax_lookup_searching') : tAuth('tax_lookup_button')}
+          </Button>
+        </div>
+        {lookupAddress && (
+          <p className="mt-2 text-xs text-[var(--sc-text-secondary)]" aria-live="polite">
+            {tAuth('tax_lookup_address_label')}: {lookupAddress}. {tAuth('tax_lookup_address_note')}
+          </p>
+        )}
+      </div>
+
       {/* Company Name */}
       <Input
         label={tAuth('company_name_label')}
@@ -369,16 +434,6 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
         {...register('companyName')}
         error={errors.companyName?.message}
         required
-        autoComplete="off"
-      />
-
-      {/* Tax ID (Optional) */}
-      <Input
-        label={tAuth('tax_id_label')}
-        placeholder={tAuth('tax_id_placeholder')}
-        helperText={tAuth('tax_id_helper')}
-        {...register('taxId')}
-        error={errors.taxId?.message}
         autoComplete="off"
       />
 

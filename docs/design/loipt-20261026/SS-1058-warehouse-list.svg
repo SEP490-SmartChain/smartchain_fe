@@ -1,0 +1,103 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1058 · Warehouses</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <text x="30" y="193" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <rect x="16" y="219" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="246" font-size="14" fill="#0F766E" font-weight="600">Warehouses</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Rules</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Warehouses / Warehouses
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">ORCA Admin</text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Warehouses</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Review platform warehouses, operating eligibility and assigned layouts.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1058 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="1220" y="118" width="186" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="1236" y="145" font-size="14" fill="#FFFFFF" font-weight="600">+ Add warehouse</text>
+  <text x="286" y="259" font-size="13" fill="#475569" font-weight="600">Search</text>
+  <rect x="286" y="269" width="360" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="298" y="295" font-size="14" fill="#0F172A" font-weight="400">
+    Code, warehouse name or address
+  </text>
+  <text x="670" y="259" font-size="13" fill="#475569" font-weight="600">Region</text>
+  <rect x="670" y="269" width="220" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="682" y="295" font-size="14" fill="#0F172A" font-weight="400">All regions</text>
+  <text x="914" y="259" font-size="13" fill="#475569" font-weight="600">Status</text>
+  <rect x="914" y="269" width="220" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="926" y="295" font-size="14" fill="#0F172A" font-weight="400">All statuses</text>
+  <rect x="286" y="341" width="1120" height="223" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <rect x="287" y="342" width="1118" height="48" rx="10" fill="#F1F5F9" />
+  <text x="306" y="371" font-size="12" fill="#475569" font-weight="600">Warehouse</text>
+  <text x="596" y="371" font-size="12" fill="#475569" font-weight="600">Region</text>
+  <text x="746" y="371" font-size="12" fill="#475569" font-weight="600">Operating hours</text>
+  <text x="956" y="371" font-size="12" fill="#475569" font-weight="600">Daily capacity</text>
+  <text x="1136" y="371" font-size="12" fill="#475569" font-weight="600">Status</text>
+  <text x="1251" y="371" font-size="12" fill="#475569" font-weight="600">Actions</text>
+  <path d="M 286 392 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="422" font-size="13" fill="#0F172A" font-weight="600">HN-01 · Hà Nội</text>
+  <text x="596" y="422" font-size="13" fill="#0F172A" font-weight="400">North</text>
+  <text x="746" y="422" font-size="13" fill="#0F172A" font-weight="400">08:00 – 18:00</text>
+  <text x="956" y="422" font-size="13" fill="#0F172A" font-weight="400">500 cartons</text>
+  <rect x="1136" y="403" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1146" y="421" font-size="12" fill="#0F766E" font-weight="600">Active</text>
+  <text x="1251" y="422" font-size="13" fill="#0F766E" font-weight="400">Expand details</text>
+  <path d="M 286 448 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="478" font-size="13" fill="#0F172A" font-weight="600">DN-01 · Đà Nẵng</text>
+  <text x="596" y="478" font-size="13" fill="#0F172A" font-weight="400">Central</text>
+  <text x="746" y="478" font-size="13" fill="#0F172A" font-weight="400">08:00 – 18:00</text>
+  <text x="956" y="478" font-size="13" fill="#0F172A" font-weight="400">300 cartons</text>
+  <rect x="1136" y="459" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1146" y="477" font-size="12" fill="#0F766E" font-weight="600">Active</text>
+  <text x="1251" y="478" font-size="13" fill="#0F766E" font-weight="400">Expand details</text>
+  <path d="M 286 504 H 1406" stroke="#E2E8F0" />
+  <text x="306" y="534" font-size="13" fill="#0F172A" font-weight="600">HCM-01 · Hồ Chí Minh</text>
+  <text x="596" y="534" font-size="13" fill="#0F172A" font-weight="400">South</text>
+  <text x="746" y="534" font-size="13" fill="#0F172A" font-weight="400">08:00 – 18:00</text>
+  <text x="956" y="534" font-size="13" fill="#0F172A" font-weight="400">700 cartons</text>
+  <rect x="1136" y="515" width="70" height="26" rx="13" fill="#D1FAE5" />
+  <text x="1146" y="533" font-size="12" fill="#0F766E" font-weight="600">Active</text>
+  <text x="1251" y="534" font-size="13" fill="#0F766E" font-weight="400">Expand details</text>
+  <rect x="286" y="615" width="1120" height="170" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="653" font-size="18" fill="#0F172A" font-weight="600">
+    One warehouse, four detail tabs
+  </text>
+  <text x="310" y="688" font-size="15" fill="#0F766E" font-weight="600">
+    Overview / Zones &amp; bins / Business calendar / Downtime
+  </text>
+  <text x="310" y="724" font-size="13" fill="#475569" font-weight="400">
+    Assigned Manager maintains layout and calendar. Admin creates warehouses and manages
+    assignments.
+  </text>
+  <text x="310" y="758" font-size="13" fill="#475569" font-weight="400">
+    Saving a schematic layout does not move inventory. Outstanding work remains visible before
+    status changes.
+  </text>
+</svg>

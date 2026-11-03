@@ -1,4 +1,4 @@
-import WarehouseDirectory from '@/features/catalog/components/WarehouseDirectory';
+import { WarehouseDirectory } from '@/features/catalog';
 
 export default function WarehousesPage() {
   return <WarehouseDirectory />;

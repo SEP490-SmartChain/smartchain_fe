@@ -20,15 +20,22 @@ import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
+
+import { useAccess } from '@/hooks/useAccess';
+import { useAuthStore } from '@/stores/authStore';
 
 import { PlatformDashboardOverview } from './PlatformDashboardOverview';
 import { TenantDetailModal } from './TenantDetailModal';
 import { TenantStatusModal } from './TenantStatusModal';
 import { useTenantManagement } from '../hooks/useTenantManagement';
+import { tenantCsvExport } from '../lib/tenantCsvExport';
+
 import type { TenantStatus, TenantSummary } from '../types/tenant.types';
 
 export function TenantDirectory() {
   const t = useTranslations('AdminTenants');
+  const { can } = useAccess();
   const {
     query,
     setQuery,
@@ -71,53 +78,49 @@ export function TenantDirectory() {
     setTimeout(() => setCopiedSlug(null), 2000);
   };
 
-  const handleExportCSV = () => {
-    if (tenants.length === 0) {
-      toast.error('Không có dữ liệu để xuất');
-      return;
-    }
-    const headers = [
-      'ID',
-      'Tên Workspace',
-      'Slug',
-      'Email Admin',
-      'Gói cước',
-      'Trạng thái',
-      'Hạn mức đã dùng',
-      'Tổng hạn mức',
-      'Ngày tạo',
-    ];
-    const rows = tenants.map((tn) => [
-      tn.id,
-      `"${tn.name.replace(/"/g, '""')}"`,
-      tn.slug,
-      tn.adminEmail || '',
-      tn.subscription?.planCode || 'STANDARD',
-      tn.status,
-      tn.quota.ordersUsed,
-      tn.quota.ordersTotal,
-      new Date(tn.createdAt).toLocaleDateString('vi-VN'),
-    ]);
-    const csvContent =
-      'data:text/csv;charset=utf-8,\uFEFF' +
-      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute(
-      'download',
-      `smartchain-tenants-${new Date().toISOString().slice(0, 10)}.csv`,
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('Đã tải xuống danh sách khách thuê (CSV)');
-  };
-
   const displayedTenants = tenants.filter((tn) => {
     if (selectedPlan === 'ALL') return true;
     return (tn.subscription?.planCode || 'STANDARD') === selectedPlan;
   });
+
+  const handleExportCSV = () => {
+    // Recheck the current principal at click time, including a just-revoked role.
+    const user = useAuthStore.getState().user;
+    if (!can('platform.tenants.manage') || !user) {
+      toast.error(t('exportDenied'));
+      return;
+    }
+    if (displayedTenants.length === 0) {
+      toast.error(t('exportEmpty'));
+      return;
+    }
+    const headers = [
+      'id',
+      'name',
+      'slug',
+      'email',
+      'plan',
+      'status',
+      'used',
+      'total',
+      'created',
+    ].map((key) => t(`exportHeaders.${key}`));
+    let csvContent: string;
+    try {
+      csvContent = tenantCsvExport(displayedTenants, user, headers);
+    } catch {
+      toast.error(t('exportDenied'));
+      return;
+    }
+    const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `orca-tenants-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(t('exportSuccess'));
+  };
 
   const totalCount = overview?.tenants.total ?? tenants.length;
   const activeCount =
@@ -166,7 +169,10 @@ export function TenantDirectory() {
       key: 'adminEmail',
       label: t('col_admin_email'),
       render: (tenant) => (
-        <span className="truncate text-xs text-[var(--sc-text-secondary)]" title={tenant.adminEmail || ''}>
+        <span
+          className="truncate text-xs text-[var(--sc-text-secondary)]"
+          title={tenant.adminEmail || ''}
+        >
           {tenant.adminEmail || '—'}
         </span>
       ),
@@ -203,7 +209,13 @@ export function TenantDirectory() {
               <span>
                 <strong>{used.toLocaleString()}</strong> / {total.toLocaleString()}
               </span>
-              <span className={isCritical ? 'font-medium text-[var(--sc-error-dark)]' : 'font-medium text-[var(--sc-text-primary)]'}>
+              <span
+                className={
+                  isCritical
+                    ? 'font-medium text-[var(--sc-error-dark)]'
+                    : 'font-medium text-[var(--sc-text-primary)]'
+                }
+              >
                 {percent}%
               </span>
             </div>
@@ -281,33 +293,24 @@ export function TenantDirectory() {
 
   return (
     <div className="space-y-6">
-      {/* Header section with Clean SaaSable Pro typography */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="m-0 text-2xl font-normal leading-7 text-[var(--sc-text-primary)]">
-            {t('page_title')}
-          </h1>
-          <p className="mb-0 mt-1 text-xs leading-4 text-[var(--sc-text-tertiary)]">
-            {t('page_description')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
-            <Download size={14} className="mr-1.5" />
-            Xuất CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            isLoading={isLoading}
-          >
-            <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
-            {t('refresh')}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={t('page_title')}
+        description={t('page_description')}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {can('platform.tenants.manage') && (
+              <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                <Download size={14} className="mr-1.5" />
+                {t('exportCsv')}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => refetch()} isLoading={isLoading}>
+              <RefreshCw size={14} className={`mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
+              {t('refresh')}
+            </Button>
+          </div>
+        }
+      />
 
       {error && (
         <Alert variant="error" title="Lỗi tải dữ liệu">
@@ -411,7 +414,7 @@ export function TenantDirectory() {
         {displayedTenants.length === 0 && !isLoading ? (
           <div className="p-12 text-center">
             <p className="text-sm font-medium text-[var(--sc-text-primary)]">
-              Không tìm thấy khách thuê phù hợp
+              Không tìm thấy doanh nghiệp phù hợp
             </p>
             <p className="mt-1 text-xs text-[var(--sc-text-tertiary)]">
               Hãy thử tìm kiếm với từ khóa khác hoặc bỏ các bộ lọc đang chọn.

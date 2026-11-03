@@ -1,15 +1,15 @@
-# SmartChain Design System
+# ORCA Design System
 
-The SmartChain interface adapts the layout language of the local SaaSable free template and the publicly visible SaaSable Pro demo to this React and Tailwind codebase. Its color system comes from the SmartChain landing page so the public site and admin product share one brand.
+The ORCA interface adapts the layout language of the local SaaSable free template and the publicly visible SaaSable Pro demo to this React and Tailwind codebase. Its color system comes from the ORCA landing page so the public site and admin product share one brand.
 
 ## Coverage
 
-The shared system covers the responsive application shell, grouped navigation, top-bar search and menus, Light/Dark/System modes, split authentication screens, analytics cards and charts, tables and filters, forms, status feedback, popovers, modals, loading states, and page transitions. Existing SmartChain pages consume the same shell and tokens so future feature views inherit the system automatically.
+The shared system covers the responsive application shell, grouped navigation, top-bar search and menus, Light/Dark/System modes, split authentication screens, analytics cards and charts, tables and filters, forms, status feedback, popovers, modals, loading states, and page transitions. Existing ORCA pages consume the same shell and tokens so future feature views inherit the system automatically.
 
 ## Foundations
 
 - **Typeface:** Archivo 400/500/600/700, loaded locally with `@fontsource/archivo` exactly as in the SaaSable source. Headings use the source's fixed size and line-height scale with zero letter spacing.
-- **Primary:** SmartChain teal `#0F766E`, emerald accent `#10B981`, and light container `#D1FAE5`.
+- **Primary:** ORCA teal `#0F766E`, emerald accent `#10B981`, and light container `#D1FAE5`.
 - **Surface:** the canvas uses slate `#F8FAFC`, cards use white, and `#E2E8F0` defines standard dividers.
 - **Text:** slate `#0F172A` for primary text and `#475569` for supporting copy.
 - **Shape:** 8px controls, 12px secondary containers, and 16px cards.

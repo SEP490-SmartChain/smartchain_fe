@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { toast } from 'sonner';
 import { createServer } from 'vite';
 
 let server;
@@ -12,16 +13,26 @@ let getLoginSchema;
 let getForgotPasswordSchema;
 let getResetPasswordSchema;
 let getPostLoginPath;
+let getHomePath;
+let getEffectiveRoles;
+let getDefaultPath;
+let getPortal;
+let isRouteAllowed;
 const originalFetch = globalThis.fetch;
 const user = {
   userId: 'test-user',
   tenantId: 'test-tenant',
   email: 'test@example.com',
   fullName: 'Test User',
-  roles: ['TENANT_ADMIN'],
+  actorScope: 'TENANT',
+  roles: ['SELLER_OWNER'],
   permissions: ['orders:read'],
 };
-const session = (accessToken = 'test-access') => ({ accessToken, expiresIn: 900, user });
+const session = (accessToken = 'test-access', overrides = {}) => ({
+  accessToken,
+  expiresIn: 900,
+  user: { ...user, ...overrides },
+});
 const ok = (data) => Response.json({ success: true, data, meta: {} });
 const fail = (status, code = 'AUTH.UNAUTHENTICATED') =>
   Response.json(
@@ -59,7 +70,10 @@ before(async () => {
   ({ getResetPasswordSchema } = await server.ssrLoadModule(
     '/src/features/auth/schemas/resetPassword.schema.ts',
   ));
-  ({ getPostLoginPath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
+  ({ getPostLoginPath, getHomePath } = await server.ssrLoadModule('/src/lib/authRedirect.ts'));
+  ({ getEffectiveRoles, getDefaultPath, getPortal, isRouteAllowed } = await server.ssrLoadModule(
+    '/src/lib/accessPolicy.ts',
+  ));
 });
 after(async () => {
   globalThis.fetch = originalFetch;
@@ -88,6 +102,242 @@ test('login sends the BE contract with cookies and stores the safe profile', asy
   assert.equal(useAuthStore.getState().accessToken, 'test-access');
   assert.equal(useTenantStore.getState().activeTenantId, user.tenantId);
   assert.deepEqual(useTenantStore.getState().permissions, user.permissions);
+});
+
+test('SS-985: profile preserves server warehouse assignments and rejects malformed IDs', async () => {
+  // PostgreSQL accepts UUIDs without RFC version bits, including the ORCA seed IDs.
+  const warehouseIds = ['00000015-0000-0000-0000-000000000001'];
+  globalThis.fetch = async () =>
+    ok(
+      session('platform-token', {
+        tenantId: null,
+        actorScope: 'PLATFORM',
+        roles: ['WAREHOUSE_MANAGER'],
+        warehouseIds,
+      }),
+    );
+  await apiClient.login({ email: user.email, password: 'Test-password-1', rememberSession: false });
+  assert.deepEqual(useAuthStore.getState().user.warehouseIds, warehouseIds);
+  globalThis.fetch = async () => ok(session('bad-token', { warehouseIds: ['not-a-uuid'] }));
+  await assert.rejects(
+    apiClient.login({ email: user.email, password: 'Test-password-1', rememberSession: false }),
+  );
+  assert.equal(useAuthStore.getState().accessToken, 'platform-token');
+});
+
+test('SS-985: every identity/grant/assignment change invalidates the scope revision', () => {
+  const scoped = {
+    ...user,
+    tenantId: null,
+    actorScope: 'PLATFORM',
+    roles: ['WAREHOUSE_MANAGER', 'OPS_DISPATCHER'],
+    permissions: ['inventory:read', 'orders:read'],
+    warehouseIds: ['00000015-0000-0000-0000-000000000001', '00000015-0000-0000-0000-000000000002'],
+  };
+  useAuthStore.getState().setSession(session('old', scoped));
+  const revision = useAuthStore.getState().revision;
+  useAuthStore.getState().setSession(
+    session('rotated', {
+      ...scoped,
+      fullName: 'Updated name',
+      roles: [...scoped.roles].reverse(),
+      permissions: [...scoped.permissions].reverse(),
+      warehouseIds: [...scoped.warehouseIds].reverse(),
+    }),
+  );
+  assert.equal(
+    useAuthStore.getState().revision,
+    revision,
+    'token/profile/set ordering does not change scope',
+  );
+  for (const patch of [
+    { warehouseIds: [] },
+    { roles: ['WAREHOUSE_STAFF'] },
+    { permissions: [] },
+    { userId: 'another-user' },
+    { actorScope: null },
+    { tenantId: 'another-seller' },
+  ]) {
+    useAuthStore.getState().setUser(scoped);
+    const before = useAuthStore.getState().revision;
+    useAuthStore.getState().setUser({ ...scoped, ...patch });
+    assert.equal(useAuthStore.getState().revision, before + 1);
+  }
+});
+
+for (const [name, patch] of [
+  ['seller switch', { tenantId: 'other-seller', userId: 'other-owner' }],
+  ['actor scope switch', { actorScope: 'PLATFORM', tenantId: null, roles: ['WAREHOUSE_MANAGER'] }],
+  ['role revoke', { roles: ['SELLER_STAFF'] }],
+  ['warehouse revoke', { warehouseIds: [] }],
+]) {
+  test(`SS-985: pending success cannot enter the new view after ${name}`, async () => {
+    const scoped = { ...user, warehouseIds: ['00000015-0000-0000-0000-000000000001'] };
+    useAuthStore.getState().setSession(session('old', scoped));
+    const pending = deferred();
+    globalThis.fetch = async () => pending.promise;
+    const request = apiClient.get('/inventory', { silent: true });
+    useAuthStore.getState().setUser({ ...scoped, ...patch });
+    pending.resolve(ok({ privateRows: ['old-scope'] }));
+    await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED' });
+    assert.deepEqual(useAuthStore.getState().user, { ...scoped, ...patch });
+  });
+}
+
+test('SS-985: a late 401 after scope change is silent and preserves the current session', async (t) => {
+  const toastError = t.mock.method(toast, 'error', () => {});
+  useAuthStore.getState().setSession(session('old'));
+  const pending = deferred();
+  const calls = [];
+  globalThis.fetch = (url) => {
+    calls.push(url);
+    return pending.promise;
+  };
+  const request = apiClient.get('/orders');
+  useAuthStore.getState().setSession(session('current', { userId: 'another-user' }));
+  pending.resolve(fail(401));
+  await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED', status: 0 });
+  assert.deepEqual(calls, ['/api/orders']);
+  assert.equal(toastError.mock.callCount(), 0);
+  assert.equal(useAuthStore.getState().user.userId, 'another-user');
+  assert.equal(useAuthStore.getState().accessToken, 'current');
+});
+
+test('SS-985: scope change while refreshing is silent and cannot overwrite the current session', async (t) => {
+  const toastError = t.mock.method(toast, 'error', () => {});
+  useAuthStore.getState().setSession(session('old'));
+  const pending = deferred();
+  const started = deferred();
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    if (url.endsWith('/refresh')) {
+      started.resolve();
+      return pending.promise;
+    }
+    return fail(401);
+  };
+  const request = apiClient.get('/orders');
+  await started.promise;
+  useAuthStore.getState().setSession(session('current', { userId: 'another-user' }));
+  pending.resolve(ok(session('stale')));
+  await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED', status: 0 });
+  assert.deepEqual(calls, ['/api/orders', '/api/v1/auth/refresh']);
+  assert.equal(toastError.mock.callCount(), 0);
+  assert.equal(useAuthStore.getState().user.userId, 'another-user');
+  assert.equal(useAuthStore.getState().accessToken, 'current');
+});
+
+test('SS-985: grant changes during 401 refresh do not replay the old request', async () => {
+  useAuthStore.getState().setSession(session('old'));
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(url);
+    return url.endsWith('/refresh') ? ok(session('new', { roles: ['SELLER_STAFF'] })) : fail(401);
+  };
+  await assert.rejects(apiClient.get('/billing', { silent: true }), { code: 'AUTH.SCOPE_CHANGED' });
+  assert.deepEqual(calls, ['/api/billing', '/api/v1/auth/refresh']);
+  assert.equal(useAuthStore.getState().accessToken, 'new');
+});
+
+test('SS-985: stale response body cannot overwrite a changed identity', async () => {
+  useAuthStore.getState().setSession(session());
+  const pendingBody = deferred();
+  const bodyStarted = deferred();
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: () => {
+      bodyStarted.resolve();
+      return pendingBody.promise;
+    },
+  });
+  const request = apiClient.get('/inventory', { silent: true });
+  await bodyStarted.promise;
+  useAuthStore.getState().clear();
+  pendingBody.resolve({ success: true, data: ['old-scope'], meta: {} });
+  await assert.rejects(request, { code: 'AUTH.SCOPE_CHANGED' });
+  assert.equal(useAuthStore.getState().user, null);
+});
+
+test('SS-976: API login, session and portal redirect agree for all seven roles', async () => {
+  const cases = [
+    ['ORCA_ADMIN', 'PLATFORM', '/admin/tenants', 'operations'],
+    ['OPS_DISPATCHER', 'PLATFORM', '/shipments', 'operations'],
+    ['WAREHOUSE_MANAGER', 'PLATFORM', '/warehouse/inbound', 'warehouse'],
+    ['WAREHOUSE_STAFF', 'PLATFORM', '/warehouse/inbound', 'warehouse'],
+    ['ORCA_ACCOUNTANT', 'PLATFORM', '/reconciliation', 'operations'],
+    ['SELLER_OWNER', 'TENANT', '/dashboard', 'seller'],
+    ['SELLER_STAFF', 'TENANT', '/dashboard', 'seller'],
+  ];
+  for (const [role, actorScope, path, portal] of cases) {
+    useAuthStore.getState().clear();
+    globalThis.fetch = async (url, options) => {
+      assert.equal(url, '/api/v1/auth/login');
+      assert.equal(options.method, 'POST');
+      return ok(
+        session(`token-${role}`, {
+          actorScope,
+          roles: [role],
+          tenantId: actorScope === 'TENANT' ? user.tenantId : null,
+        }),
+      );
+    };
+    const loggedIn = await apiClient.login({
+      email: user.email,
+      password: 'Test-password-1',
+      rememberSession: false,
+    });
+    assert.deepEqual(useAuthStore.getState().user, loggedIn);
+    assert.equal(useTenantStore.getState().activeTenantId, loggedIn.tenantId);
+    const roles = getEffectiveRoles(loggedIn.roles, loggedIn.actorScope);
+    assert.equal(getPostLoginPath(loggedIn, null), path);
+    assert.equal(isRouteAllowed(roles, path), true);
+    assert.equal(getPortal(roles, path), portal);
+  }
+});
+
+test('SS-976: refreshed Seller Staff profile loses Owner routes without logout', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async () => ok({ ...user, roles: ['SELLER_STAFF'] });
+  await apiClient.currentUser();
+  const refreshed = useAuthStore.getState().user;
+  const roles = getEffectiveRoles(refreshed.roles, refreshed.actorScope);
+  for (const path of ['/catalog/skus', '/billing', '/settings/api-keys', '/iam/users']) {
+    assert.equal(isRouteAllowed(roles, path), false, path);
+    assert.equal(getPostLoginPath(refreshed, { from: path }), '/dashboard', path);
+  }
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+});
+
+test('public tax lookup uses VietQR without leaking the orca session', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, 'https://api.vietqr.io/v2/business/0316794479');
+    assert.equal(options.method, 'GET');
+    assert.equal(options.credentials, 'omit');
+    assert.equal(options.headers.Authorization, undefined);
+    return Response.json({
+      code: '00',
+      data: { name: ' CÔNG TY TNHH CASSO ', address: ' Hồ Chí Minh ' },
+    });
+  };
+  assert.deepEqual(await apiClient.lookupBusinessTaxId('0316794479'), {
+    name: 'CÔNG TY TNHH CASSO',
+    address: 'Hồ Chí Minh',
+  });
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+});
+
+test('public tax lookup handles not-found and provider rate limits', async () => {
+  globalThis.fetch = async () => Response.json({ code: '01', data: null });
+  assert.equal(await apiClient.lookupBusinessTaxId('0123456789'), null);
+
+  globalThis.fetch = async () => new Response(null, { status: 429 });
+  await assert.rejects(apiClient.lookupBusinessTaxId('0123456789'), {
+    code: 'TAX_LOOKUP.UNAVAILABLE',
+    status: 429,
+  });
 });
 
 test('invalid credentials keep the API error and never refresh or clear another session', async () => {
@@ -141,7 +391,7 @@ test('a temporary network failure falls back to anonymous without expiring the c
   };
   await apiClient.get('/orders', { silent: true });
   assert.equal(useAuthStore.getState().status, 'authenticated');
-  assert.equal(useAuthStore.getState().user.roles[0], 'TENANT_ADMIN');
+  assert.equal(useAuthStore.getState().user.roles[0], 'SELLER_OWNER');
 });
 
 test('parallel 401s share one refresh and replay with the new bearer token', async () => {
@@ -238,15 +488,83 @@ test('permission denial keeps the session and never refreshes', async () => {
   assert.equal(useAuthStore.getState().accessToken, 'test-access');
 });
 
+test('a 403 without an error envelope is surfaced as AUTH.FORBIDDEN, not an auth failure', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async () => new Response('forbidden', { status: 403 });
+  await assert.rejects(apiClient.get('/admin/tenants', { silent: true }), {
+    status: 403,
+    code: 'AUTH.FORBIDDEN',
+  });
+  assert.equal(useAuthStore.getState().user.actorScope, 'TENANT');
+  assert.equal(useAuthStore.getState().status, 'authenticated');
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+});
+
+test('a rejected refresh with 403 keeps the session (403 is never a logout)', async () => {
+  useAuthStore.getState().setSession(session());
+  useAuthStore.setState({ expiresAt: 0 });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return fail(403, 'AUTH.FORBIDDEN');
+  };
+  await assert.rejects(apiClient.get('/orders', { silent: true }), { status: 403 });
+  assert.equal(calls, 1);
+  assert.equal(useAuthStore.getState().status, 'authenticated');
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+  assert.equal(useAuthStore.getState().user.actorScope, 'TENANT');
+});
+
+test('a rejected refresh with 401 clears the session so the guard returns to login', async () => {
+  useAuthStore.getState().setSession(session());
+  useAuthStore.setState({ expiresAt: 0 });
+  globalThis.fetch = async () => fail(401, 'AUTH.UNAUTHENTICATED');
+  await assert.rejects(apiClient.get('/orders', { silent: true }), { status: 401 });
+  assert.equal(useAuthStore.getState().status, 'anonymous');
+  assert.equal(useAuthStore.getState().user, null);
+  assert.equal(useAuthStore.getState().accessToken, null);
+});
+
+test('actorScope from the server reaches AuthUser; missing or invalid scope denies by default', async () => {
+  const login = () =>
+    apiClient.login({ email: user.email, password: 'Test-password-1', rememberSession: false });
+
+  globalThis.fetch = async () =>
+    ok(session('scoped', { actorScope: 'PLATFORM', tenantId: null, roles: ['ORCA_ADMIN'] }));
+  const scoped = await login();
+  assert.equal(scoped.actorScope, 'PLATFORM');
+  assert.equal(useAuthStore.getState().user.actorScope, 'PLATFORM');
+  assert.deepEqual(getEffectiveRoles(scoped.roles, scoped.actorScope), ['ORCA_ADMIN']);
+
+  for (const invalid of [undefined, null, 'GUEST', 'tenant']) {
+    useAuthStore.getState().clear();
+    globalThis.fetch = async () =>
+      ok(session('denied', { actorScope: invalid, roles: ['ORCA_ADMIN'] }));
+    const denied = await login();
+    assert.equal(denied.actorScope, null, `actorScope ${String(invalid)} must normalize to null`);
+    assert.equal(useAuthStore.getState().user.actorScope, null);
+    assert.deepEqual(getEffectiveRoles(denied.roles, denied.actorScope), []);
+    assert.equal(getDefaultPath(getEffectiveRoles(denied.roles, denied.actorScope)), '/403');
+  }
+});
+
+test('current identity parses actorScope from /me', async () => {
+  useAuthStore.getState().setSession(session());
+  globalThis.fetch = async () =>
+    ok({ ...user, actorScope: 'PLATFORM', tenantId: null, roles: ['ORCA_ADMIN'] });
+  await apiClient.currentUser();
+  assert.equal(useAuthStore.getState().user.actorScope, 'PLATFORM');
+});
+
 test('current identity updates role and permission state from /me', async () => {
   useAuthStore.getState().setSession(session());
   globalThis.fetch = async (url, options) => {
     assert.equal(url, '/api/v1/auth/me');
     assert.equal(options.headers.get('Authorization'), 'Bearer test-access');
-    return ok({ ...user, roles: ['DISPATCHER'], permissions: ['shipments:read'] });
+    return ok({ ...user, roles: ['SELLER_STAFF'], permissions: ['shipments:read'] });
   };
   await apiClient.currentUser();
-  assert.deepEqual(useAuthStore.getState().user.roles, ['DISPATCHER']);
+  assert.deepEqual(useAuthStore.getState().user.roles, ['SELLER_STAFF']);
   assert.deepEqual(useTenantStore.getState().permissions, ['shipments:read']);
 });
 
@@ -287,7 +605,7 @@ test('late refresh results cannot resurrect a cleared identity', async () => {
   const refresh = apiClient.refreshSession();
   useAuthStore.getState().clear();
   pending.resolve(ok(session()));
-  await assert.rejects(refresh, { code: 'AUTH.UNAUTHENTICATED' });
+  await assert.rejects(refresh, { code: 'AUTH.SCOPE_CHANGED', status: 0 });
   assert.equal(useAuthStore.getState().user, null);
 });
 
@@ -321,7 +639,8 @@ test('login validation normalizes email but preserves password and remember choi
 });
 
 test('post-login redirects preserve internal destinations and enforce admin access', () => {
-  assert.equal(getPostLoginPath(user, { from: '/orders?page=2#items' }), '/orders?page=2#items');
+  const owner = { ...user, actorScope: 'TENANT', roles: ['SELLER_OWNER'] };
+  assert.equal(getPostLoginPath(owner, { from: '/orders?page=2#items' }), '/orders?page=2#items');
   for (const from of [
     '//evil.test',
     'https://evil.test',
@@ -329,11 +648,21 @@ test('post-login redirects preserve internal destinations and enforce admin acce
     '/login',
     '/admin/tenants',
   ]) {
-    assert.equal(getPostLoginPath(user, { from }), '/dashboard');
+    assert.equal(getPostLoginPath(owner, { from }), '/dashboard');
   }
-  const admin = { ...user, tenantId: null, roles: ['SUPER_ADMIN'] };
+  const admin = { ...user, tenantId: null, actorScope: 'PLATFORM', roles: ['ORCA_ADMIN'] };
   assert.equal(getPostLoginPath(admin, null), '/admin/tenants');
   assert.equal(getPostLoginPath(admin, { from: '/admin/carriers' }), '/admin/carriers');
+});
+
+test('root route sends each authenticated scope to its own default path', () => {
+  assert.equal(getHomePath(null), '/login');
+  assert.equal(getHomePath({ ...user, roles: ['SELLER_OWNER'] }), '/dashboard');
+  assert.equal(
+    getHomePath({ ...user, tenantId: null, actorScope: 'PLATFORM', roles: ['ORCA_ADMIN'] }),
+    '/admin/tenants',
+  );
+  assert.equal(getHomePath({ ...user, roles: ['TENANT_ADMIN'] }), '/403');
 });
 
 test('new refresh attempts wait for logout and cannot rotate a revoked cookie', async () => {
@@ -461,10 +790,7 @@ test('verify-reset-token GET reads the token as a query param, not in the URL pa
     params: { token: 'delivery-id.mac-value' },
     requiresAuth: false,
   });
-  assert.equal(
-    captured.url,
-    '/api/v1/auth/verify-reset-token?token=delivery-id.mac-value',
-  );
+  assert.equal(captured.url, '/api/v1/auth/verify-reset-token?token=delivery-id.mac-value');
   assert.equal(captured.options.method, 'GET');
   assert.deepEqual(response, { success: true, data: { valid: true }, meta: {} });
 });
@@ -479,10 +805,13 @@ test('reset-password validation requires matching passwords meeting complexity r
     schema.safeParse({ newPassword: 'NewPassw0rd!', confirmPassword: 'Different1!' }).success,
     false,
   );
-  for (const weak of ['short1!', 'nouppercase1!', 'NOLOWERCASE1!', 'NoDigitsHere!', 'NoSpecial123']) {
-    assert.equal(
-      schema.safeParse({ newPassword: weak, confirmPassword: weak }).success,
-      false,
-    );
+  for (const weak of [
+    'short1!',
+    'nouppercase1!',
+    'NOLOWERCASE1!',
+    'NoDigitsHere!',
+    'NoSpecial123',
+  ]) {
+    assert.equal(schema.safeParse({ newPassword: weak, confirmPassword: weak }).success, false);
   }
 });

@@ -8,12 +8,15 @@ import { cn } from '@/lib/utils';
 export interface SelectOption {
   value: string | number;
   label: string;
+  disabled?: boolean;
 }
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   helperText?: string;
+  /** Shows the red required marker and sets aria-required without browser-native validation. */
+  isRequired?: boolean;
   placeholder?: string;
   isPlaceholderDisabled?: boolean;
   options: SelectOption[];
@@ -25,6 +28,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       label,
       error,
       helperText,
+      isRequired,
       options,
       placeholder,
       isPlaceholderDisabled = true,
@@ -46,7 +50,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
           >
             {label}
-            {props.required && <span className="ml-1 text-[var(--sc-error)]">*</span>}
+            {(isRequired || props.required) && (
+              <span aria-hidden="true" className="ml-1 text-[var(--sc-error)]">
+                *
+              </span>
+            )}
           </label>
         )}
 
@@ -65,13 +73,14 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               className,
             )}
             aria-invalid={error ? true : props['aria-invalid']}
+            aria-required={isRequired || props['aria-required']}
             {...props}
           >
             <option value="" disabled={isPlaceholderDisabled}>
               {placeholder ?? t('select_option')}
             </option>
             {options.map((option) => (
-              <option key={option.value} value={option.value}>
+              <option key={option.value} value={option.value} disabled={option.disabled}>
                 {option.label}
               </option>
             ))}

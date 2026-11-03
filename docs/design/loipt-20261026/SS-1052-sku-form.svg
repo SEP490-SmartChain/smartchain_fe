@@ -1,0 +1,117 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1440"
+  height="1000"
+  viewBox="0 0 1440 1000"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">SS-1052 · Create SKU</title>
+  <desc id="desc">Editable UI mockup. All displayed data is synthetic.</desc>
+  <style>
+    text {
+      font-family: Archivo, Arial, sans-serif;
+    }
+  </style>
+  <rect x="0" y="0" width="1440" height="1000" rx="0" fill="#F8FAFC" />
+  <rect x="0" y="0" width="254" height="1000" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="28" y="46" font-size="26" fill="#0F766E" font-weight="700">ORCA</text>
+  <text x="28" y="71" font-size="10" fill="#475569" font-weight="600">FULFILLMENT PLATFORM</text>
+  <text x="30" y="140" font-size="14" fill="#475569" font-weight="400">Overview</text>
+  <rect x="16" y="166" width="222" height="43" rx="8" fill="#D1FAE5" />
+  <text x="30" y="193" font-size="14" fill="#0F766E" font-weight="600">Product catalog</text>
+  <text x="30" y="246" font-size="14" fill="#475569" font-weight="400">Inbound ASN</text>
+  <text x="30" y="299" font-size="14" fill="#475569" font-weight="400">Inventory</text>
+  <text x="30" y="352" font-size="14" fill="#475569" font-weight="400">Orders</text>
+  <text x="30" y="405" font-size="14" fill="#475569" font-weight="400">Reports</text>
+  <rect x="254" y="0" width="1186" height="76" rx="0" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="286" y="45" font-size="13" fill="#475569" font-weight="400">
+    Product catalog / Create SKU
+  </text>
+  <text x="1165" y="35" font-size="13" fill="#0F172A" font-weight="600">Seller Owner</text>
+  <text x="1165" y="55" font-size="11" fill="#475569" font-weight="400">
+    Synthetic design preview
+  </text>
+  <text x="286" y="132" font-size="28" fill="#0F172A" font-weight="700">Create SKU</text>
+  <text x="286" y="161" font-size="14" fill="#475569" font-weight="400">
+    Required fields use a red asterisk. Barcode and declared cost are optional.
+  </text>
+  <rect x="286" y="180" width="134" height="26" rx="13" fill="#D1FAE5" />
+  <text x="296" y="198" font-size="12" fill="#0F766E" font-weight="600">SS-1052 · MOCKUP</text>
+  <text x="286" y="970" font-size="12" fill="#475569" font-weight="400">
+    Design delivery · 26 Oct 2026 · Lợi Phan · Editable SVG · No production data
+  </text>
+  <rect x="286" y="240" width="730" height="650" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="310" y="277" font-size="18" fill="#0F172A" font-weight="600">Product information</text>
+  <text x="310" y="315" font-size="13" fill="#475569" font-weight="600">SKU code</text>
+  <text x="374" y="315" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="325" width="320" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="351" font-size="14" fill="#0F172A" font-weight="400">RICE-5KG</text>
+  <text x="662" y="315" font-size="13" fill="#475569" font-weight="600">Product name</text>
+  <text x="754" y="315" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="662" y="325" width="330" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="674" y="351" font-size="14" fill="#0F172A" font-weight="400">Jasmine rice 5 kg</text>
+  <text x="310" y="401" font-size="13" fill="#475569" font-weight="600">Barcode</text>
+  <rect x="310" y="411" width="320" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="437" font-size="14" fill="#0F172A" font-weight="400">8930000001001</text>
+  <text x="662" y="401" font-size="13" fill="#475569" font-weight="600">Declared value (VND)</text>
+  <text x="810" y="401" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="662" y="411" width="330" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="674" y="437" font-size="14" fill="#0F172A" font-weight="400">120000</text>
+  <text x="310" y="487" font-size="13" fill="#475569" font-weight="600">Weight (kg)</text>
+  <text x="395" y="487" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="497" width="205" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="523" font-size="14" fill="#0F172A" font-weight="400">5</text>
+  <text x="548" y="487" font-size="13" fill="#475569" font-weight="600">Length (cm)</text>
+  <text x="633" y="487" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="548" y="497" width="205" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="560" y="523" font-size="14" fill="#0F172A" font-weight="400">30</text>
+  <text x="786" y="487" font-size="13" fill="#475569" font-weight="600">Width (cm)</text>
+  <text x="864" y="487" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="786" y="497" width="205" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="798" y="523" font-size="14" fill="#0F172A" font-weight="400">20</text>
+  <text x="310" y="573" font-size="13" fill="#475569" font-weight="600">Height (cm)</text>
+  <text x="395" y="573" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="310" y="583" width="205" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="322" y="609" font-size="14" fill="#0F172A" font-weight="400">10</text>
+  <text x="548" y="573" font-size="13" fill="#475569" font-weight="600">Declared cost (VND)</text>
+  <rect x="548" y="583" width="205" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="560" y="609" font-size="14" fill="#0F172A" font-weight="400">Optional</text>
+  <text x="786" y="573" font-size="13" fill="#475569" font-weight="600">Status</text>
+  <text x="836" y="573" font-size="14" fill="#EF4444" font-weight="600">*</text>
+  <rect x="786" y="583" width="205" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="798" y="609" font-size="14" fill="#0F172A" font-weight="400">Active</text>
+  <text x="310" y="683" font-size="18" fill="#0F172A" font-weight="600">Lot and expiry policy</text>
+  <text x="310" y="717" font-size="14" fill="#0F172A" font-weight="400">
+    ✓ Track lots ✓ Track expiry Manufacture date: optional
+  </text>
+  <text x="310" y="750" font-size="13" fill="#475569" font-weight="400">
+    Minimum outbound shelf life: 7 days · Near-expiry warning: 30 days
+  </text>
+  <rect x="719" y="817" width="110" height="42" rx="8" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="735" y="844" font-size="14" fill="#0F172A" font-weight="600">Cancel</text>
+  <rect x="845" y="817" width="147" height="42" rx="8" fill="#0F766E" stroke="#0F766E" />
+  <text x="861" y="844" font-size="14" fill="#FFFFFF" font-weight="600">Create SKU</text>
+  <rect x="1040" y="240" width="366" height="440" rx="12" fill="#FFFFFF" stroke="#E2E8F0" />
+  <text x="1064" y="279" font-size="17" fill="#0F172A" font-weight="600">
+    Validation &amp; permissions
+  </text>
+  <text x="1064" y="325" font-size="13" fill="#475569" font-weight="400">
+    SKU is unique within this seller.
+  </text>
+  <text x="1064" y="368" font-size="13" fill="#475569" font-weight="400">
+    Positive weight and dimensions.
+  </text>
+  <text x="1064" y="411" font-size="13" fill="#475569" font-weight="400">
+    Integer VND; preserve entered values.
+  </text>
+  <text x="1064" y="454" font-size="13" fill="#475569" font-weight="400">
+    Expiry tracking requires lot tracking.
+  </text>
+  <text x="1064" y="497" font-size="13" fill="#475569" font-weight="400">
+    Conflict: retain draft and reload version.
+  </text>
+  <text x="1064" y="540" font-size="13" fill="#475569" font-weight="400">
+    Staff cannot create or edit SKUs.
+  </text>
+</svg>

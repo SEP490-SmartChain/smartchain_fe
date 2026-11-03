@@ -19,6 +19,18 @@ const sizeClasses = {
 export function Avatar({ src, alt, fallback, size = 'md', className, ...props }: AvatarProps) {
   const [imageError, setImageError] = React.useState(false);
 
+  React.useEffect(() => {
+    setImageError(false);
+  }, [src]);
+
+  const nameParts = fallback.trim().split(/\s+/).filter(Boolean);
+  const initials =
+    nameParts.length > 1
+      ? `${Array.from(nameParts[0])[0]}${Array.from(nameParts[nameParts.length - 1])[0]}`
+      : Array.from(nameParts[0] || '')
+          .slice(0, 2)
+          .join('');
+
   return (
     <div
       className={cn(
@@ -36,7 +48,9 @@ export function Avatar({ src, alt, fallback, size = 'md', className, ...props }:
           onError={() => setImageError(true)}
         />
       ) : (
-        <span className="uppercase">{fallback.substring(0, 2)}</span>
+        <span aria-hidden="true" className="uppercase">
+          {initials}
+        </span>
       )}
     </div>
   );

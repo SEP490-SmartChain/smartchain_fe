@@ -1,5 +1,5 @@
-import { UnderConstruction } from '@/components/Common';
+import { RulesWorkspace } from '@/features/rules';
 
 export default function RulesPage() {
-  return <UnderConstruction />;
+  return <RulesWorkspace />;
 }

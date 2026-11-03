@@ -17,6 +17,12 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
   const t = useTranslations('Common');
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  // Callers usually pass an inline handler. Keep the latest one in a ref so a parent re-render
+  // (for example on every keystroke) does not re-run the effect below and steal input focus.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -26,7 +32,7 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
     dialogRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -34,7 +40,7 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
       window.removeEventListener('keydown', handleKeyDown);
       previouslyFocused?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

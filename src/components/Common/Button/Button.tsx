@@ -5,7 +5,7 @@ import { LoaderCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'soft' | 'softDanger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
@@ -21,6 +21,9 @@ const variants = {
     'border-[var(--sc-error)] bg-[var(--sc-error)] text-white hover:border-[var(--sc-error-dark)] hover:bg-[var(--sc-error-dark)] hover:shadow-[0_6px_14px_rgb(239_68_68/18%)]',
   ghost:
     'border-transparent bg-transparent text-[var(--sc-text-secondary)] shadow-none hover:bg-[var(--sc-primary-alpha-08)] hover:text-[var(--sc-text-primary)]',
+  soft: 'border-transparent bg-[var(--sc-primary-lighter)] text-[var(--sc-primary-dark)] shadow-none hover:bg-[var(--sc-primary-light)]',
+  softDanger:
+    'border-transparent bg-[var(--sc-error-bg)] text-[var(--sc-error-dark)] shadow-none hover:bg-[var(--sc-error-border)]',
 };
 
 const sizes = {

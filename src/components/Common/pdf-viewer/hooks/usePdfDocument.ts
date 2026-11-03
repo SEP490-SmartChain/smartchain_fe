@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 import type { PDFDocumentProxy, PDFDocumentLoadingTask } from 'pdfjs-dist';
 
 // Setup PDF worker
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 }
 
 export function usePdfDocument(fileUrl: string | undefined, isOpen: boolean) {
@@ -35,11 +36,10 @@ export function usePdfDocument(fileUrl: string | undefined, isOpen: boolean) {
           setPdfDoc(pdf);
           setNumPages(pdf.numPages);
         }
-      } catch (err: unknown) {
+      } catch {
         if (isMounted) {
-          const error = err instanceof Error ? err : new Error('Failed to load PDF');
-          console.error('Error loading PDF', error);
-          setError(error);
+          // PDF errors can contain a private signed URL; expose only a stable local error.
+          setError(new Error('PDF.LOAD_FAILED'));
         }
       } finally {
         if (isMounted) {
@@ -48,7 +48,7 @@ export function usePdfDocument(fileUrl: string | undefined, isOpen: boolean) {
       }
     };
 
-    loadPdf();
+    void loadPdf();
 
     return () => {
       isMounted = false;

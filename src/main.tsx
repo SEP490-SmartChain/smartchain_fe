@@ -9,8 +9,8 @@ import '@fontsource/archivo/500.css';
 import '@fontsource/archivo/600.css';
 import '@fontsource/archivo/700.css';
 
-import AdminLayout from '@/components/layout/AdminLayout';
 import LoginLayout from '@/components/layout/LoginLayout';
+import { PortalLayout } from '@/components/layout/PortalLayout';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import RootLayout from '@/components/layout/RootLayout';
 import HomePage from '@/pages/public/HomePage';
@@ -35,7 +35,6 @@ const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
 const BillingPage = React.lazy(() => import('@/pages/workspace/BillingPage'));
 const StaffAccountsPage = React.lazy(() => import('@/pages/workspace/StaffAccountsPage'));
 const WarehousesPage = React.lazy(() => import('@/pages/workspace/WarehousesPage'));
-const RolesPermissionsPage = React.lazy(() => import('@/pages/workspace/RolesPermissionsPage'));
 const WorkspaceAuditPage = React.lazy(() => import('@/pages/workspace/AuditPage'));
 const IntegrationErrorsPage = React.lazy(() => import('@/pages/workspace/IntegrationErrorsPage'));
 const ButtonsPage = React.lazy(() => import('@/pages/components/ButtonsPage'));
@@ -43,9 +42,27 @@ const DataDisplayPage = React.lazy(() => import('@/pages/components/DataDisplayP
 const DataTablePage = React.lazy(() => import('@/pages/components/DataTablePage'));
 const DropzonePage = React.lazy(() => import('@/pages/components/DropzonePage'));
 
-// Super Admin console
+const SkuCatalogPage = React.lazy(() => import('@/pages/workspace/SkuCatalogPage'));
+const AsnsPage = React.lazy(() => import('@/pages/workspace/AsnsPage'));
+const ReturnsPage = React.lazy(() => import('@/pages/workspace/ReturnsPage'));
+const StatementsPage = React.lazy(() => import('@/pages/workspace/StatementsPage'));
+const ExceptionsPage = React.lazy(() => import('@/pages/workspace/ExceptionsPage'));
+const AdminWarehousesPage = React.lazy(() => import('@/pages/admin/AdminWarehousesPage'));
+const WarehouseInboundPage = React.lazy(() => import('@/pages/warehouse/InboundPage'));
+const WarehouseInboundLayoutPage = React.lazy(() => import('@/pages/warehouse/InboundLayoutPage'));
+const WarehouseReceivingPage = React.lazy(() => import('@/pages/warehouse/ReceivingPage'));
+const WarehousePutawayPage = React.lazy(() => import('@/pages/warehouse/PutawayPage'));
+const InventoryWorkflowsPage = React.lazy(() => import('@/pages/warehouse/InventoryWorkflowsPage'));
+const WarehousePickingPage = React.lazy(() => import('@/pages/warehouse/PickingPage'));
+const WarehousePackingPage = React.lazy(() => import('@/pages/warehouse/PackingPage'));
+const WarehouseHandoverPage = React.lazy(() => import('@/pages/warehouse/HandoverPage'));
+const WarehouseReturnsPage = React.lazy(() => import('@/pages/warehouse/ReturnsPage'));
+const WarehouseCountsPage = React.lazy(() => import('@/pages/warehouse/CountsPage'));
+
+// ORCA operations portal
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
 const CarrierCatalogPage = React.lazy(() => import('@/pages/admin/CarrierCatalogPage'));
+const FreightTariffsPage = React.lazy(() => import('@/pages/admin/FreightTariffsPage'));
 const PlansPage = React.lazy(() => import('@/pages/admin/PlansPage'));
 const HealthPage = React.lazy(() => import('@/pages/admin/HealthPage'));
 const AdminAuditPage = React.lazy(() => import('@/pages/admin/AuditPage'));
@@ -53,6 +70,7 @@ const ApiTrafficPage = React.lazy(() => import('@/pages/admin/ApiTrafficPage'));
 const ObservabilityPage = React.lazy(() => import('@/pages/admin/ObservabilityPage'));
 const AdminWebhooksPage = React.lazy(() => import('@/pages/admin/WebhooksPage'));
 const QuotasPage = React.lazy(() => import('@/pages/admin/QuotasPage'));
+const PlatformStaffPage = React.lazy(() => import('@/pages/admin/PlatformStaffPage'));
 
 function PageLoader() {
   return (
@@ -97,18 +115,14 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route
                 element={
-                  <AdminLayout>
+                  <PortalLayout>
                     <RouteOutlet />
-                  </AdminLayout>
+                  </PortalLayout>
                 }
               >
                 {/* Trang 403 + redirect helper nằm ngoài route matrix. */}
                 <Route path="/403" element={<ForbiddenPage />} />
                 <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
-                <Route
-                  path="/roles-permissions"
-                  element={<Navigate to="/roles-permissions/roles" replace />}
-                />
                 {import.meta.env.DEV && (
                   <Route
                     path="/components"
@@ -119,17 +133,37 @@ function App() {
                 {/* Route matrix guard (mục 6). */}
                 <Route element={<ProtectedRoute enforceRoutePolicy />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/catalog/skus" element={<SkuCatalogPage />} />
+                  <Route path="/asns" element={<AsnsPage />} />
                   <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/returns" element={<ReturnsPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/statements" element={<StatementsPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
+                  <Route path="/warehouses" element={<WarehousesPage />} />
+                  <Route path="/warehouse" element={<Navigate to="/warehouse/inbound" replace />} />
+                  <Route element={<WarehouseInboundLayoutPage />}>
+                    <Route path="/warehouse/inbound" element={<WarehouseInboundPage />} />
+                    <Route path="/warehouse/receiving" element={<WarehouseReceivingPage />} />
+                    <Route path="/warehouse/putaway" element={<WarehousePutawayPage />} />
+                  </Route>
+                  <Route
+                    path="/warehouse/inventory-workflows"
+                    element={<InventoryWorkflowsPage />}
+                  />
+                  <Route path="/inventory/workflows" element={<InventoryWorkflowsPage />} />
+                  <Route path="/warehouse/picking" element={<WarehousePickingPage />} />
+                  <Route path="/warehouse/packing" element={<WarehousePackingPage />} />
+                  <Route path="/warehouse/handover" element={<WarehouseHandoverPage />} />
+                  <Route path="/warehouse/returns" element={<WarehouseReturnsPage />} />
+                  <Route path="/warehouse/counts" element={<WarehouseCountsPage />} />
                   <Route path="/rules" element={<RulesPage />} />
                   <Route path="/shipments" element={<ShipmentsPage />} />
+                  <Route path="/exceptions" element={<ExceptionsPage />} />
                   <Route path="/reconciliation" element={<ReconciliationPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings/:tab" element={<SettingsPage />} />
                   <Route path="/iam/users" element={<StaffAccountsPage />} />
-                  <Route path="/warehouses" element={<WarehousesPage />} />
-                  <Route path="/roles-permissions/:tab" element={<RolesPermissionsPage />} />
                   <Route path="/audit" element={<WorkspaceAuditPage />} />
                   <Route path="/integration-errors" element={<IntegrationErrorsPage />} />
 
@@ -142,8 +176,11 @@ function App() {
                     </>
                   )}
 
+                  <Route path="/admin/staff" element={<PlatformStaffPage />} />
+                  <Route path="/admin/warehouses" element={<AdminWarehousesPage />} />
                   <Route path="/admin/tenants" element={<TenantsPage />} />
                   <Route path="/admin/carriers" element={<CarrierCatalogPage />} />
+                  <Route path="/admin/tariffs" element={<FreightTariffsPage />} />
                   <Route path="/admin/plans" element={<PlansPage />} />
                   <Route path="/admin/health" element={<HealthPage />} />
                   <Route path="/admin/audit" element={<AdminAuditPage />} />

@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useRef, useState, Fragment } from 'react';
-
-import {} from 'react-dom';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 
 import {
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
   Filter,
   LoaderCircle,
   MapPin,
@@ -14,36 +20,83 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
-import Modal from '@/components/Common/Modal/Modal';
+import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
-import { toast } from 'sonner';
+import { useAccess } from '@/hooks/useAccess';
+import { ApiError } from '@/services/apiClient';
+import { useAuthStore } from '@/stores/authStore';
 
-import AddWarehouseModal from './AddWarehouseModal';
+import { AddWarehouseModal } from './AddWarehouseModal';
+import { WarehouseDetails } from './WarehouseDetails';
+import { WarehouseStatusModal } from './WarehouseStatusModal';
 import { warehouseApi } from '../api/warehouseApi';
 
-import type { Warehouse, WarehouseFilters, WarehouseStatus } from '../types/warehouse';
+import type {
+  Warehouse,
+  WarehouseFilters,
+  WarehousePage,
+  WarehouseStatus,
+} from '../types/warehouse';
 
-export default function WarehouseDirectory() {
+interface WarehouseDirectoryProps {
+  headerAction?: ReactNode;
+}
+
+function subscribeToViewport(onChange: () => void) {
+  window.addEventListener('resize', onChange);
+  return () => window.removeEventListener('resize', onChange);
+}
+
+function getVisibleColumnCount() {
+  return 2 + [640, 768, 1024, 1280].filter((width) => window.innerWidth >= width).length;
+}
+
+function getServerColumnCount() {
+  return 6;
+}
+
+export function WarehouseDirectory({ headerAction }: WarehouseDirectoryProps = {}) {
+  const t = useTranslations('Warehouses');
+  const locale = useLocale();
+  const { can } = useAccess();
+  const canManage = can('warehouses.manage');
+  const canUpdate = can('warehouses.update');
+  const principal = useAuthStore((state) => state.user);
+  const visibleColumnCount = useSyncExternalStore(
+    subscribeToViewport,
+    getVisibleColumnCount,
+    getServerColumnCount,
+  );
   const [filters, setFilters] = useState<WarehouseFilters>({ search: '', status: '' });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestRevision = useRef(0);
+  const detailTrigger = useRef<HTMLButtonElement | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
 
-  const cache = useRef<Record<number, { items: Warehouse[]; cursor: string | null }>>({});
+  const cache = useRef<Record<number, WarehousePage>>({});
+  const pageCursors = useRef<Record<number, string | undefined>>({});
+
+  const invalidateRequests = useCallback(() => {
+    requestRevision.current++;
+  }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -53,122 +106,152 @@ export default function WarehouseDirectory() {
   }, [filters.search]);
 
   const fetchWarehouses = useCallback(
-    async (cursor?: string, page = 1) => {
+    async (cursor?: string, page = 1, background = false) => {
+      const revision = ++requestRevision.current;
       try {
-        if (page === 1) setIsLoading(true);
+        if (!background) setIsLoading(true);
+        setError(null);
         const activeFilters = {
           search: debouncedSearch,
           status: filters.status,
         };
 
         const result = await warehouseApi.list(activeFilters, cursor);
+        if (revision !== requestRevision.current) return;
+        setCurrentPage(page);
         setWarehouses(result.items);
         setHasNextPage(result.pagination.hasNext);
         setNextCursor(result.pagination.nextCursor);
-        cache.current[page] = { items: result.items, cursor: result.pagination.nextCursor };
-      } catch {
-        toast.error('Lỗi tải danh sách kho');
+        cache.current[page] = result;
+        pageCursors.current[page] = cursor;
+      } catch (failure) {
+        if (revision === requestRevision.current) {
+          setWarehouses([]);
+          setHasNextPage(false);
+          setNextCursor(null);
+          setError(failure instanceof ApiError ? failure.message : t('loadError'));
+        }
       } finally {
-        setIsLoading(false);
+        if (revision === requestRevision.current) setIsLoading(false);
       }
     },
-    [debouncedSearch, filters.status, toast],
+    [debouncedSearch, filters.status, t],
   );
 
   useEffect(() => {
     cache.current = {};
+    pageCursors.current = {};
     setCurrentPage(1);
+    setWarehouses([]);
+    setDetailId(null);
+    setAddModalOpen(false);
+    setEditingWarehouse(null);
+    setSelectedWarehouse(null);
     void fetchWarehouses(undefined, 1);
-  }, [fetchWarehouses]);
+    return invalidateRequests;
+  }, [fetchWarehouses, invalidateRequests, principal]);
 
   const handlePageChange = (page: number) => {
     if (page === currentPage) return;
+    setDetailId(null);
     if (cache.current[page]) {
+      invalidateRequests();
       setWarehouses(cache.current[page].items);
+      setNextCursor(cache.current[page].pagination.nextCursor);
+      setHasNextPage(cache.current[page].pagination.hasNext);
+      setError(null);
+      setIsLoading(false);
       setCurrentPage(page);
     } else if (page > currentPage && nextCursor) {
       void fetchWarehouses(nextCursor, page);
-      setCurrentPage(page);
+    } else if (page in pageCursors.current) {
+      void fetchWarehouses(pageCursors.current[page], page);
     }
   };
 
-  const handleToggleStatus = async () => {
-    if (!selectedWarehouse) return;
-    setUpdatingId(selectedWarehouse.id);
-    try {
-      const newStatus = selectedWarehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      // In a real implementation we would call the setStatus API here
-      // const updated = await warehouseApi.setStatus(selectedWarehouse.id, newStatus);
+  const closeDetails = () => {
+    setDetailId(null);
+    detailTrigger.current?.focus();
+  };
 
-      setWarehouses((prev) =>
-        prev.map((w) => (w.id === selectedWarehouse.id ? { ...w, status: newStatus } : w)),
-      );
-      toast.success('Đã cập nhật trạng thái kho');
-    } catch {
-      toast.error('Không thể cập nhật trạng thái');
-    } finally {
-      setUpdatingId(null);
-      setSelectedWarehouse(null);
+  const toggleDetails = (id: string, trigger: HTMLButtonElement) => {
+    if (detailId === id) {
+      closeDetails();
+      return;
     }
+    detailTrigger.current = trigger;
+    setDetailId(id);
+  };
+
+  const refreshWarehouses = () => {
+    cache.current = {};
+    void fetchWarehouses(pageCursors.current[currentPage], currentPage, true);
   };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[var(--sc-bg-primary)]">
-      <header className="flex flex-col gap-5 border-b border-[var(--sc-border-default)] px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-[var(--sc-text-primary)]">
-            Danh sách Kho hàng
-          </h1>
-          <p className="mt-1.5 text-sm text-[var(--sc-text-secondary)]">
-            Quản lý các kho, điểm tập kết hàng và sức chứa.
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <Button variant="primary" onClick={() => setAddModalOpen(true)}>
-            <Plus size={16} />
-            Thêm kho mới
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        actionsClassName="shrink-0"
+        actions={
+          canManage &&
+          (headerAction ?? (
+            <Button variant="primary" onClick={() => setAddModalOpen(true)}>
+              <Plus size={16} />
+              {t('addWarehouse')}
+            </Button>
+          ))
+        }
+      />
 
-      <div className="flex flex-col gap-4 p-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-md">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
-            />
+          <div className="w-full sm:max-w-md">
             <Input
               type="text"
-              placeholder="Tìm theo mã hoặc tên kho..."
+              placeholder={t('searchPlaceholder')}
+              aria-label={t('searchLabel')}
+              leftIcon={<Search size={18} aria-hidden="true" />}
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-              className="pl-10"
             />
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="w-full shrink-0 sm:w-60">
             <div className="flex items-center gap-2">
-              <Filter size={16} className="text-[var(--sc-text-secondary)]" />
+              <Filter
+                size={16}
+                aria-hidden="true"
+                className="shrink-0 text-[var(--sc-text-secondary)]"
+              />
               <Select
+                aria-label={t('statusFilter')}
+                placeholder={t('allStatuses')}
+                isPlaceholderDisabled={false}
                 value={filters.status}
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, status: e.target.value as WarehouseStatus | '' }))
                 }
                 options={[
-                  { label: 'Tất cả trạng thái', value: '' },
-                  { label: 'Hoạt động', value: 'ACTIVE' },
-                  { label: 'Ngừng hoạt động', value: 'INACTIVE' },
+                  { label: t('active'), value: 'ACTIVE' },
+                  { label: t('inactive'), value: 'INACTIVE' },
                 ]}
-                className="w-[140px]"
               />
             </div>
           </div>
         </div>
       </div>
 
-      {isLoading ? (
+      {error ? (
+        <Alert variant="error" title={t('loadError')}>
+          <p>{error}</p>
+          <Button variant="outline" onClick={() => void fetchWarehouses(undefined, 1)}>
+            {t('retry')}
+          </Button>
+        </Alert>
+      ) : isLoading ? (
         <div className="flex flex-1 items-center justify-center">
-          <LoaderCircle size={28} className="animate-spin text-[var(--sc-brand-primary)]" />
+          <LoaderCircle size={28} className="animate-spin text-[var(--sc-primary)]" />
         </div>
       ) : warehouses.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
@@ -176,111 +259,130 @@ export default function WarehouseDirectory() {
             <WarehouseIcon size={24} />
           </div>
           <h3 className="mt-4 text-base font-semibold text-[var(--sc-text-primary)]">
-            Không tìm thấy kho
+            {t('emptyTitle')}
           </h3>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--sc-text-secondary)]">
-            Chưa có dữ liệu kho hàng hoặc không có kết quả phù hợp.
+            {t('emptyState')}
           </p>
         </div>
       ) : (
-        <section className="flex min-h-0 flex-1 flex-col justify-between overflow-hidden sm:px-6 lg:px-8">
+        <section className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 overflow-auto rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-sm">
-            <table className="w-full min-w-[800px] text-left text-sm">
+            <table aria-label={t('tableLabel')} className="w-full table-fixed text-left text-sm">
               <thead className="sticky top-0 z-10 bg-[var(--sc-bg-elevated)] text-[13px] font-medium text-[var(--sc-text-secondary)] shadow-[0_1px_0_var(--sc-border-default)]">
                 <tr>
-                  <th className="w-12 px-2 py-3.5 pl-4 sm:pl-5" />
-                  <th className="px-4 py-3.5">Mã kho</th>
-                  <th className="px-4 py-3.5">Tên kho</th>
-                  <th className="px-4 py-3.5">Địa chỉ</th>
-                  <th className="px-4 py-3.5">Công suất (đơn/ngày)</th>
-                  <th className="px-4 py-3.5">Trạng thái</th>
-                  <th className="w-16 px-4 py-3.5 text-right" />
+                  <th className="hidden w-36 px-4 py-3.5 sm:table-cell">{t('columnCode')}</th>
+                  <th className="px-4 py-3.5">{t('columnName')}</th>
+                  <th className="hidden px-4 py-3.5 lg:table-cell">{t('columnAddress')}</th>
+                  <th className="hidden w-40 px-4 py-3.5 xl:table-cell">{t('columnCapacity')}</th>
+                  <th className="hidden w-36 px-4 py-3.5 md:table-cell">{t('columnStatus')}</th>
+                  <th className="w-36 px-4 py-3.5 text-right sm:w-48">{t('columnActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--sc-border-default)]">
                 {warehouses.map((warehouse) => {
-                  const isExpanded = expandedId === warehouse.id;
+                  const isExpanded = detailId === warehouse.id;
+                  const detailsId = `warehouse-details-${warehouse.id}`;
                   return (
                     <Fragment key={warehouse.id}>
                       <tr
-                        className={`group transition-colors hover:bg-[var(--sc-bg-secondary)] ${
-                          isExpanded ? 'bg-[var(--sc-bg-secondary)]' : ''
-                        }`}
+                        className={
+                          isExpanded
+                            ? 'bg-[var(--sc-primary-alpha-08)]'
+                            : 'transition-colors hover:bg-[var(--sc-bg-secondary)]'
+                        }
                       >
-                        <td className="px-2 py-3.5 pl-4 sm:pl-5">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedId(isExpanded ? null : warehouse.id)}
-                            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-text-tertiary)] hover:bg-[var(--sc-bg-hover)] hover:text-[var(--sc-text-primary)] transition-colors"
-                          >
-                            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3.5 font-medium text-[var(--sc-text-primary)]">
+                        <td className="hidden px-4 py-3.5 font-medium text-[var(--sc-text-primary)] sm:table-cell">
                           {warehouse.code}
                         </td>
                         <td className="px-4 py-3.5 text-[var(--sc-text-primary)]">
-                          {warehouse.name}
+                          <Button
+                            variant="ghost"
+                            type="button"
+                            aria-expanded={isExpanded}
+                            aria-controls={detailsId}
+                            onClick={(event) => toggleDetails(warehouse.id, event.currentTarget)}
+                            className="h-auto justify-start whitespace-normal p-0 text-left text-[var(--sc-primary-dark)] hover:translate-y-0 hover:bg-transparent hover:underline"
+                          >
+                            {warehouse.name}
+                          </Button>
+                          <p className="mt-1 text-xs text-[var(--sc-text-secondary)] sm:hidden">
+                            {warehouse.code}
+                          </p>
+                          <span className="mt-2 inline-block md:hidden">
+                            <Badge
+                              status={warehouse.status === 'ACTIVE' ? 'success' : 'neutral'}
+                              label={t(warehouse.status === 'ACTIVE' ? 'active' : 'inactive')}
+                            />
+                          </span>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="hidden px-4 py-3.5 lg:table-cell">
                           <div className="flex items-center gap-1.5 text-[var(--sc-text-secondary)]">
                             <MapPin size={14} className="shrink-0" />
-                            <span className="truncate max-w-[200px]">{warehouse.address}</span>
+                            <span className="truncate" title={warehouse.address}>
+                              {warehouse.address}
+                            </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-[var(--sc-text-primary)]">
-                          {warehouse.dailyCapacity.toLocaleString()}
+                        <td className="hidden px-4 py-3.5 text-[var(--sc-text-primary)] xl:table-cell">
+                          {warehouse.dailyCapacity.toLocaleString(locale)}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="hidden px-4 py-3.5 md:table-cell">
                           <Badge
                             status={warehouse.status === 'ACTIVE' ? 'success' : 'neutral'}
-                            label={warehouse.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ngưng'}
+                            label={t(warehouse.status === 'ACTIVE' ? 'active' : 'inactive')}
                             size="md"
                           />
                         </td>
                         <td className="px-3 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedWarehouse(warehouse)}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
-                          >
-                            {warehouse.status === 'ACTIVE' ? (
-                              <ToggleRight size={17} />
-                            ) : (
-                              <ToggleLeft size={17} />
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              type="button"
+                              aria-label={t(isExpanded ? 'collapseWarehouse' : 'viewDetails', {
+                                code: warehouse.code,
+                              })}
+                              aria-expanded={isExpanded}
+                              aria-controls={detailsId}
+                              onClick={(event) => toggleDetails(warehouse.id, event.currentTarget)}
+                            >
+                              {t(isExpanded ? 'collapseDetails' : 'viewDetailsAction')}
+                              {isExpanded ? (
+                                <ChevronUp size={14} aria-hidden="true" />
+                              ) : (
+                                <ChevronDown size={14} aria-hidden="true" />
+                              )}
+                            </Button>
+                            {canManage && (
+                              <Button
+                                variant="ghost"
+                                type="button"
+                                aria-label={t('changeStatus', { code: warehouse.code })}
+                                onClick={() => setSelectedWarehouse(warehouse)}
+                                className="h-8 w-8 shrink-0 p-0 text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
+                              >
+                                {warehouse.status === 'ACTIVE' ? (
+                                  <ToggleRight size={17} aria-hidden="true" className="shrink-0" />
+                                ) : (
+                                  <ToggleLeft size={17} aria-hidden="true" className="shrink-0" />
+                                )}
+                              </Button>
                             )}
-                          </button>
+                          </div>
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr className="bg-[var(--sc-bg-secondary)]/50">
-                          <td colSpan={7} className="px-6 py-4">
-                            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                              <div>
-                                <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  GPS
-                                </span>
-                                <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
-                                  {warehouse.latitude}, {warehouse.longitude}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  Liên hệ
-                                </span>
-                                <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
-                                  {warehouse.contactName || '—'}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="block text-xs font-medium text-[var(--sc-text-tertiary)]">
-                                  SĐT
-                                </span>
-                                <span className="mt-1 block text-sm text-[var(--sc-text-primary)]">
-                                  {warehouse.contactPhone || '—'}
-                                </span>
-                              </div>
-                            </div>
+                        <tr>
+                          <td colSpan={visibleColumnCount} className="p-0">
+                            <WarehouseDetails
+                              key={`${warehouse.id}-${principal?.userId}-${principal?.actorScope}-${principal?.tenantId}-${principal?.roles.join(',')}`}
+                              id={detailsId}
+                              warehouse={warehouse}
+                              onClose={closeDetails}
+                              onEdit={() => setEditingWarehouse(warehouse)}
+                              onSaved={refreshWarehouses}
+                            />
                           </td>
                         </tr>
                       )}
@@ -301,38 +403,34 @@ export default function WarehouseDirectory() {
         </section>
       )}
 
-      <AddWarehouseModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onSuccess={() => {
-          setAddModalOpen(false);
-          cache.current = {};
-          void fetchWarehouses();
-        }}
-      />
+      {(canManage || canUpdate) && (
+        <>
+          <AddWarehouseModal
+            isOpen={addModalOpen || editingWarehouse !== null}
+            warehouse={editingWarehouse}
+            onClose={() => {
+              setAddModalOpen(false);
+              setEditingWarehouse(null);
+            }}
+            onSuccess={() => {
+              setAddModalOpen(false);
+              setEditingWarehouse(null);
+              refreshWarehouses();
+            }}
+          />
 
-      <Modal
-        isOpen={selectedWarehouse !== null}
-        onClose={() => setSelectedWarehouse(null)}
-        title="Đổi trạng thái kho"
-      >
-        <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
-          Bạn có chắc muốn {selectedWarehouse?.status === 'ACTIVE' ? 'tạm ngưng' : 'kích hoạt'} kho{' '}
-          <strong>{selectedWarehouse?.name}</strong>?
-        </p>
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setSelectedWarehouse(null)}>
-            Hủy
-          </Button>
-          <Button
-            variant={selectedWarehouse?.status === 'ACTIVE' ? 'danger' : 'primary'}
-            isLoading={updatingId === selectedWarehouse?.id}
-            onClick={handleToggleStatus}
-          >
-            Xác nhận
-          </Button>
-        </div>
-      </Modal>
+          {canManage && selectedWarehouse && (
+            <WarehouseStatusModal
+              warehouse={selectedWarehouse}
+              onClose={() => setSelectedWarehouse(null)}
+              onSaved={() => {
+                setSelectedWarehouse(null);
+                refreshWarehouses();
+              }}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

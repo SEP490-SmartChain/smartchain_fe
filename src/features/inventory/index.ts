@@ -4,4 +4,25 @@
  * Feature khác CHỈ được import qua file này — không với tay vào file nội bộ.
  * (FE dependency rule #2, SDD mục 1.2.1)
  */
-export {};
+export { StockLevelsPanel } from './components/StockLevelsPanel';
+export { InventoryDetailPanel } from './components/InventoryDetailPanel';
+export { ActiveReservationsPanel } from './components/ActiveReservationsPanel';
+export type {
+  ActiveReservation,
+  ReleaseReservationsResult,
+  ReservationSummary,
+} from './types/inventoryReservation.types';
+export type {
+  InventoryStockFilters,
+  InventoryStockLevel,
+  InventoryStockSummary,
+} from './types/inventoryStock.types';
+export { NearExpiryPanel } from './components/NearExpiryPanel';
+export { InventoryNotificationSettingsCard } from './components/InventoryNotificationSettingsCard';
+export { RunningLowCard } from './components/RunningLowCard';
+export { useRunningLow } from './hooks/useRunningLow';
+export type { RunningLowItem, RunningLowUrgency } from './types/inventoryStock.types';
+export { InventoryWorkspace } from './components/InventoryWorkspace';
+
+export { InventoryWorkflowWorkspace } from './components/InventoryWorkflowWorkspace';
+export { ReturnsWorkspace } from './components/ReturnsWorkspace';
