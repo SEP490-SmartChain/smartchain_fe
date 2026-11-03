@@ -104,17 +104,19 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       />
       {detailTab === 'allocation' ? (
         <section className="space-y-4" aria-label={t('allocationTab')}>
-          <Alert>
-            {t(
-              order.kind === 'WITHDRAWAL'
-                ? 'withdrawalAllocationExplanation'
-                : order.fulfillmentOrders.some(
-                      (child) => child.allocation?.reason === 'TOTAL_COST',
-                    ) || allocationCost
-                  ? 'totalCostAllocationExplanation'
-                  : 'allocationExplanation',
-            )}
-          </Alert>
+          {!(owner && allocationCost) && (
+            <Alert>
+              {t(
+                order.kind === 'WITHDRAWAL'
+                  ? 'withdrawalAllocationExplanation'
+                  : order.fulfillmentOrders.some(
+                        (child) => child.allocation?.reason === 'TOTAL_COST',
+                      )
+                    ? 'totalCostAllocationExplanation'
+                    : 'allocationExplanation',
+              )}
+            </Alert>
+          )}
           {!order.fulfillmentOrders.length && <p>{t('allocationPending')}</p>}
           {order.fulfillmentOrders.map((child) => (
             <article

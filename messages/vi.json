@@ -859,7 +859,7 @@
     "totalCostSavedGoods": "Giá trị hàng tránh hết hạn: {amount}",
     "totalCostNoDifference": "Cước và giá trị hàng không chênh lệch so với phương án kho gần nhất.",
     "totalCostUnknown": "Chưa có số liệu so sánh với kho gần nhất.",
-    "totalCostBoundedHint": "Số liệu chỉ là ước tính; cước cuối cùng được tính sau khi đóng gói.",
+    "totalCostBoundedHint": "Ước tính dựa trên cước, chi phí chia kiện và hạn dùng; cước chốt sau khi đóng gói.",
     "allocationUnavailable": "Kiện hàng này chưa có thông tin giải thích phân bổ đã lưu.",
     "expiryFirst": "Ưu tiên lô còn dùng được và gần hết hạn hơn.",
     "allocationLot": "Lô {lot} · Vị trí {bin} · {qty} sản phẩm",

@@ -859,7 +859,7 @@
     "totalCostSavedGoods": "Goods value protected from expiry: {amount}",
     "totalCostNoDifference": "Freight and goods value do not differ from the nearest warehouse option.",
     "totalCostUnknown": "No comparison with the nearest warehouse is available yet.",
-    "totalCostBoundedHint": "These figures are estimates. Final freight is calculated after packing.",
+    "totalCostBoundedHint": "Estimates compare freight, split costs, and expiry dates. Final freight is calculated after packing.",
     "allocationUnavailable": "The recorded allocation explanation is unavailable for this parcel.",
     "expiryFirst": "Prioritizes eligible lots closer to expiry.",
     "allocationLot": "Lot {lot} · Location {bin} · {qty} units",
