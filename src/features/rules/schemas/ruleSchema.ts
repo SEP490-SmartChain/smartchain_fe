@@ -160,7 +160,7 @@ export const paginationSchema = z
 export const targetSchema = z.object({ id: uuid, name: z.string().min(1) });
 export const reasonSchema = (message: string) =>
   z.object({ reason: z.string().trim().min(3, message).max(500, message) });
-export const ruleFormSchema = (message: string) =>
+export const ruleFormSchema = (message: string, isReasonRequired = true) =>
   z
     .object({
       name: z.string(),
@@ -185,7 +185,8 @@ export const ruleFormSchema = (message: string) =>
           });
         }
       }
-      if (!reasonSchema(message).safeParse({ reason: form.reason }).success) {
+      const isReasonSkipped = !isReasonRequired && form.reason.trim() === '';
+      if (!isReasonSkipped && !reasonSchema(message).safeParse({ reason: form.reason }).success) {
         ctx.addIssue({ code: 'custom', message, path: ['reason'] });
       }
     });

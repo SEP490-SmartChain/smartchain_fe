@@ -28,15 +28,14 @@ function ClaimsWorkspace() {
   const isOps = roles.includes('OPS_DISPATCHER');
   const needsWarehouse =
     isOps && !roles.some((role) => role === 'ORCA_ACCOUNTANT' || role === 'ORCA_ADMIN');
+  const selected = searchParams.get('warehouseId')?.toLowerCase();
+  const warehouse =
+    selected && assignments.includes(selected)
+      ? selected
+      : needsWarehouse
+        ? (assignments[0] ?? '')
+        : '';
   const [warehouses, setWarehouses] = useState<Array<{ id: string; name: string }>>([]),
-    [warehouse, setWarehouse] = useState(() => {
-      const selected = searchParams.get('warehouseId')?.toLowerCase();
-      return selected && assignments.includes(selected)
-        ? selected
-        : needsWarehouse
-          ? (assignments[0] ?? '')
-          : '';
-    }),
     [warehouseError, setWarehouseError] = useState(false);
   useEffect(() => {
     if (!isOps) return;
@@ -65,7 +64,6 @@ function ClaimsWorkspace() {
             label={t('warehouse')}
             value={warehouse}
             onChange={(e) => {
-              setWarehouse(e.target.value);
               navigate(
                 e.target.value
                   ? `/claims?warehouseId=${encodeURIComponent(e.target.value)}`

@@ -136,7 +136,10 @@ const server = await createServer({
                 nextCursor: null,
               });
             const c = claims.get(url.pathname.split('/')[4]);
-            if (c) return send(view(c));
+            if (c)
+              return ops && c.warehouseId !== warehouse
+                ? error('CLAIM.NOT_FOUND', 404)
+                : send(view(c));
             return error('CLAIM.NOT_FOUND', 404);
           }
           let raw = '';

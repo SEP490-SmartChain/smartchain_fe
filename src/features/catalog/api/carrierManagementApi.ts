@@ -16,6 +16,7 @@ export const carrierManagementApi = {
         `${base}/${encodeURIComponent(current.id)}`,
         {
           name: values.name,
+          monthlyPurchaseVolumeCount: values.monthlyPurchaseVolumeCount,
           isActive: values.isActive,
           expectedUpdatedAt: current.updatedAt,
         },

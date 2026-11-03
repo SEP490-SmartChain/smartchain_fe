@@ -24,21 +24,19 @@ before(async () => {
   workbook = await server.ssrLoadModule('/src/features/catalog/lib/readSkuWorkbook.ts');
   schema = await server.ssrLoadModule('/src/features/catalog/schemas/productSchema.ts');
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-test-token',
-      expiresIn: 900,
-      user: {
-        userId: id,
-        tenantId: id,
-        email: 'test@example.test',
-        fullName: 'Synthetic Seller',
-        actorScope: 'TENANT',
-        roles: ['SELLER_OWNER'],
-        permissions: [],
-      },
-    });
+  auth.getState().setSession({
+    accessToken: 'synthetic-test-token',
+    expiresIn: 900,
+    user: {
+      userId: id,
+      tenantId: id,
+      email: 'test@example.test',
+      fullName: 'Synthetic Seller',
+      actorScope: 'TENANT',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+    },
+  });
 });
 after(async () => {
   globalThis.fetch = originalFetch;

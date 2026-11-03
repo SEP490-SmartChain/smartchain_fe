@@ -9,7 +9,10 @@ export interface ColumnDef<T> {
   key: Extract<keyof T, string> | string;
   label: string | React.ReactNode;
   render?: (row: T) => React.ReactNode;
+  align?: 'left' | 'center' | 'right';
 }
+
+const ALIGN_CLASS = { left: 'text-left', center: 'text-center', right: 'text-right' } as const;
 
 interface DataTableProps<T> {
   ariaLabel?: string;
@@ -45,7 +48,7 @@ export default function DataTable<T extends object>({
               {columns.map((column) => (
                 <th
                   key={String(column.key)}
-                  className="border-b border-[var(--sc-border-default)] px-4 py-3 text-xs font-medium text-[var(--sc-text-secondary)] whitespace-nowrap"
+                  className={`border-b border-[var(--sc-border-default)] px-4 py-3 text-xs font-medium text-[var(--sc-text-secondary)] whitespace-nowrap ${ALIGN_CLASS[column.align ?? 'left']}`}
                 >
                   {column.label}
                 </th>
@@ -83,7 +86,7 @@ export default function DataTable<T extends object>({
                   {columns.map((column) => (
                     <td
                       key={String(column.key)}
-                      className="px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle"
+                      className={`px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
                     >
                       {column.render
                         ? column.render(row)
