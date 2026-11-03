@@ -247,7 +247,7 @@ export default function Sidebar() {
                   <span className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-primary)]">
                     <Sparkles size={17} strokeWidth={1.6} />
                   </span>
-                  <span>ORCA v0.1.0</span>
+                  <span>ORCA</span>
                 </div>
                 <h2 className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
                   {t('connected_title')}

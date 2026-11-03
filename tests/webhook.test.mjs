@@ -46,9 +46,7 @@ before(async () => {
     resolve: { alias: { '@': fileURLToPath(new URL('../src', import.meta.url)) } },
     server: { middlewareMode: true, watch: null, ws: false },
   });
-  ({ webhookApi } = await server.ssrLoadModule(
-    '/src/features/tenants/api/webhookApi.ts',
-  ));
+  ({ webhookApi } = await server.ssrLoadModule('/src/features/tenants/api/webhookApi.ts'));
   ({ useAuthStore } = await server.ssrLoadModule('/src/stores/authStore.ts'));
 });
 
@@ -85,7 +83,11 @@ test('webhookApi.create sends POST /api/v1/webhooks with payload', async () => {
     const body = JSON.parse(options.body);
     assert.equal(body.url, 'https://erp.example.com/api/webhooks');
     assert.deepEqual(body.eventTypes, ['order.ingested']);
-    return ok({ ...mockWebhook, eventTypes: ['order.ingested'], secret: 'whsec_raw12345678901234567890123456' });
+    return ok({
+      ...mockWebhook,
+      eventTypes: ['order.ingested'],
+      secret: 'whsec_raw12345678901234567890123456',
+    });
   };
 
   const created = await webhookApi.create({

@@ -6,27 +6,52 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
+import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { Radio } from '@/components/Common/Radio/Radio';
 import { Select } from '@/components/Common/Select/Select';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { ConditionEditor } from './ConditionEditor';
+import { RuleSentence } from './RuleSentence';
 import { ruleApi } from '../api/ruleApi';
 import { ruleFormSchema, toDefinition, type RuleFormValues } from '../schemas/ruleSchema';
 
 import type { RuleKind, RuleRecord, RuleTarget, TargetKind } from '../types/rule.types';
 
+const ALLOCATION_STRATEGIES = ['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST'] as const;
+
+interface StepTitleProps {
+  number: number;
+  title: string;
+  hint?: string;
+}
+function StepTitle({ number, title, hint }: StepTitleProps) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--sc-primary)] text-sm font-semibold text-white">
+        {number}
+      </span>
+      <div>
+        <h3 className="text-base font-semibold text-[var(--sc-text-primary)]">{title}</h3>
+        {hint && <p className="mt-0.5 text-sm text-[var(--sc-text-secondary)]">{hint}</p>}
+      </div>
+    </div>
+  );
+}
+
 interface RuleEditorProps {
   rule: RuleRecord | null;
   kind: RuleKind;
+  nextPriority: number;
   onClose: () => void;
   onSaved: () => void;
 }
-export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
+export function RuleEditor({ rule, kind, nextPriority, onClose, onSaved }: RuleEditorProps) {
   const t = useTranslations('Rules');
   const operationKey = useRef<string | null>(null);
   const [current, setCurrent] = useState(rule);
@@ -53,13 +78,13 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<RuleFormValues>({
-    resolver: zodResolver(ruleFormSchema(t('invalid'))),
+    resolver: zodResolver(ruleFormSchema(t('invalid'), !!rule)),
     defaultValues: {
       name: rule?.name ?? '',
       kind: rule?.kind ?? kind,
       warehouseId: rule?.warehouseId ?? '',
       exceptionTenantId: rule?.exceptionTenantId ?? '',
-      priority: rule?.priority ?? 0,
+      priority: rule?.priority ?? nextPriority,
       condition: rule?.condition ?? { kind: 'ALL', conditions: [] },
       strategy: rule && 'strategy' in rule.action ? rule.action.strategy : 'NEAREST_WAREHOUSE',
       carrierServiceId:
@@ -72,6 +97,8 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
   const ruleKind = watch('kind');
   const fallbackIds = watch('fallbackServiceIds');
   const primary = watch('carrierServiceId');
+  const condition = watch('condition');
+  const strategy = watch('strategy');
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -139,7 +166,11 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
       if (current) await ruleApi.edit(current, toDefinition(values), values.reason);
       else {
         operationKey.current ??= createUuid();
-        await ruleApi.create(operationKey.current, toDefinition(values), values.reason);
+        await ruleApi.create(
+          operationKey.current,
+          toDefinition(values),
+          values.reason.trim() || t('createReasonDefault'),
+        );
       }
       if (identity === useAuthStore.getState().user) onSaved();
     } catch (failure) {
@@ -238,45 +269,56 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
             </details>
           </Alert>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label={t('name')}
-            {...register('name')}
-            error={errors.name?.message}
-            disabled={busy}
-          />
-          <Select
-            label={t('type')}
-            {...register('kind')}
-            options={['ALLOCATION', 'CARRIER'].map((v) => ({ value: v, label: t(`types.${v}`) }))}
-            disabled={busy || !!rule}
-          />
-          <Select
-            label={t('warehouse')}
-            {...register('warehouseId')}
-            options={warehouseOptions}
-            placeholder={t('allWarehouses')}
-            isPlaceholderDisabled={false}
-            disabled={busy || !!rule}
-            error={errors.warehouseId?.message}
-          />
-          <Input
-            label={t('sellerException')}
-            {...register('exceptionTenantId')}
-            helperText={t('sellerHint')}
-            disabled={busy}
-            error={errors.exceptionTenantId?.message}
-          />
-          <Input
-            label={t('priority')}
-            type="number"
-            min="0"
-            max="2147483647"
-            {...register('priority', { valueAsNumber: true })}
-            disabled={busy}
-            error={errors.priority?.message}
-          />
-        </div>
+        <section className="space-y-3">
+          <StepTitle number={1} title={t('stepName')} />
+          <input type="hidden" {...register('kind')} />
+          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+            <Input
+              label={t('name')}
+              placeholder={t(
+                ruleKind === 'ALLOCATION' ? 'namePlaceholderAllocation' : 'namePlaceholder',
+              )}
+              {...register('name')}
+              error={errors.name?.message}
+              disabled={busy}
+            />
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-[var(--sc-text-primary)]">
+                {t('type')}
+              </p>
+              <Badge status="info" variant="solid" label={t(`types.${ruleKind}`)} />
+            </div>
+          </div>
+          <details
+            className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3"
+            open={!!(errors.warehouseId || errors.exceptionTenantId || errors.priority)}
+          >
+            <summary className="cursor-pointer text-sm font-medium text-[var(--sc-text-primary)]">
+              {t('advanced')}
+            </summary>
+            <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">{t('advancedHint')}</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Select
+                label={t('warehouse')}
+                {...register('warehouseId')}
+                options={warehouseOptions}
+                placeholder={t('allWarehouses')}
+                isPlaceholderDisabled={false}
+                disabled={busy || !!rule}
+                error={errors.warehouseId?.message}
+                helperText={t('warehouseHint')}
+              />
+              <Input
+                label={t('sellerException')}
+                {...register('exceptionTenantId')}
+                helperText={t('sellerHint')}
+                disabled={busy}
+                error={errors.exceptionTenantId?.message}
+              />
+            </div>
+            <p className="mt-3 text-sm text-[var(--sc-text-secondary)]">{t('priorityHint')}</p>
+          </details>
+        </section>
         {optionsLoading && (
           <p role="status" className="text-sm">
             {t('loadingOptions')}
@@ -313,13 +355,17 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
           )}
         </div>
         <section className="space-y-3">
-          <h3 className="font-semibold text-[var(--sc-text-primary)]">{t('ifConditions')}</h3>
+          <StepTitle number={2} title={t('stepWhen')} hint={t('stepWhenHint')} />
           <Controller
             name="condition"
             control={control}
             render={({ field }) => (
               <ConditionEditor
-                value={field.value}
+                value={
+                  field.value.kind === 'PREDICATE'
+                    ? { kind: 'ALL', conditions: [field.value] }
+                    : field.value
+                }
                 onChange={field.onChange}
                 warehouses={warehouses}
                 disabled={busy}
@@ -333,17 +379,36 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
           )}
         </section>
         <section className="space-y-3">
-          <h3 className="font-semibold text-[var(--sc-text-primary)]">{t('thenAction')}</h3>
+          <StepTitle number={3} title={t('stepThen')} hint={t(`stepThenHint.${ruleKind}`)} />
           {ruleKind === 'ALLOCATION' ? (
-            <Select
-              label={t('strategy')}
-              {...register('strategy')}
-              options={['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST'].map((v) => ({
-                value: v,
-                label: t(`strategies.${v}`),
-              }))}
-              disabled={busy}
-            />
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-medium text-[var(--sc-text-primary)]">
+                {t('strategy')}
+              </legend>
+              {ALLOCATION_STRATEGIES.map((value) => (
+                <div
+                  key={value}
+                  onClick={() => {
+                    if (!busy) setValue('strategy', value, { shouldDirty: true });
+                  }}
+                  className={`cursor-pointer rounded-xl border p-3 transition-colors ${
+                    strategy === value
+                      ? 'border-[var(--sc-primary)] bg-[var(--sc-primary-lighter)]'
+                      : 'border-[var(--sc-border-default)]'
+                  }`}
+                >
+                  <Radio
+                    value={value}
+                    label={t(`strategies.${value}`)}
+                    {...register('strategy')}
+                    disabled={busy}
+                  />
+                  <p className="ml-7 mt-1 text-sm text-[var(--sc-text-secondary)]">
+                    {t(`strategyDescriptions.${value}`)}
+                  </p>
+                </div>
+              ))}
+            </fieldset>
           ) : (
             <div className="space-y-3">
               <Select
@@ -354,14 +419,27 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
                 disabled={busy}
               />
               <p className="text-sm text-[var(--sc-text-secondary)]">{t('fallbackHint')}</p>
+              {fallbackIds.length === 0 && (
+                <p className="rounded-lg border border-dashed border-[var(--sc-border-default)] px-3 py-2.5 text-sm text-[var(--sc-text-secondary)]">
+                  {t('fallbackEmpty')}
+                </p>
+              )}
               {fallbackIds.map((id, index) => (
-                <div key={id} className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-0 flex-1 break-words text-sm">
-                    {index + 1}. {serviceOptions.find((s) => s.value === id)?.label ?? id}
+                <div
+                  key={id}
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-3 py-2"
+                >
+                  <Badge
+                    status="default"
+                    variant="solid"
+                    label={t('fallbackItem', { number: index + 1 })}
+                  />
+                  <span className="min-w-0 flex-1 break-words text-sm font-medium">
+                    {serviceOptions.find((s) => s.value === id)?.label ?? id}
                   </span>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="soft"
                     size="sm"
                     disabled={busy || index === 0}
                     onClick={() => {
@@ -374,7 +452,7 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="softDanger"
                     size="sm"
                     disabled={busy}
                     onClick={() =>
@@ -405,8 +483,28 @@ export function RuleEditor({ rule, kind, onClose, onSaved }: RuleEditorProps) {
             </div>
           )}
         </section>
+        <section className="space-y-2 rounded-xl border border-[var(--sc-primary-light)] bg-[var(--sc-primary-alpha-08)] p-4">
+          <p className="text-xs font-semibold tracking-wide text-[var(--sc-text-secondary)] uppercase">
+            {t('preview')}
+          </p>
+          {ruleKind === 'CARRIER' && !primary ? (
+            <p className="text-sm text-[var(--sc-text-secondary)]">{t('previewNeedService')}</p>
+          ) : (
+            <RuleSentence
+              condition={condition}
+              action={
+                ruleKind === 'ALLOCATION'
+                  ? { strategy }
+                  : { carrierServiceId: primary, fallbackServiceIds: fallbackIds }
+              }
+              serviceNames={Object.fromEntries(serviceOptions.map((o) => [o.value, o.label]))}
+              areServicesReady={false}
+            />
+          )}
+        </section>
         <Input
-          label={t('reason')}
+          label={t(rule ? 'reason' : 'reasonOptional')}
+          placeholder={t(rule ? 'reasonPlaceholder' : 'reasonOptionalPlaceholder')}
           {...register('reason')}
           error={errors.reason?.message}
           disabled={busy}

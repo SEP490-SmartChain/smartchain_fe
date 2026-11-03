@@ -497,6 +497,30 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'UC-81 label print; GET /v1/shipments/:id/label; PDF includes COD/recipient data; RLS shipment.read',
   ),
   capability(
+    'shipments.cancel',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-101 waybill cancel; owner-approved 20/10/2026; POST /v1/shipments/:id/cancel; RLS shipment.update',
+  ),
+  capability(
+    'shipments.sla.view',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'UC-104 SLA breach queue; GET /v1/sla-exceptions; RLS shipment.read + warehouse assignment',
+  ),
+  capability(
+    'shipments.sla.assign',
+    'shipments',
+    'PLATFORM',
+    ['ORCA_ADMIN', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'UC-104 actor Ops Dispatcher; POST /v1/sla-exceptions/:id/assign; RLS shipment.update',
+  ),
+  capability(
     'shipments.operate',
     'shipments',
     'ANY',
@@ -1133,19 +1157,21 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
   {
-    key: 'shipping_heading',
+    key: 'carrier_setup_heading',
     scope: 'platform',
     items: [
       { key: 'admin_carriers', href: '/admin/carriers', capability: 'platform.carriers.manage' },
       { key: 'freight_tariffs', href: '/admin/tariffs', capability: 'tariffs.manage' },
-      { key: 'rules', href: '/rules', capability: 'rules.view' },
-      { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
     ],
   },
   {
-    key: 'operations_queue_heading',
+    key: 'shipping_heading',
     scope: 'platform',
-    items: [{ key: 'exceptions', href: '/exceptions', capability: 'exceptions.view' }],
+    items: [
+      { key: 'rules', href: '/rules', capability: 'rules.view' },
+      { key: 'shipments', href: '/shipments', capability: 'shipments.view' },
+      { key: 'exceptions', href: '/exceptions', capability: 'exceptions.view' },
+    ],
   },
   {
     key: 'finance_heading',

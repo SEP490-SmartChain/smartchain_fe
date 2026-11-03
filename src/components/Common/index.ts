@@ -28,6 +28,7 @@ export { Avatar } from './Avatar/Avatar';
 export type { AvatarProps } from './Avatar/Avatar';
 export { Toaster } from './Toast/Toaster';
 export { Select } from './Select/Select';
+export { RequiredNote } from './RequiredNote/RequiredNote';
 export type { SelectProps } from './Select/Select';
 export { SearchableSelect } from './Select/SearchableSelect';
 export type { SearchableSelectProps, SearchableSelectOption } from './Select/SearchableSelect';

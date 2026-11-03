@@ -8,9 +8,10 @@ import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ShipmentTimeline } from './ShipmentTimeline';
 import { shipmentApi } from '../api/shipmentApi';
 
-import type { Shipment } from '../schemas/shipmentSchema';
+import type { CancelResult, Shipment } from '../schemas/shipmentSchema';
 
 export function ShipmentManager() {
   const { can } = useAccess();
@@ -161,6 +162,8 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelResult, setCancelResult] = useState<CancelResult | null>(null);
   useEffect(() => {
     const abort = new AbortController();
     let cancelled = false;
@@ -179,6 +182,22 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
       abort.abort();
     };
   }, [id, revision]);
+  async function cancel() {
+    const authRevision = useAuthStore.getState().revision;
+    setBusy(true);
+    setError(false);
+    try {
+      const result = await shipmentApi.cancel(id);
+      if (authRevision !== useAuthStore.getState().revision) return;
+      setCancelResult(result);
+      setConfirmCancel(false);
+      setRevision((v) => v + 1);
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function download() {
     const authRevision = useAuthStore.getState().revision;
     setBusy(true);
@@ -226,18 +245,40 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
                 <dt className="text-[var(--sc-text-secondary)]">{t('packageId')}</dt>
                 <dd className="break-all">{row.packingRecordId ?? '—'}</dd>
               </div>
-              {row.failureCode && (
-                <div>
-                  <dt>{t('failure')}</dt>
-                  <dd>{row.failureCode}</dd>
-                </div>
-              )}
             </dl>
+            {cancelResult && <Alert variant="info">{t(`cancelResults.${cancelResult}`)}</Alert>}
+            {row.bookingState === 'CANCEL_UNKNOWN' && (
+              <Alert variant="warning">{t('cancelUnknownNotice')}</Alert>
+            )}
+            {can('shipments.cancel') &&
+              (row.bookingState === 'CONFIRMED' || row.bookingState === 'CANCEL_UNKNOWN') &&
+              (confirmCancel ? (
+                <div className="space-y-2">
+                  <Alert variant="warning">{t('cancelConfirm')}</Alert>
+                  <div className="flex gap-2">
+                    <Button variant="danger" disabled={busy} onClick={() => void cancel()}>
+                      {t('cancelSubmit')}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => setConfirmCancel(false)}
+                    >
+                      {t('cancelDismiss')}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="danger" disabled={busy} onClick={() => setConfirmCancel(true)}>
+                  {t('cancelAction')}
+                </Button>
+              ))}
             {can('shipments.label.download') && (
               <Button disabled={busy || !row.labelAvailable} onClick={() => void download()}>
                 {busy ? t('downloading') : t('download')}
               </Button>
             )}
+            <ShipmentTimeline key={`${id}:${revision}`} id={id} />
           </>
         ) : !error ? (
           <p role="status">{t('loading')}</p>
