@@ -180,9 +180,11 @@ function ClaimsQueue({
             <Button
               onClick={() => {
                 setCreating((v) => !v);
-                navigate(
-                  warehouse ? `/claims?warehouseId=${encodeURIComponent(warehouse)}` : '/claims',
-                );
+                if (claimId) {
+                  navigate(
+                    warehouse ? `/claims?warehouseId=${encodeURIComponent(warehouse)}` : '/claims',
+                  );
+                }
               }}
             >
               {t(creating ? 'closeCreate' : 'newClaim')}
