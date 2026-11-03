@@ -1,7 +1,7 @@
 {
   "OperationsExceptions": {
     "correctAddress": "Correct blocked order address",
-    "correctionHint": "Correct only an editable order with no fulfillment work. The system preserves old/new address evidence and revalidates the same order; monetary values remain unchanged.",
+    "correctionHint": "You can change the address only before warehouse processing begins. Amounts stay the same.",
     "correctionLoadError": "The address is unavailable in the current state or scope. Existing fulfillment work or shipping labels require their corresponding business workflow.",
     "province": "Province / city",
     "ward": "Ward",
@@ -12,10 +12,11 @@
     "assigneeUnavailable": "The current assignee is no longer available in this scope",
     "reference": "Order / source reference",
     "seller": "Seller",
-    "sourceStatus": "Source business status",
+    "sourceStatus": "Related work status",
+    "sourceStatusUnknown": "Status needs review",
     "title": "Operations exceptions",
-    "description": "Investigate failed orders and queue jobs, assign responsibility and request a retry after checking business state.",
-    "readOnly": "You have read access. Ops Dispatchers assign, annotate, retry and resolve exceptions.",
+    "description": "Track and resolve issues with orders, shipments and warehouse work.",
+    "readOnly": "You can view issues. A dispatcher is responsible for resolving them.",
     "status": "Status",
     "type": "Exception type",
     "warehouse": "Warehouse",
@@ -27,18 +28,33 @@
     "invalidInput": "Check the filters.",
     "loadError": "Exceptions could not be loaded in the current scope. Refresh to retry.",
     "empty": "No exceptions match the filters.",
-    "reason": "Exception code",
+    "reason": "Issue",
+    "reasonUnknown": "Cause needs review",
+    "reasonCodes": {
+      "QUEUE_FAILED": "Queue processing failed",
+      "ORDER_FAILED": "Order processing failed",
+      "ALLOCATION_FAILED": "Warehouse allocation failed",
+      "DISPATCH_FAILED": "Shipment booking failed"
+    },
+    "sourceStatuses": {
+      "FAILED": "Failed",
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "HANDED_OVER": "Handed over",
+      "CONFIRMED": "Confirmed",
+      "COMPLETED": "Completed"
+    },
     "updatedAt": "Updated",
     "actions": "Actions",
     "investigate": "Investigate",
     "next": "Next page",
     "assignee": "Assignee",
     "unassigned": "Unassigned",
-    "businessHint": "Resolve only after the system verifies the source operation is complete. Retry submits a queued request; uncertain carrier results retain the original reference for verification.",
+    "businessHint": "Close an issue only after the related work is complete. If the carrier result is unclear, check the existing shipment before retrying.",
     "action": "Investigation action",
     "note": "Investigation note",
     "invalidNote": "Enter a note between 1 and 2,000 characters.",
-    "pendingHint": "The previous result is uncertain. Checking again reuses the same content and operation reference.",
+    "pendingHint": "The previous result is unclear. Select Check request again to continue safely.",
     "saving": "Submitting…",
     "checkPending": "Check pending request",
     "submit": "Submit action",
@@ -47,7 +63,7 @@
     "loading": "Loading details…",
     "stale": "Another operator updated this exception. The latest details have been loaded; review them before submitting again.",
     "rejected": "Current permissions or business state rejected this action. Review the refreshed details before continuing.",
-    "uncertain": "The result could not be confirmed. Check the pending request to continue with the same operation reference.",
+    "uncertain": "The result is not confirmed. Check the request again before taking another action.",
     "statuses": { "OPEN": "Open", "ASSIGNED": "In progress", "RESOLVED": "Resolved" },
     "types": {
       "ORDER": "Order",
@@ -64,9 +80,9 @@
       "RESOLVE": "Resolve verified exception"
     },
     "collection": {
-      "NOT_READY": "No recent queue scan is available. Stored exceptions remain usable; missing telemetry does not mean there are no failures.",
-      "UNAVAILABLE": "The most recent queue scan could not reach the queue service. Stored exceptions remain available for investigation.",
-      "PARTIAL": "Queue discovery is processing bounded batches. Some failures may not be listed yet; the worker continues with later batches."
+      "NOT_READY": "New issues have not been updated yet. You can still view recorded issues.",
+      "UNAVAILABLE": "New issues cannot be updated right now. Recorded issues remain available.",
+      "PARTIAL": "The list is updating and may not show every issue yet."
     }
   },
   "ServiceTariffs": {

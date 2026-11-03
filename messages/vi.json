@@ -1,7 +1,7 @@
 {
   "OperationsExceptions": {
     "correctAddress": "Sửa địa chỉ đơn bị chặn",
-    "correctionHint": "Chỉ sửa địa chỉ của đơn còn được phép chỉnh và chưa có công việc fulfillment. Hệ thống lưu địa chỉ cũ/mới và kiểm tra lại cùng đơn; các khoản tiền giữ nguyên.",
+    "correctionHint": "Chỉ sửa được địa chỉ khi đơn chưa bắt đầu xử lý tại kho. Các khoản tiền không thay đổi.",
     "correctionLoadError": "Không mở được địa chỉ trong trạng thái hoặc phạm vi hiện tại. Đơn đã có công việc kho hoặc vận đơn phải được xử lý qua quy trình nghiệp vụ tương ứng.",
     "province": "Tỉnh / thành phố",
     "ward": "Phường / xã",
@@ -11,11 +11,12 @@
     "backToInvestigation": "Quay lại điều tra",
     "assigneeUnavailable": "Người phụ trách không còn khả dụng trong phạm vi hiện tại",
     "reference": "Đơn / nghiệp vụ nguồn",
-    "seller": "Seller",
-    "sourceStatus": "Trạng thái nghiệp vụ nguồn",
+    "seller": "Người bán",
+    "sourceStatus": "Trạng thái công việc liên quan",
+    "sourceStatusUnknown": "Cần kiểm tra trạng thái",
     "title": "Sự cố vận hành",
-    "description": "Điều tra lỗi đơn hàng và hàng đợi, phân công xử lý và yêu cầu thử lại sau khi kiểm tra trạng thái nghiệp vụ.",
-    "readOnly": "Bạn có quyền xem. Ops Dispatcher thực hiện phân công, ghi chú, thử lại và đóng sự cố.",
+    "description": "Theo dõi và xử lý sự cố đơn hàng, vận đơn và công việc tại kho.",
+    "readOnly": "Bạn chỉ có quyền xem. Điều phối viên phụ trách xử lý sự cố.",
     "status": "Trạng thái",
     "type": "Loại sự cố",
     "warehouse": "Kho",
@@ -27,18 +28,33 @@
     "invalidInput": "Kiểm tra lại bộ lọc.",
     "loadError": "Không tải được sự cố trong phạm vi hiện tại. Hãy tải lại.",
     "empty": "Không có sự cố phù hợp bộ lọc.",
-    "reason": "Mã sự cố",
+    "reason": "Sự cố",
+    "reasonUnknown": "Cần kiểm tra nguyên nhân",
+    "reasonCodes": {
+      "QUEUE_FAILED": "Xử lý hàng đợi thất bại",
+      "ORDER_FAILED": "Xử lý đơn thất bại",
+      "ALLOCATION_FAILED": "Chưa phân bổ được kho",
+      "DISPATCH_FAILED": "Chưa tạo được vận đơn"
+    },
+    "sourceStatuses": {
+      "FAILED": "Thất bại",
+      "PENDING": "Đang chờ",
+      "PROCESSING": "Đang xử lý",
+      "HANDED_OVER": "Đã bàn giao",
+      "CONFIRMED": "Đã xác nhận",
+      "COMPLETED": "Đã hoàn tất"
+    },
     "updatedAt": "Cập nhật lúc",
     "actions": "Thao tác",
     "investigate": "Điều tra",
     "next": "Trang tiếp",
     "assignee": "Người phụ trách",
     "unassigned": "Chưa phân công",
-    "businessHint": "Chỉ đóng sự cố khi hệ thống xác nhận nghiệp vụ nguồn đã được xử lý. Thử lại tạo yêu cầu chờ hàng đợi; carrier chưa rõ kết quả phải được xác minh bằng reference cũ.",
+    "businessHint": "Chỉ đóng sự cố sau khi công việc liên quan đã hoàn tất. Nếu kết quả từ hãng chưa rõ, hãy kiểm tra vận đơn cũ trước khi thử lại.",
     "action": "Thao tác xử lý",
     "note": "Ghi chú điều tra",
     "invalidNote": "Nhập ghi chú từ 1 đến 2.000 ký tự.",
-    "pendingHint": "Kết quả yêu cầu trước chưa rõ. Kiểm tra lại sẽ dùng nguyên nội dung và mã thao tác cũ.",
+    "pendingHint": "Chưa rõ kết quả thao tác trước. Chọn Kiểm tra lại yêu cầu để tiếp tục an toàn.",
     "saving": "Đang gửi…",
     "checkPending": "Kiểm tra lại yêu cầu",
     "submit": "Gửi thao tác",
@@ -47,7 +63,7 @@
     "loading": "Đang tải chi tiết…",
     "stale": "Sự cố vừa được người khác cập nhật. Chi tiết mới đã được tải lại; hãy kiểm tra trước khi gửi tiếp.",
     "rejected": "Thao tác bị từ chối theo quyền hoặc trạng thái nghiệp vụ hiện tại. Kiểm tra chi tiết mới trước khi gửi lại.",
-    "uncertain": "Chưa xác nhận được kết quả. Dùng Kiểm tra lại yêu cầu để tiếp tục với cùng mã thao tác.",
+    "uncertain": "Chưa xác nhận được kết quả. Chọn Kiểm tra lại yêu cầu trước khi thao tác tiếp.",
     "statuses": { "OPEN": "Chưa xử lý", "ASSIGNED": "Đang xử lý", "RESOLVED": "Đã xử lý" },
     "types": {
       "ORDER": "Đơn hàng",
@@ -64,9 +80,9 @@
       "RESOLVE": "Đóng sự cố đã xác minh"
     },
     "collection": {
-      "NOT_READY": "Chưa có lần quét hàng đợi gần đây. Danh sách sự cố đã lưu vẫn dùng được; không diễn giải dữ liệu thiếu thành không có lỗi.",
-      "UNAVAILABLE": "Không truy cập được hàng đợi trong lần quét gần nhất. Bạn vẫn có thể điều tra các sự cố đã lưu.",
-      "PARTIAL": "Lần quét hàng đợi đang xử lý theo lô giới hạn. Danh sách có thể chưa chứa toàn bộ lỗi; worker sẽ tiếp tục các lô sau."
+      "NOT_READY": "Chưa cập nhật được sự cố mới. Bạn vẫn có thể xem các sự cố đã ghi nhận.",
+      "UNAVAILABLE": "Tạm thời chưa cập nhật được sự cố mới. Các sự cố đã ghi nhận vẫn có thể xem.",
+      "PARTIAL": "Danh sách đang được cập nhật và có thể chưa hiển thị đủ sự cố."
     }
   },
   "ServiceTariffs": {

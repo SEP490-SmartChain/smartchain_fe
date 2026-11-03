@@ -161,7 +161,14 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
                 label: t('seller'),
                 render: (row) => row.sellerName ?? t('unattributed'),
               },
-              { key: 'reasonCode', label: t('reason') },
+              {
+                key: 'reasonCode',
+                label: t('reason'),
+                render: (row) => {
+                  const key = `reasonCodes.${row.reasonCode.replaceAll('.', '_')}`;
+                  return t.has(key) ? t(key) : t('reasonUnknown');
+                },
+              },
               { key: 'type', label: t('type'), render: (row) => t(`types.${row.type}`) },
               {
                 key: 'warehouseId',
@@ -330,7 +337,11 @@ function ExceptionInvestigation({
             </div>
             <div>
               <dt>{t('reason')}</dt>
-              <dd className="break-words font-medium">{detail.reasonCode}</dd>
+              <dd className="break-words font-medium">
+                {t.has(`reasonCodes.${detail.reasonCode.replaceAll('.', '_')}`)
+                  ? t(`reasonCodes.${detail.reasonCode.replaceAll('.', '_')}`)
+                  : t('reasonUnknown')}
+              </dd>
             </div>
             <div>
               <dt>{t('status')}</dt>
@@ -347,7 +358,13 @@ function ExceptionInvestigation({
             </div>
             <div>
               <dt>{t('sourceStatus')}</dt>
-              <dd>{detail.sourceStatus ?? t('unattributed')}</dd>
+              <dd>
+                {detail.sourceStatus
+                  ? t.has(`sourceStatuses.${detail.sourceStatus}`)
+                    ? t(`sourceStatuses.${detail.sourceStatus}`)
+                    : t('sourceStatusUnknown')
+                  : t('sourceStatusUnknown')}
+              </dd>
             </div>
           </dl>
           <Alert variant="info">{t('businessHint')}</Alert>
