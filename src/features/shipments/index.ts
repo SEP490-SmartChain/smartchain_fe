@@ -7,3 +7,4 @@
 export {};
 export { ShipmentManager } from './components/ShipmentManager';
 export { CarrierBreakerPanel } from './components/CarrierBreakerPanel';
+export { SlaExceptionsPanel } from './components/SlaExceptionsPanel';

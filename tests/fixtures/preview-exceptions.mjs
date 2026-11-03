@@ -29,13 +29,18 @@ const server = await createServer({
         vite.middlewares.use(async (req, res, next) => {
           if (!req.url?.startsWith('/api/')) return next();
           const url = new URL(req.url, 'http://127.0.0.1');
-          const send = (data, status = 200) => {
+          const send = (data, status = 200, pagination) => {
             res.writeHead(status, { 'Content-Type': 'application/json' });
             res.end(
               JSON.stringify({
                 success: status < 400,
                 data,
-                meta: { timestamp: now(), path: url.pathname, requestId: 'preview' },
+                meta: {
+                  timestamp: now(),
+                  path: url.pathname,
+                  requestId: 'preview',
+                  ...(pagination ? { pagination } : {}),
+                },
               }),
             );
           };
@@ -71,6 +76,8 @@ const server = await createServer({
             replies.set(input.operationId, result);
             return send(result);
           }
+          if (url.pathname === '/api/v1/sla-exceptions')
+            return send([], 200, { limit: 50, hasNext: false, nextCursor: null });
           if (url.pathname === `/api/v1/operations/exceptions/${id}`)
             return send({
               ...row,

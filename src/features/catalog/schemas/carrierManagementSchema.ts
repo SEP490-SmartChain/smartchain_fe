@@ -8,6 +8,7 @@ export const carrierFormSchema = z.object({
     .max(50)
     .regex(/^[A-Z0-9_-]+$/),
   name: z.string().trim().min(2).max(150),
+  monthlyPurchaseVolumeCount: z.number().int().min(0).max(2147483647),
   isActive: z.boolean(),
 });
 const optionalLimit = z
@@ -25,7 +26,7 @@ export const carrierServiceFormSchema = z.object({
     .max(50)
     .regex(/^[A-Za-z0-9_-]+$/),
   name: z.string().trim().min(2).max(150),
-  transportMode: z.enum(['ROAD', 'AIR', 'SEA', 'RAIL']),
+  transportMode: z.enum(['ROAD', 'AIR', 'SEA', 'MULTIMODAL']),
   volumetricDivisor: z.number().int().min(1).max(1000000),
   maxWeightG: z
     .string()

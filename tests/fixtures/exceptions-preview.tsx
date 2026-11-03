@@ -9,7 +9,7 @@ import '@fontsource/archivo/600.css';
 import '@fontsource/archivo/700.css';
 import '../../src/styles/globals.css';
 import messages from '../../messages/vi.json';
-import { OperationsExceptionQueue } from '../../src/features/orders/components/OperationsExceptionQueue';
+import ExceptionsPage from '../../src/pages/workspace/ExceptionsPage';
 import { useAuthStore } from '../../src/stores/authStore';
 
 const params = new URLSearchParams(location.search);
@@ -37,7 +37,7 @@ createRoot(document.getElementById('root')!).render(
           <p className="mb-4 text-sm text-[var(--sc-text-secondary)]">
             Preview riêng • dữ liệu synthetic • {staff ? 'Warehouse Manager' : 'Ops Dispatcher'}
           </p>
-          <OperationsExceptionQueue />
+          <ExceptionsPage />
         </main>
       </NextIntlClientProvider>
     </BrowserRouter>

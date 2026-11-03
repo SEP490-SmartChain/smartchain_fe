@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
-import { Alert, Button, Input, Select } from '@/components/Common';
+import { Alert, Button, Input, RequiredNote, Select } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
@@ -122,9 +122,11 @@ function ZonePanel({ carrierId }: { carrierId: string }) {
           className="space-y-4 rounded-lg border border-[var(--sc-border-default)] p-4"
         >
           <h4 className="font-medium">{t(editing ? 'edit' : 'add')}</h4>
+          <RequiredNote />
           <fieldset disabled={form.formState.isSubmitting} className="grid gap-4 sm:grid-cols-2">
             <Select
               label={t('from')}
+              isRequired
               options={provinceOptions}
               {...form.register('fromProvince')}
               disabled={!!editing || form.formState.isSubmitting}
@@ -132,6 +134,7 @@ function ZonePanel({ carrierId }: { carrierId: string }) {
             />
             <Select
               label={t('to')}
+              isRequired
               options={provinceOptions}
               {...form.register('toProvince')}
               disabled={!!editing || form.formState.isSubmitting}
@@ -139,12 +142,14 @@ function ZonePanel({ carrierId }: { carrierId: string }) {
             />
             <Input
               label={t('zone')}
+              isRequired
               {...form.register('zone')}
               helperText={t('zoneHint')}
               error={form.formState.errors.zone ? t('invalid') : undefined}
             />
             <Input
               label={t('eta')}
+              isRequired
               type="number"
               min={1}
               max={60}
@@ -181,19 +186,22 @@ function ZonePanel({ carrierId }: { carrierId: string }) {
           },
           { key: 'toProvince', label: t('to'), render: (row) => provinceName(row.toProvince) },
           { key: 'zone', label: t('zone') },
-          { key: 'etaDays', label: t('eta') },
+          { key: 'etaDays', label: t('eta'), align: 'center' },
           {
             key: 'actions',
             label: t('actions'),
+            align: 'right',
             render: (row) => (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={form.formState.isSubmitting}
-                onClick={() => edit(row)}
-              >
-                {t('edit')}
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  variant="soft"
+                  size="sm"
+                  disabled={form.formState.isSubmitting}
+                  onClick={() => edit(row)}
+                >
+                  {t('edit')}
+                </Button>
+              </div>
             ),
           },
         ]}

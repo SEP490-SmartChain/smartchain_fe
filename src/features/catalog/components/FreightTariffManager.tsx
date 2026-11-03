@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, PageHeader } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
@@ -15,6 +15,19 @@ import { freightTariffApi } from '../api/freightTariffApi';
 
 import type { PurchaseTariff, SellerTariff, TariffService } from '../schemas/freightTariffSchema';
 
+/** Formats an API UTC timestamp; the time is shown only when it is not midnight. */
+function formatUtc(value: string, locale: string): string {
+  const date = new Date(`${value.slice(0, 16)}:00.000Z`);
+  const hasTime = value.slice(11, 16) !== '00:00';
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: 'UTC',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    ...(hasTime ? { hour: '2-digit', minute: '2-digit', hour12: false } : {}),
+  }).format(date);
+}
+
 export function FreightTariffManager() {
   const { can } = useAccess();
   const user = useAuthStore((s) => s.user);
@@ -24,6 +37,9 @@ export function FreightTariffManager() {
 }
 function Manager() {
   const t = useTranslations('FreightTariffs');
+  const locale = useLocale();
+  const vnd = (amount: string) => t('priceVnd', { amount: BigInt(amount).toLocaleString(locale) });
+  const zoneLabel = (zone: string) => (t.has(`zone_${zone}`) ? t(`zone_${zone}`) : zone);
   const [kind, setKind] = useState<'purchase' | 'sell'>('purchase');
   const [closing, setClosing] = useState<PurchaseTariff | SellerTariff | null>(null);
   const [rows, setRows] = useState<(PurchaseTariff | SellerTariff)[]>([]);
@@ -35,6 +51,7 @@ function Manager() {
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<PurchaseTariff | SellerTariff | null | undefined>();
+  const [template, setTemplate] = useState<PurchaseTariff | SellerTariff | null>(null);
   const [publishing, setPublishing] = useState<PurchaseTariff | SellerTariff | null>(null);
   useEffect(() => {
     const abort = new AbortController();
@@ -96,7 +113,13 @@ function Manager() {
               >
                 {t('reload')}
               </Button>
-              <Button disabled={loading || error} onClick={() => setEditing(null)}>
+              <Button
+                disabled={loading || error}
+                onClick={() => {
+                  setTemplate(null);
+                  setEditing(null);
+                }}
+              >
                 {t('create')}
               </Button>
             </div>
@@ -113,6 +136,7 @@ function Manager() {
               setKind(id);
               setCursor(undefined);
               setEditing(undefined);
+              setTemplate(null);
               setPublishing(null);
               setClosing(null);
             }
@@ -136,71 +160,145 @@ function Manager() {
             {
               key: 'id',
               label: t('name'),
-              render: (r) =>
-                'code' in r
-                  ? r.code
-                  : `${services.find((s) => s.id === r.serviceId)?.carrier.name ?? r.carrierId} · ${r.zone}`,
+              render: (r) => {
+                if ('code' in r) return <span className="font-medium">{r.code}</span>;
+                const service = services.find((s) => s.id === r.serviceId);
+                return (
+                  <div className="min-w-40">
+                    <div className="font-medium">{service?.carrier.name ?? r.carrierId}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
+                      <span className="rounded-md bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-medium text-[var(--sc-text-primary)]">
+                        {zoneLabel(r.zone)}
+                      </span>
+                      {service && <span>{service.name}</span>}
+                    </div>
+                  </div>
+                );
+              },
             },
-            {
-              key: 'version',
-              label: t('versionNo'),
-              render: (r) => ('versionNo' in r ? r.versionNo : r.version),
-            },
+            // Purchase versions only count draft saves; the seller version is the business version.
+            ...(kind === 'sell'
+              ? [
+                  {
+                    key: 'version',
+                    label: t('versionNo'),
+                    align: 'center' as const,
+                    render: (r: PurchaseTariff | SellerTariff) => (
+                      <span className="tabular-nums text-[var(--sc-text-secondary)]">
+                        {t('versionShort', {
+                          version: 'versionNo' in r ? r.versionNo : r.version,
+                        })}
+                      </span>
+                    ),
+                  },
+                ]
+              : []),
             {
               key: 'status',
               label: t('status'),
               render: (r) => (
-                <Badge
-                  status={r.status === 'PUBLISHED' ? 'success' : 'default'}
-                  label={t(`status_${r.status}`)}
-                />
+                <span className="whitespace-nowrap">
+                  <Badge
+                    status={r.status === 'PUBLISHED' ? 'success' : 'default'}
+                    label={t(`status_${r.status}`)}
+                  />
+                </span>
               ),
             },
             {
               key: 'effectiveFrom',
-              label: t('effectiveFrom'),
-              render: (r) => r.effectiveFrom.replace('T', ' ').slice(0, 16),
-            },
-            {
-              key: 'bands',
-              label: t('effectiveTo'),
-              render: (r) => (r.effectiveTo ? r.effectiveTo.replace('T', ' ').slice(0, 16) : '∞'),
+              label: t('validity'),
+              render: (r) => (
+                <span className="whitespace-nowrap tabular-nums">
+                  {formatUtc(r.effectiveFrom, locale)}
+                  <span className="mx-1.5 text-[var(--sc-text-tertiary)]">→</span>
+                  {r.effectiveTo ? (
+                    formatUtc(r.effectiveTo, locale)
+                  ) : (
+                    <span className="text-[var(--sc-text-secondary)]">{t('noEnd')}</span>
+                  )}
+                </span>
+              ),
             },
             {
               key: 'priceBands',
-              label: t('bands'),
-              render: (r) =>
-                r.bands.map((b) => (
-                  <div
-                    key={`${'direction' in b ? b.direction : ''}:${'laneCode' in b ? b.laneCode : ''}:${b.minWeightG}`}
-                  >
-                    {'laneCode' in b
-                      ? `${t(`direction_${b.direction}`)} · ${t(`lane_${b.laneCode}`)} · `
-                      : ''}
-                    {b.minWeightG}–{b.maxWeightG ?? '∞'}g ·{' '}
-                    {BigInt(b.basePriceVnd).toLocaleString()} VND
-                  </div>
-                )),
+              label: t('price'),
+              align: 'right',
+              render: (r) => (
+                <div className="ml-auto w-fit space-y-1">
+                  {r.bands.map((b) => {
+                    const weight =
+                      b.minWeightG === 0 && b.maxWeightG === null
+                        ? null
+                        : b.maxWeightG === null
+                          ? t('weightFrom', { from: b.minWeightG.toLocaleString(locale) })
+                          : t('weightRange', {
+                              from: b.minWeightG.toLocaleString(locale),
+                              to: b.maxWeightG.toLocaleString(locale),
+                            });
+                    const parts =
+                      'laneCode' in b
+                        ? [
+                            t(`lane_${b.laneCode}`),
+                            b.direction === 'RETURN' ? t('direction_RETURN') : null,
+                            weight,
+                          ]
+                        : [weight ?? t('weightAll')];
+                    return (
+                      <div
+                        className="flex items-baseline justify-end gap-3 whitespace-nowrap tabular-nums"
+                        key={`${'direction' in b ? b.direction : ''}:${'laneCode' in b ? b.laneCode : ''}:${b.minWeightG}`}
+                      >
+                        <span className="text-xs text-[var(--sc-text-secondary)]">
+                          {parts.filter(Boolean).join(' · ')}
+                        </span>
+                        <span className="font-semibold">{vnd(b.basePriceVnd)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ),
             },
             {
               key: 'actions',
               label: t('actions'),
+              align: 'center',
               render: (r) =>
                 r.status === 'DRAFT' ? (
-                  <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setEditing(r)}>
+                  <div className="flex justify-center gap-2">
+                    <Button size="sm" variant="soft" onClick={() => setEditing(r)}>
                       {t('edit')}
                     </Button>
-                    <Button variant="outline" onClick={() => setPublishing(r)}>
+                    <Button size="sm" onClick={() => setPublishing(r)}>
                       {t('publish')}
                     </Button>
                   </div>
                 ) : r.status === 'PUBLISHED' ? (
-                  <Button variant="ghost" onClick={() => setClosing(r)}>
-                    {t('closeWindow')}
-                  </Button>
+                  <div className="flex justify-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="soft"
+                      className="whitespace-nowrap"
+                      title={t('repriceTitle')}
+                      onClick={() => {
+                        setTemplate(r);
+                        setEditing(null);
+                      }}
+                    >
+                      {t('reprice')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="softDanger"
+                      className="whitespace-nowrap"
+                      title={t('closeWindow')}
+                      onClick={() => setClosing(r)}
+                    >
+                      {t('closeShort')}
+                    </Button>
+                  </div>
                 ) : (
-                  t('immutable')
+                  <span className="text-[var(--sc-text-secondary)]">{t('immutable')}</span>
                 ),
             },
           ]}
@@ -237,10 +335,15 @@ function Manager() {
         <FreightTariffEditor
           kind={kind}
           row={editing}
+          template={template}
           services={services}
-          onClose={() => setEditing(undefined)}
+          onClose={() => {
+            setEditing(undefined);
+            setTemplate(null);
+          }}
           onSaved={() => {
             setEditing(undefined);
+            setTemplate(null);
             setRevision((v) => v + 1);
           }}
         />

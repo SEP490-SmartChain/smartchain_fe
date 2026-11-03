@@ -58,21 +58,19 @@ before(async () => {
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
   warehouseApi = await server.ssrLoadModule('/src/features/inventory/api/inventoryWarehouseApi.ts');
-  auth
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-owner-token',
-      expiresIn: 900,
-      user: {
-        userId: id,
-        tenantId: id,
-        email: 'owner@example.test',
-        fullName: 'Owner',
-        actorScope: 'TENANT',
-        roles: ['SELLER_OWNER'],
-        permissions: [],
-      },
-    });
+  auth.getState().setSession({
+    accessToken: 'synthetic-owner-token',
+    expiresIn: 900,
+    user: {
+      userId: id,
+      tenantId: id,
+      email: 'owner@example.test',
+      fullName: 'Owner',
+      actorScope: 'TENANT',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+    },
+  });
 });
 after(async () => {
   globalThis.fetch = originalFetch;
@@ -148,15 +146,28 @@ test('UC-46 and UC-47 capabilities preserve their separate actor scope', () => {
       ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'].includes(role),
     );
     const links = policy.getVisibleNavGroups([role], false).flatMap((group) => group.items);
-    assert.equal(links.some((link) => link.href === '/inventory'),
-      ['SELLER_OWNER', 'SELLER_STAFF', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'].includes(role));
+    assert.equal(
+      links.some((link) => link.href === '/inventory'),
+      ['SELLER_OWNER', 'SELLER_STAFF', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'].includes(role),
+    );
   }
   assert.deepEqual(policy.getEffectiveRoles(['SELLER_OWNER', 'WAREHOUSE_MANAGER'], null), []);
 });
 
 test('inventory accepts platform warehouse labels with nullable seller scope and strips unused fields', async () => {
   const seedId = '00000015-0000-0000-0000-000000000001';
-  globalThis.fetch = async () => ok([{ id: seedId, code: 'HN', name: 'Synthetic warehouse', tenantId: null,
-    ownershipScope: 'PLATFORM', contactPhone: 'synthetic-private-field' }]);
-  assert.deepEqual((await warehouseApi.listInventoryWarehouses()).items, [{ id: seedId, code: 'HN', name: 'Synthetic warehouse' }]);
+  globalThis.fetch = async () =>
+    ok([
+      {
+        id: seedId,
+        code: 'HN',
+        name: 'Synthetic warehouse',
+        tenantId: null,
+        ownershipScope: 'PLATFORM',
+        contactPhone: 'synthetic-private-field',
+      },
+    ]);
+  assert.deepEqual((await warehouseApi.listInventoryWarehouses()).items, [
+    { id: seedId, code: 'HN', name: 'Synthetic warehouse' },
+  ]);
 });

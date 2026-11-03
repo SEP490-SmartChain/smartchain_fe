@@ -57,7 +57,8 @@ export function PlatformHealthView() {
     },
     {
       name: 'Global Carrier Gateway Service',
-      description: 'Cổng tích hợp 3PL API (GHN, GHTK, ViettelPost) và đồng bộ tracking',
+      description:
+        'Cổng tích hợp API hãng vận chuyển (GHN, GHTK, ViettelPost) và đồng bộ hành trình',
       status: 'OPERATIONAL',
       latency: '4.8ms',
       port: ':3003',
