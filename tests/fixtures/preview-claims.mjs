@@ -58,6 +58,30 @@ const commandResult = (c) => ({
   approvedAmountVnd: c.approvedAmountVnd,
   creditState: c.creditState,
 });
+// Opt-in investigation fixture: no writes to the application's database.
+let loseInvestigation = process.argv.includes('--investigation-review');
+if (loseInvestigation) {
+  const c = baseClaim(
+    {
+      operationId: tenant,
+      fulfillmentItemId: itemA,
+      affectedQty: 1,
+      incidentType: 'DAMAGED',
+      note: 'Hồ sơ mô phỏng để kiểm tra lưu điều tra',
+    },
+    a,
+  );
+  c.evidence.push({
+    id: itemA,
+    contentType: 'image/png',
+    fileSizeBytes: 100,
+    sha256: 'a'.repeat(64),
+    verifiedAt: now(),
+    createdAt: now(),
+    canConfirm: false,
+  });
+  claims.set(c.id, c);
+}
 const server = await createServer({
   server: { host: '127.0.0.1', port: 2328, strictPort: true },
   plugins: [
@@ -193,6 +217,7 @@ const server = await createServer({
               canConfirm: false,
             });
             c.version++;
+            c.investigationCompletedAt = null;
             return send({ id: parts[6], verifiedAt });
           }
           if (commands.has(input.operationId)) return send(commands.get(input.operationId));
@@ -212,6 +237,10 @@ const server = await createServer({
           c.updatedAt = now();
           const result = commandResult(c);
           commands.set(input.operationId, result);
+          if (parts[5] === 'investigation' && loseInvestigation) {
+            loseInvestigation = false;
+            return error('SYNTHETIC.RESPONSE_UNAVAILABLE', 503);
+          }
           return send(result);
         });
       },

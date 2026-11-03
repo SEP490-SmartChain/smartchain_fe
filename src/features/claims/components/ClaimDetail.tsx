@@ -278,6 +278,9 @@ function ClaimDetailContent({
             </li>
           ))}
         </ul>
+        {claim.investigationCompletedAt && claim.canAddEvidence && can('claims.evidence.add') && (
+          <Alert variant="warning">{t('additionalEvidenceWarning')}</Alert>
+        )}
         {claim.canAddEvidence && can('claims.evidence.add') && (
           <ClaimPhotoUpload
             id={`claim-photo-${id}`}
@@ -315,15 +318,6 @@ function ClaimDetailContent({
             }}
           />
         </figure>
-      )}
-      {claim.investigationNote && (
-        <section>
-          <h3 className="font-semibold">{t('investigate')}</h3>
-          <p className="mt-2 whitespace-pre-wrap text-sm">{claim.investigationNote}</p>
-          <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">
-            {t(claim.investigationCompletedAt ? 'investigationComplete' : 'investigationPending')}
-          </p>
-        </section>
       )}
       {claim.decisionNote && (
         <section>

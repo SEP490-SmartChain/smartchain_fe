@@ -37,19 +37,37 @@ export function ClaimReviewForm({
     { can } = useAccess();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
-    [pending, setPending] = useState(() => getPendingClaim(mode, claim.id, scope));
+    [pending, setPending] = useState(() => getPendingClaim(mode, claim.id, scope)),
+    [editing, setEditing] = useState(() => !claim.investigationNote),
+    [reviewVersion, setReviewVersion] = useState(claim.version),
+    [savedVersion, setSavedVersion] = useState<number | null>(null);
+  const defaults: Values = {
+    responsibility: claim.responsibility ?? '',
+    complete: mode === 'investigate' && Boolean(claim.investigationCompletedAt),
+    decision: 'REJECT',
+    note: mode === 'investigate' ? (claim.investigationNote ?? '') : '',
+  };
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      responsibility: claim.responsibility ?? '',
-      complete: false,
-      decision: 'REJECT',
-      note: '',
-    },
+    defaultValues: defaults,
   });
   const ready = Boolean(claim.investigationCompletedAt) && claim.evidence.some((e) => e.verifiedAt);
   const active = mode === 'investigate' ? claim.canInvestigate : claim.canDecide;
   const permitted = can(mode === 'investigate' ? 'claims.investigate' : 'claims.decide');
+  const waiting = savedVersion !== null && claim.version < savedVersion;
+  const stale = reviewVersion !== claim.version;
+  const startEditing = () => {
+    form.reset(defaults);
+    setReviewVersion(claim.version);
+    setError('');
+    setEditing(true);
+  };
+  const saved = (version: number) => {
+    setPending(undefined);
+    setSavedVersion(version);
+    setEditing(false);
+    onChanged();
+  };
   const fail = (failure: unknown) => {
     const code =
       failure instanceof ApiError
@@ -60,6 +78,7 @@ export function ClaimReviewForm({
     setError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('errors.generic'));
   };
   const submit = form.handleSubmit(async (values) => {
+    if (stale) return;
     if (mode === 'investigate' && !values.responsibility) {
       form.setError('responsibility', { message: t('required') });
       return;
@@ -67,14 +86,15 @@ export function ClaimReviewForm({
     setBusy(true);
     setError('');
     try {
+      let version: number;
       if (mode === 'investigate' && values.responsibility) {
-        await sendClaimCommand(
+        const result = await sendClaimCommand(
           {
             kind: 'investigate',
             id: claim.id,
             scope,
             input: {
-              expectedVersion: claim.version,
+              expectedVersion: reviewVersion,
               responsibility: values.responsibility,
               complete: values.complete,
               note: values.note,
@@ -82,20 +102,21 @@ export function ClaimReviewForm({
           },
           signal,
         );
+        version = result.version;
       } else {
-        await sendClaimCommand(
+        const result = await sendClaimCommand(
           {
             kind: 'decide',
             id: claim.id,
             scope,
-            input: { expectedVersion: claim.version, decision: values.decision, note: values.note },
+            input: { expectedVersion: reviewVersion, decision: values.decision, note: values.note },
           },
           signal,
         );
+        version = result.version;
       }
       if (!signal.aborted) {
-        form.reset({ ...values, note: '', complete: false });
-        onChanged();
+        saved(version);
       }
     } catch (e) {
       if (!signal.aborted) {
@@ -112,10 +133,9 @@ export function ClaimReviewForm({
     setBusy(true);
     setError('');
     try {
-      await retryClaimCommand(pending, signal, scope);
+      const result = await retryClaimCommand(pending, signal, scope);
       if (!signal.aborted) {
-        setPending(undefined);
-        onChanged();
+        saved(result.version);
       }
     } catch (e) {
       if (!signal.aborted) {
@@ -127,14 +147,33 @@ export function ClaimReviewForm({
       if (!signal.aborted) setBusy(false);
     }
   };
-  if (!permitted || (!active && !pending)) return null;
+  const summary = mode === 'investigate' && Boolean(claim.investigationNote);
+  if (!summary && (!permitted || (!active && !pending))) return null;
+  const showForm = permitted && active && !waiting && (mode === 'decide' || editing || pending);
   return (
     <section className="space-y-4 border-t border-[var(--sc-border-default)] pt-5">
       <h3 className="font-semibold">
         {t(mode === 'investigate' ? 'investigate' : 'accountantDecision')}
       </h3>
+      {waiting && <p role="status">{t('updatingInvestigation')}</p>}
+      {!waiting && summary && !showForm && (
+        <div className="space-y-2 text-sm">
+          <p className="whitespace-pre-wrap">{claim.investigationNote}</p>
+          <p className="text-[var(--sc-text-secondary)]">
+            {t(claim.investigationCompletedAt ? 'investigationComplete' : 'investigationPending')}
+          </p>
+          {claim.investigationCompletedAt && ['OPEN', 'INVESTIGATING'].includes(claim.status) && (
+            <Alert variant="info">{t('awaitingAccountant')}</Alert>
+          )}
+          {permitted && active && (
+            <Button type="button" variant="secondary" onClick={startEditing}>
+              {t('editInvestigation')}
+            </Button>
+          )}
+        </div>
+      )}
       {error && !pending && <Alert variant="error">{error}</Alert>}
-      {pending && (
+      {permitted && pending && (
         <Alert variant="warning">
           <p>{t('pendingRequest')}</p>
           <Button type="button" onClick={() => void retry()} isLoading={busy}>
@@ -142,9 +181,17 @@ export function ClaimReviewForm({
           </Button>
         </Alert>
       )}
-      {active && (
+      {showForm && (
         <form onSubmit={submit}>
-          <fieldset disabled={busy || Boolean(pending)} className="space-y-4">
+          {stale && !pending && (
+            <Alert variant="warning">
+              <p>{t('reviewChanged')}</p>
+              <Button type="button" variant="secondary" onClick={startEditing}>
+                {t('reloadReview')}
+              </Button>
+            </Alert>
+          )}
+          <fieldset disabled={busy || Boolean(pending) || stale} className="space-y-4">
             {mode === 'investigate' ? (
               <>
                 <Select
@@ -202,6 +249,20 @@ export function ClaimReviewForm({
               {t(mode === 'investigate' ? 'saveInvestigation' : 'submitDecision')}
             </Button>
           </fieldset>
+          {mode === 'investigate' && summary && (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy || Boolean(pending)}
+              onClick={() => {
+                form.reset(defaults);
+                setError('');
+                setEditing(false);
+              }}
+            >
+              {t('cancelInvestigationEdit')}
+            </Button>
+          )}
         </form>
       )}
     </section>
