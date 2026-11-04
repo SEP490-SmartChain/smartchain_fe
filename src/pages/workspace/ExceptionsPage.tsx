@@ -1,12 +1,17 @@
-import { UnderConstruction } from '@/components/Common';
 import { Can } from '@/components/Common/Can/Can';
+import { OperationsExceptionQueue } from '@/features/orders';
 import { SlaExceptionsPanel } from '@/features/shipments';
 
-/** UC-104: the operations exception queue currently holds SLA breaches (handover and carrier progress). */
+/** Operational recovery and carrier SLA incidents retain their own scoped workflows. */
 export default function ExceptionsPage() {
   return (
-    <Can capability="shipments.sla.view" fallback={<UnderConstruction />}>
-      <SlaExceptionsPanel />
-    </Can>
+    <div className="space-y-6">
+      <Can capability="exceptions.view">
+        <OperationsExceptionQueue />
+      </Can>
+      <Can capability="shipments.sla.view">
+        <SlaExceptionsPanel />
+      </Can>
+    </div>
   );
 }

@@ -1,5 +1,21 @@
 # Seller orders — Sprint 4
 
+## SS-1214 TOTAL_COST explanation
+
+Owner order detail accepts optional `fulfillmentOrders[].allocationCost` with nullable
+integer-string `extraShippingFeeVnd` and `savedGoodsValueVnd`, and `globalOptimum: false`.
+The values compare the selected order plan with the nearest feasible baseline and are
+displayed once per order. They are estimates already included in the selected freight,
+not an additional debit. Staff's strict schema rejects the financial projection.
+Backend contract, model assumptions and migration order: `smartchain_be/docs/SS-1214-TOTAL-COST.md`.
+
+3 November 2026 UI regression: aggregate comparison amounts accept exact nonnegative
+integer strings beyond the intake's 12-digit limit; manual order input limits stay unchanged.
+Missing cost inputs now explain the manual review in both seller feedback and history,
+in Vietnamese and English. Real API UI verified split, null, legacy and 13-digit totals,
+Staff privacy, foreign-seller denial, and the 390px detail layout. Historical comparison
+snapshots were seeded for presentation checks; this does not re-run the allocation search.
+
 19 October 2026: manual entry defaults to an explicit total recipient collection,
 including any outstanding buyer shipping; 0 means no collection, blank is invalid.
 Sale prices and payment breakdown are optional through the calculated entry mode
@@ -51,3 +67,9 @@ Each row contains one product; equal order codes form one order, with recipient/
 Merge FE PR #62 first, then this integration PR (both target develop). Backend contracts: orca_be PR #120; n8n setup and sample storefront: orca_be PR #121 and infrastructure/n8n/README.md. Live Google OAuth/writeback was not verified in this split.
 
 Managed Sheets đã kết nối có mẫu cũ sẽ hiện Cập nhật mẫu nhập đơn. Cùng endpoint POST không nhận dữ liệu từ seller, tạo bảng v4 mới và chuyển feed; UI giữ link bảng cũ để tra cứu, giải thích dòng chưa gửi không tự chuyển và email được cấp quyền. Binding operator không được nâng cấp qua màn hình này.
+
+## SS-1214 review correction — 2 November 2026
+
+TOTAL_COST explanation now explicitly allows splitting warehouses to reduce the compared total cost; the default nearest-warehouse explanation remains separate. The Owner comparison is shown once per parent order, even for multiple children, and never appears for Staff. `PREVIEW_TOTAL_COST=1 node tests/fixtures/preview-orders.mjs` serves the isolated two-warehouse fixture at port 2326; add `?role=staff` for the privacy view. This preview uses real UI components and synthetic API responses, not a live full-stack environment.
+
+Verification: TypeScript, lint, format, 1,376 FE tests and production build passed. Chrome UI checked Owner totals once, two warehouses, allocation explanation, consistent item quantities, and Staff without financial values. Actual database migration/role behavior is validated separately by the BE disposable allocation suite (74 cases).

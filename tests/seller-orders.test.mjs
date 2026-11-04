@@ -214,6 +214,151 @@ test('Staff schemas reject extra financial/PII fields, including nested lines an
     ),
   );
 });
+
+test('Owner receives exact TOTAL_COST evidence while Staff rejects the same financial payload', () => {
+  const allocationCost = {
+    extraShippingFeeVnd: '13000',
+    savedGoodsValueVnd: '90000',
+    globalOptimum: false,
+  };
+  const child = {
+    id,
+    warehouseId: id,
+    sequenceNo: 1,
+    status: 'STOCK_RESERVED',
+    items: [],
+    parcels: [],
+    shipments: [],
+    allocationCost,
+  };
+  const safe = { ...summary, items: [], fulfillmentOrders: [child], statusHistory: [] };
+  const owner = {
+    ...safe,
+    ...financial,
+    recipientName: 'Test',
+    recipientPhone: '0900000000',
+    recipientAddress: 'Test',
+    toProvinceCode: '01',
+    toWardCode: '00001',
+    fulfillmentOrders: [{ ...child, codAmount: '100000' }],
+  };
+
+  assert.deepEqual(
+    orders.parseOrderDetail(owner, true).fulfillmentOrders[0].allocationCost,
+    allocationCost,
+  );
+  assert.throws(() => orders.parseOrderDetail(safe, false));
+  assert.throws(() =>
+    orders.parseOrderDetail(
+      {
+        ...owner,
+        fulfillmentOrders: [
+          {
+            ...owner.fulfillmentOrders[0],
+            allocationCost: { ...allocationCost, extraShippingFeeVnd: '1.5' },
+          },
+        ],
+      },
+      true,
+    ),
+  );
+});
+
+test('TOTAL_COST order-level explanation renders once for a split order', () => {
+  const child = {
+    id,
+    warehouseId: id,
+    sequenceNo: 1,
+    status: 'STOCK_RESERVED',
+    items: [],
+    parcels: [],
+    shipments: [],
+    allocationCost: {
+      extraShippingFeeVnd: '13000',
+      savedGoodsValueVnd: '90000',
+      globalOptimum: false,
+    },
+  };
+  const html = renderDetail({
+    fulfillmentOrders: [child, { ...child, id: 'second', sequenceNo: 2 }],
+  });
+
+  assert.equal(html.split('13.000 ₫').length - 1, 1);
+  assert.equal(html.split('90.000 ₫').length - 1, 1);
+  assert.match(html, /Lý do chọn kho xuất hàng/);
+});
+test('TOTAL_COST aggregate money preserves large exact values without relaxing intake limits', () => {
+  for (const amount of ['1200000000000', '9007199254740993', null]) {
+    const allocationCost = {
+      extraShippingFeeVnd: amount,
+      savedGoodsValueVnd: amount,
+      globalOptimum: false,
+    };
+    const owner = {
+      ...summary,
+      ...financial,
+      recipientName: 'Test',
+      recipientPhone: '0900000000',
+      recipientAddress: 'Test',
+      toProvinceCode: '01',
+      toWardCode: '00001',
+      items: [],
+      statusHistory: [],
+      fulfillmentOrders: [
+        {
+          id,
+          warehouseId: id,
+          sequenceNo: 1,
+          status: 'STOCK_RESERVED',
+          codAmount: '100000',
+          items: [],
+          parcels: [],
+          shipments: [],
+          allocationCost,
+        },
+      ],
+    };
+    assert.deepEqual(
+      orders.parseOrderDetail(owner, true).fulfillmentOrders[0].allocationCost,
+      allocationCost,
+    );
+    if (amount)
+      assert.equal(
+        presentation.formatOrderMoney(amount),
+        BigInt(amount).toLocaleString('vi-VN') + ' ₫',
+      );
+    for (const invalid of ['-1', '1.5', '1e12', '01'])
+      assert.throws(() =>
+        orders.parseOrderDetail(
+          {
+            ...owner,
+            fulfillmentOrders: [
+              {
+                ...owner.fulfillmentOrders[0],
+                allocationCost: { ...allocationCost, savedGoodsValueVnd: invalid },
+              },
+            ],
+          },
+          true,
+        ),
+      );
+  }
+  assert.equal(
+    orders.manualOrderSchema.safeParse({ ...draft, codAmount: '1200000000000' }).success,
+    false,
+  );
+});
+test('missing TOTAL_COST input explains manual review in seller list and history in both languages', () => {
+  const code = 'ALLOCATION_COST_INPUT_REQUIRED';
+  assert.equal(feedback.orderReasonKey(code), `reasons.${code}`);
+  assert.equal(feedback.orderHistoryReasonKey(code), `reasons.${code}`);
+  for (const locale of ['vi', 'en']) {
+    const messages = JSON.parse(
+      readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), 'utf8'),
+    );
+    assert.ok(messages.Orders.reasons[code].length > 30);
+  }
+});
 test('manual validation rejects fractional/rounded money, invalid phone, duplicates and forged tenant', () => {
   assert.deepEqual(orders.manualOrderSchema.parse(draft), draft);
   for (const patch of [
