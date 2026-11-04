@@ -150,6 +150,7 @@ const expected = {
   'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+  'exceptions.manage': ['OPS_DISPATCHER'],
 };
 let server, policy;
 before(async () => {

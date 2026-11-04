@@ -16,3 +16,4 @@ export { PackingWorkspace } from './components/PackingWorkspace';
 
 export { HandoverWorkspace } from './components/HandoverWorkspace';
 export { OperationsCancellationWorkspace } from './components/OperationsCancellationWorkspace';
+export { OperationsExceptionQueue } from './components/OperationsExceptionQueue';
