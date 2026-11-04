@@ -28,6 +28,11 @@ const reporting = [
 ];
 // Independently reviewed UI action expectations; proposed actions remain denied.
 const expected = {
+  'claims.view': ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
+  'claims.create': ['SELLER_OWNER', 'OPS_DISPATCHER'],
+  'claims.evidence.add': ['SELLER_OWNER', 'OPS_DISPATCHER'],
+  'claims.investigate': ['OPS_DISPATCHER'],
+  'claims.decide': ['ORCA_ACCOUNTANT'],
   'webhooks.deliveries.view': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   'inventory.workflows.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'inventory.notifications.override': ['OPS_DISPATCHER'],
