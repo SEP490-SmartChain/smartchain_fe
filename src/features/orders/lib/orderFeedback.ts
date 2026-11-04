@@ -56,6 +56,7 @@ export function orderReasonKey(code: string | null): string {
       'ADDRESS_NORMALIZED',
       'RESERVATION_RENEWAL_REQUIRED',
       'ALLOCATION_QUEUE_FAILED',
+      'ALLOCATION_COST_INPUT_REQUIRED',
       'ELIGIBLE_STOCK_RESERVED',
       'CONFIRM_HOLD',
       'HOLD_RISKY_COD',
