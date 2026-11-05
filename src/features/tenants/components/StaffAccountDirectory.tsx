@@ -46,12 +46,6 @@ import type {
 
 const INITIAL_FILTERS: StaffAccountFilters = { search: '', role: '', status: '' };
 const PAGE_SIZE = 10;
-/**
- * UI-04: Backend tạo nhân viên với role cố định SELLER_STAFF. Giữ nút thêm ẩn cho tới
- * khi form tạo nhân viên được cập nhật theo contract này.
- */
-const STAFF_CREATE_SUPPORTED: boolean = false;
-
 type SortKey = 'profile' | 'lastSessionAt' | 'status';
 type SortDirection = 'asc' | 'desc';
 
@@ -90,6 +84,7 @@ function relativeTime(timestamp: string | null, locale: string, fallback: string
 export function StaffAccountDirectory() {
   const t = useTranslations('StaffAccounts');
   const locale = useLocale();
+  const authRevision = useAuthStore((state) => state.revision);
   const currentUserId = useAuthStore((state) => state.user?.userId);
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [fromDate, setFromDate] = useState('');
@@ -256,14 +251,12 @@ export function StaffAccountDirectory() {
       <PageHeader
         title={t('title')}
         actions={
-          STAFF_CREATE_SUPPORTED && (
-            <Can capability="iam.users.manage">
-              <Button type="button" onClick={() => setAddModalOpen(true)}>
-                <Plus size={17} aria-hidden="true" />
-                {t('addNew')}
-              </Button>
-            </Can>
-          )
+          <Can capability="iam.users.manage">
+            <Button type="button" onClick={() => setAddModalOpen(true)}>
+              <Plus size={17} aria-hidden="true" />
+              {t('inviteTitle')}
+            </Button>
+          </Can>
         }
       />
 
@@ -668,13 +661,19 @@ export function StaffAccountDirectory() {
           document.body,
         )}
 
-      {STAFF_CREATE_SUPPORTED && (
-        <AddStaffAccountModal
-          isOpen={addModalOpen}
-          onClose={() => setAddModalOpen(false)}
-          onSuccess={() => refetch()}
-        />
-      )}
+      <Can capability="iam.users.manage">
+        {addModalOpen && (
+          <AddStaffAccountModal
+            key={authRevision}
+            isOpen={addModalOpen}
+            onClose={() => setAddModalOpen(false)}
+            onSuccess={() => {
+              setCurrentPage(1);
+              void refetch();
+            }}
+          />
+        )}
+      </Can>
 
       <Modal
         isOpen={selectedAccount !== null}
