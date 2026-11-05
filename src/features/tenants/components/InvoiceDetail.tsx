@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { BankReceiptForm } from './BankReceiptForm';
+import { InvoiceBankTransfer } from './InvoiceBankTransfer';
 import {
   invoiceApi,
   type FeeInvoice,
@@ -52,6 +53,7 @@ export function InvoiceDetail({
   const load = useCallback(async () => {
     const current = abort.current;
     setLoading(true);
+    setPayment(null);
     setError(null);
     try {
       const [header, page] = await Promise.all([
@@ -217,21 +219,17 @@ export function InvoiceDetail({
             {invoice.documentStatus === 'ISSUED' &&
               invoice.paymentStatus === 'UNPAID' &&
               !invoice.paymentRequired && <Alert variant="info">{t('noActiveObligation')}</Alert>}
-            {payment && (
-              <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">
-                <h4 className="font-semibold">{t('bankTitle')}</h4>
-                <p className="mt-2 text-sm leading-6">{t('bankHelp')}</p>
-                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt>{t('reference')}</dt>
-                    <dd className="break-all font-medium">{payment.reference}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('outstanding')}</dt>
-                    <dd className="font-medium">{money(payment.amountVnd)}</dd>
-                  </div>
-                </dl>
-              </div>
+            {payment && invoice.paymentRequired && (
+              <InvoiceBankTransfer
+                payment={payment}
+                busy={busy}
+                onRefresh={() => {
+                  void perform(async () => {
+                    await load();
+                    await onChanged();
+                  });
+                }}
+              />
             )}
             <div>
               <div className="mb-3 flex items-center justify-between gap-3">

@@ -52,21 +52,19 @@ after(async () => {
 });
 beforeEach(() => {
   store.getState().clear();
-  store
-    .getState()
-    .setSession({
-      accessToken: 'synthetic-token',
-      expiresIn: 3600,
-      user: {
-        userId: id,
-        tenantId: id,
-        actorScope: 'TENANT',
-        roles: ['SELLER_OWNER'],
-        permissions: [],
-        email: 'synthetic@example.test',
-        fullName: 'Synthetic Owner',
-      },
-    });
+  store.getState().setSession({
+    accessToken: 'synthetic-token',
+    expiresIn: 3600,
+    user: {
+      userId: id,
+      tenantId: id,
+      actorScope: 'TENANT',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+      email: 'synthetic@example.test',
+      fullName: 'Synthetic Owner',
+    },
+  });
 });
 test('reads cursor metadata and preserves money beyond the JS integer range', async () => {
   globalThis.fetch = async (url) => {
@@ -153,4 +151,38 @@ test('PDF export validates the response rather than downloading an error page', 
   globalThis.fetch = async () =>
     new Response('<html>proxy error</html>', { headers: { 'content-type': 'text/html' } });
   await assert.rejects(api.pdf(id));
+});
+
+test('invoice payment accepts optional locally rendered QR details and strips unrelated fields', async () => {
+  const bankTransfer = {
+    bankCode: 'MB',
+    bankBin: '970422',
+    accountNumber: '000123456789',
+    content: 'ORCAONBSYNTHETIC1',
+    qrPayload: '00020101021238' + '0'.repeat(80),
+  };
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(options.method, 'GET');
+    return ok({
+      invoiceId: id,
+      reference: 'ONB-synthetic-1',
+      amountVnd: '750',
+      dueOn: '2026-11-08',
+      method: 'VERIFIED_BANK_TRANSFER',
+      verificationRequired: true,
+      bankTransfer: { ...bankTransfer, internalCredential: 'synthetic-private' },
+    });
+  };
+  assert.deepEqual((await api.payment(id)).bankTransfer, bankTransfer);
+  globalThis.fetch = async () =>
+    ok({
+      invoiceId: id,
+      reference: 'ONB-synthetic-1',
+      amountVnd: '750',
+      dueOn: '2026-11-08',
+      method: 'VERIFIED_BANK_TRANSFER',
+      verificationRequired: true,
+      bankTransfer: { ...bankTransfer, accountNumber: 'INVALID ACCOUNT' },
+    });
+  await assert.rejects(api.payment(id));
 });
