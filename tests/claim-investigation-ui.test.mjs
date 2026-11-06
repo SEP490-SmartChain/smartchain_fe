@@ -73,12 +73,12 @@ test('completed Ops investigation shows saved summary and explicit update, witho
   assert.match(html, /Chờ kế toán xem xét/);
   assert.match(html, /Cập nhật điều tra/);
   assert.doesNotMatch(html, /<form|<textarea|type="checkbox"/);
-  assert.equal((html.match(/Điều tra của Ops/g) ?? []).length, 1);
+  assert.equal((html.match(/Kết quả điều tra/g) ?? []).length, 1);
 });
 test('saved draft is collapsed but explicitly requires completion', () => {
   const html = render({ investigationCompletedAt: null });
   assert.match(html, /Đã đối chiếu ảnh tại kho/);
-  assert.match(html, /Chờ Ops hoàn tất/);
+  assert.match(html, /Chờ ORCA kiểm tra bằng chứng và hoàn tất điều tra/);
   assert.match(html, /Cập nhật điều tra/);
   assert.doesNotMatch(html, /<form/);
 });
