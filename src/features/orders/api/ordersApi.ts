@@ -269,6 +269,15 @@ const shipment = z
     bookingState: z.string(),
     active: z.boolean(),
     direction: z.string(),
+    latestEvent: z
+      .object({
+        standardStatus: z.string(),
+        eventTime: z.iso.datetime(),
+        isApplied: z.boolean(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 const child = z.object({

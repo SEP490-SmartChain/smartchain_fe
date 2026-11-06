@@ -76,7 +76,11 @@ export type CancelResult = z.infer<typeof cancelResultSchema>;
 /** SS-1319 / UC-104 SLA breach; the API projection carries no money or recipient fields. */
 export const slaExceptionSchema = z.object({
   id: z.string().uuid(),
-  reasonCode: z.enum(['SLA.HANDOVER_OVERDUE', 'SLA.TRACKING_STALLED']),
+  reasonCode: z.enum([
+    'SLA.HANDOVER_OVERDUE',
+    'SLA.TRACKING_STALLED',
+    'DISPATCH.LABEL_RETRIES_EXHAUSTED',
+  ]),
   status: z.enum(['OPEN', 'ASSIGNED', 'RESOLVED']),
   aggregateType: z.enum(['fulfillment_order', 'shipment']),
   aggregateId: z.string().uuid(),
@@ -90,6 +94,7 @@ export const slaExceptionSchema = z.object({
   isAssigned: z.boolean(),
   isAssignedToMe: z.boolean(),
   resolution: z.enum(['AUTO:HANDED_OVER', 'AUTO:CARRIER_PROGRESS']).nullable(),
+  canRetryLabel: z.boolean(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

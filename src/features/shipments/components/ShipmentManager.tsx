@@ -10,6 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 import { ShipmentTimeline } from './ShipmentTimeline';
 import { shipmentApi } from '../api/shipmentApi';
+import { getDispatchFailureGuidance } from '../lib/dispatchFailureGuidance';
 
 import type { CancelResult, Shipment } from '../schemas/shipmentSchema';
 
@@ -227,6 +228,11 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
             {row.bookingState === 'UNKNOWN' && <Alert variant="warning">{t('verifyNotice')}</Alert>}
             {row.bookingState === 'CONFIRMED' && !row.labelAvailable && (
               <Alert variant="info">{t('confirmedLabelNotice')}</Alert>
+            )}
+            {can('shipments.sla.view') && row.failureCode && (
+              <Alert variant="warning">
+                {t(`dispatchFailures.${getDispatchFailureGuidance(row.failureCode) ?? 'review'}`)}
+              </Alert>
             )}
             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>

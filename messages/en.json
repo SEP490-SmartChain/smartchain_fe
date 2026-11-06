@@ -631,6 +631,8 @@
     "invalidPartnerCode": "The shop code may contain letters, digits, hyphens or underscores (max 50)."
   },
   "Orders": {
+    "excel_channel": "Spreadsheet import",
+
     "backorderHint": "There is not enough stock meeting allocation requirements. The order is waiting for eligible stock; allocation will retry when inventory is updated.",
     "allocationQueuedHint": "The order is validated and waiting for allocation. Its status will update automatically when processing completes.",
     "allocationLineValue": "Line declared value",
@@ -652,6 +654,9 @@
     "to": "To date",
     "status": "Status",
     "created_at": "Created",
+    "lastUpdated": "Last updated",
+    "lastCarrierUpdate": "Latest carrier update",
+    "trackingRecordedOnly": "Recorded, status not changed",
     "order_code": "Order code",
     "cod": "Outstanding merchandise payment",
     "total": "Order total",
@@ -948,6 +953,7 @@
     "totalCostAllocationExplanation": "The system compares freight, parcel split costs and product expiry across eligible warehouses.",
     "allocationExplanation": "The system prefers one warehouse with enough stock and selects eligible lots.",
     "allocationPending": "This order is waiting for warehouse allocation.",
+    "allocationNotRecorded": "No warehouse allocation has been recorded for this order.",
     "backorderReminder": "This order is still waiting for eligible stock. You can keep waiting or ask the account Owner to request cancellation. The order will not be cancelled automatically.",
     "nearestWarehouse": "Nearest eligible warehouse within current stock and capacity.",
     "totalCost": "Lowest estimated total cost among the options evaluated.",
@@ -2312,6 +2318,9 @@
     "revokeError": "Could not revoke the API key. Please try again."
   },
   "InventoryDetail": {
+    "lookupReferences": "View lookup references",
+    "statusUnknown": "Status unavailable",
+
     "positions": "Lot & bin",
     "ledger": "Movement ledger",
     "sku": "SKU",
@@ -2423,6 +2432,8 @@
     }
   },
   "Warehouses": {
+    "saveError": "Could not save working hours. Please try again.",
+
     "additionalInformation": "Additional information",
     "cutoffExplanation": "How does the cut-off affect orders?",
     "warehouseDetailTitle": "Warehouse details · {code}",
@@ -2687,6 +2698,9 @@
     }
   },
   "Receiving": {
+    "discrepancyProductCandidate": "{product} · {type} · {qty} units",
+    "discrepancyProductComparison": "{product}: actual {actual}",
+
     "sellerShipment": "Seller shipment",
     "shipmentSku": "Item",
     "declaredQuantity": "Declared",
@@ -3131,6 +3145,15 @@
     "next": "Next",
     "verifyNotice": "The carrier outcome is being verified. Rebooking and fallback are held to prevent duplicates.",
     "confirmedLabelNotice": "The carrier confirmed this booking. Label retrieval does not create another booking.",
+    "dispatchFailures": {
+      "verifyBooking": "Booking outcome is uncertain. Check the carrier status before any new booking; ORCA keeps retries on hold while it verifies.",
+      "retryLabel": "The booking is already confirmed. ORCA retries label retrieval; do not repack or create another waybill.",
+      "checkAddress": "Review the parcel address mapping, then ask Operations to verify the dispatch configuration.",
+      "checkMeasurements": "Review the measured parcel dimensions and weight before asking Operations to retry dispatch.",
+      "checkCarrierSetup": "The carrier service mapping needs Operations review before dispatch can continue.",
+      "checkTariff": "The effective carrier or freight tariff is missing. Ask Operations to review the configured service and tariff.",
+      "review": "Dispatch needs Operations review. Use the shipment reference and latest state when escalating."
+    },
     "shipmentId": "Shipment ID",
     "packageId": "Package ID",
     "download": "Download PDF label",
@@ -3382,6 +3405,9 @@
     }
   },
   "Putaway": {
+    "completedReadOnly": "This putaway task is complete.",
+    "cancelledReadOnly": "This putaway task was cancelled.",
+
     "title": "Putaway tasks",
     "description": "Claim work, scan codes and confirm putaway.",
     "warehouse": "Warehouse",
@@ -3698,6 +3724,8 @@
     }
   },
   "PutawayBinOverride": {
+    "actorReference": "Staff reference",
+
     "title": "Change suggested storage bin",
     "description": "Choose a compatible bin and record the reason. Stock becomes sellable only after Staff physically scans and confirms the task.",
     "search": "Find bin by code or barcode",
@@ -4710,6 +4738,15 @@
     "EXHAUSTED": "Retries exhausted"
   },
   "InventoryWorkflows": {
+    "unknownStatus": "Status unavailable",
+
+    "noWarehouse": "No warehouses are available in your access scope.",
+    "reference": "Reference",
+    "executedQty": "Actually disposed: {qty}",
+    "policyAuthorization": "Under an approved policy",
+    "consentAuthorization": "With the goods owner’s consent",
+    "policyExpiry": "Policy valid until: {date}",
+
     "title": "Inventory restoration",
     "description": "Review physical counts, restore cancelled picks and execute authorized disposal.",
     "warehouse": "Warehouse",
@@ -4792,6 +4829,8 @@
     "tariffRequired": "A current contracted disposal tariff is required. Ask an administrator to configure it, then retry. Stock has not been deducted."
   },
   "Returns": {
+    "returnReference": "Return reference",
+
     "title": "Returns",
     "description": "Return requests, physical receipt and inspection at the original warehouse.",
     "warehouse": "Origin warehouse",
@@ -5207,7 +5246,7 @@
     "carrierLinked": "A carrier dispute is linked to this case.",
     "carrierRecoveryIndependent": "Seller compensation proceeds independently of carrier recovery.",
     "evidence": "Evidence photos",
-    "evidenceHint": "Add incident, packing or return photos for review. Up to 10 photos, 5 MB each. New photos require another review.",
+    "evidenceHint": "Add incident, packing or return photos for review. Up to 10 photos, 5 MB each. New photos require another review. Photos are visible only to people authorized to handle the claim.",
     "missingEvidence": "No verified photos. The claim remains pending.",
     "photo": "Photo {number}",
     "verified": "Verified",
@@ -5341,7 +5380,7 @@
   },
   "SlaExceptions": {
     "title": "Shipping alerts",
-    "description": "Late warehouse handover or a missing carrier update.",
+    "description": "Late warehouse handover, missing carrier progress, or a confirmed waybill whose label still needs recovery.",
     "openOnly": "Open alerts only",
     "refresh": "Refresh",
     "loadError": "Alerts could not be loaded.",
@@ -5361,7 +5400,8 @@
     "actions": "Actions",
     "reasonCode": {
       "HANDOVER": "Handover overdue",
-      "STALLED": "No carrier progress"
+      "STALLED": "No carrier progress",
+      "LABEL": "Waybill confirmed, label unavailable"
     },
     "deadlineValue": "Handover due: {time}",
     "stalledValue": "Last update: {time} ({hours} h overdue)",
@@ -5371,6 +5411,9 @@
     "open": "Unassigned",
     "assign": "Take ownership",
     "assignError": "This alert could not be taken. Reload and try again.",
+    "retryLabel": "Retry label retrieval",
+    "retryScheduled": "Retry scheduled",
+    "retryLabelError": "The label retry could not be scheduled. Refresh to check its status.",
     "eyebrow": "Shipment follow-up",
     "handoverTitle": "Handover overdue",
     "handoverDescription": "The warehouse missed the handover time.",

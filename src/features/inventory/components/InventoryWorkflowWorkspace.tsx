@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Button, PageHeader, Select } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
@@ -20,11 +20,17 @@ export function InventoryWorkflowWorkspace() {
 }
 function Workspace() {
   const t = useTranslations('InventoryWorkflows');
+  const locale = useLocale();
   const { roles, actorScope, can } = useAccess();
   const manager = roles.includes('WAREHOUSE_MANAGER'),
     staff = roles.includes('WAREHOUSE_STAFF');
   const permitted = can('inventory.workflows.view');
-  const { warehouses } = useWarehouseOptions(permitted);
+  const {
+    warehouses,
+    error: warehouseError,
+    isLoading: warehousesLoading,
+    refetch,
+  } = useWarehouseOptions(permitted);
   const [selected, setSelected] = useState(''),
     [tab, setTab] = useState<'counts' | 'disposals' | 'putbacks'>(
       actorScope === 'TENANT' ? 'disposals' : 'counts',
@@ -91,14 +97,14 @@ function Workspace() {
       setDownloadError(true);
     }
   }
-  const status = (s: string) => (t.has(`status.${s}`) ? t(`status.${s}`) : s);
+  const status = (s: string) => (t.has(`status.${s}`) ? t(`status.${s}`) : t('unknownStatus'));
   if (!permitted) return <Alert variant="error" title={t('forbidden')} />;
   return (
     <div className="space-y-5">
       <PageHeader title={t('title')} description={t('description')} />
       <Select
         label={t('warehouse')}
-        disabled={!!action}
+        disabled={!!action || warehousesLoading || !!warehouseError}
         value={wh}
         onChange={(e) => {
           setSelected(e.target.value);
@@ -109,6 +115,17 @@ function Workspace() {
           ...warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` })),
         ]}
       />
+      {warehousesLoading && <p role="status">{t('loading')}</p>}
+      {warehouseError && (
+        <Alert variant="error" title={t('loadError')}>
+          <Button variant="outline" onClick={refetch}>
+            {t('refresh')}
+          </Button>
+        </Alert>
+      )}
+      {!warehousesLoading && !warehouseError && !warehouses.length && (
+        <Alert>{t('noWarehouse')}</Alert>
+      )}
       <div className="flex flex-wrap gap-2">
         {(actorScope === 'TENANT'
           ? (['disposals'] as const)
@@ -141,9 +158,11 @@ function Workspace() {
         {tab === 'counts' &&
           counts.map((c) => (
             <section key={c.id} className="sc-surface space-y-3 p-4">
-              <p>
-                {status(c.status)} · {c.id}
-              </p>
+              <p>{status(c.status)}</p>
+              <details className="text-xs">
+                <summary>{t('reference')}</summary>
+                <p className="break-all">{c.id}</p>
+              </details>
               {c.reviewReason && <p>{c.reviewReason}</p>}
               {c.lines.map((l) => (
                 <div key={l.id} className="flex flex-wrap items-center gap-3">
@@ -212,6 +231,21 @@ function Workspace() {
                 {d.sku} · {d.lotCode} · {d.binCode} · {t('qty')}: {d.qty} · {status(d.status)}
               </p>
               <p>{d.reason}</p>
+              <p className="text-sm">
+                {t('executedQty', { qty: d.executedQty })} ·{' '}
+                {t(
+                  d.authorizationMode === 'POLICY' ? 'policyAuthorization' : 'consentAuthorization',
+                )}
+              </p>
+              {d.authorizationMode === 'POLICY' && d.policyExpiresAt && (
+                <p className="text-sm">
+                  {t('policyExpiry', {
+                    date: new Date(d.policyExpiresAt).toLocaleString(locale, {
+                      timeZone: 'Asia/Ho_Chi_Minh',
+                    }),
+                  })}
+                </p>
+              )}
               {d.reviewReason && <p>{d.reviewReason}</p>}
               <div className="flex gap-2">
                 {manager && d.status === 'REQUESTED' && (

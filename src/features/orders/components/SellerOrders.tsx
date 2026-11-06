@@ -23,10 +23,10 @@ import { useAuthStore } from '@/stores/authStore';
 
 import { GoogleSheetConnection } from './GoogleSheetConnection';
 import { ManualOrderForm } from './ManualOrderForm';
+import { OrderCancellationActions } from './OrderCancellationActions';
 import { OrderDetail } from './OrderDetail';
 import { OrderLifecycleActions } from './OrderLifecycleActions';
 import { OrderPolicyActions } from './OrderPolicyActions';
-import { OrderCancellationActions } from './OrderCancellationActions';
 import { SellerWithdrawalForm } from './SellerWithdrawalForm';
 import {
   ORDER_STATUSES,
@@ -88,6 +88,7 @@ function SellerOrdersSession({
   const [accepted, setAccepted] = useState<{ id: string; code: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const activeDetailId = useRef<string | null>(null);
   useOrderDetailRefresh({
     scope,
     owner,
@@ -134,12 +135,17 @@ function SellerOrdersSession({
     }
   }
   function openDetail(id: string) {
+    activeDetailId.current = id;
     setDetail((current) => (current?.id === id ? current : null));
     setDetailId(id);
     setModal('detail');
     void execute(async (signal) => {
       const response = await ordersApi.detail(id, owner, signal);
-      if (orderScope() === scope && !signal.aborted) setDetail(response);
+      if (orderScope() === scope && !signal.aborted && activeDetailId.current === id) {
+        setDetail((current) =>
+          current?.id === id && current.version > response.version ? current : response,
+        );
+      }
     });
   }
   useEffect(() => {
@@ -147,6 +153,7 @@ function SellerOrdersSession({
     const controller = new AbortController();
     controllers.current.add(controller);
     setDetail(null);
+    activeDetailId.current = initialId;
     setDetailId(initialId);
     setModal('detail');
     setError(null);
@@ -154,7 +161,15 @@ function SellerOrdersSession({
     void ordersApi
       .detail(initialId, owner, controller.signal)
       .then((response) => {
-        if (!controller.signal.aborted && orderScope() === scope) setDetail(response);
+        if (
+          !controller.signal.aborted &&
+          orderScope() === scope &&
+          activeDetailId.current === initialId
+        ) {
+          setDetail((current) =>
+            current?.id === initialId && current.version > response.version ? current : response,
+          );
+        }
       })
       .catch((failure) => {
         if (!controller.signal.aborted && orderScope() === scope) {
@@ -217,7 +232,9 @@ function SellerOrdersSession({
           ? t('withdrawalOrder')
           : order.sourceChannel === 'manual'
             ? t('manual_channel')
-            : order.sourceChannel,
+            : order.sourceChannel === 'excel'
+              ? t('excel_channel')
+              : order.sourceChannel,
     },
     {
       key: 'status',
@@ -630,6 +647,12 @@ function SellerOrdersSession({
         )}
         {detail && (
           <>
+            <div className="flex justify-end">
+              <Button variant="ghost" disabled={busy} onClick={() => openDetail(detail.id)}>
+                <RefreshCw aria-hidden="true" size={16} />
+                {t('refresh')}
+              </Button>
+            </div>
             <OrderDetail order={detail} />
             <OrderLifecycleActions
               key={`OrderLifecycleActions:${detail.id}`}
