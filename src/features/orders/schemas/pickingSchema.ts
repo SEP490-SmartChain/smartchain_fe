@@ -5,7 +5,11 @@ export const pickScanSchema = z.object({
   lotScan: z.string().min(1).max(128),
   qty: z.number().int().min(1).max(1000000),
 });
-export const pickWaveFormSchema = z.object({ cutoffAt: z.string().min(1), assigneeId: z.uuid() });
+export const pickWaveFormSchema = z.object({
+  cutoffAt: z.string().min(1),
+  assigneeId: z.uuid(),
+  maxParcels: z.number().int().min(1).max(50),
+});
 export const pickShortFormSchema = z.object({
   observedQty: z.number().int().min(0).max(1000000),
   reason: z.string().trim().min(1).max(1000),
