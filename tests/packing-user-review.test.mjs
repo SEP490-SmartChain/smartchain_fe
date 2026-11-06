@@ -48,6 +48,12 @@ function bindings(state) {
     useState: () => [state[index++], () => {}],
     useEffect() {},
     useRef: (current) => ({ current }),
+    useAuthStore: (selector) => selector({ user: { userId: 'test-actor' }, revision: 0 }),
+    loadFulfillmentPending: () => null,
+    persistFulfillmentPending() {},
+    clearFulfillmentPending() {},
+    createUuid: () => 'test-operation',
+    isRejectedOperation: () => true,
     useTranslations: () =>
       Object.assign((key, values) => (values ? key + JSON.stringify(values) : key), {
         has: () => true,
@@ -64,6 +70,7 @@ function bindings(state) {
     pickingApi: {},
     packingApi: {},
     packingFormSchema: {},
+    packCommandSchema: {},
     zodResolver: () => ({}),
     encodeLabelBarcode: () => null,
     styles: {},
@@ -118,4 +125,101 @@ test('packing count uses exact required quantity and does not show material quan
   assert.equal(quantity.props.required, true);
   assert.ok(quantity.props.label.includes('Product A'));
   assert.ok(!inputs.some((n) => n.props.name === 'materialQty'));
+});
+
+function reviewDetail(status, shipments = []) {
+  return {
+    ...first,
+    status,
+    items: [{ id: 'line', sku: 'SKU-A', name: 'Product A', qty: 2 }],
+    packing:
+      status === 'PICKED'
+        ? []
+        : [
+            {
+              id: 'packing-a',
+              actualWeightG: 750,
+              actualLengthCm: '20',
+              actualWidthCm: '15',
+              actualHeightCm: '10',
+            },
+          ],
+    shipments,
+  };
+}
+
+function renderReview(detail, writable) {
+  const b = bindings([false, '']);
+  b.useForm = () => ({
+    register: (name) => ({ name }),
+    watch: () => '',
+    handleSubmit: (f) => f,
+    formState: { errors: {} },
+  });
+  return component(
+    'PackingForm',
+    b,
+  )({
+    actorId: 'test-actor',
+    warehouse: 'warehouse',
+    detail,
+    writable,
+    recoveryOnly: false,
+    onPacked() {},
+  });
+}
+
+test('packed and label-waiting queue selections retain their detail without enabling recovery', () => {
+  for (const status of ['PACKED', 'PACKED_AWAITING_LABEL', 'LABEL_VERIFYING']) {
+    const detail = reviewDetail(status);
+    const b = bindings([
+      [],
+      'warehouse',
+      { items: [detail], nextCursor: null },
+      detail,
+      '',
+      false,
+      null,
+      0,
+    ]);
+    const ui = component('PackingSession', b)();
+    const form = nodes(ui).find((n) => n.type === 'PackingForm');
+    assert.ok(form, `${status} should keep the parcel detail visible`);
+    assert.equal(form.props.detail, detail);
+    assert.equal(form.props.recoveryOnly, false);
+  }
+});
+
+test('Manager sees picked contents awaiting Staff without a packing form or false completion', () => {
+  const ui = renderReview(reviewDetail('PICKED'), false);
+  const text = JSON.stringify(ui);
+  assert.ok(text.includes('awaitingStaff'));
+  assert.ok(text.includes('Product A'));
+  assert.ok(text.includes('SKU-A'));
+  assert.ok(text.includes('expected'));
+  assert.ok(!text.includes('packedHint'));
+  assert.ok(!text.includes('confirmPack'));
+  assert.ok(!nodes(ui).some((n) => n.type === 'form' || n.type === 'Input'));
+});
+
+test('packed details show recorded measures and label guidance without offering another pack', () => {
+  for (const status of ['PACKED', 'PACKED_AWAITING_LABEL', 'LABEL_VERIFYING']) {
+    const ui = renderReview(reviewDetail(status), true);
+    const text = JSON.stringify(ui);
+    assert.ok(text.includes('Product A'));
+    assert.ok(text.includes('750'));
+    assert.ok(text.includes('actualLengthCm'));
+    assert.ok(text.includes('awaitingLabel'));
+    assert.ok(!nodes(ui).some((n) => n.type === 'form' || n.type === 'Input'));
+  }
+  const ui = renderReview(
+    reviewDetail('PACKED', [{ bookingState: 'CONFIRMED', trackingNumber: 'TRACK-123' }]),
+    false,
+  );
+  const text = JSON.stringify(ui);
+  assert.ok(text.includes('TRACK-123'));
+  assert.ok(text.includes('printLabel'));
+  assert.ok(text.includes('handoverNextStep'));
+  assert.ok(nodes(ui).some((n) => n.type === 'Link' && n.props.to === '/warehouse/handover'));
+  assert.ok(!text.includes('awaitingLabel'));
 });
