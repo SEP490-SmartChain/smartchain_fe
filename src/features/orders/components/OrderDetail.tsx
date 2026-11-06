@@ -37,12 +37,18 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
               ? t('withdrawalOrder')
               : order.sourceChannel === 'manual'
                 ? t('manual_channel')
-                : order.sourceChannel}
+                : order.sourceChannel === 'excel'
+                  ? t('excel_channel')
+                  : order.sourceChannel}
           </span>
         </div>
         <p className="text-xs text-[var(--sc-text-secondary)]">
           {t('created_at')}:{' '}
           <time dateTime={order.createdAt}>{formatOrderDate(order.createdAt, locale)}</time>
+        </p>
+        <p className="text-xs text-[var(--sc-text-secondary)]">
+          {t('lastUpdated')}:{' '}
+          <time dateTime={order.updatedAt}>{formatOrderDate(order.updatedAt, locale)}</time>
         </p>
       </header>
       {owner && allocationCost && (
@@ -104,7 +110,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       />
       {detailTab === 'allocation' ? (
         <section className="space-y-4" aria-label={t('allocationTab')}>
-          {!(owner && allocationCost) && (
+          {order.fulfillmentOrders.length > 0 && !(owner && allocationCost) && (
             <Alert>
               {t(
                 order.kind === 'WITHDRAWAL'
@@ -117,7 +123,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
               )}
             </Alert>
           )}
-          {!order.fulfillmentOrders.length && <p>{t('allocationPending')}</p>}
+          {!order.fulfillmentOrders.length && <p>{t('allocationNotRecorded')}</p>}
           {order.fulfillmentOrders.map((child) => (
             <article
               key={child.id}
@@ -375,6 +381,19 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                             {t.has(`bookingStates.${shipment.bookingState}`)
                               ? t(`bookingStates.${shipment.bookingState}`)
                               : t('processing')}
+                          </span>
+                        )}
+                        {shipment.latestEvent && (
+                          <span className="block text-[var(--sc-text-secondary)]">
+                            {t('lastCarrierUpdate')}:{' '}
+                            {t.has(`statuses.${shipment.latestEvent.standardStatus}`)
+                              ? t(`statuses.${shipment.latestEvent.standardStatus}`)
+                              : t('processing')}{' '}
+                            ·{' '}
+                            <time dateTime={shipment.latestEvent.eventTime}>
+                              {formatOrderDate(shipment.latestEvent.eventTime, locale)}
+                            </time>
+                            {!shipment.latestEvent.isApplied && ` · ${t('trackingRecordedOnly')}`}
                           </span>
                         )}
                       </p>

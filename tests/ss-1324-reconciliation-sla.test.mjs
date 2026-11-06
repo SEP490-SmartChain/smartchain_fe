@@ -9,6 +9,7 @@ let server,
   shipment,
   policy,
   shipmentApi,
+  pickingApi,
   carrierSettlementApi,
   sepayReconciliationApi,
   auth;
@@ -30,6 +31,7 @@ before(async () => {
   shipment = await server.ssrLoadModule('/src/features/shipments/schemas/shipmentSchema.ts');
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
   ({ shipmentApi } = await server.ssrLoadModule('/src/features/shipments/api/shipmentApi.ts'));
+  ({ pickingApi } = await server.ssrLoadModule('/src/features/orders/api/pickingApi.ts'));
   ({ carrierSettlementApi } = await server.ssrLoadModule(
     '/src/features/reconciliation/api/carrierSettlementApi.ts',
   ));
@@ -91,6 +93,86 @@ test('Reconciliation and SLA paginated screens read rows from data and cursor me
     pagination: { limit: 20, hasNext: false, nextCursor: null },
   });
   assert.equal(calls.length, 4);
+});
+
+test('Ops label recovery posts only the exception identity and validates the scheduled result', async () => {
+  const userId = uuid(91);
+  auth.getState().setSession({
+    accessToken: 'synthetic-test-token',
+    expiresIn: 900,
+    user: {
+      userId,
+      tenantId: null,
+      actorScope: 'PLATFORM',
+      email: 'ops@example.test',
+      fullName: 'Ops',
+      roles: ['OPS_DISPATCHER'],
+      permissions: [],
+      warehouseIds: [],
+    },
+  });
+  let request;
+  globalThis.fetch = async (url, init) => {
+    request = { url: String(url), method: init.method, body: init.body };
+    return Response.json({
+      success: true,
+      data: { id: uuid(100), status: 'ASSIGNED' },
+      meta: {
+        timestamp: '2026-11-05T01:00:00.000Z',
+        path: String(url),
+        requestId: 'dispatch-label-retry',
+      },
+    });
+  };
+  assert.deepEqual(await shipmentApi.retryLabelException(uuid(100)), {
+    id: uuid(100),
+    status: 'ASSIGNED',
+  });
+  assert.match(request.url, /\/v1\/sla-exceptions\/[0-9a-f-]+\/retry-label$/);
+  assert.equal(request.method, 'POST');
+  assert.equal(request.body, '{}');
+});
+
+test('warehouse wave preview sends the requested physical capacity and rejects unsafe response fields', async () => {
+  const userId = uuid(92);
+  auth.getState().setSession({
+    accessToken: 'synthetic-test-token',
+    expiresIn: 900,
+    user: {
+      userId,
+      tenantId: null,
+      actorScope: 'PLATFORM',
+      email: 'manager@example.test',
+      fullName: 'Manager',
+      roles: ['WAREHOUSE_MANAGER'],
+      permissions: [],
+      warehouseIds: [uuid(30)],
+    },
+  });
+  const request = [];
+  globalThis.fetch = async (url, init) => {
+    request.push({ url: String(url), body: init.body });
+    return Response.json({
+      success: true,
+      data: {
+        parcelLimit: 20,
+        proposedParcels: 8,
+        proposedOrders: 7,
+        proposedLines: 30,
+        firstParcelTooLarge: false,
+        candidateScanLimitReached: false,
+      },
+      meta: { timestamp: '2026-11-05T01:00:00.000Z', path: String(url), requestId: 'wave-preview' },
+    });
+  };
+  const preview = await pickingApi.previewWave(uuid(30), '2026-11-05T00:00:00.000Z', 20);
+  assert.equal(preview.proposedOrders, 7);
+  assert.equal(request.length, 1);
+  assert.match(request[0].url, /\/v1\/warehouse-ops\/waves\/preview/);
+  assert.deepEqual(JSON.parse(request[0].body), {
+    cutoffAt: '2026-11-05T00:00:00.000Z',
+    maxParcels: 20,
+  });
 });
 
 test('UC-141 manual match accepts only rows the API can match and validates the waybill', () => {
@@ -202,6 +284,7 @@ test('UC-104 SLA breach projection drops unexpected financial or recipient field
     isAssigned: false,
     isAssignedToMe: false,
     resolution: null,
+    canRetryLabel: false,
     createdAt: '2026-10-22T01:00:00.000Z',
     updatedAt: '2026-10-22T01:00:00.000Z',
   };
@@ -212,6 +295,14 @@ test('UC-104 SLA breach projection drops unexpected financial or recipient field
   assert.equal(
     shipment.slaExceptionSchema.safeParse({ ...breach, resolution: 'MANUAL:someone' }).success,
     false,
+  );
+  assert.equal(
+    shipment.slaExceptionSchema.parse({
+      ...breach,
+      reasonCode: 'DISPATCH.LABEL_RETRIES_EXHAUSTED',
+      canRetryLabel: true,
+    }).canRetryLabel,
+    true,
   );
 });
 

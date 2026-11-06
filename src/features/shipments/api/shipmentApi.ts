@@ -32,6 +32,14 @@ export const shipmentApi = {
     );
     return z.object({ id: z.string().uuid(), status: z.literal('ASSIGNED') }).parse(data);
   },
+  async retryLabelException(id: string, signal?: AbortSignal) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/sla-exceptions/${encodeURIComponent(id)}/retry-label`,
+      {},
+      { signal, silent: true },
+    );
+    return z.object({ id: z.string().uuid(), status: z.literal('ASSIGNED') }).parse(data);
+  },
   async timeline(id: string, cursor?: string, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>(
       `/v1/shipments/${encodeURIComponent(id)}/timeline`,

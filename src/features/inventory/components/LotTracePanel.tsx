@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { z } from 'zod';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
@@ -85,8 +85,16 @@ function TraceResults({
   onChanged: () => void;
 }) {
   const t = useTranslations('LotTrace'),
+    inventory = useTranslations('InventoryDetail'),
+    orders = useTranslations('Orders'),
+    locale = useLocale(),
     { can } = useAccess(),
     revision = useAuthStore((s) => s.revision);
+  const timestamp = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
   const [rows, setRows] = useState<LotTraceRecord[]>([]),
     [next, setNext] = useState<string | null>(null),
     [loading, setLoading] = useState(true),
@@ -182,22 +190,40 @@ function TraceResults({
           <h3 className="m-0 text-sm">
             {r.sku} · {r.lotCode} · {r.binCode}
           </h3>
-          <p className="break-all text-xs">
-            {t('lotId')}: {r.lotId} · {t('parcelId')}: {r.fulfillmentOrderId}
-          </p>
+          <details className="text-xs">
+            <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+              {inventory('lookupReferences')}
+            </summary>
+            <p className="break-all">
+              {t('lotId')}: {r.lotId} · {t('parcelId')}: {r.fulfillmentOrderId}
+            </p>
+          </details>
           <p className="text-sm">
             {t('picked')}: {r.pickedQty} · {t('returned')}: {r.returnedQty} · {t('lotStatus')}:{' '}
-            {r.lotStatus}
+            {inventory.has(`lotState.${r.lotStatus}`)
+              ? inventory(`lotState.${r.lotStatus}`)
+              : inventory('statusUnknown')}
           </p>
           {r.picks.map((p) => (
-            <p key={p.id} className="break-all text-xs">
-              {p.qty} · {t('picker')}: {p.pickerId} · {new Date(p.pickedAt).toLocaleString()}
-            </p>
+            <div key={p.id} className="text-xs">
+              <p>
+                {p.qty} · {timestamp.format(new Date(p.pickedAt))}
+              </p>
+              <details>
+                <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+                  {t('picker')}
+                </summary>
+                <p className="break-all">{p.pickerId}</p>
+              </details>
+            </div>
           ))}
           {r.shipments.map((s) => (
             <p key={s.id} className="text-xs">
-              {s.trackingNumber ?? t('trackingPending')} · {s.status} ·{' '}
-              {s.deliveredAt ? new Date(s.deliveredAt).toLocaleString() : t('notDelivered')}
+              {s.trackingNumber ?? t('trackingPending')} ·{' '}
+              {orders.has(`statuses.${s.status}`)
+                ? orders(`statuses.${s.status}`)
+                : inventory('statusUnknown')}{' '}
+              · {s.deliveredAt ? timestamp.format(new Date(s.deliveredAt)) : t('notDelivered')}
             </p>
           ))}
         </section>

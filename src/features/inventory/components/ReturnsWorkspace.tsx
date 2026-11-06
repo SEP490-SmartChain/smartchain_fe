@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, PageHeader, Select } from '@/components/Common';
 import { SellerWithdrawalForm, orderScope } from '@/features/orders';
@@ -157,7 +157,15 @@ function ReturnQueue({
   onWithdrawal: (lotId: string) => void;
 }) {
   const t = useTranslations('Returns'),
+    inventory = useTranslations('InventoryDetail'),
+    orders = useTranslations('Orders'),
+    locale = useLocale(),
     { can } = useAccess();
+  const timestamp = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
   const [records, setRecords] = useState<ReturnRecord[]>([]),
     [next, setNext] = useState<string | null>(null),
     [loading, setLoading] = useState(true),
@@ -198,28 +206,46 @@ function ReturnQueue({
       {records.map((r) => (
         <section key={r.id} className="sc-surface space-y-3 p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="m-0 break-all text-sm font-semibold">{r.id}</h2>
+            <h2 className="m-0 text-sm font-semibold">{t(r.kind)}</h2>
             <Badge
               status={r.status === 'COMPLETED' ? 'success' : 'info'}
-              label={t.has(`status_${r.status}`) ? t(`status_${r.status}`) : r.status}
+              label={
+                t.has(`status_${r.status}`) ? t(`status_${r.status}`) : inventory('statusUnknown')
+              }
             />
-            <span>{t(r.kind)}</span>
           </div>
+          <p className="text-xs text-[var(--sc-text-secondary)]">
+            {timestamp.format(new Date(r.requestedAt))}
+          </p>
+          <details className="text-xs">
+            <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+              {inventory('lookupReferences')}
+            </summary>
+            <p className="break-all">
+              {t('returnReference')}: {r.id}
+            </p>
+          </details>
           {r.reason && <p className="text-sm">{r.reason}</p>}
           {r.inspectionDueAt && (
             <p className="text-sm">
-              {t('inspectionDue')}: {new Date(r.inspectionDueAt).toLocaleString()}
+              {t('inspectionDue')}: {timestamp.format(new Date(r.inspectionDueAt))}
             </p>
           )}
           {r.inspectionOverdue && <Alert variant="warning" title={t('overdue')} />}
           {r.reverseTrackingNumber && (
             <p className="text-sm">
-              {t('reverseTracking')}: {r.reverseTrackingNumber} · {r.reverseShipmentStatus}
+              {t('reverseTracking')}: {r.reverseTrackingNumber} ·{' '}
+              {r.reverseShipmentStatus && orders.has(`statuses.${r.reverseShipmentStatus}`)
+                ? orders(`statuses.${r.reverseShipmentStatus}`)
+                : inventory('statusUnknown')}
             </p>
           )}
           {r.warehouseNoticeStatus && (
             <p className="text-sm">
-              {t('warehouseNotice')}: {t(`notice_${r.warehouseNoticeStatus}`)}
+              {t('warehouseNotice')}:{' '}
+              {t.has(`notice_${r.warehouseNoticeStatus}`)
+                ? t(`notice_${r.warehouseNoticeStatus}`)
+                : inventory('statusUnknown')}
             </p>
           )}
           {r.kind === 'POST_DELIVERY' && r.status === 'AUTHORIZED' && !r.reverseBookingState && (
