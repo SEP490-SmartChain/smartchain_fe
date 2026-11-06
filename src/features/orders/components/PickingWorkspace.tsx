@@ -17,6 +17,11 @@ import {
   Select,
 } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import {
+  clearFulfillmentPending,
+  loadFulfillmentPending,
+  persistFulfillmentPending,
+} from '@/features/orders/lib/fulfillmentPending';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -25,7 +30,9 @@ import { PickShortEvidence } from './PickShortEvidence';
 import {
   pickingApi,
   type PickPending,
+  pickPendingSchema,
   type PickWave,
+  type PickBacklog,
   type PickDetail,
   type PickLine,
 } from '../api/pickingApi';
@@ -35,6 +42,7 @@ import {
   pickShortFormSchema,
   pickApprovalSchema,
 } from '../schemas/pickingSchema';
+import { isRejectedOperation } from '../lib/fulfillmentRetry';
 
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
@@ -42,12 +50,15 @@ export function PickingWorkspace() {
   return <PickingScope key={`${user?.userId}:${revision}`} />;
 }
 function PickingScope() {
+  const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const locale = useLocale();
   const t = useTranslations('Picking'),
     { can } = useAccess();
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; code: string }[]>([]),
     [warehouse, setWarehouse] = useState(''),
     [waves, setWaves] = useState<PickWave[]>([]),
+    [backlog, setBacklog] = useState<PickBacklog | null>(null),
+    [backlogCursor, setBacklogCursor] = useState<string | null>(null),
     [waveId, setWaveId] = useState(''),
     [detail, setDetail] = useState<PickDetail | null>(null),
     [lineCursor, setLineCursor] = useState<string | null>(null),
@@ -95,12 +106,21 @@ function PickingScope() {
     setWaveId('');
     setDetail(null);
     setWaves([]);
+    setBacklog(null);
+    setBacklogCursor(null);
     setCursor(null);
-    setPending(null);
+    setPending(
+      actorId && warehouse
+        ? loadFulfillmentPending(
+            { actorId, warehouseId: warehouse, operation: 'pick', resourceId: 'active' },
+            pickPendingSchema,
+          )
+        : null,
+    );
     setWaveRequest(null);
     setNotice('');
     setError('');
-  }, [warehouse]);
+  }, [warehouse, actorId]);
   useEffect(() => {
     if (!warehouse) return;
     const c = new AbortController();
@@ -109,12 +129,14 @@ function PickingScope() {
     void Promise.all([
       pickingApi.waves(warehouse, cursor, c.signal),
       manager ? pickingApi.staff(warehouse, c.signal) : Promise.resolve([]),
+      manager ? pickingApi.backlog(warehouse, backlogCursor, c.signal) : Promise.resolve(null),
     ])
-      .then(([page, options]) => {
+      .then(([page, options, backlogPage]) => {
         if (!c.signal.aborted) {
           setWaves(page.items);
           setNext(page.nextCursor);
           setStaff(options);
+          if (backlogPage) setBacklog(backlogPage);
         }
       })
       .catch(() => {
@@ -124,7 +146,7 @@ function PickingScope() {
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [warehouse, cursor, manager, refresh, t]);
+  }, [warehouse, cursor, backlogCursor, manager, refresh, t]);
   useEffect(() => {
     setLineCursor(null);
   }, [warehouse, waveId]);
@@ -182,9 +204,28 @@ function PickingScope() {
     setPending(command);
     setError('');
     setNotice('');
+    const scope = {
+      actorId,
+      warehouseId: warehouse,
+      operation: 'pick' as const,
+      resourceId: 'active',
+    };
+    const recoverable =
+      command.path === 'waves' || /^pick-lines\/[0-9a-f-]+\/confirm$/i.test(command.path);
+    if (recoverable) {
+      try {
+        persistFulfillmentPending(scope, command);
+      } catch {
+        setPending(null);
+        setError(t('recoveryUnavailable'));
+        setBusy(false);
+        return;
+      }
+    }
     try {
       const result = await pickingApi.execute(warehouse, command, abort.current.signal);
       if (!mounted.current) return;
+      if (recoverable) clearFulfillmentPending(scope, command);
       setPending(null);
       if (result.status === 'PROCESSING' && result.requestId) {
         setWaveRequest(result.requestId);
@@ -195,9 +236,10 @@ function PickingScope() {
       if (result.waveId) setWaveId(result.waveId);
     } catch (cause) {
       if (!mounted.current) return;
-      if (cause instanceof ApiError && cause.status >= 400 && cause.status < 500) {
+      if (isRejectedOperation(cause)) {
+        if (recoverable) clearFulfillmentPending(scope, command);
         setPending(null);
-        const code = cause.code.split('.').at(-1) ?? '';
+        const code = cause instanceof ApiError ? (cause.code.split('.').at(-1) ?? '') : '';
         setError(
           code === 'ORDER_BLOCKED'
             ? t('parentBlocked')
@@ -254,91 +296,221 @@ function PickingScope() {
       {loading && <p role="status">{t('loading')}</p>}
       {!loading && !warehouses.length && <Alert>{t('noWarehouse')}</Alert>}
       {warehouse && manager && (
-        <WaveForm
-          staff={staff}
-          disabled={!!pending || busy || !!waveRequest}
-          onSubmit={(values) =>
-            void execute({
-              path: 'waves',
-              payload: {
-                ...values,
-                cutoffAt: new Date(values.cutoffAt).toISOString(),
-                clientScanId: createUuid(),
-              },
-            })
-          }
-        />
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.9fr)]">
+          <Card>
+            <CardContent>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-semibold">{t('backlog')}</h2>
+                {backlog && (
+                  <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
+                    {t('backlogPageTotals', backlog.pageTotals)}
+                  </p>
+                )}
+              </div>
+              {!backlog?.lines.length ? (
+                <p>{t('backlogEmpty')}</p>
+              ) : (
+                <div className="max-h-[32rem] overflow-y-auto rounded-lg border border-[var(--sc-border-default)] pr-1">
+                  <ul className="divide-y divide-[var(--sc-border-default)]">
+                    {backlog.lines.map((line) => (
+                      <li
+                        key={line.id}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-3 py-2.5 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            {t('pickForOrder', {
+                              orderCode: line.orderCode,
+                              parcelNo: line.parcelNo,
+                            })}
+                          </p>
+                          <p className="mt-0.5 break-words text-[var(--sc-text-secondary)]">
+                            <strong className="text-[var(--sc-text-primary)]">{line.sku}</strong> ·{' '}
+                            {line.productName}
+                          </p>
+                        </div>
+                        <Badge
+                          label={t(`eligibility.${line.eligibility}`)}
+                          status={line.eligibility === 'READY' ? 'success' : 'warning'}
+                        />
+                        <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--sc-text-secondary)]">
+                          <span>
+                            {t('bin')}: {line.binCode}
+                          </span>
+                          {!isTechnicalLotCode(line.lotCode) && (
+                            <span>
+                              {t('lot')}: {line.lotCode}
+                            </span>
+                          )}
+                          <span>{t('remainingQty', { qty: line.remainingQty })}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(backlog?.nextCursor || backlogCursor) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {backlog?.nextCursor && (
+                    <Button
+                      variant="outline"
+                      disabled={busy || !!pending}
+                      onClick={() => setBacklogCursor(backlog.nextCursor)}
+                    >
+                      {t('nextBacklog')}
+                    </Button>
+                  )}
+                  {backlogCursor && (
+                    <Button
+                      variant="ghost"
+                      disabled={busy || !!pending}
+                      onClick={() => setBacklogCursor(null)}
+                    >
+                      {t('firstBacklog')}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <WaveForm
+            warehouseId={warehouse}
+            staff={staff}
+            disabled={!!pending || busy || !!waveRequest}
+            onSubmit={(values) =>
+              void execute({
+                path: 'waves',
+                payload: {
+                  ...values,
+                  cutoffAt: new Date(values.cutoffAt).toISOString(),
+                  clientScanId: createUuid(),
+                },
+              })
+            }
+          />
+        </div>
       )}
       {warehouse && (
         <div className="grid items-start gap-5 lg:grid-cols-[280px_1fr]">
           <Card>
             <CardContent>
-              <h2 className="mb-3 font-semibold">{t('waves')}</h2>
-              {!loading && !waves.length && <p>{t('empty')}</p>}
-              <div className="space-y-2">
-                {waves.map((w) => (
-                  <Button
-                    key={w.id}
-                    variant={w.id === waveId ? 'primary' : 'outline'}
-                    aria-pressed={w.id === waveId}
-                    className="h-auto w-full min-h-14 flex-col items-start gap-1 whitespace-normal py-3 text-left"
-                    disabled={!!pending || busy}
-                    onClick={() => setWaveId(w.id)}
-                  >
-                    <span className="break-all font-semibold">{w.waveCode}</span>
-                    <span className="text-xs">
-                      {t('cutoff')}:{' '}
-                      <time dateTime={w.cutoffAt}>
-                        {new Date(w.cutoffAt).toLocaleString(locale, {
-                          timeZone: 'Asia/Ho_Chi_Minh',
-                          dateStyle: 'short',
-                          timeStyle: 'medium',
-                        })}
-                      </time>
-                    </span>
-                    <span>{t(`statuses.${w.status}`)}</span>
-                  </Button>
-                ))}
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="font-semibold">{t('waves')}</h2>
+                {!loading && (
+                  <span className="text-xs text-[var(--sc-text-secondary)]">
+                    {t('waveCount', { count: waves.length })}
+                  </span>
+                )}
               </div>
-              {cursor && (
-                <Button
-                  variant="ghost"
-                  className="h-auto min-h-10 whitespace-normal text-left"
-                  disabled={!!pending || busy}
-                  onClick={() => setCursor(null)}
-                >
-                  {t('firstWaves')}
-                </Button>
+              {!loading && !waves.length && <p>{t('empty')}</p>}
+              {waves.length > 0 && (
+                <div className="max-h-[28rem] overflow-y-auto rounded-lg border border-[var(--sc-border-default)]">
+                  <ul className="divide-y divide-[var(--sc-border-default)]">
+                    {waves.map((w) => {
+                      const cutoff = new Date(w.cutoffAt).toLocaleString(locale, {
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      });
+                      const status = t(`statuses.${w.status}`);
+                      const badgeStatus =
+                        w.status === 'COMPLETED'
+                          ? 'success'
+                          : w.status === 'EXCEPTION'
+                            ? 'warning'
+                            : w.status === 'IN_PROGRESS'
+                              ? 'info'
+                              : 'default';
+                      return (
+                        <li key={w.id}>
+                          <Button
+                            variant={w.id === waveId ? 'primary' : 'ghost'}
+                            aria-pressed={w.id === waveId}
+                            aria-label={`${t('waveReference', { code: shortWaveReference(w.waveCode) })}, ${status}, ${t('cutoff')}: ${cutoff}`}
+                            title={w.waveCode}
+                            className="h-auto min-h-0 w-full justify-between gap-2 rounded-none px-3 py-2.5 text-left whitespace-normal shadow-none"
+                            disabled={!!pending || busy}
+                            onClick={() => setWaveId(w.id)}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold">
+                                {t('waveReference', { code: shortWaveReference(w.waveCode) })}
+                              </span>
+                              <time
+                                className="mt-0.5 block text-xs font-normal text-[var(--sc-text-secondary)]"
+                                dateTime={w.cutoffAt}
+                              >
+                                {cutoff}
+                              </time>
+                            </span>
+                            <Badge label={status} status={badgeStatus} />
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               )}
-              {next && (
-                <Button
-                  variant="ghost"
-                  disabled={!!pending || busy}
-                  onClick={() => setCursor(next)}
-                >
-                  {t('next')}
-                </Button>
+              {(cursor || next) && (
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  {cursor ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!!pending || busy}
+                      onClick={() => setCursor(null)}
+                    >
+                      {t('firstWaves')}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+                  {next && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!!pending || busy}
+                      onClick={() => setCursor(next)}
+                    >
+                      {t('next')}
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
           <Card>
             <CardContent>
               {!waveId ? (
-                <p>{t('chooseWave')}</p>
+                <div className="flex min-h-40 flex-col items-center justify-center px-4 text-center">
+                  <h2 className="font-semibold">{t('chooseWave')}</h2>
+                  <p className="mt-1 max-w-md text-sm text-[var(--sc-text-secondary)]">
+                    {t('chooseWaveHint')}
+                  </p>
+                </div>
               ) : !detail ? (
                 <p role="status">{t('loading')}</p>
               ) : (
                 <>
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                    <h2 className="min-w-0 break-all font-semibold">
-                      {t('pickList')} · {detail.waveCode}
+                    <h2 className="min-w-0 break-words font-semibold" title={detail.waveCode}>
+                      {t('pickList')} ·{' '}
+                      {t('waveReference', { code: shortWaveReference(detail.waveCode) })}
                     </h2>
                     <Badge
                       label={t(`statuses.${detail.status}`)}
                       status={detail.status === 'EXCEPTION' ? 'warning' : 'info'}
                     />
                   </div>
-                  <p className="mb-4 text-sm text-[var(--sc-text-secondary)]">{t('scanHint')}</p>
+                  {manager && staff.some((person) => person.id === detail.assigneeId) && (
+                    <p className="mb-2 text-sm">
+                      {t('assignee')}:{' '}
+                      {staff.find((person) => person.id === detail.assigneeId)?.fullName}
+                    </p>
+                  )}
+                  <p className="mb-4 text-sm text-[var(--sc-text-secondary)]">
+                    {t(manager ? 'reviewHint' : 'scanHint')}
+                  </p>
                   <div className="space-y-3">
                     {detail.lines.map((line) => (
                       <PickLineCard
@@ -386,10 +558,12 @@ function PickingScope() {
   );
 }
 function WaveForm({
+  warehouseId,
   staff,
   disabled,
   onSubmit,
 }: {
+  warehouseId: string;
   staff: { id: string; fullName: string }[];
   disabled: boolean;
   onSubmit: (v: z.infer<typeof pickWaveFormSchema>) => void;
@@ -397,12 +571,43 @@ function WaveForm({
   const t = useTranslations('Picking');
   const f = useForm<z.infer<typeof pickWaveFormSchema>>({
     resolver: zodResolver(pickWaveFormSchema),
-    defaultValues: { assigneeId: '', cutoffAt: '' },
+    defaultValues: { assigneeId: '', cutoffAt: '', maxParcels: 20 },
   });
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof pickingApi.previewWave>> | null>(
+    null,
+  );
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const cutoffAt = f.watch('cutoffAt');
+  const maxParcels = f.watch('maxParcels');
+  useEffect(() => {
+    setPreview(null);
+    setPreviewError(false);
+  }, [cutoffAt, maxParcels, warehouseId]);
+  const requestPreview = async () => {
+    if (!(await f.trigger(['cutoffAt', 'maxParcels']))) return;
+    const values = f.getValues();
+    setPreviewBusy(true);
+    setPreviewError(false);
+    try {
+      setPreview(
+        await pickingApi.previewWave(
+          warehouseId,
+          new Date(values.cutoffAt).toISOString(),
+          values.maxParcels,
+        ),
+      );
+    } catch {
+      setPreviewError(true);
+    } finally {
+      setPreviewBusy(false);
+    }
+  };
   return (
     <Card>
       <CardContent>
-        <form onSubmit={f.handleSubmit(onSubmit)} className="grid items-end gap-3 md:grid-cols-3">
+        <h2 className="mb-4 font-semibold">{t('waveSetup')}</h2>
+        <form onSubmit={f.handleSubmit(onSubmit)} className="space-y-3">
           <Input
             type="datetime-local"
             label={t('cutoff')}
@@ -419,13 +624,69 @@ function WaveForm({
             disabled={disabled}
             error={f.formState.errors.assigneeId ? t('required') : undefined}
           />
-          <Button type="submit" disabled={disabled}>
-            {t('createWave')}
-          </Button>
+          <Input
+            type="number"
+            min={1}
+            max={50}
+            label={t('cartCapacity')}
+            {...f.register('maxParcels', { valueAsNumber: true })}
+            disabled={disabled}
+            error={f.formState.errors.maxParcels ? t('capacityInvalid') : undefined}
+          />
+          <p className="text-sm text-[var(--sc-text-secondary)]">{t('cartCapacityHint')}</p>
+          {preview && (
+            <div
+              className="rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 text-sm"
+              role="status"
+            >
+              {preview.firstParcelTooLarge
+                ? t('firstParcelTooLarge')
+                : t('wavePreview', {
+                    proposedOrders: preview.proposedOrders,
+                    proposedParcels: preview.proposedParcels,
+                  })}
+              {preview.candidateScanLimitReached && <p className="mt-1">{t('previewScanLimit')}</p>}
+            </div>
+          )}
+          {previewError && <Alert variant="warning">{t('previewError')}</Alert>}
+          <div className="grid gap-2">
+            <Button
+              className="w-full"
+              type="button"
+              variant="outline"
+              disabled={disabled || previewBusy}
+              isLoading={previewBusy}
+              onClick={() => void requestPreview()}
+            >
+              {t('previewWave')}
+            </Button>
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={
+                disabled ||
+                previewBusy ||
+                !preview ||
+                (preview.proposedParcels === 0 && !preview.candidateScanLimitReached) ||
+                preview.firstParcelTooLarge
+              }
+            >
+              {t('createWave')}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
   );
+}
+function isTechnicalLotCode(value: string) {
+  return /^(?:[a-z]{2,5}-)?[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+function shortWaveReference(value: string) {
+  const reference = value.replace(/^PICK-/i, '');
+  return reference.length > 8 ? reference.slice(0, 8).toUpperCase() : reference;
 }
 function PickLineCard({
   warehouseId,
@@ -467,6 +728,9 @@ function PickLineCard({
         </h3>
         <p>{t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}</p>
       </div>
+      <p className="mb-2 rounded bg-[var(--sc-bg-secondary)] px-3 py-2 text-sm font-semibold">
+        {t('pickForOrder', { orderCode: line.orderCode, parcelNo: line.parcelNo })}
+      </p>
       <p className="mb-3 text-sm">
         {t('bin')}: <strong>{line.binCode}</strong> · {t('lot')}: <strong>{line.lotCode}</strong>
       </p>
@@ -474,6 +738,13 @@ function PickLineCard({
         <>
           <Alert variant="warning">
             {t('shortPending')} · {line.shortage.evidenceRefs.reason}
+            <p className="mt-1">
+              {t('shortageQuantities', {
+                observed: line.shortage.evidenceRefs.observedQty,
+                remaining: line.shortage.evidenceRefs.remainingQty,
+                picked: line.shortage.evidenceRefs.pickedQty,
+              })}
+            </p>
           </Alert>
           <PickShortEvidence
             warehouseId={warehouseId}
