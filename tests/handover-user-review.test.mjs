@@ -30,11 +30,21 @@ function render(name, state, props, overrides = {}) {
     },
     useState: () => [state[index++], () => {}],
     useEffect() {},
+    useLocale: () => 'vi',
+    createPortal: (node) => node,
+    document: { body: {} },
     useRef: (current) => ({ current }),
+    useAuthStore: (selector) => selector({ user: { userId: 'test-actor' }, revision: 0 }),
+    loadFulfillmentPending: () => null,
+    persistFulfillmentPending() {},
+    clearFulfillmentPending() {},
+    createUuid: () => 'test-operation',
+    isRejectedOperation: () => true,
     useTranslations: () => (key, values) => (values ? key + JSON.stringify(values) : key),
     useForm: () => form,
     zodResolver: () => ({}),
     handoverAckSchema: {},
+    manifestCommandSchema: {},
     Button: 'Button',
     Card: 'Card',
     Tabs: 'Tabs',
@@ -97,6 +107,85 @@ test('confirmed putback stays visible after the last task leaves the pending lis
     !flatten(details).includes(notice),
     'notice must be outside the collapsed pending section',
   );
+});
+
+function printedManifest(manifest) {
+  const state = layoutState(layoutData);
+  state[8] = manifest;
+  const ui = render('WarehouseHandover', state, layoutProps, {
+    styles: { manifestPrint: 'manifest-print' },
+  });
+  return flatten(ui).find((n) => n.props.className === 'manifest-print');
+}
+
+test('signed print uses recorded acknowledgement and confirmation time, without blank signature lines', () => {
+  const print = printedManifest({
+    status: 'SIGNED',
+    manifestCode: 'BG-PRINT',
+    parcelCount: 1,
+    carrierAckRef: 'ACK-123',
+    carrierSignerName: 'Nguyễn Văn A',
+    signedAt: '2026-11-05T17:00:00.000Z',
+    hasHandoverPhoto: true,
+    shipments: [{ id: 's', trackingNumber: 'TRACK-123' }],
+  });
+  const text = JSON.stringify(print);
+  assert.ok(text.includes('Nguyễn Văn A'), 'recorded representative must be printed');
+  assert.ok(text.includes('ACK-123'));
+  assert.ok(text.includes('warehouseConfirmedAt'));
+  assert.ok(text.includes('06/11/2026'), 'confirmation is printed in warehouse local time');
+  assert.ok(text.includes('signedPrintEvidence'));
+  assert.ok(!text.includes('____'), 'a signed record must not ask for signatures again');
+});
+
+test('draft print leaves physical handover fields for handwriting and identifies itself as draft', () => {
+  const text = JSON.stringify(
+    printedManifest({
+      status: 'DRAFT',
+      manifestCode: 'BG-DRAFT',
+      parcelCount: 1,
+      shipments: [],
+    }),
+  );
+  assert.ok(text.includes('draftPrintTitle'));
+  assert.ok(text.includes('warehouseSignature'));
+  assert.ok(text.includes('carrierSignature'));
+  assert.ok(text.includes('____'));
+});
+
+test('historical signed print explicitly identifies missing data instead of inventing signatures', () => {
+  const text = JSON.stringify(
+    printedManifest({
+      status: 'SIGNED',
+      manifestCode: 'BG-OLD',
+      parcelCount: 1,
+      shipments: [],
+    }),
+  );
+  assert.ok(text.includes('recordNotAvailable'));
+  assert.ok(!text.includes('____'));
+});
+
+test('handover print preserves every tracking number in a numbered table for a full manifest', () => {
+  const shipments = Array.from({ length: 100 }, (_, index) => ({
+    id: `shipment-${index}`,
+    trackingNumber: `TRACK-${String(index + 1).padStart(3, '0')}`,
+  }));
+  const print = printedManifest({
+    status: 'SIGNED',
+    manifestCode: 'BG-FULL',
+    parcelCount: 100,
+    shipments,
+  });
+  const table = flatten(print).find((n) => n.type === 'table');
+  assert.ok(table, 'tracking references must be organized in a readable table');
+  const body = flatten(table).find((n) => n.type === 'tbody');
+  const rows = body.children.filter((n) => n.type === 'tr');
+  assert.equal(rows.length, 100);
+  for (let index = 0; index < 100; index++) {
+    assert.equal(rows[index].children[0].children[0], index + 1);
+    assert.equal(rows[index].children[1].children[0], shipments[index].trackingNumber);
+  }
 });
 
 test('putback reports the submitted quantity only after server confirmation, never on rejection', async () => {
