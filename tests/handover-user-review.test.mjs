@@ -39,6 +39,7 @@ function render(name, state, props, overrides = {}) {
     persistFulfillmentPending() {},
     clearFulfillmentPending() {},
     createUuid: () => 'test-operation',
+    createHandoverSignRecovery: () => ({ pending: () => null }),
     isRejectedOperation: () => true,
     useTranslations: () => (key, values) => (values ? key + JSON.stringify(values) : key),
     useForm: () => form,
