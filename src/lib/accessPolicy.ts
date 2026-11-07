@@ -954,6 +954,22 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'SS-1314 / UC-115: verified private evidence',
   ),
   capability(
+    'claims.warehouseEvidence.view',
+    'finance',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1314 FE-45: allowlisted warehouse evidence task projection for current assignment only',
+  ),
+  capability(
+    'claims.warehouseEvidence.submit',
+    'finance',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1314 FE-45: image-only presign and confirm for current warehouse assignment',
+  ),
+  capability(
     'claims.investigate',
     'finance',
     'PLATFORM',
@@ -1012,6 +1028,11 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/inventory', capability: 'inventory.view' },
   { path: '/warehouse/inventory-workflows', capability: 'inventory.workflows.view' },
   { path: '/inventory/workflows', capability: 'inventory.workflows.view' },
+  {
+    path: '/warehouse/claim-evidence',
+    prefix: true,
+    capability: 'claims.warehouseEvidence.view',
+  },
   { path: '/warehouse', prefix: true, capability: 'warehouse.operations.view' },
   { path: '/rules', capability: 'rules.view' },
   { path: '/shipments', capability: 'shipments.view' },
@@ -1142,6 +1163,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     key: 'warehouse_ops_heading',
     scope: 'platform',
     items: [
+      {
+        key: 'warehouse_claim_evidence',
+        href: '/warehouse/claim-evidence',
+        capability: 'claims.warehouseEvidence.view',
+      },
       {
         key: 'warehouse_intake',
         href: '/warehouse/inbound',

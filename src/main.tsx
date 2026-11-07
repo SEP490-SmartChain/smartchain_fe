@@ -60,6 +60,9 @@ const WarehousePackingPage = React.lazy(() => import('@/pages/warehouse/PackingP
 const WarehouseHandoverPage = React.lazy(() => import('@/pages/warehouse/HandoverPage'));
 const WarehouseReturnsPage = React.lazy(() => import('@/pages/warehouse/ReturnsPage'));
 const WarehouseCountsPage = React.lazy(() => import('@/pages/warehouse/CountsPage'));
+const WarehouseEvidenceTasksPage = React.lazy(
+  () => import('@/pages/warehouse/WarehouseEvidenceTasksPage'),
+);
 
 // ORCA operations portal
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
@@ -160,6 +163,10 @@ function App() {
                   <Route path="/warehouse/handover" element={<WarehouseHandoverPage />} />
                   <Route path="/warehouse/returns" element={<WarehouseReturnsPage />} />
                   <Route path="/warehouse/counts" element={<WarehouseCountsPage />} />
+                  <Route
+                    path="/warehouse/claim-evidence"
+                    element={<WarehouseEvidenceTasksPage />}
+                  />
                   <Route path="/rules" element={<RulesPage />} />
                   <Route path="/shipments" element={<ShipmentsPage />} />
                   <Route path="/exceptions" element={<ExceptionsPage />} />
