@@ -173,6 +173,10 @@ function ClaimDetailContent({
           <p className="text-sm text-[var(--sc-text-secondary)]">
             {claim.warehouseName} · {claim.sku ?? claim.productName ?? t('item')}
           </p>
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs text-[var(--sc-text-tertiary)]">
+            <span>{t('fulfillmentOrder')}: {claim.fulfillmentOrderId}</span>
+            <span>{t('claimId')}: {claim.id}</span>
+          </div>
         </div>
         <Badge
           status={

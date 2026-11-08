@@ -251,6 +251,9 @@ function ClaimsQueue({
                         : t('unclassified')}{' '}
                       · {t('affected', { qty: claim.affectedQty })}
                     </p>
+                    <p className="font-mono text-[11px] text-[var(--sc-text-tertiary)] truncate">
+                      {t('fulfillmentOrder')}: {claim.fulfillmentOrderId}
+                    </p>
                   </button>
                 </li>
               ))}

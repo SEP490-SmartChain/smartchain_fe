@@ -132,10 +132,18 @@ function WarehouseEvidenceTasksWorkspace() {
                             <span className="break-all font-medium text-[var(--sc-text-primary)]">
                               {t('claimReference', { claimId: task.claimId })}
                             </span>
-                            <Badge
-                              status={task.status === 'OPEN' ? 'info' : 'warning'}
-                              label={t(`statuses.${task.status}`)}
-                            />
+                            <div className="flex items-center gap-2">
+                              {task.version > 1 && (
+                                <Badge
+                                  status="success"
+                                  label={t('evidenceSubmitted')}
+                                />
+                              )}
+                              <Badge
+                                status={task.status === 'OPEN' ? 'info' : 'warning'}
+                                label={t(`statuses.${task.status}`)}
+                              />
+                            </div>
                           </div>
                           <dl className="grid gap-2 text-sm sm:grid-cols-3">
                             <div>
@@ -189,8 +197,20 @@ function WarehouseEvidenceTasksWorkspace() {
 
           {selectedTask && canSubmit && (
             <Card>
-              <CardHeader title={t('uploadTitle')} description={t('uploadDescription')} />
+              <CardHeader
+                title={
+                  selectedTask.version > 1
+                    ? t('uploadAdditionalTitle')
+                    : t('uploadTitle')
+                }
+                description={t('uploadDescription')}
+              />
               <div className="space-y-4">
+                {selectedTask.version > 1 && (
+                  <Alert variant="info">
+                    {t('evidenceAlreadySubmittedNotice')}
+                  </Alert>
+                )}
                 <p className="m-0 break-all text-sm text-[var(--sc-text-secondary)]">
                   {t('selectedClaim', { claimId: selectedTask.claimId })}
                 </p>
@@ -248,6 +268,14 @@ function WarehouseEvidenceTasksWorkspace() {
                   {!state.pending && state.selectedFile && (
                     <Button variant="secondary" onClick={() => selectFile(null)}>
                       {t('clearImage')}
+                    </Button>
+                  )}
+                  {!state.pending && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => selectTask(selectedTask.claimId)}
+                    >
+                      {t('closeTaskForm')}
                     </Button>
                   )}
                 </div>
