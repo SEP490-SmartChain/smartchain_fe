@@ -134,6 +134,57 @@ test('claims bind requested identity, warehouse scope and cancellation signal', 
     client.get = get;
   }
 });
+test('claim list, options and evidence read/delete retain the selected warehouse', async () => {
+  const get = client.get,
+    remove = client.delete,
+    calls = [],
+    signal = new AbortController().signal;
+  const source = {
+    fulfillmentItemId: item,
+    fulfillmentOrderId: id,
+    tenantId: id,
+    warehouseId: warehouse,
+    orderReference: 'SYNTHETIC-1314',
+    sequenceNo: 1,
+    sku: 'SYNTHETIC-RICE',
+    productName: null,
+    parcelQty: 2,
+    remainingQty: 1,
+    declaredCostVnd: '150000',
+  };
+  client.get = async (url, options) => {
+    calls.push({ method: 'GET', url, options });
+    if (url.startsWith('/v1/claims/options'))
+      return { data: { items: [source], nextCursor: null } };
+    if (url.includes('/download')) {
+      return { data: { downloadUrl: 'https://storage.example.test/photo', expiresInSeconds: 60 } };
+    }
+    return { data: { items: [claim], nextCursor: null } };
+  };
+  client.delete = async (url, options) => {
+    calls.push({ method: 'DELETE', url, options });
+    return { data: { id: item, cancelled: true } };
+  };
+  try {
+    const scope = { warehouseId: warehouse };
+    assert.deepEqual((await api.list(scope, signal, undefined, 'OPEN')).items, [claim]);
+    assert.equal((await api.sources(scope, signal, 'SKU')).items[0].fulfillmentItemId, item);
+    assert.equal(await api.download(id, item, scope, signal), 'https://storage.example.test/photo');
+    assert.deepEqual(await api.cancel(id, item, scope, signal), { id: item, cancelled: true });
+    assert.deepEqual(
+      calls.map(({ method, url }) => [method, url]),
+      [
+        ['GET', `/v1/claims?warehouseId=${warehouse}&status=OPEN`],
+        ['GET', `/v1/claims/options?warehouseId=${warehouse}&search=SKU`],
+        ['GET', `/v1/claims/${id}/evidence/${item}/download?warehouseId=${warehouse}`],
+        ['DELETE', `/v1/claims/${id}/evidence/${item}?warehouseId=${warehouse}`],
+      ],
+    );
+  } finally {
+    client.get = get;
+    client.delete = remove;
+  }
+});
 test('uncertain creation retries the original operation and exact payload once', async () => {
   login();
   const post = client.post,
@@ -233,6 +284,42 @@ test('role and actor-scope changes clear private pending requests and deny Staff
     client.post = post;
   }
 });
+test('warehouse assignment revocation clears pending claims for the same Ops actor', async () => {
+  const post = client.post,
+    scope = { warehouseId: warehouse },
+    signal = new AbortController().signal;
+  let calls = 0;
+  client.post = async () => {
+    calls++;
+    throw new TypeError('Synthetic network timeout');
+  };
+  const setOpsAssignments = (warehouseIds) =>
+    auth.getState().setSession({
+      accessToken: 'synthetic-ops-assignment-change',
+      expiresIn: 900,
+      user: { ...user(['OPS_DISPATCHER'], 'PLATFORM'), warehouseIds },
+    });
+  try {
+    setOpsAssignments([warehouse]);
+    await assert.rejects(
+      commands.sendClaimCommand({ kind: 'create', id: 'new', scope, input }, signal),
+      /Synthetic network timeout/,
+    );
+    const pending = commands.getPendingClaim('create', 'new', scope);
+    assert.ok(pending);
+
+    setOpsAssignments([]);
+    assert.equal(commands.getPendingClaim('create', 'new', scope), undefined);
+    await assert.rejects(commands.retryClaimCommand(pending, signal, scope), /SCOPE_CHANGED/);
+
+    setOpsAssignments([warehouse]);
+    assert.equal(commands.getPendingClaim('create', 'new', scope), undefined);
+    assert.equal(calls, 1);
+  } finally {
+    client.post = post;
+    login();
+  }
+});
 test('a late command result from a replaced session cannot publish to the new scope', async () => {
   login();
   const post = client.post;
@@ -322,6 +409,7 @@ test('photo verification preserves evidence identity, version and scoped signal'
       { warehouseId: warehouse },
       signal,
     );
+    assert.equal(calls[0].url, `/v1/claims/${id}/evidence/presign?warehouseId=${warehouse}`);
     assert.equal(calls[0].body.evidenceId, item);
     assert.equal(calls[1].body.expectedVersion, 3);
     assert.ok(calls[1].url.includes(`/evidence/${item}/confirm?warehouseId=${warehouse}`));
@@ -458,5 +546,88 @@ test('pending creates stay with their selected warehouse and replay the original
   } finally {
     client.post = post;
     login();
+  }
+});
+
+test('claim mutation DTOs match the BE contract and preserve CLAIM_CREDIT states', async () => {
+  const post = client.post,
+    calls = [],
+    signal = new AbortController().signal;
+  const createOperation = '00001314-0000-4000-8000-000000000005';
+  const investigationOperation = '00001314-0000-4000-8000-000000000006';
+  const decisionOperation = '00001314-0000-4000-8000-000000000007';
+  const approvedAmount = '9007199254740993';
+  const scope = { warehouseId: warehouse };
+  const responses = [
+    { ...result, id: createOperation },
+    { ...result, version: 2, status: 'INVESTIGATING' },
+    {
+      ...result,
+      version: 3,
+      status: 'APPROVED',
+      approvedAmountVnd: approvedAmount,
+      creditState: 'PENDING',
+    },
+  ];
+  client.post = async (url, body) => {
+    calls.push({ url, body });
+    return { data: responses.shift() };
+  };
+  try {
+    const created = await api.create({ ...input, operationId: createOperation }, scope, signal);
+    const investigationInput = {
+      operationId: investigationOperation,
+      expectedVersion: 1,
+      responsibility: 'ORCA_WAREHOUSE',
+      complete: true,
+      note: 'Synthetic investigation complete',
+    };
+    const investigated = await api.investigate(id, investigationInput, scope, signal);
+    const decisionInput = {
+      operationId: decisionOperation,
+      expectedVersion: 2,
+      decision: 'APPROVE',
+      note: 'Synthetic capped approval',
+    };
+    const decided = await api.decide(id, decisionInput, scope, signal);
+
+    assert.deepEqual(calls, [
+      {
+        url: `/v1/claims?warehouseId=${warehouse}`,
+        body: { ...input, operationId: createOperation },
+      },
+      {
+        url: `/v1/claims/${id}/investigation?warehouseId=${warehouse}`,
+        body: investigationInput,
+      },
+      {
+        url: `/v1/claims/${id}/decision?warehouseId=${warehouse}`,
+        body: decisionInput,
+      },
+    ]);
+    assert.deepEqual([created.id, investigated.id, decided.id], [createOperation, id, id]);
+    assert.equal(decided.creditState, 'PENDING');
+    assert.equal(decided.approvedAmountVnd, approvedAmount);
+
+    const posted = schemas.claimSchema.parse({
+      ...claim,
+      version: 4,
+      status: 'CREDITED',
+      approvedAmountVnd: approvedAmount,
+      creditState: 'POSTED',
+    });
+    assert.equal(posted.creditState, 'POSTED');
+    assert.equal(posted.approvedAmountVnd, approvedAmount);
+    const notDue = schemas.claimSchema.parse({
+      ...claim,
+      version: 4,
+      status: 'APPROVED',
+      approvedAmountVnd: '0',
+      creditState: 'NOT_DUE',
+    });
+    assert.equal(notDue.approvedAmountVnd, '0');
+    assert.equal(notDue.creditState, 'NOT_DUE');
+  } finally {
+    client.post = post;
   }
 });
