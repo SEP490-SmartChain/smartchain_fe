@@ -28,6 +28,7 @@ import {
 } from '../api/packingApi';
 import { pickingApi } from '../api/pickingApi';
 import { isRejectedOperation } from '../lib/fulfillmentRetry';
+import { createHandoverSignRecovery } from '../lib/handoverSignRecovery';
 import { carrierPickupRecorded } from '../lib/handoverTracking';
 import { handoverAckSchema, putbackFormSchema } from '../schemas/packingSchema';
 
@@ -631,11 +632,17 @@ function SignManifest({
     [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false),
     [photoName, setPhotoName] = useState('');
+  const recovery = useRef<ReturnType<typeof createHandoverSignRecovery> | null>(null);
+  recovery.current ??= createHandoverSignRecovery(warehouse, id);
+  const pending = useRef(recovery.current.pending());
   const form = useForm<z.infer<typeof handoverAckSchema>>({
       resolver: zodResolver(handoverAckSchema),
-      defaultValues: { carrierAckRef: '', carrierSignerName: '', evidenceKey: '' },
+      defaultValues: pending.current ?? {
+        carrierAckRef: '',
+        carrierSignerName: '',
+        evidenceKey: '',
+      },
     }),
-    pending = useRef<({ operationId: string } & z.infer<typeof handoverAckSchema>) | null>(null),
     running = useRef(false),
     abort = useRef(new AbortController());
   useEffect(() => {
@@ -648,14 +655,14 @@ function SignManifest({
     running.current = true;
     setBusy(true);
     setError('');
-    pending.current ??= { operationId: createUuid(), ...values };
     try {
-      await packingApi.sign(warehouse, id, pending.current, abort.current.signal);
-      if (!abort.current.signal.aborted) onSigned();
+      const signed = await recovery.current?.submit(values, abort.current.signal);
+      pending.current = recovery.current?.pending() ?? null;
+      if (signed && !abort.current.signal.aborted) onSigned();
     } catch (error: unknown) {
+      pending.current = recovery.current?.pending() ?? null;
       if (!abort.current.signal.aborted) {
         const rejected = isRejectedOperation(error);
-        if (rejected) pending.current = null;
         setError(
           t(
             error instanceof ApiError && error.code === 'PACK.PARCEL_COUNT_MISMATCH'

@@ -36,7 +36,7 @@ before(async () => {
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
 });
 after(async () => server?.close());
-function render(overrides = {}, role = 'OPS_DISPATCHER') {
+function render(overrides = {}, role = 'OPS_DISPATCHER', mode = 'investigate') {
   auth.getState().setSession({
     accessToken: 'synthetic',
     expiresIn: 900,
@@ -59,7 +59,7 @@ function render(overrides = {}, role = 'OPS_DISPATCHER') {
       { locale: 'vi', messages, timeZone: 'Asia/Ho_Chi_Minh' },
       createElement(Form, {
         claim: { ...claim, ...overrides },
-        mode: 'investigate',
+        mode,
         scope: {},
         signal: new AbortController().signal,
         onChanged() {},
@@ -110,8 +110,8 @@ test('photo upload stays with Owner and Ops; investigation and decision remain s
     'SELLER_OWNER',
     'SELLER_STAFF',
     'OPS_DISPATCHER',
-    'WH_MANAGER',
-    'WH_STAFF',
+    'WAREHOUSE_MANAGER',
+    'WAREHOUSE_STAFF',
     'ORCA_ACCOUNTANT',
     'ORCA_ADMIN',
   ]) {
@@ -123,4 +123,25 @@ test('photo upload stays with Owner and Ops; investigation and decision remain s
     assert.equal(policy.can([role], 'claims.investigate'), role === 'OPS_DISPATCHER', role);
     assert.equal(policy.can([role], 'claims.decide'), role === 'ORCA_ACCOUNTANT', role);
   }
+});
+
+test('Accountant decision waits for completed investigation and verified evidence', () => {
+  const submitButton = (html) => html.match(/<button\b[^>]*type="submit"[^>]*>/)?.[0] ?? '';
+  const disabled = /(?:^|\s)disabled(?:=""|\s|>)/;
+  const notReady = render(
+    { canDecide: true, investigationCompletedAt: null, evidence: [{ verifiedAt: null }] },
+    'ORCA_ACCOUNTANT',
+    'decide',
+  );
+  assert.match(submitButton(notReady), disabled);
+
+  const ready = render({ canDecide: true }, 'ORCA_ACCOUNTANT', 'decide');
+  assert.doesNotMatch(submitButton(ready), disabled);
+  const sellerLiability = render(
+    { canDecide: true, responsibility: 'SELLER' },
+    'ORCA_ACCOUNTANT',
+    'decide',
+  );
+  assert.match(sellerLiability, /<option\b[^>]*value="APPROVE"[^>]*disabled/);
+  assert.equal(render({ canDecide: true }, 'OPS_DISPATCHER', 'decide'), '');
 });
