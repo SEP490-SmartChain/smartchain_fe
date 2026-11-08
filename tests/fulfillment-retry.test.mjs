@@ -11,6 +11,7 @@ let server,
   persistFulfillmentPending,
   clearFulfillmentPending,
   createCancellationSession,
+  createHandoverSignRecovery,
   auth,
   orderScope;
 before(async () => {
@@ -31,6 +32,9 @@ before(async () => {
   ));
   ({ createCancellationSession } = await server.ssrLoadModule(
     '/src/features/orders/lib/cancellationSession.ts',
+  ));
+  ({ createHandoverSignRecovery } = await server.ssrLoadModule(
+    '/src/features/orders/lib/handoverSignRecovery.ts',
   ));
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   ({ orderScope } = await server.ssrLoadModule('/src/features/orders/lib/orderScope.ts'));
@@ -134,9 +138,35 @@ for (const [file, outer, inner, method] of cases) {
                     method === 'sign' ? 'PACK.PARCEL_COUNT_MISMATCH' : 'PACK.CONTENTS_MISMATCH',
                   )
                 : new TypeError('Network interrupted');
+            return { id: 'manifest', status: 'SIGNED' };
           },
         },
       };
+      if (method === 'sign') {
+        auth.getState().clear();
+        auth.getState().setSession({
+          accessToken: 'synthetic',
+          expiresIn: 60,
+          user: {
+            userId: 'actor',
+            tenantId: null,
+            actorScope: 'PLATFORM',
+            roles: ['WAREHOUSE_STAFF'],
+            permissions: [],
+            warehouseIds: ['warehouse'],
+            email: 'synthetic@example.test',
+            fullName: 'Synthetic staff',
+          },
+        });
+        bindings.recovery = {
+          current: createHandoverSignRecovery(
+            'warehouse',
+            'manifest',
+            bindings.packingApi,
+            bindings.createUuid,
+          ),
+        };
+      }
       const run = callback(file, outer, inner, bindings);
       const first = {
         confirmedParcelCount: 1,
