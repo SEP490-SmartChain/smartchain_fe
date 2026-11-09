@@ -430,9 +430,13 @@ class ApiClient {
 
   async currentUser(signal?: AbortSignal) {
     const revision = useAuthStore.getState().revision;
-    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me', { signal });
+    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me', { signal, silent: true });
     if (!signal?.aborted && revision === useAuthStore.getState().revision) {
-      useAuthStore.getState().setUser(profileSchema.parse(data));
+      const user = profileSchema.parse(data);
+      const previous = profileSchema.safeParse(useAuthStore.getState().user);
+      if (!previous.success || JSON.stringify(user) !== JSON.stringify(previous.data)) {
+        useAuthStore.getState().setUser(user);
+      }
     }
   }
 

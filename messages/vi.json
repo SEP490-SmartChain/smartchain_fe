@@ -1120,7 +1120,13 @@
     "role_orca_accountant": "Kế toán nền tảng",
     "role_seller_owner": "Chủ cửa hàng",
     "role_seller_staff": "Nhân viên cửa hàng",
-    "member": "Thành viên"
+    "member": "Thành viên",
+    "assignmentNoticeHint": "Phân công kho hiện tại từ hệ thống. Trạng thái đã đọc được lưu trên trình duyệt này.",
+    "assignmentNoticeTitle": "Kho được phân công",
+    "assignmentNoticeBody": "Bạn được phân công {count} kho, trong đó có {unread} kho chưa xem. Mở danh sách để kiểm tra.",
+    "assignmentRefreshFailed": "Chưa cập nhật được phân công kho. Hãy thử lại để xem thông tin mới nhất.",
+    "assignmentRetry": "Cập nhật lại",
+    "noNotifications": "Không có thông báo phân công kho."
   },
   "Auth": {
     "inviteHeading": "Tham gia cửa hàng",
@@ -2141,7 +2147,9 @@
     "manufactureRequired": "Bắt buộc ngày sản xuất khi nhận hàng",
     "identitySection": "Thông tin sản phẩm",
     "shippingSection": "Khối lượng và kích thước kiện hàng",
-    "valuationSection": "Giá trị khai báo"
+    "valuationSection": "Giá trị khai báo",
+    "noExpiryHint": "Sản phẩm không theo dõi hạn dùng: không cần nhập HSD hoặc các ngưỡng cảnh báo hết hạn.",
+    "catalogLifecycleHint": "Muốn bỏ SKU khỏi danh mục đang dùng, chọn Ngừng sử dụng. Lịch sử lô, tồn kho và chứng từ được giữ lại; dùng bộ lọc trạng thái để xem lại."
   },
   "Inventory": {
     "tabStock": "Tổng quan",
@@ -2625,7 +2633,7 @@
     "pickResultHint": "Bấm vào một kết quả để đặt ghim và điền tọa độ."
   },
   "WarehouseLayout": {
-    "layoutHelp": "Chọn khu để xem, tìm kiếm và quản lý các vị trí lưu hàng.",
+    "layoutHelp": "Manager khai báo khu và ô theo bố trí thực tế của kho. Hệ thống dùng các vị trí này để nhận, cất, lấy hàng và kiểm tra sức chứa.",
     "loadedBins": "{count} vị trí đang hiển thị",
     "noZonesHelp": "Các vị trí lưu hàng được tổ chức theo từng khu trong kho.",
     "noBinsHelp": "Vị trí mới sẽ xuất hiện tại đây sau khi được tạo trong khu này.",
@@ -3000,7 +3008,13 @@
     "packagingAssist": "Gợi ý mã lô/hạn dùng từ ảnh",
     "packagingApplied": "Đã điền giá trị xác nhận vào dòng chưa lưu. Nhập số lượng thực tế và lưu kiểm đếm.",
     "countLotCodeHelp": "Nhập mã lô trên bao bì, hoặc để trống để hệ thống tạo mã lô nội bộ.",
-    "packagingAppliedQuarantine": "Đã điền thông tin vào dòng chưa lưu. Hàng cần cách ly và vẫn phải kiểm đếm, kiểm tra chất lượng."
+    "packagingAppliedQuarantine": "Đã điền thông tin vào dòng chưa lưu. Hàng cần cách ly và vẫn phải kiểm đếm, kiểm tra chất lượng.",
+    "reviewUnknownLine": "Dòng hàng",
+    "reviewQcPending": "Chưa có kết quả kiểm tra chất lượng cho lô này.",
+    "reviewReportsTitle": "Báo cáo ngoại lệ ({count})",
+    "reviewReportNumber": "Báo cáo {number}",
+    "reviewNoReports": "Không có báo cáo ngoại lệ trong lần duyệt này.",
+    "reviewDecisionScopeHint": "Đọc từng báo cáo ở trên trước khi quyết định. Duyệt hoặc trả kiểm áp dụng cho toàn phiếu nhận, bao gồm tất cả lô và báo cáo trong lần kiểm hiện tại."
   },
   "Asns": {
     "title": "Phiếu gửi hàng vào kho",
@@ -3511,13 +3525,37 @@
     "quantity": "Số lượng thực tế cần chuyển",
     "reason": "Lý do chuyển vị trí",
     "required": "Chọn hoặc quét mã hợp lệ.",
-    "quantityError": "Chỉ nhập số lượng chưa giữ chỗ.",
+    "quantityError": "Số lượng phải là số nguyên từ 1 đến {max}, không vượt số hàng chưa giữ chỗ.",
+    "quantityLimit": "Có thể chuyển tối đa {max} sản phẩm chưa giữ chỗ.",
     "reasonError": "Nhập lý do từ 3 đến 500 ký tự.",
     "confirm": "Xác nhận chuyển vị trí",
     "success": "Đã chuyển {qty} đơn vị. Trạng thái hàng không đổi.",
     "saveError": "Chưa rõ kết quả. Thử lại đúng thao tác chuyển đã gửi.",
     "unknown": "Chưa nhận được phản hồi chắc chắn. Thử lại giữ nguyên thao tác; không chuyển hàng thêm lần nữa.",
-    "retry": "Thử lại cùng thao tác chuyển"
+    "retry": "Thử lại cùng thao tác chuyển",
+    "moveTitle": "Chuyển vị trí hàng",
+    "lotLabel": "Lô",
+    "destinationPlaceholder": "Chọn hoặc tìm kệ đích",
+    "destinationSearch": "Nhập mã kệ hoặc mã vạch…",
+    "noSearchResults": "Không có vị trí phù hợp với mã tìm kiếm.",
+    "loadingDestinations": "Đang tìm vị trí phù hợp…",
+    "destinationHint": "Chỉ hiện kệ phù hợp trong kho; nguồn và đích phải khác nhau.",
+    "reloadDestinations": "Tải lại vị trí đích",
+    "noDestinations": "Kho chưa có kệ lưu trữ đích phù hợp. Nhờ quản lý kho kiểm tra khu, kệ và hàng đang chiếm chỗ.",
+    "noQuarantineDestinations": "Kho chưa có kệ cách ly khác phù hợp. Chuyển vị trí chỉ giữ hàng trong khu cách ly; đưa hàng về lưu trữ cần kết quả kiểm tra chất lượng lại và phê duyệt giải phóng cách ly riêng.",
+    "quarantineHint": "Hàng này đang cách ly. Chuyển vị trí không thay đổi kết quả kiểm tra chất lượng và không làm hàng trở thành bán được.",
+    "customReason": "Nhập lý do khác",
+    "confirmationMode": "Cách xác nhận hàng",
+    "manualMode": "Đối chiếu trực tiếp tại kho",
+    "scanMode": "Quét mã vị trí nguồn, vị trí đích, sản phẩm và lô",
+    "physicalConfirmation": "Tôi đã đối chiếu đúng hàng, lô, vị trí nguồn và vị trí đích tại kho.",
+    "cancel": "Đóng form",
+    "reasons": {
+      "REARRANGE": "Sắp xếp lại vị trí",
+      "CAPACITY": "Cân đối sức chứa",
+      "CHECK": "Di chuyển để kiểm tra hàng",
+      "OTHER": "Lý do khác"
+    }
   },
   "InventoryExpiry": {
     "title": "Hàng cần chú ý về hạn dùng",

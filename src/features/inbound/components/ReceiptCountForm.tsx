@@ -870,6 +870,7 @@ export function ReceiptCountForm({
           )}
           {receipt && (
             <ReceiptReviewPanel
+              lines={receipt.lines}
               key={`review:${receipt.receivingRound}`}
               mediaRevision={photoRevision}
               onPendingChange={handlePending}

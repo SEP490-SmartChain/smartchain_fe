@@ -1,5 +1,13 @@
 # features/catalog
 
+## Manual testing feedback (5 November 2026)
+
+Optional shelf-life input preserves `null` on form reset and clearing. Expiry thresholds
+are shown only when expiry tracking is enabled; disabling it clears the duration and
+restores valid saved thresholds. SKU deactivation retains stock, lots and document
+history; the catalog explains this existing lifecycle action instead of offering a
+destructive delete. Zone/bin setup records the Manager's physical layout.
+
 Carrier catalogue management UI (UC-91): create/edit carrier metadata and create/edit/enable/disable services in carrier details. Contract and ownership handoff: [carrier management API](../../../docs/CARRIER-CATALOG-MANAGEMENT-API-HANDOFF.md). Adding a carrier does not implement its provider adapter.
 
 Carrier details include a paginated route/zone panel for Admin. It uses province directory options and existing carrier-zone POST/PATCH endpoints; edits send `expectedUpdatedAt` and preserve drafts on failure. Routes are directional and province-level, not ward-level. No automatic coverage, tariff publication or live carrier booking is implied.
@@ -51,7 +59,8 @@ Regression checks: `node --test tests/orca-api-contracts.test.mjs`.
 
 ## Warehouse 3D (SS-1057)
 
-The directory layout panel opens a lazy-loaded Three.js schematic with OrbitControls,
+The standard directory layout panel hides the 3D entry and keeps the zone/bin actions.
+The retained Three.js planner provides a schematic with OrbitControls,
 raycast selection and grid-snapped zone/bin dragging. Rack/body instancing keeps GPU
 work bounded. Manager edits require the current warehouse assignment; Admin reads only.
 Native object selection, coordinate/zone-size forms and cell nudges also work without

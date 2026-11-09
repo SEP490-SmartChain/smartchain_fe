@@ -1120,7 +1120,13 @@
     "role_orca_accountant": "ORCA Accountant",
     "role_seller_owner": "Seller Owner",
     "role_seller_staff": "Seller Staff",
-    "member": "Member"
+    "member": "Member",
+    "assignmentNoticeHint": "Current warehouse assignments from the server. Read status is saved in this browser.",
+    "assignmentNoticeTitle": "Warehouse assignments",
+    "assignmentNoticeBody": "You are assigned to {count} warehouses; {unread} have not been viewed. Open the directory to check.",
+    "assignmentRefreshFailed": "Warehouse assignments could not be refreshed. Try again to see the latest information.",
+    "assignmentRetry": "Refresh assignments",
+    "noNotifications": "No warehouse assignment notifications."
   },
   "Auth": {
     "inviteHeading": "Join your store",
@@ -2141,7 +2147,9 @@
     "manufactureRequired": "Require manufacture date at receiving",
     "identitySection": "Product details",
     "shippingSection": "Weight and package dimensions",
-    "valuationSection": "Declared values"
+    "valuationSection": "Declared values",
+    "noExpiryHint": "This product does not track expiry. No shelf life or expiry alert thresholds are needed.",
+    "catalogLifecycleHint": "To remove a SKU from active use, choose Deactivate. Lot, stock and document history is retained; use the status filter to find it again."
   },
   "Inventory": {
     "tabStock": "Overview",
@@ -2625,7 +2633,7 @@
     "pickResultHint": "Click a result to place the pin and fill in the coordinates."
   },
   "WarehouseLayout": {
-    "layoutHelp": "Choose a zone to view, find and manage its storage bins.",
+    "layoutHelp": "The Manager records zones and bins to match the physical warehouse. These locations support receiving, putaway, picking and capacity checks.",
     "loadedBins": "{count} bins displayed",
     "noZonesHelp": "Storage bins are organized into zones within each warehouse.",
     "noBinsHelp": "New bins will appear here once created in this zone.",
@@ -3000,7 +3008,13 @@
     "packagingAssist": "Suggest lot/date from photo",
     "packagingApplied": "Verified values were filled into the unsaved row. Enter physical quantities and save the count.",
     "countLotCodeHelp": "Enter the code on the packaging, or leave it blank for an internal lot code.",
-    "packagingAppliedQuarantine": "Details were filled into the unsaved row. The goods need quarantine and still require counting and quality checks."
+    "packagingAppliedQuarantine": "Details were filled into the unsaved row. The goods need quarantine and still require counting and quality checks.",
+    "reviewUnknownLine": "Receipt line",
+    "reviewQcPending": "This lot has no QC result yet.",
+    "reviewReportsTitle": "Discrepancy reports ({count})",
+    "reviewReportNumber": "Report {number}",
+    "reviewNoReports": "There are no discrepancy reports in this review.",
+    "reviewDecisionScopeHint": "Read each report above before deciding. Approval or return applies to the whole receipt, including every lot and report in the current receiving round."
   },
   "Asns": {
     "title": "Advance Shipping Notices",
@@ -3511,13 +3525,37 @@
     "quantity": "Observed move quantity",
     "reason": "Reason for relocation",
     "required": "Select or scan a valid code.",
-    "quantityError": "Enter only the unreserved quantity.",
+    "quantityError": "Enter a whole number from 1 to {max}, within the unreserved stock quantity.",
+    "quantityLimit": "You can move up to {max} unreserved units.",
     "reasonError": "Enter a reason from 3 to 500 characters.",
     "confirm": "Confirm physical relocation",
     "success": "Moved {qty} units. Stock state is unchanged.",
     "saveError": "The response is uncertain. Retry the exact attempted movement.",
     "unknown": "The response is uncertain. The same operation will be retried; do not physically move the goods again.",
-    "retry": "Retry the same movement"
+    "retry": "Retry the same movement",
+    "moveTitle": "Move stock",
+    "lotLabel": "Lot",
+    "destinationPlaceholder": "Choose or find a destination bin",
+    "destinationSearch": "Enter a bin code or barcode…",
+    "noSearchResults": "No eligible destination matches this search.",
+    "loadingDestinations": "Finding eligible bins…",
+    "destinationHint": "Only eligible bins in this warehouse are shown; source and destination must differ.",
+    "reloadDestinations": "Reload destinations",
+    "noDestinations": "No eligible destination storage bin is available. Ask the Manager to check active bins and occupancy.",
+    "noQuarantineDestinations": "No other eligible quarantine bin is available. Relocation keeps stock quarantined; release to storage requires separate reinspection and approval.",
+    "quarantineHint": "This stock is quarantined. Relocation does not change QC or make the goods sellable.",
+    "customReason": "Other reason",
+    "confirmationMode": "How to confirm the goods",
+    "manualMode": "Check the goods at the warehouse",
+    "scanMode": "Scan source, destination, SKU and lot",
+    "physicalConfirmation": "I have checked the goods, lot, source and destination at the warehouse.",
+    "cancel": "Close form",
+    "reasons": {
+      "REARRANGE": "Reorganize bins",
+      "CAPACITY": "Balance capacity",
+      "CHECK": "Move for inspection",
+      "OTHER": "Other reason"
+    }
   },
   "InventoryExpiry": {
     "title": "Stock requiring expiry attention",

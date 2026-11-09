@@ -161,6 +161,10 @@ export function ProductCatalogTable() {
         }
       />
 
+      {canManageProducts && (
+        <p className="text-sm text-[var(--sc-text-secondary)]">{t('catalogLifecycleHint')}</p>
+      )}
+
       {error ? (
         <Alert variant="error" title={t('loadError')}>
           <Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>
