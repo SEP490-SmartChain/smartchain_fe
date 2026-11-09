@@ -79,7 +79,13 @@ export default function RouteBreadcrumbs() {
       items.push({ label: sidebar('warehouse_intake'), href: '/warehouse/inbound' });
     }
     items.push({
-      label: sidebar(sub === 'inventory-workflows' ? 'inventory_workflows' : `warehouse_${sub}`),
+      label: sidebar(
+        sub === 'inventory-workflows'
+          ? 'inventory_workflows'
+          : sub === 'claim-evidence'
+            ? 'warehouse_claim_evidence'
+            : `warehouse_${sub}`,
+      ),
     });
   } else if (primaryPath === '/settings') {
     const settingTab = pathname.split('/').filter(Boolean)[1] ?? 'profile';

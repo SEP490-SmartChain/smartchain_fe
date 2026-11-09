@@ -4,10 +4,11 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { NextIntlClientProvider } from 'next-intl';
 import { createServer } from 'vite';
 
-let server, products, notices, auth, api, Evidence;
+let server, products, notices, auth, api, Evidence, Breadcrumbs;
 const originalFetch = globalThis.fetch;
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const user = {
@@ -45,6 +46,9 @@ before(async () => {
   ({ apiClient: api } = await server.ssrLoadModule('/src/services/apiClient.ts'));
   ({ ReceiptReviewEvidence: Evidence } = await server.ssrLoadModule(
     '/src/features/inbound/components/ReceiptReviewEvidence.tsx',
+  ));
+  ({ default: Breadcrumbs } = await server.ssrLoadModule(
+    '/src/components/layout/RouteBreadcrumbs.tsx',
   ));
 });
 after(async () => {
@@ -164,4 +168,26 @@ test('Manager evidence separates report reasons and product/lot identities witho
     assert.match(html, new RegExp(`Separate report reason ${n}`));
   }
   assert.doesNotMatch(html, /<button|<form|COD|Bearer/);
+});
+
+test('claim evidence breadcrumb uses the translated warehouse label in both locales', () => {
+  auth.getState().setSession({ accessToken: 'synthetic-local-token', expiresIn: 900, user });
+  for (const locale of ['vi', 'en']) {
+    const messages = JSON.parse(
+      readFileSync(new URL(`../messages/${locale}.json`, import.meta.url), 'utf8'),
+    );
+    const html = renderToStaticMarkup(
+      createElement(
+        NextIntlClientProvider,
+        { locale, messages, timeZone: 'UTC' },
+        createElement(
+          MemoryRouter,
+          { initialEntries: ['/warehouse/claim-evidence'] },
+          createElement(Breadcrumbs),
+        ),
+      ),
+    );
+    assert.ok(html.includes(messages.Sidebar.warehouse_claim_evidence), locale);
+    assert.doesNotMatch(html, /Sidebar\.warehouse_claim-evidence/);
+  }
 });

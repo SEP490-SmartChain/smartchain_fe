@@ -2633,7 +2633,7 @@
     "pickResultHint": "Bấm vào một kết quả để đặt ghim và điền tọa độ."
   },
   "WarehouseLayout": {
-    "layoutHelp": "Manager khai báo khu và ô theo bố trí thực tế của kho. Hệ thống dùng các vị trí này để nhận, cất, lấy hàng và kiểm tra sức chứa.",
+    "layoutHelp": "Quản lý kho khai báo khu và ô theo bố trí thực tế của kho. Hệ thống dùng các vị trí này để nhận, cất, lấy hàng và kiểm tra sức chứa.",
     "loadedBins": "{count} vị trí đang hiển thị",
     "noZonesHelp": "Các vị trí lưu hàng được tổ chức theo từng khu trong kho.",
     "noBinsHelp": "Vị trí mới sẽ xuất hiện tại đây sau khi được tạo trong khu này.",

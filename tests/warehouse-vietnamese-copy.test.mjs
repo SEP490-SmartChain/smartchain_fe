@@ -19,6 +19,7 @@ const namespaces = [
   'Returns',
   'LotTrace',
   'Warehouses',
+  'WarehouseLayout',
   'Warehouse3D',
 ];
 function entries(value, prefix = '') {
