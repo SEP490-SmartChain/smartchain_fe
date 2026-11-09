@@ -1,5 +1,17 @@
 # Inbound ASN
 
+## Manual testing feedback (5 November 2026)
+
+ASN expiry declaration is shown only for expiry-tracked SKU options. Switching SKU
+clears the previous date, and a non-expiry SKU never sends a hidden stale date or uses
+it for an allocation suggestion. Existing optional date rules remain server enforced.
+
+Manager review lists each lot's QC evidence and each discrepancy report separately,
+with product/lot context, reason, quantity, attachment count and reporting time.
+The two evidence reads must match the same receipt revision before approval controls
+are available. The decision still applies to the entire receipt and its current evidence;
+this change does not add per-report approval or change stock recognition.
+
 ## Web receiving media and SKU policy (16 October 2026)
 
 Starting arrival opens the receipt workspace immediately. Receipt-level photos,
@@ -235,10 +247,22 @@ Seller notification delivery or completed quarantine handling.
 ## Same-warehouse relocation (SS-1078 / FU-22 / UC-44)
 
 The putaway page also shows minimal unreserved stock positions for assigned
-Manager and Staff. Users select a source, search compatible active destination
-bins and enter actual source/destination, SKU and lot scans, observed quantity
-and a reason. SELLABLE moves inside STORAGE; QUARANTINE moves inside QUARANTINE
-and retains its state. The UI starts scans blank and displays the source state.
+Manager and Staff. Users select a source and use one searchable destination picker.
+Its debounced lookup searches server-authorized bin codes/barcodes, including when
+more than 500 bins exist; errors are retryable and distinct from an empty result.
+Source SKU/lot/bin are shown once in the expanded form. Manual mode requires an
+explicit physical-check acknowledgement before binding those references to the
+existing command. Changing destination or switching confirmation mode clears that
+acknowledgement and the old proof fields. Optional scanner mode starts all scans blank.
+Quantity starts blank; reason uses presets with a required free-text Other choice.
+Quantity errors appear while typing: only positive whole units up to the source's
+unreserved quantity are accepted. The limit is displayed beside the field and invalid
+quantities disable confirmation; the schema and API adapter also reject them before POST.
+Unknown outcomes retain the exact operation for replay and lock navigation; known
+validation failures retain entered values. Only the confirmed server proof updates stock.
+SELLABLE moves inside STORAGE; QUARANTINE moves inside QUARANTINE and retains its
+state. A clear warning explains that re-QC and quarantine release are separate work;
+no release endpoint or automatic change to sellable stock is added by this UI change.
 Authoritative occupancy, held capacity, revision and current scope are checked
 by the server before P3 posts the paired physical movement.
 

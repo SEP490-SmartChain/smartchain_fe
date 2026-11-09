@@ -15,10 +15,11 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Avatar } from '@/components/Common';
+import { Avatar, Button } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import { useWarehouseAssignmentNotices } from '@/hooks/useWarehouseAssignmentNotices';
 import { getSearchLinks } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 import { useAuthStore, useUiStore } from '@/stores';
@@ -39,7 +40,8 @@ interface SearchItem {
 export default function Topbar() {
   const [activePopover, setActivePopover] = useState<PopoverName>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [notificationsRead, setNotificationsRead] = useState(false);
+  const { assignedCount, unreadCount, markAllRead, refreshFailed, refresh } =
+    useWarehouseAssignmentNotices();
   const controlsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const { pathname } = useLocation();
@@ -52,7 +54,7 @@ export default function Topbar() {
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
 
   const displayName = user?.fullName?.replace(/\s*\(local\)$/i, '') || user?.email || t('member');
-  const { roles } = useAccess();
+  const { roles, can } = useAccess();
 
   const roleLabels: Record<string, string> = {
     ORCA_ADMIN: t('role_orca_admin'),
@@ -279,9 +281,9 @@ export default function Topbar() {
             <Bell
               size={16}
               strokeWidth={1.5}
-              className={cn(!notificationsRead && 'sc-notification-ring')}
+              className={cn(unreadCount > 0 && 'sc-notification-ring')}
             />
-            {!notificationsRead && (
+            {unreadCount > 0 && (
               <span className="absolute right-[5px] top-[5px] h-1.5 w-1.5 rounded-full bg-[var(--sc-error)] ring-1 ring-[var(--sc-bg-surface)]" />
             )}
           </button>
@@ -294,48 +296,62 @@ export default function Topbar() {
             >
               <div className="flex items-center justify-between border-b border-[var(--sc-border-default)] p-3">
                 <h2 className="m-0 text-base font-medium">{t('all_notifications')}</h2>
-                <button
+                <Button
                   type="button"
                   className="rounded px-2 py-1 text-xs font-medium text-[var(--sc-primary)] hover:bg-[var(--sc-primary-alpha-08)]"
-                  onClick={() => setNotificationsRead(true)}
-                  disabled={notificationsRead}
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllRead}
+                  disabled={unreadCount === 0}
                 >
                   {t('mark_all_read')}
-                </button>
+                </Button>
               </div>
               <p className="px-4 pb-1 pt-3 text-xs text-[var(--sc-text-tertiary)]">
-                {t('last_seven_days')}
+                {t('assignmentNoticeHint')}
               </p>
+              {refreshFailed && (
+                <div className="px-4 py-2 text-sm" role="status">
+                  <p>{t('assignmentRefreshFailed')}</p>
+                  <Button variant="ghost" size="sm" onClick={() => void refresh()}>
+                    {t('assignmentRetry')}
+                  </Button>
+                </div>
+              )}
               <ul className="max-h-[405px] overflow-y-auto px-1 pb-2">
-                {[
-                  ['shipment_update', 'shipment_update_caption'],
-                  ['inventory_alert', 'inventory_alert_caption'],
-                  ['reconciliation_ready', 'reconciliation_ready_caption'],
-                ].map(([titleKey, captionKey], index) => (
-                  <li key={titleKey}>
-                    <button
-                      type="button"
+                {assignedCount > 0 ? (
+                  <li>
+                    <Link
+                      to={can('platform.warehouses.view') ? '/admin/warehouses' : '/warehouses'}
+                      onClick={() => {
+                        markAllRead();
+                        setActivePopover(null);
+                      }}
                       className="flex w-full gap-3 rounded-lg p-3 text-left transition-colors hover:bg-[var(--sc-bg-secondary)]"
                     >
                       <span
                         className={cn(
                           'mt-1 h-2 w-2 shrink-0 rounded-full',
-                          notificationsRead || index === 1
+                          unreadCount === 0
                             ? 'bg-[var(--sc-border-strong)]'
                             : 'bg-[var(--sc-primary)]',
                         )}
                       />
                       <span className="min-w-0">
                         <span className="block text-sm font-medium text-[var(--sc-text-primary)]">
-                          {t(titleKey)}
+                          {t('assignmentNoticeTitle')}
                         </span>
                         <span className="mt-1 block text-xs leading-4 text-[var(--sc-text-tertiary)]">
-                          {t(captionKey)}
+                          {t('assignmentNoticeBody', { count: assignedCount, unread: unreadCount })}
                         </span>
                       </span>
-                    </button>
+                    </Link>
                   </li>
-                ))}
+                ) : (
+                  <li className="px-4 py-3 text-sm text-[var(--sc-text-secondary)]">
+                    {t('noNotifications')}
+                  </li>
+                )}
               </ul>
             </div>
           )}

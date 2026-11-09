@@ -134,10 +134,7 @@ function WarehouseEvidenceTasksWorkspace() {
                             </span>
                             <div className="flex items-center gap-2">
                               {task.version > 1 && (
-                                <Badge
-                                  status="success"
-                                  label={t('evidenceSubmitted')}
-                                />
+                                <Badge status="success" label={t('evidenceSubmitted')} />
                               )}
                               <Badge
                                 status={task.status === 'OPEN' ? 'info' : 'warning'}
@@ -198,18 +195,12 @@ function WarehouseEvidenceTasksWorkspace() {
           {selectedTask && canSubmit && (
             <Card>
               <CardHeader
-                title={
-                  selectedTask.version > 1
-                    ? t('uploadAdditionalTitle')
-                    : t('uploadTitle')
-                }
+                title={selectedTask.version > 1 ? t('uploadAdditionalTitle') : t('uploadTitle')}
                 description={t('uploadDescription')}
               />
               <div className="space-y-4">
                 {selectedTask.version > 1 && (
-                  <Alert variant="info">
-                    {t('evidenceAlreadySubmittedNotice')}
-                  </Alert>
+                  <Alert variant="info">{t('evidenceAlreadySubmittedNotice')}</Alert>
                 )}
                 <p className="m-0 break-all text-sm text-[var(--sc-text-secondary)]">
                   {t('selectedClaim', { claimId: selectedTask.claimId })}
@@ -271,10 +262,7 @@ function WarehouseEvidenceTasksWorkspace() {
                     </Button>
                   )}
                   {!state.pending && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => selectTask(selectedTask.claimId)}
-                    >
+                    <Button variant="secondary" onClick={() => selectTask(selectedTask.claimId)}>
                       {t('closeTaskForm')}
                     </Button>
                   )}
