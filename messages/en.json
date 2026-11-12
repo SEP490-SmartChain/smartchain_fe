@@ -4633,7 +4633,19 @@
     "putbackRetargetHint": "Change destination or staff for a pending task, preserving picked source and quantity.",
     "storage": "Storage",
     "quarantine": "Quarantine",
-    "tariffRequired": "A current contracted disposal tariff is required. Ask an administrator to configure it, then retry. Stock has not been deducted."
+    "tariffRequired": "A current contracted disposal tariff is required. Ask an administrator to configure it, then retry. Stock has not been deducted.",
+    "countPlan": "Create count plan",
+    "countAssign": "Reassign count",
+    "countAssignHint": "Move an unobserved count to another Staff member of this warehouse. Observations already captured stay with their counter.",
+    "countPlanHint": "Choose bins or SKU filters, an optional count window and the Staff member who will count blind. The server derives the expected snapshot.",
+    "bins": "Bins",
+    "skuFilter": "SKU filter",
+    "skuFilterHint": "Comma or space separated SKUs (optional)",
+    "windowStart": "Count window start",
+    "windowEnd": "Count window end",
+    "round": "Round",
+    "snapshotAt": "Snapshot taken",
+    "window": "Count window"
   },
   "Returns": {
     "title": "Returns",

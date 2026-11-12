@@ -14,20 +14,28 @@ import {
   type WorkflowPutback,
 } from '../api/inventoryWorkflowApi';
 import { useWarehouseOptions } from '../hooks/useWarehouseOptions';
-export function InventoryWorkflowWorkspace() {
+export function InventoryWorkflowWorkspace({
+  initialTab,
+}: {
+  /** `/warehouse/counts` opens on the count plan tab; the workflow route keeps its own default. */
+  initialTab?: 'counts' | 'disposals' | 'putbacks';
+} = {}) {
   const revision = useAuthStore((s) => s.revision);
-  return <Workspace key={revision} />;
+  return <Workspace key={revision} initialTab={initialTab} />;
 }
-function Workspace() {
+function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putbacks' }) {
   const t = useTranslations('InventoryWorkflows');
   const { roles, actorScope, can } = useAccess();
   const manager = roles.includes('WAREHOUSE_MANAGER'),
     staff = roles.includes('WAREHOUSE_STAFF');
   const permitted = can('inventory.workflows.view');
   const { warehouses } = useWarehouseOptions(permitted);
+  // Narrow count authority; the generic workflow screen view never grants a mutation.
+  const canPlan = can('inventory.counts.plan'),
+    canObserve = can('inventory.counts.observe');
   const [selected, setSelected] = useState(''),
     [tab, setTab] = useState<'counts' | 'disposals' | 'putbacks'>(
-      actorScope === 'TENANT' ? 'disposals' : 'counts',
+      actorScope === 'TENANT' ? 'disposals' : (initialTab ?? 'counts'),
     ),
     [reload, setReload] = useState(0),
     [cursor, setCursor] = useState<string | undefined>(),
@@ -129,6 +137,9 @@ function Workspace() {
         <Button variant="outline" disabled={loading || !wh} onClick={() => setReload((v) => v + 1)}>
           {t('refresh')}
         </Button>
+        {canPlan && tab === 'counts' && wh && (
+          <Button onClick={() => setAction({ kind: 'countPlan' })}>{t('countPlan')}</Button>
+        )}
         {manager && tab === 'putbacks' && wh && (
           <Button onClick={() => setAction({ kind: 'putbackRequest' })}>
             {t('putbackRequest')}
@@ -142,8 +153,20 @@ function Workspace() {
           counts.map((c) => (
             <section key={c.id} className="sc-surface space-y-3 p-4">
               <p>
-                {status(c.status)} · {c.id}
+                {status(c.status)} · {t('round')} {c.round ?? 1} · {c.id}
               </p>
+              {c.snapshotAt && (
+                <p>
+                  {t('snapshotAt')}: {new Date(c.snapshotAt).toLocaleString()}
+                </p>
+              )}
+              {c.countWindowStart && c.countWindowEnd && (
+                <p>
+                  {t('window')}: {new Date(c.countWindowStart).toLocaleString()} –{' '}
+                  {new Date(c.countWindowEnd).toLocaleString()}
+                </p>
+              )}
+              {c.createReason && <p>{c.createReason}</p>}
               {c.reviewReason && <p>{c.reviewReason}</p>}
               {c.lines.map((l) => (
                 <div key={l.id} className="flex flex-wrap items-center gap-3">
@@ -153,6 +176,9 @@ function Workspace() {
                   {manager && (
                     <span>
                       {t('expected')}: {l.expectedQty} · {t('variance')}: {l.varianceQty ?? '—'}
+                      {l.variancePercent === undefined || l.variancePercent === null
+                        ? ''
+                        : ` (${l.variancePercent}%)`}
                     </span>
                   )}
                   <span>
@@ -167,7 +193,7 @@ function Workspace() {
                       {t('viewEvidence')}
                     </Button>
                   )}
-                  {staff &&
+                  {canObserve &&
                     l.observedQty === null &&
                     ['PLANNED', 'COUNTING'].includes(c.status) && (
                       <Button
@@ -181,15 +207,23 @@ function Workspace() {
                     )}
                 </div>
               ))}
-              <div className="flex gap-2">
-                {manager && c.status === 'REVIEW' && (
+              <div className="flex flex-wrap gap-2">
+                {canPlan && ['PLANNED', 'COUNTING'].includes(c.status) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setAction({ kind: 'countAssign', id: c.id, version: c.version })}
+                  >
+                    {t('countAssign')}
+                  </Button>
+                )}
+                {canPlan && c.status === 'REVIEW' && (
                   <Button
                     onClick={() => setAction({ kind: 'countReview', id: c.id, version: c.version })}
                   >
                     {t('countReview')}
                   </Button>
                 )}
-                {manager && c.status !== 'POSTED' && (
+                {canPlan && c.status !== 'POSTED' && (
                   <Button
                     variant="outline"
                     onClick={() => setAction({ kind: 'resnapshot', id: c.id, version: c.version })}
@@ -197,7 +231,8 @@ function Workspace() {
                     {t('resnapshot')}
                   </Button>
                 )}
-                {staff && c.status === 'APPROVED' && (
+                {/* UC-59: the Manager who approved the plan posts it; Staff never post. */}
+                {canPlan && c.status === 'APPROVED' && (
                   <Button onClick={() => setAction({ kind: 'post', id: c.id, version: c.version })}>
                     {t('post')}
                   </Button>

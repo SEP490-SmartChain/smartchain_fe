@@ -12,9 +12,15 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
-import { inventoryWorkflowApi, type PutbackOptions } from '../api/inventoryWorkflowApi';
+import {
+  inventoryWorkflowApi,
+  type CountPlanOptions,
+  type PutbackOptions,
+} from '../api/inventoryWorkflowApi';
 export type WorkflowAction = {
   kind:
+    | 'countPlan'
+    | 'countAssign'
     | 'observe'
     | 'countReview'
     | 'resnapshot'
@@ -42,6 +48,9 @@ const schema = z.object({
   pickConfirmationId: z.string(),
   toBinId: z.string(),
   assigneeId: z.string(),
+  skuCodes: z.string().max(2000),
+  windowStart: z.string().max(32),
+  windowEnd: z.string().max(32),
 });
 type Form = z.infer<typeof schema>;
 export function InventoryWorkflowAction({
@@ -65,19 +74,26 @@ export function InventoryWorkflowAction({
   const running = useRef(false);
   const [options, setOptions] = useState<PutbackOptions | null>(null);
   const putbackPlan = ['putbackRequest', 'putbackRetarget'].includes(action.kind);
+  const countPlan = action.kind === 'countPlan';
+  const countAssign = action.kind === 'countAssign';
+  const [planOptions, setPlanOptions] = useState<CountPlanOptions | null>(null);
+  const [bins, setBins] = useState<string[]>([]);
   useEffect(() => {
-    if (!putbackPlan) return;
+    if (!putbackPlan && !countPlan && !countAssign) return;
     const abort = new AbortController();
-    void inventoryWorkflowApi
-      .putbackOptions(warehouseId, abort.signal)
-      .then((value) => {
-        if (!abort.signal.aborted) setOptions(value);
-      })
-      .catch(() => {
-        if (!abort.signal.aborted) setError('failed');
-      });
+    const request =
+      countPlan || countAssign
+        ? inventoryWorkflowApi.countOptions(warehouseId, abort.signal).then((value) => {
+            if (!abort.signal.aborted) setPlanOptions(value);
+          })
+        : inventoryWorkflowApi.putbackOptions(warehouseId, abort.signal).then((value) => {
+            if (!abort.signal.aborted) setOptions(value);
+          });
+    void request.catch(() => {
+      if (!abort.signal.aborted) setError('failed');
+    });
     return () => abort.abort();
-  }, [warehouseId, putbackPlan]);
+  }, [warehouseId, putbackPlan, countPlan, countAssign]);
   const {
     register,
     handleSubmit,
@@ -94,13 +110,19 @@ export function InventoryWorkflowAction({
       pickConfirmationId: '',
       toBinId: '',
       assigneeId: '',
+      skuCodes: '',
+      windowStart: '',
+      windowEnd: '',
     },
   });
   const review = ['countReview', 'disposalReview', 'resnapshot'].includes(action.kind),
-    scans = ['execute', 'putbackConfirm'].includes(action.kind),
+    scans = ['execute', 'putbackConfirm', 'observe'].includes(action.kind),
     quantity = ['observe', 'disposalRequest', 'putbackRequest'].includes(action.kind),
     reason =
-      review || ['disposalRequest', 'putbackRequest', 'putbackRetarget'].includes(action.kind),
+      review ||
+      ['disposalRequest', 'putbackRequest', 'putbackRetarget', 'countPlan', 'countAssign'].includes(
+        action.kind,
+      ),
     image = ['observe', 'execute'].includes(action.kind);
   async function submit(values: Form) {
     if (running.current || useAuthStore.getState().revision !== revision) return;
@@ -133,10 +155,53 @@ export function InventoryWorkflowAction({
           );
         }
         switch (action.kind) {
+          case 'countPlan': {
+            const skuCodes = values.skuCodes
+              .split(/[\s,]+/)
+              .map((v) => v.trim())
+              .filter(Boolean);
+            if (!bins.length && !skuCodes.length) throw new Error('SELECTION_REQUIRED');
+            if (!!values.windowStart !== !!values.windowEnd) throw new Error('INVALID_WINDOW');
+            command = {
+              path: 'counts',
+              body: {
+                operationId,
+                ...(bins.length ? { binIds: bins } : {}),
+                ...(skuCodes.length ? { skuCodes } : {}),
+                ...(values.windowStart
+                  ? {
+                      countWindowStart: new Date(values.windowStart).toISOString(),
+                      countWindowEnd: new Date(values.windowEnd).toISOString(),
+                    }
+                  : {}),
+                assigneeId: z.uuid().parse(values.assigneeId),
+                reason: values.reason,
+              },
+            };
+            break;
+          }
+          case 'countAssign':
+            command = {
+              path: `counts/${action.id}/assignment`,
+              body: {
+                ...common,
+                assigneeId: z.uuid().parse(values.assigneeId),
+                reason: values.reason,
+              },
+            };
+            break;
           case 'observe':
             command = {
               path: `counts/${action.id}/observation`,
-              body: { ...common, lineId: action.lineId, observedQty: values.qty, evidence },
+              body: {
+                ...common,
+                lineId: action.lineId,
+                observedQty: values.qty,
+                binScan: values.binScan,
+                skuScan: values.skuScan,
+                lotScan: values.lotScan,
+                evidence,
+              },
             };
             break;
           case 'countReview':
@@ -279,6 +344,54 @@ export function InventoryWorkflowAction({
               <Input label={t('skuScan')} {...register('skuScan')} />
               <Input label={t('lotScan')} {...register('lotScan')} />
             </>
+          )}
+          {countPlan && (
+            <>
+              <fieldset className="space-y-1">
+                <legend>{t('bins')}</legend>
+                {(planOptions?.bins ?? []).map((b) => (
+                  <label key={b.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      value={b.id}
+                      checked={bins.includes(b.id)}
+                      onChange={(e) =>
+                        setBins((current) =>
+                          e.target.checked
+                            ? [...current, b.id]
+                            : current.filter((id) => id !== b.id),
+                        )
+                      }
+                    />
+                    <span>{b.code}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <Input
+                label={t('skuFilter')}
+                placeholder={t('skuFilterHint')}
+                {...register('skuCodes')}
+              />
+              <Input type="datetime-local" label={t('windowStart')} {...register('windowStart')} />
+              <Input type="datetime-local" label={t('windowEnd')} {...register('windowEnd')} />
+              <Select
+                label={t('assigneeId')}
+                required
+                options={(planOptions?.staff ?? []).map((s) => ({
+                  value: s.id,
+                  label: s.fullName,
+                }))}
+                {...register('assigneeId')}
+              />
+            </>
+          )}
+          {countAssign && (
+            <Select
+              label={t('assigneeId')}
+              required
+              options={(planOptions?.staff ?? []).map((s) => ({ value: s.id, label: s.fullName }))}
+              {...register('assigneeId')}
+            />
           )}
           {putbackPlan && (
             <>
