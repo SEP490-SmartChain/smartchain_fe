@@ -4865,7 +4865,19 @@
     "putbackRetargetHint": "Đổi vị trí hoặc nhân viên cho phiếu chưa hoàn tất; giữ nguyên nguồn lấy hàng và số lượng.",
     "storage": "Lưu trữ",
     "quarantine": "Cách ly",
-    "tariffRequired": "Chưa có mức phí tiêu hủy đang hiệu lực trong hợp đồng. Nhờ quản trị viên cấu hình, sau đó thử lại. Tồn kho chưa bị ghi giảm."
+    "tariffRequired": "Chưa có mức phí tiêu hủy đang hiệu lực trong hợp đồng. Nhờ quản trị viên cấu hình, sau đó thử lại. Tồn kho chưa bị ghi giảm.",
+    "countPlan": "Tạo kế hoạch kiểm kê",
+    "countAssign": "Giao lại người đếm",
+    "countAssignHint": "Chuyển kế hoạch chưa đếm sang nhân viên kho khác. Dữ liệu đã đếm vẫn thuộc người đếm ban đầu.",
+    "countPlanHint": "Chọn bin hoặc bộ lọc SKU, khoảng thời gian kiểm kê và nhân viên sẽ đếm mù. Máy chủ tự tạo snapshot số lượng dự kiến.",
+    "bins": "Bin",
+    "skuFilter": "Lọc SKU",
+    "skuFilterHint": "Danh sách SKU cách nhau bởi dấu phẩy hoặc khoảng trắng (không bắt buộc)",
+    "windowStart": "Bắt đầu khung kiểm kê",
+    "windowEnd": "Kết thúc khung kiểm kê",
+    "round": "Vòng",
+    "snapshotAt": "Thời điểm snapshot",
+    "window": "Khung kiểm kê"
   },
   "Returns": {
     "returnReference": "Mã yêu cầu hoàn hàng",

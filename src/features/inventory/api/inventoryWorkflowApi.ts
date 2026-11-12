@@ -32,6 +32,26 @@ export const countSchema = z
     lines: z.array(countLine),
   })
   .strict();
+export const countOptionsSchema = z
+  .object({
+    bins: z.array(
+      z
+        .object({ id: z.uuid(), code: z.string(), barcode: z.string().nullable().optional() })
+        .strict(),
+    ),
+    staff: z.array(z.object({ id: z.uuid(), fullName: z.string() }).strict()),
+    skuCodes: z.array(z.string()),
+  })
+  .strict();
+export type CountPlanOptions = z.infer<typeof countOptionsSchema>;
+export const countPlanResultSchema = z
+  .object({
+    id: z.uuid(),
+    version: z.number().int().positive(),
+    status: z.string(),
+    lineCount: z.number().int().nonnegative(),
+  })
+  .strict();
 export const disposalSchema = z
   .object({
     id: z.uuid(),
@@ -83,6 +103,19 @@ export const inventoryWorkflowApi = {
       silent: true,
     });
     return putbackOptionsSchema.parse(data);
+  },
+  async countOptions(wh: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(`${base(wh)}/counts/options`, {
+      signal,
+      silent: true,
+    });
+    return countOptionsSchema.parse(data);
+  },
+  async createCount(wh: string, input: unknown) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(`${base(wh)}/counts`, input, {
+      silent: true,
+    });
+    return countPlanResultSchema.parse(data);
   },
   async counts(wh: string, cursor?: string, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(`${base(wh)}/counts`, {

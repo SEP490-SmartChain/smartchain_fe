@@ -22,6 +22,7 @@ const routes = {
   '/admin/webhooks': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   '/warehouse/inventory-workflows': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   '/inventory/workflows': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  '/warehouse/counts': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   '/admin/tariffs': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
   '/admin/staff': A,
   '/dashboard': reporting,

@@ -37,6 +37,10 @@ const expected = {
   'claims.decide': ['ORCA_ACCOUNTANT'],
   'webhooks.deliveries.view': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   'inventory.workflows.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  // UC-57–UC-59: narrow count authorities; the screen grant above never implies a mutation.
+  'inventory.counts.view': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'inventory.counts.plan': M,
+  'inventory.counts.observe': S,
   'inventory.notifications.override': ['OPS_DISPATCHER'],
 
   'orders.cancellation.ops': ['OPS_DISPATCHER'],

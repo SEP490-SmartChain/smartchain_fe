@@ -277,6 +277,31 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'APPROVED',
     'Sprint5 physical count, putback and disposal workflows',
   ),
+  // UC-57–UC-59: the plan authority is Manager-only; blind observation is the Staff half.
+  capability(
+    'inventory.counts.view',
+    'inventory',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-57/UC-58: assigned Staff and the warehouse Manager read count plans in their own warehouse',
+  ),
+  capability(
+    'inventory.counts.plan',
+    'inventory',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'UC-57/UC-59: only the Manager creates, assigns, reviews and posts a count adjustment',
+  ),
+  capability(
+    'inventory.counts.observe',
+    'inventory',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-58: assigned Staff submit blind observations; never expected, variance or money',
+  ),
   capability(
     'inventory.notifications.override',
     'inventory',
@@ -1027,6 +1052,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/warehouses', capability: 'warehouses.view' },
   { path: '/inventory', capability: 'inventory.view' },
   { path: '/warehouse/inventory-workflows', capability: 'inventory.workflows.view' },
+  { path: '/warehouse/counts', capability: 'inventory.counts.view' },
   { path: '/inventory/workflows', capability: 'inventory.workflows.view' },
   {
     path: '/warehouse/claim-evidence',
