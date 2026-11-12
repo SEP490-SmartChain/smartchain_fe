@@ -18,7 +18,9 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ReceiptReviewEvidence } from './ReceiptReviewEvidence';
 import styles from './ReceiptWorkspace.module.css';
+import { discrepancyApi, type DiscrepancyState } from '../api/discrepancyApi';
 import {
   reviewApi,
   reviewValuesSchema,
@@ -26,6 +28,7 @@ import {
   type ReviewState,
 } from '../api/reviewApi';
 
+import type { ReceivingState } from '../api/receivingApi';
 import type { z } from 'zod';
 
 interface Props {
@@ -37,6 +40,7 @@ interface Props {
   isCountComplete: boolean;
   canWrite: boolean;
   onSaved: () => void;
+  lines?: ReceivingState['lines'];
 }
 export function ReceiptReviewPanel({
   onPendingChange,
@@ -47,12 +51,14 @@ export function ReceiptReviewPanel({
   isCountComplete,
   canWrite,
   onSaved,
+  lines = [],
 }: Props) {
   const t = useTranslations('Receiving');
   const locale = useLocale();
   const owner = useAuthStore((s) => s.user);
   const [expanded, setExpanded] = useState(true),
     [state, setState] = useState<ReviewState | null>(null);
+  const [reports, setReports] = useState<DiscrepancyState['items']>([]);
   const [loading, setLoading] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -88,6 +94,7 @@ export function ReceiptReviewPanel({
       controller = new AbortController();
     active.current = controller;
     setState(null);
+    setReports([]);
     setAttempt(null);
     setBusy(false);
     setError('');
@@ -106,17 +113,28 @@ export function ReceiptReviewPanel({
     const version = generation.current,
       controller = new AbortController();
     setLoading(true);
-    void reviewApi
-      .get(warehouseId, asnId, controller.signal)
-      .then((result) => {
+    void Promise.all([
+      reviewApi.get(warehouseId, asnId, controller.signal),
+      discrepancyApi.get(warehouseId, asnId, controller.signal),
+    ])
+      .then(([result, discrepancies]) => {
+        if (
+          result.receiptId !== discrepancies.receiptId ||
+          result.receiptVersion !== discrepancies.receiptVersion ||
+          result.discrepancyIds.some((id) => !discrepancies.items.some((item) => item.id === id))
+        ) {
+          throw new Error('Review evidence changed while loading');
+        }
         if (!controller.signal.aborted && current(version)) {
           setState(result);
+          setReports(discrepancies.items.filter((item) => result.discrepancyIds.includes(item.id)));
           setError('');
         }
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted && current(version)) {
           setState(null);
+          setReports([]);
           setError(reason instanceof ApiError ? reason.message : t('reviewLoadError'));
         }
       })
@@ -303,29 +321,8 @@ export function ReceiptReviewPanel({
           {state && !state.ready && !state.blockers && state.status === 'RECEIVING' && (
             <Alert variant="info" title={t('reviewIncompleteFallback')} />
           )}
-          {!!state?.records.length && (
-            <details className={styles.details}>
-              <summary>{t('reviewLotDetails', { count: state.records.length })}</summary>
-              {state.records.map((r) => (
-                <div key={r.receivingRecordId} className={styles.record}>
-                  <p className="font-medium">
-                    {r.lotCode} · {t('countSaved', { quantity: r.receivedQty })}
-                  </p>
-                  {r.inspection && (
-                    <>
-                      <p>
-                        {t('reviewPartition', {
-                          accepted: r.inspection.acceptedQty,
-                          quarantine: r.inspection.quarantinedQty,
-                          rejected: r.inspection.rejectedQty,
-                        })}
-                      </p>
-                      {r.inspection.reason && <p>{r.inspection.reason}</p>}
-                    </>
-                  )}
-                </div>
-              ))}
-            </details>
+          {state && (
+            <ReceiptReviewEvidence records={state.records} reports={reports} lines={lines} />
           )}
           {state?.unreportedDiscrepancies !== undefined && state.unreportedDiscrepancies > 0 && (
             <Alert
@@ -366,6 +363,9 @@ export function ReceiptReviewPanel({
                 );
               })}
             >
+              <p className="text-sm text-[var(--sc-text-secondary)]">
+                {t('reviewDecisionScopeHint')}
+              </p>
               <fieldset disabled={busy || loading || !!attempt} className="space-y-3">
                 <Select
                   label={t('reviewDecision')}

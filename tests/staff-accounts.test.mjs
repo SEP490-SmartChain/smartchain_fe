@@ -126,3 +126,139 @@ test('updateProfile sends PATCH to /v1/iam/users/me and accepts user profile dat
   const updated = await staffAccountApi.updateProfile('me', { phone: '0901234567' });
   assert.equal(updated.phone, '0901234567');
 });
+
+test('invitation validates name/email and normalizes the submitted identity', async () => {
+  const { createStaffInvitationSchema } = await server.ssrLoadModule(
+    '/src/features/tenants/schemas/staffInvitationSchema.ts',
+  );
+  const schema = createStaffInvitationSchema({
+    nameLength: 'name-length',
+    emailInvalid: 'email-invalid',
+  });
+  assert.deepEqual(
+    schema.parse({
+      fullName: '  Nguyen Van A  ',
+      email: '  STAFF@EXAMPLE.TEST  ',
+      tenantId: 'foreign',
+      roleCode: 'ORCA_ADMIN',
+    }),
+    { fullName: 'Nguyen Van A', email: 'staff@example.test' },
+  );
+  for (const fullName of ['', ' ', 'A', 'A'.repeat(101)]) {
+    assert.equal(schema.safeParse({ fullName, email: 'staff@example.test' }).success, false);
+  }
+  assert.equal(schema.safeParse({ fullName: 'Valid Name', email: 'invalid-email' }).success, false);
+});
+
+test('invitation posts only the fixed Seller Staff contract and preserves server PENDING', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/v1/iam/users');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers.get('Authorization'), 'Bearer admin-token');
+    assert.deepEqual(JSON.parse(options.body), {
+      fullName: 'Test Staff',
+      email: 'staff@example.test',
+      roleCode: 'SELLER_STAFF',
+    });
+    return ok({ ...staff, lastSessionAt: null, status: 'PENDING' });
+  };
+  const account = await staffAccountApi.create({
+    fullName: 'Test Staff',
+    email: 'staff@example.test',
+    roleCode: 'ORCA_ADMIN',
+    tenantId: 'other-seller',
+    status: 'ACTIVE',
+    password: 'must-not-be-sent',
+  });
+  assert.equal(account.status, 'PENDING');
+  assert.equal(account.lastSessionAt, null);
+});
+
+test('a rejected duplicate invitation keeps the existing session', async () => {
+  globalThis.fetch = async () =>
+    Response.json(
+      {
+        success: false,
+        error: { code: 'IAM.EMAIL_ALREADY_EXISTS', message: 'Already exists', statusCode: 409 },
+      },
+      { status: 409 },
+    );
+  await assert.rejects(
+    staffAccountApi.create({ fullName: 'Test Staff', email: 'staff@example.test' }),
+    (error) => error.status === 409,
+  );
+  assert.equal(useAuthStore.getState().user.userId, admin.userId);
+});
+
+test('invitation links reject missing or ambiguous tokens', async () => {
+  const { readInvitationToken } = await server.ssrLoadModule(
+    '/src/features/auth/api/staffInvitationApi.ts',
+  );
+  assert.equal(
+    readInvitationToken('?token=tenant.synthetic-one-time-token'),
+    'tenant.synthetic-one-time-token',
+  );
+  for (const search of [
+    '',
+    '?token=',
+    '?token=one&token=two',
+    '?token=%20one',
+    '?token=' + 'a'.repeat(513),
+  ])
+    assert.equal(readInvitationToken(search), null);
+});
+
+test('accepting an invitation uses the public endpoint without changing the current session', async () => {
+  const { acceptStaffInvitation } = await server.ssrLoadModule(
+    '/src/features/auth/api/staffInvitationApi.ts',
+  );
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/v1/iam/users/accept-invitation');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers.has('Authorization'), false);
+    assert.deepEqual(JSON.parse(options.body), {
+      token: 'synthetic-test-token',
+      newPassword: 'SyntheticTest!123',
+    });
+    return ok(staff);
+  };
+  assert.equal(
+    (await acceptStaffInvitation('synthetic-test-token', 'SyntheticTest!123')).status,
+    'ACTIVE',
+  );
+  assert.equal(useAuthStore.getState().user.userId, admin.userId);
+});
+
+test('used or expired invitations surface the backend error and cannot grant a session', async () => {
+  const { acceptStaffInvitation } = await server.ssrLoadModule(
+    '/src/features/auth/api/staffInvitationApi.ts',
+  );
+  globalThis.fetch = async () =>
+    Response.json(
+      {
+        success: false,
+        error: { code: 'IAM.INVITATION_INVALID', message: 'Invalid invitation', statusCode: 400 },
+      },
+      { status: 400 },
+    );
+  await assert.rejects(
+    acceptStaffInvitation('used-synthetic-token', 'SyntheticTest!123'),
+    (error) => error.code === 'IAM.INVITATION_INVALID',
+  );
+  assert.equal(useAuthStore.getState().user.userId, admin.userId);
+});
+
+test('invitation acceptance rejects unexpected platform roles or an unactivated account', async () => {
+  const { acceptStaffInvitation } = await server.ssrLoadModule(
+    '/src/features/auth/api/staffInvitationApi.ts',
+  );
+  for (const response of [
+    { ...staff, status: 'PENDING' },
+    { ...staff, roles: ['ORCA_ADMIN'] },
+  ]) {
+    globalThis.fetch = async () => ok(response);
+    await assert.rejects(acceptStaffInvitation('synthetic-token', 'SyntheticTest!123'), {
+      name: 'ZodError',
+    });
+  }
+});

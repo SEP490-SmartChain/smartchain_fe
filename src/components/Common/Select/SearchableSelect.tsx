@@ -27,6 +27,11 @@ export interface SearchableSelectProps {
   clearable?: boolean;
   className?: string;
   id?: string;
+  /** When supplied, options are already filtered by a scoped server lookup. */
+  onSearchChange?: (query: string) => void;
+  loading?: boolean;
+  loadingMessage?: string;
+  searchMaxLength?: number;
 }
 
 function removeVietnameseTones(str: string): string {
@@ -53,6 +58,10 @@ export function SearchableSelect({
   clearable = true,
   className,
   id,
+  onSearchChange,
+  loading = false,
+  loadingMessage,
+  searchMaxLength,
 }: SearchableSelectProps) {
   const t = useTranslations('Common.financialControls');
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -73,7 +82,7 @@ export function SearchableSelect({
   );
 
   const filteredOptions = useMemo(() => {
-    if (!search.trim()) return options;
+    if (onSearchChange || !search.trim()) return options;
     const query = removeVietnameseTones(search.trim());
     return options.filter((opt) => {
       const matchLabel = removeVietnameseTones(opt.label).includes(query);
@@ -81,18 +90,19 @@ export function SearchableSelect({
       const matchValue = opt.value.toLowerCase().includes(query);
       return matchLabel || matchSub || matchValue;
     });
-  }, [options, search]);
+  }, [options, search, onSearchChange]);
 
   useEffect(() => {
     if (isOpen) {
       setSearch('');
+      onSearchChange?.('');
       setHighlightedIndex(0);
       const timer = setTimeout(() => {
         searchInputRef.current?.focus();
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, onSearchChange]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -105,7 +115,9 @@ export function SearchableSelect({
   }, []);
 
   const handleSelect = (optionValue: string) => {
-    if (disabled || options.find((option) => option.value === optionValue)?.disabled) return;
+    if (disabled || loading || options.find((option) => option.value === optionValue)?.disabled) {
+      return;
+    }
     onChange?.(optionValue);
     setIsOpen(false);
     triggerRef.current?.focus();
@@ -153,7 +165,7 @@ export function SearchableSelect({
       if (e.target instanceof HTMLButtonElement && e.target.id !== selectId) return;
       e.preventDefault();
       const target = filteredOptions[highlightedIndex];
-      if (target && !target.disabled) {
+      if (target && !target.disabled && !loading) {
         handleSelect(target.value);
       }
     }
@@ -254,13 +266,18 @@ export function SearchableSelect({
               aria-expanded={isOpen}
               aria-controls={`${selectId}-list`}
               aria-activedescendant={
-                filteredOptions[highlightedIndex]
+                !loading && filteredOptions[highlightedIndex]
                   ? `${selectId}-option-${highlightedIndex}`
                   : undefined
               }
               value={search}
+              maxLength={searchMaxLength}
               onChange={(e) => {
-                setSearch(e.target.value);
+                const value = searchMaxLength
+                  ? e.target.value.slice(0, searchMaxLength)
+                  : e.target.value;
+                setSearch(value);
+                onSearchChange?.(value);
                 setHighlightedIndex(0);
               }}
               placeholder={searchPlaceholder || t('searchPlaceholder')}
@@ -272,6 +289,7 @@ export function SearchableSelect({
                 aria-label={t('clearSearch')}
                 onClick={() => {
                   setSearch('');
+                  onSearchChange?.('');
                   searchInputRef.current?.focus();
                 }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)] hover:text-[var(--sc-text-primary)]"
@@ -285,12 +303,17 @@ export function SearchableSelect({
           <ul
             ref={listRef}
             role="listbox"
+            aria-busy={loading}
             id={`${selectId}-list`}
             aria-label={label || placeholder || t('selectPlaceholder')}
             tabIndex={-1}
             className="max-h-60 overflow-y-auto space-y-0.5 rounded-lg pr-0.5"
           >
-            {filteredOptions.length === 0 ? (
+            {loading ? (
+              <li className="px-3 py-6 text-center text-xs text-[var(--sc-text-tertiary)]">
+                <span role="status">{loadingMessage || t('searchPlaceholder')}</span>
+              </li>
+            ) : filteredOptions.length === 0 ? (
               <li className="px-3 py-6 text-center text-xs text-[var(--sc-text-tertiary)]">
                 {emptyMessage || t('emptyMessage')}
               </li>

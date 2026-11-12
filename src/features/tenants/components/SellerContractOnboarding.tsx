@@ -1,11 +1,25 @@
 import { useState } from 'react';
 
-import { ExternalLink, FileSignature, FileText, RefreshCw } from 'lucide-react';
+import {
+  ArrowRight,
+  CircleCheck,
+  ReceiptText,
+  Boxes,
+  ChevronDown,
+  ExternalLink,
+  FileSignature,
+  FileText,
+  Package,
+  RefreshCw,
+  Warehouse,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useNavigate } from 'react-router-dom';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
+import { Card } from '@/components/Common/Card/Card';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 import { useLocaleStore } from '@/stores/localeStore';
@@ -21,6 +35,7 @@ import type { CommercialPlan } from '../api/commercialApi';
 
 export function SellerContractOnboarding() {
   const t = useTranslations('Commercial');
+  const navigate = useNavigate();
   const locale = useLocaleStore((state) => state.locale);
   const flow = useSellerCommercial();
   const { can } = useAccess();
@@ -32,8 +47,6 @@ export function SellerContractOnboarding() {
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const contract = flow.state?.contracts.find((item) => item.id === flow.state?.currentContractId);
   const request = flow.state?.signingRequests.find((item) => item.contractId === contract?.id);
-  const contractAccepted = contract?.status === 'ACCEPTED' || contract?.status === 'CONFIRMED';
-  const paid = flow.state?.serviceStatus === 'ACTIVE';
   const style = 'rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5';
 
   return (
@@ -42,7 +55,7 @@ export function SellerContractOnboarding() {
         <div>
           <h2 className="text-lg font-semibold">{t('title')}</h2>
           <p className="mt-1 max-w-2xl text-sm text-[var(--sc-text-secondary)]">
-            {t(contract ? 'contractDescription' : 'description')}
+            {t(contract ? 'contractDescription' : 'planIntro')}
           </p>
         </div>
         <Button
@@ -68,8 +81,8 @@ export function SellerContractOnboarding() {
       )}
       {flow.loading && <p role="status">{t('loading')}</p>}
       {flow.state && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-[var(--sc-text-secondary)]">{t('serviceStatus')}</span>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
+          <span>{t('serviceStatus')}</span>
           <Badge
             status={flow.state.serviceStatus === 'ACTIVE' ? 'success' : 'default'}
             label={t(`service.${flow.state.serviceStatus}`)}
@@ -77,62 +90,129 @@ export function SellerContractOnboarding() {
         </div>
       )}
       {!contract && !flow.loading && flow.state && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid items-stretch gap-5 md:grid-cols-2">
           {flow.plans
             .filter((plan) => plan.code !== 'ENTERPRISE')
             .map((plan) => (
-              <article key={plan.id} className={style}>
-                <h3 className="text-lg font-semibold">{plan.name}</h3>
-                <p className="mt-2 text-2xl font-semibold">
-                  {money(plan.monthlyFeeVnd)}
-                  <span className="ml-1 text-sm font-normal">/ {t('month')}</span>
-                </p>
-                {plan.depositRequiredVnd && (
-                  <p className="mt-2 text-sm">
-                    {t('deposit')}: {money(plan.depositRequiredVnd)}
+              <Card key={plan.id} padding="none" className="flex min-w-0 flex-col overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                      <Package size={20} aria-hidden="true" />
+                    </span>
+                    <h3 className="min-w-0 text-lg font-semibold leading-6 [overflow-wrap:anywhere]">
+                      {plan.name}
+                    </h3>
+                  </div>
+                  <span className="shrink-0 rounded-md bg-[var(--sc-bg-secondary)] px-2 py-1 text-[11px] font-medium text-[var(--sc-text-secondary)]">
+                    {plan.code}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
+                  <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="text-3xl font-semibold leading-tight tabular-nums">
+                      {money(plan.monthlyFeeVnd)}
+                    </span>
+                    <span className="text-sm text-[var(--sc-text-secondary)]">/ {t('month')}</span>
                   </p>
-                )}
-                {plan.creditLimitVnd && (
-                  <p className="mt-1 text-sm">
-                    {t('creditLimit')}: {money(plan.creditLimitVnd)}
-                  </p>
-                )}
-                <p className="my-3 text-sm">
-                  {t('allowances', {
-                    warehouses: plan.warehouseAllowance,
-                    orders: plan.salesOrderAllowance,
-                  })}
-                </p>
-                <p className="mb-4 text-xs text-[var(--sc-text-secondary)]">
-                  {t('version')}: {plan.agreementVersionRef ?? t('unpublished')}
-                </p>
-                <Button
-                  disabled={
-                    flow.loading ||
-                    !!contract ||
-                    !flow.state ||
-                    !flow.configured ||
-                    !plan.agreementId
-                  }
-                  isLoading={flow.busy}
-                  onClick={() => {
-                    setSelectedPlan(plan);
-                  }}
-                >
-                  <FileSignature size={16} />
-                  {t('prepare')}
-                </Button>
-                {plan.agreementId && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      void flow.preview(plan.agreementId);
-                    }}
-                  >
-                    {t('preview')}
-                  </Button>
-                )}
-              </article>
+                  <dl className="my-5 grid grid-cols-2 gap-3 rounded-xl bg-[var(--sc-bg-secondary)] p-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <Warehouse
+                        size={18}
+                        aria-hidden="true"
+                        className="shrink-0 text-[var(--sc-primary)]"
+                      />
+                      <div>
+                        <dt className="text-xs text-[var(--sc-text-secondary)]">
+                          {t('planWarehouses')}
+                        </dt>
+                        <dd className="mt-0.5 font-semibold tabular-nums">
+                          {plan.warehouseAllowance.toLocaleString(locale)}
+                        </dd>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 border-l border-[var(--sc-border-default)] pl-3">
+                      <Boxes
+                        size={18}
+                        aria-hidden="true"
+                        className="shrink-0 text-[var(--sc-primary)]"
+                      />
+                      <div>
+                        <dt className="text-xs text-[var(--sc-text-secondary)]">
+                          {t('planOrders')}
+                        </dt>
+                        <dd className="mt-0.5 font-semibold tabular-nums">
+                          {plan.salesOrderAllowance.toLocaleString(locale)}
+                        </dd>
+                      </div>
+                    </div>
+                  </dl>
+                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                    {plan.depositRequiredVnd && (
+                      <div>
+                        <dt className="text-xs text-[var(--sc-text-secondary)]">{t('deposit')}</dt>
+                        <dd className="mt-1 font-medium tabular-nums">
+                          {money(plan.depositRequiredVnd)}
+                        </dd>
+                      </div>
+                    )}
+                    {plan.creditLimitVnd && (
+                      <div>
+                        <dt className="text-xs text-[var(--sc-text-secondary)]">
+                          {t('planDebtLimit')}
+                        </dt>
+                        <dd className="mt-1 font-medium tabular-nums">
+                          {money(plan.creditLimitVnd)}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  <details className="group mt-4 border-t border-[var(--sc-border-light)] pt-3 text-xs text-[var(--sc-text-secondary)]">
+                    <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-2 rounded-md font-medium outline-none focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)] [&::-webkit-details-marker]:hidden">
+                      {t('planDetails')}
+                      <ChevronDown
+                        size={14}
+                        aria-hidden="true"
+                        className="transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                      />
+                    </summary>
+                    <p className="mt-2 leading-5">{t('creditHelp')}</p>
+                    <p className="mt-2 break-words leading-5 [overflow-wrap:anywhere]">
+                      {t('version')}: {plan.agreementVersionRef ?? t('unpublished')}
+                    </p>
+                  </details>
+                  <div className="mt-auto grid gap-2 pt-4 sm:grid-cols-[1fr_auto]">
+                    <Button
+                      disabled={
+                        flow.loading ||
+                        !!contract ||
+                        !flow.state ||
+                        !flow.configured ||
+                        !plan.agreementId
+                      }
+                      isLoading={flow.busy}
+                      aria-label={t('chooseNamedPlan', { plan: plan.name })}
+                      onClick={() => {
+                        setSelectedPlan(plan);
+                      }}
+                    >
+                      {t('choosePlan')}
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </Button>
+                    {plan.agreementId && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          void flow.preview(plan.agreementId);
+                        }}
+                      >
+                        <FileText size={16} aria-hidden="true" />
+                        {t('planPreview')}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
             ))}
           {!flow.loading && flow.plans.length === 0 && <Alert variant="info">{t('noPlans')}</Alert>}
         </div>
@@ -174,9 +254,6 @@ export function SellerContractOnboarding() {
                   ? t('contractTitle', { plan: contract.planName })
                   : t('contractTitleGeneric')}
               </h3>
-              <p className="mt-1 break-all text-xs text-[var(--sc-text-secondary)]">
-                {t('version')}: {contract.agreementVersionRef}
-              </p>
             </div>
             <div role="status" aria-label={t('signingStatus')}>
               <Badge
@@ -206,9 +283,6 @@ export function SellerContractOnboarding() {
               </div>
             ))}
           </dl>
-          <p className="mb-5 max-w-3xl text-xs leading-relaxed text-[var(--sc-text-secondary)]">
-            {t('creditHelp')}
-          </p>
           {request?.status === 'PREPARING' && <p className="text-sm">{t('preparingHelp')}</p>}
           {request?.status === 'IN_PROGRESS' && (
             <div className="flex flex-wrap gap-3 border-t border-[var(--sc-border-default)] pt-4">
@@ -242,36 +316,10 @@ export function SellerContractOnboarding() {
               {t('download')}
             </Button>
           )}
-          {flow.mockPaymentsEnabled && contractAccepted && (
-            <div className="my-4 space-y-3 border-t border-[var(--sc-border-default)] pt-4">
-              <Button
-                type="button"
-                disabled={
-                  flow.loading ||
-                  !!flow.error ||
-                  paid ||
-                  flow.state?.serviceStatus !== 'PENDING_ACTIVATION'
-                }
-                isLoading={flow.busy}
-                onClick={() => {
-                  void flow.mockPayment(contract.id);
-                }}
-              >
-                {t('mockPaid')}
-              </Button>
-              <p className="text-xs text-[var(--sc-text-secondary)]">{t('mockPaymentHelp')}</p>
-              {paid && (
-                <div role="status">
-                  <Alert variant="success">{t('mockPaymentConfirmed')}</Alert>
-                </div>
-              )}
-            </div>
-          )}
           {request?.status === 'UNKNOWN' && <Alert variant="warning">{t('unknownHelp')}</Alert>}
           {request?.errorCode && <p className="mt-2 text-xs">{request.errorCode}</p>}
           {request?.status === 'COMPLETED' && (
             <>
-              <p className="mb-3 text-sm">{t('completedHelp')}</p>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -282,6 +330,20 @@ export function SellerContractOnboarding() {
               </Button>
             </>
           )}
+          <details className="group mt-4 border-t border-[var(--sc-border-light)] pt-3 text-xs text-[var(--sc-text-secondary)]">
+            <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 rounded font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)] [&::-webkit-details-marker]:hidden">
+              {t('planDetails')}
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className="transition-transform group-open:rotate-180 motion-reduce:transition-none"
+              />
+            </summary>
+            <p className="mt-2 max-w-3xl leading-5">{t('creditHelp')}</p>
+            <p className="mt-2 break-all">
+              {t('version')}: {contract.agreementVersionRef}
+            </p>
+          </details>
         </article>
       )}
       {flow.signingUrl && (
@@ -341,24 +403,82 @@ export function SellerContractOnboarding() {
         </div>
       )}
       {flow.invoices.map((invoice) => (
-        <article key={invoice.id} className={style}>
-          <h3 className="text-base font-semibold">
-            {t('invoice')}: {invoice.invoiceNo}
-          </h3>
-          <p className="my-2 text-sm">
-            {t('total')}: {money(invoice.totalVnd)} · {t('paid')}: {money(invoice.paidVnd)} ·{' '}
-            {t('due')}: {invoice.dueOn}
-          </p>
-          <p className="text-sm">
-            {t('paymentStatus')}: {t(`payment.${invoice.paymentStatus}`)}
-          </p>
-          <ul className="mt-3 space-y-1 text-sm">
-            {invoice.obligations.map((item) => (
-              <li key={item.id}>
-                {t(`purpose.${item.purpose}`)}: {money(item.paidVnd)} / {money(item.amountDueVnd)}
-              </li>
-            ))}
-          </ul>
+        <article
+          key={invoice.id}
+          className="overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                {invoice.paymentStatus === 'PAID' ? (
+                  <CircleCheck size={21} aria-hidden />
+                ) : (
+                  <ReceiptText size={21} aria-hidden />
+                )}
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">{t('invoice')}</h3>
+                <p className="mt-1 text-xl font-semibold tabular-nums">{money(invoice.totalVnd)}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge
+                status={
+                  invoice.paymentStatus === 'PAID'
+                    ? 'success'
+                    : invoice.paymentStatus === 'EXPIRED'
+                      ? 'error'
+                      : 'warning'
+                }
+                label={t(`payment.${invoice.paymentStatus}`)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void navigate(`/billing?invoiceId=${encodeURIComponent(invoice.id)}`);
+                }}
+              >
+                {t(invoice.paymentStatus === 'PAID' ? 'viewInvoice' : 'payInvoice')}
+                <ArrowRight size={14} aria-hidden />
+              </Button>
+            </div>
+          </div>
+          <details className="group border-t border-[var(--sc-border-light)] px-5 py-3 text-xs text-[var(--sc-text-secondary)]">
+            <summary className="flex min-h-7 cursor-pointer list-none items-center justify-between gap-3 rounded font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)] [&::-webkit-details-marker]:hidden">
+              {t('invoiceBreakdown')}
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className="transition-transform group-open:rotate-180 motion-reduce:transition-none"
+              />
+            </summary>
+            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <dt>{t('paid')}</dt>
+                <dd className="mt-1 font-medium text-[var(--sc-text-primary)]">
+                  {money(invoice.paidVnd)}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('due')}</dt>
+                <dd className="mt-1 font-medium text-[var(--sc-text-primary)]">
+                  {new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB').format(
+                    new Date(`${invoice.dueOn}T12:00:00Z`),
+                  )}
+                </dd>
+              </div>
+              {invoice.obligations.map((item) => (
+                <div key={item.id}>
+                  <dt>{t(`purpose.${item.purpose}`)}</dt>
+                  <dd className="mt-1 font-medium text-[var(--sc-text-primary)]">
+                    {money(item.paidVnd)} / {money(item.amountDueVnd)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mb-1 mt-4 break-all font-mono">{invoice.invoiceNo}</p>
+          </details>
         </article>
       ))}
       {can('contract.sign') &&

@@ -297,9 +297,10 @@ export function ReceivingWorkspace({
                 <p>
                   {arrival.data.asnCode} · {new Date(arrival.data.arrivedAt).toLocaleString(locale)}
                 </p>
-                <p>
-                  {t('receipt')}: {arrival.data.receiptId}
-                </p>
+                <details className="text-sm">
+                  <summary>{t('receipt')}</summary>
+                  <p className="break-all">{arrival.data.receiptId}</p>
+                </details>
               </Alert>
             )}
             {isCurrent(error) && error && (

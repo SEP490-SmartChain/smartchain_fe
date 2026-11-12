@@ -21,3 +21,5 @@ export {
 export { ResetPasswordForm } from './components/ResetPasswordForm';
 export { usePasswordResetConfirm } from './hooks/usePasswordResetConfirm';
 export { getResetPasswordSchema, type ResetPasswordFormData } from './schemas/resetPassword.schema';
+
+export { AcceptStaffInvitationForm } from './components/AcceptStaffInvitationForm';

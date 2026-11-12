@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { Link, useLocation } from 'react-router-dom';
 
-import { ChevronDown, CircleCheck, PanelLeftClose, Settings, Sparkles } from 'lucide-react';
+import { ChevronDown, PanelLeftClose, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useAccess } from '@/hooks/useAccess';
@@ -239,36 +239,6 @@ export default function Sidebar() {
               </section>
             ))}
           </nav>
-
-          <div className="mt-auto pb-6 pt-3">
-            {isSidebarOpen ? (
-              <div className="rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 shadow-[var(--sc-shadow-section)]">
-                <div className="mb-5 flex items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--sc-primary)]">
-                    <Sparkles size={17} strokeWidth={1.6} />
-                  </span>
-                  <span>ORCA</span>
-                </div>
-                <h2 className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
-                  {t('connected_title')}
-                </h2>
-                <p className="mb-3 mt-1 text-xs leading-4 text-[var(--sc-text-secondary)]">
-                  {t('connected_copy')}
-                </p>
-                <div className="flex items-center gap-2 text-xs font-medium text-[var(--sc-success-dark)]">
-                  <CircleCheck size={15} />
-                  {t('online')}
-                </div>
-              </div>
-            ) : (
-              <div
-                title={t('online')}
-                className="mx-auto hidden h-10 w-10 items-center justify-center rounded-xl bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)] min-[1200px]:flex"
-              >
-                <CircleCheck size={18} />
-              </div>
-            )}
-          </div>
         </div>
       </aside>
     </>

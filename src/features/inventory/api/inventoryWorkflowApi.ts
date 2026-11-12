@@ -14,7 +14,7 @@ const countLine = z
     hasEvidence: z.boolean(),
     expectedQty: z.number().int().optional(),
     varianceQty: z.number().int().nullable().optional(),
-    variancePercent: z.number().nullable().optional(),
+    variancePercent: z.number().finite().nullable().optional(),
   })
   .strict();
 export const countSchema = z
@@ -24,11 +24,11 @@ export const countSchema = z
     status: z.enum(['PLANNED', 'COUNTING', 'REVIEW', 'APPROVED', 'POSTED']),
     reviewReason: z.string().nullable(),
     round: z.number().int().positive().optional(),
-    snapshotAt: z.string().optional(),
-    assignedToPlatformUserId: z.uuid().optional(),
     createReason: z.string().nullable().optional(),
-    countWindowStart: z.string().nullable().optional(),
-    countWindowEnd: z.string().nullable().optional(),
+    countWindowStart: z.iso.datetime({ offset: true }).nullable().optional(),
+    countWindowEnd: z.iso.datetime({ offset: true }).nullable().optional(),
+    snapshotAt: z.iso.datetime({ offset: true }).optional(),
+    assignedToPlatformUserId: z.uuid().optional(),
     lines: z.array(countLine),
   })
   .strict();

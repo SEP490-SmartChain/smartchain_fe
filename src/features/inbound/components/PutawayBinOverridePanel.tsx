@@ -212,12 +212,15 @@ export function PutawayBinOverridePanel({
                   {row.fromBinCode} → {row.toBinCode}
                 </p>
                 <p>{row.reason}</p>
-                <p>
-                  {t('audit', {
-                    actor: row.actorId === user?.userId ? user.fullName : row.actorId,
-                    date: new Date(row.createdAt).toLocaleString(),
-                  })}
-                </p>
+                <p>{new Date(row.createdAt).toLocaleString()}</p>
+                {row.actorId === user?.userId ? (
+                  <p>{user.fullName}</p>
+                ) : (
+                  <details className="text-xs text-[var(--sc-text-secondary)]">
+                    <summary className="cursor-pointer">{t('actorReference')}</summary>
+                    <p className="mt-1 break-all font-mono">{row.actorId}</p>
+                  </details>
+                )}
               </li>
             ))}
           </ul>

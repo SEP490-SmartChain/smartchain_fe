@@ -18,6 +18,7 @@ const A = ['ORCA_ADMIN'],
 const reporting = roles.filter((role) => role !== 'WAREHOUSE_STAFF');
 const financial = ['ORCA_ADMIN', 'ORCA_ACCOUNTANT', 'SELLER_OWNER'];
 const routes = {
+  '/claims': ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
   '/admin/webhooks': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   '/warehouse/inventory-workflows': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   '/inventory/workflows': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
@@ -30,6 +31,7 @@ const routes = {
   '/orders': roles,
   '/returns': O,
   '/warehouse/returns': ['OPS_DISPATCHER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  '/warehouse/claim-evidence': ['WAREHOUSE_MANAGER'],
   '/billing': financial,
   '/statements': O,
   '/warehouses': [
@@ -110,6 +112,21 @@ for (const role of roles) {
     assert.equal(policy.isRouteAllowed([role], '/not-an-approved-route', false), false);
   });
 }
+test('SS-1314: the warehouse evidence namespace remains Manager-only', () => {
+  for (const role of roles) {
+    for (const pathname of [
+      '/warehouse/claim-evidence/anything',
+      '/warehouse/claim-evidence/nested/detail',
+    ]) {
+      assert.equal(
+        policy.isRouteAllowed([role], pathname, false),
+        role === 'WAREHOUSE_MANAGER',
+        `${role}: ${pathname}`,
+      );
+    }
+  }
+});
+
 test('SS-1302: role revocation removes financial settings from route, menu and search together', () => {
   assert.equal(policy.isRouteAllowed(['SELLER_OWNER'], '/settings/api-keys'), true);
   for (const revoked of [[], ['SELLER_STAFF']]) {

@@ -43,6 +43,10 @@ export function OrderLifecycleActions({
     },
   });
   const allowed = can('orders.lifecycle.manage');
+  const invalid = order.status === 'FAILED' && order.holdReason === 'VALIDATION_FAILED';
+  const eligible = allowed && invalid && order.fulfillmentOrders?.length === 0;
+  const currentEligibility = useRef(eligible);
+  currentEligibility.current = eligible;
   const dirty = correction.formState.isDirty;
   useEffect(() => {
     const c = new AbortController();
@@ -50,7 +54,7 @@ export function OrderLifecycleActions({
     return () => c.abort();
   }, []);
   async function run(action: () => Promise<void>) {
-    if (running.current || !allowed) return;
+    if (running.current || !currentEligibility.current) return;
     running.current = true;
     setBusy(true);
     setError('');
@@ -63,8 +67,7 @@ export function OrderLifecycleActions({
       if (!abort.current.signal.aborted) setBusy(false);
     }
   }
-  const invalid = order.status === 'FAILED' && order.holdReason === 'VALIDATION_FAILED';
-  if (!allowed || !invalid) return null;
+  if (!eligible) return null;
   return (
     <section
       className="mt-5 space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"

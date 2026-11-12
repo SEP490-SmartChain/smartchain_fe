@@ -845,6 +845,7 @@ export function ReceiptCountForm({
               asnId={asnId}
               receiptVersion={receipt.version}
               receiptStatus={receipt.status}
+              receiptLines={receipt.lines}
               canWrite={
                 !otherPending(`discrepancy:${asnId}`) && can('warehouse.asn.reportDiscrepancy')
               }
@@ -869,6 +870,7 @@ export function ReceiptCountForm({
           )}
           {receipt && (
             <ReceiptReviewPanel
+              lines={receipt.lines}
               key={`review:${receipt.receivingRound}`}
               mediaRevision={photoRevision}
               onPendingChange={handlePending}

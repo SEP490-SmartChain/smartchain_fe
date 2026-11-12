@@ -590,7 +590,15 @@ function PutawayTaskForm({
               </form>
             ) : (
               <p className="text-sm text-[var(--sc-text-secondary)]">
-                {t(manager ? 'managerReadOnly' : 'claimFirst')}
+                {t(
+                  task.status === 'COMPLETED'
+                    ? 'completedReadOnly'
+                    : task.status === 'CANCELLED'
+                      ? 'cancelledReadOnly'
+                      : manager
+                        ? 'managerReadOnly'
+                        : 'claimFirst',
+                )}
               </p>
             )}
           </>

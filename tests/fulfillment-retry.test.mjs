@@ -5,7 +5,15 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { createServer } from 'vite';
 
-let server, ApiError, isRejectedOperation, createCancellationSession, auth, orderScope;
+let server,
+  ApiError,
+  isRejectedOperation,
+  persistFulfillmentPending,
+  clearFulfillmentPending,
+  createCancellationSession,
+  createHandoverSignRecovery,
+  auth,
+  orderScope;
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -19,8 +27,14 @@ before(async () => {
   ({ isRejectedOperation } = await server.ssrLoadModule(
     '/src/features/orders/lib/fulfillmentRetry.ts',
   ));
+  ({ persistFulfillmentPending, clearFulfillmentPending } = await server.ssrLoadModule(
+    '/src/features/orders/lib/fulfillmentPending.ts',
+  ));
   ({ createCancellationSession } = await server.ssrLoadModule(
     '/src/features/orders/lib/cancellationSession.ts',
+  ));
+  ({ createHandoverSignRecovery } = await server.ssrLoadModule(
+    '/src/features/orders/lib/handoverSignRecovery.ts',
   ));
   ({ useAuthStore: auth } = await server.ssrLoadModule('/src/stores/authStore.ts'));
   ({ orderScope } = await server.ssrLoadModule('/src/features/orders/lib/orderScope.ts'));
@@ -56,9 +70,19 @@ const cases = [
   ['HandoverWorkspace.tsx', 'SignManifest', 'submit', 'sign'],
   ['HandoverWorkspace.tsx', 'PutbackForm', 'submit', 'putback'],
 ];
+function browserSessionStorage() {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  };
+}
 for (const [file, outer, inner, method] of cases) {
   for (const rejected of [true, false])
     test(`${outer}: ${rejected ? 'rejected command can be corrected' : 'uncertain command keeps UUID and payload'}`, async () => {
+      const originalWindow = globalThis.window;
+      globalThis.window = { sessionStorage: browserSessionStorage() };
       const pending = { current: null },
         running = { current: false },
         calls = [];
@@ -66,6 +90,18 @@ for (const [file, outer, inner, method] of cases) {
         feedback;
       const bindings = {
         ApiError,
+        scope: {
+          actorId: 'actor',
+          warehouseId: 'warehouse',
+          operation: method === 'pack' ? 'pack' : 'manifest',
+          resourceId: method === 'pack' ? 'parcel' : 'active',
+        },
+        pendingScope: {
+          actorId: 'actor',
+          warehouseId: 'warehouse',
+          operation: 'manifest',
+          resourceId: 'active',
+        },
         pending,
         running,
         writable: true,
@@ -88,6 +124,8 @@ for (const [file, outer, inner, method] of cases) {
         abort: { current: new AbortController() },
         t: (key) => key,
         isRejectedOperation,
+        persistFulfillmentPending,
+        clearFulfillmentPending,
         packingApi: {
           [method]: async (...args) => {
             const command = args.find((a) => a && typeof a === 'object' && 'operationId' in a);
@@ -100,9 +138,35 @@ for (const [file, outer, inner, method] of cases) {
                     method === 'sign' ? 'PACK.PARCEL_COUNT_MISMATCH' : 'PACK.CONTENTS_MISMATCH',
                   )
                 : new TypeError('Network interrupted');
+            return { id: 'manifest', status: 'SIGNED' };
           },
         },
       };
+      if (method === 'sign') {
+        auth.getState().clear();
+        auth.getState().setSession({
+          accessToken: 'synthetic',
+          expiresIn: 60,
+          user: {
+            userId: 'actor',
+            tenantId: null,
+            actorScope: 'PLATFORM',
+            roles: ['WAREHOUSE_STAFF'],
+            permissions: [],
+            warehouseIds: ['warehouse'],
+            email: 'synthetic@example.test',
+            fullName: 'Synthetic staff',
+          },
+        });
+        bindings.recovery = {
+          current: createHandoverSignRecovery(
+            'warehouse',
+            'manifest',
+            bindings.packingApi,
+            bindings.createUuid,
+          ),
+        };
+      }
       const run = callback(file, outer, inner, bindings);
       const first = {
         confirmedParcelCount: 1,
@@ -120,26 +184,31 @@ for (const [file, outer, inner, method] of cases) {
         lotCode: 'LOT',
         qty: 2,
       };
-      await run(first);
-      assert.equal(pending.current === null, rejected);
-      assert.equal(
-        feedback,
-        rejected ? (method === 'sign' ? 'parcelCountMismatch' : 'rejectedError') : 'writeError',
-      );
-      bindings.selected.splice(0, 1, 'shipment-B');
-      await run({
-        ...first,
-        contents: [{ itemId: 'item', qty: 1 }],
-        carrierAckRef: 'corrected',
-        qty: 1,
-      });
-      assert.equal(calls.length, 2);
-      assert.equal(calls[0].operationId === calls[1].operationId, !rejected);
-      if (!rejected) assert.deepEqual(calls[1], calls[0]);
-      else if (method === 'pack') assert.equal(calls[1].contents[0].qty, 1);
-      else if (method === 'sign') assert.equal(calls[1].carrierAckRef, 'corrected');
-      else if (method === 'putback') assert.equal(calls[1].qty, 1);
-      else assert.deepEqual(calls[1].shipmentIds, ['shipment-B']);
+      try {
+        await run(first);
+        assert.equal(pending.current === null, rejected);
+        assert.equal(
+          feedback,
+          rejected ? (method === 'sign' ? 'parcelCountMismatch' : 'rejectedError') : 'writeError',
+        );
+        bindings.selected.splice(0, 1, 'shipment-B');
+        await run({
+          ...first,
+          contents: [{ itemId: 'item', qty: 1 }],
+          carrierAckRef: 'corrected',
+          qty: 1,
+        });
+        assert.equal(calls.length, 2);
+        assert.equal(calls[0].operationId === calls[1].operationId, !rejected);
+        if (!rejected) assert.deepEqual(calls[1], calls[0]);
+        else if (method === 'pack') assert.equal(calls[1].contents[0].qty, 1);
+        else if (method === 'sign') assert.equal(calls[1].carrierAckRef, 'corrected');
+        else if (method === 'putback') assert.equal(calls[1].qty, 1);
+        else assert.deepEqual(calls[1].shipmentIds, ['shipment-B']);
+      } finally {
+        if (originalWindow === undefined) delete globalThis.window;
+        else globalThis.window = originalWindow;
+      }
     });
 }
 test('timeout, server failure and idempotency conflict are not proof that a command failed to commit', () => {
