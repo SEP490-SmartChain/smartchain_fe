@@ -12,10 +12,11 @@ import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { InboundScanButton } from './InboundScanButton';
 import { ReceiptCountForm } from './ReceiptCountForm';
 import styles from './ReceiptWorkspace.module.css';
 import { receivingApi, type AsnArrival } from '../api/receivingApi';
-import { asnCodeFromScan, asnScanSchema } from '../schemas/asnScanSchema';
+import { asnScanSchema } from '../schemas/asnScanSchema';
 
 import type { WarehouseAsn } from '../api/warehouseAsnSchema';
 import type { AsnStatus } from '../types/asn.types';
@@ -81,6 +82,14 @@ export function ReceivingWorkspace({
   const cursor = isCurrent(page) ? page?.data.cursor : null;
   const command = isCurrent(selected) ? selected?.data : null;
   const countedAsn = isCurrent(countSelection) ? countSelection?.data : null;
+  const canCount = can('warehouse.asn.recordCount');
+  const auditCandidates = items.filter(
+    (asn) => asn.receiptIds.length > 0 && ['READY_FOR_PUTAWAY', 'COMPLETED'].includes(asn.status),
+  );
+
+  function openReceipt(asn: WarehouseAsn) {
+    setCountSelection({ owner: user, warehouse: activeWarehouse, data: asn });
+  }
 
   useEffect(() => {
     const refreshOnFocus = () => {
@@ -238,7 +247,7 @@ export function ReceivingWorkspace({
               key={`${activeWarehouse}:${countedAsn.id}`}
               warehouseId={activeWarehouse}
               asnId={countedAsn.id}
-              canWrite={can('warehouse.asn.recordCount')}
+              canWrite={canCount}
               onReceiptChanged={() => setRefresh((v) => v + 1)}
               onSaved={() => setRefresh((v) => v + 1)}
             />
@@ -254,10 +263,10 @@ export function ReceivingWorkspace({
           <>
             <div className="grid gap-3 md:grid-cols-2">
               <form
-                className="grid grid-cols-2 gap-2 md:flex md:items-start"
-                onSubmit={handleSubmit(({ code }) => setSearch(asnCodeFromScan(code)))}
+                className="flex flex-wrap gap-2"
+                onSubmit={handleSubmit(({ code }) => setSearch(code))}
               >
-                <div className="col-span-2 min-w-0 md:flex-1">
+                <div className="w-full min-w-0">
                   <Input
                     aria-label={t('scan')}
                     placeholder={t('scanPlaceholder')}
@@ -267,6 +276,26 @@ export function ReceivingWorkspace({
                     autoComplete="off"
                   />
                 </div>
+                {canCount && (
+                  <InboundScanButton
+                    label={t('scanShipmentOrProduct')}
+                    disabled={busy}
+                    onScan={(value) => {
+                      const parsed = asnScanSchema.safeParse({ code: value });
+                      if (!parsed.success) {
+                        setError({
+                          owner: user,
+                          warehouse: activeWarehouse,
+                          data: t('scanInvalid'),
+                        });
+                        return;
+                      }
+                      reset(parsed.data);
+                      setStatus('');
+                      setSearch(parsed.data.code);
+                    }}
+                  />
+                )}
                 <Button type="submit" disabled={busy}>
                   {t('find')}
                 </Button>
@@ -292,6 +321,22 @@ export function ReceivingWorkspace({
                 onChange={(event) => setStatus(event.target.value as AsnStatus | '')}
               />
             </div>
+            {can('warehouse.asn.review') && (
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  disabled={loading || auditCandidates.length === 0}
+                  onClick={() => {
+                    const sample =
+                      auditCandidates[Math.floor(Math.random() * auditCandidates.length)];
+                    if (sample) openReceipt(sample);
+                  }}
+                >
+                  {t('spotCheck')}
+                </Button>
+                <p className="text-sm text-[var(--sc-text-secondary)]">{t('spotCheckHelp')}</p>
+              </div>
+            )}
             {isCurrent(arrival) && arrival && (
               <Alert variant="success" title={t('checkedIn')}>
                 <p>
@@ -322,7 +367,7 @@ export function ReceivingWorkspace({
             )}
             {!!items.length && (
               <div className="overflow-auto rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)]">
-                <table aria-label={t('title')} className="w-full min-w-[760px] text-left text-sm">
+                <table aria-label={t('title')} className={styles.receivingTable} role="table">
                   <thead className="border-b border-[var(--sc-border-default)]">
                     <tr>
                       {['code', 'received', 'status', 'arrival', 'actions'].map((key) => (
@@ -352,12 +397,12 @@ export function ReceivingWorkspace({
                             </p>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-label={t('received')}>
                           {asn.lines
                             .reduce((sum, line) => sum + line.receivedQty, 0)
                             .toLocaleString(locale)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-label={t('status')}>
                           <Badge
                             status={
                               asn.status === 'CANCELLED'
@@ -373,7 +418,7 @@ export function ReceivingWorkspace({
                             }
                           />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" data-label={t('arrival')}>
                           {asn.arrivedAt ? new Date(asn.arrivedAt).toLocaleString(locale) : '—'}
                           {asn.status === 'SUBMITTED' && (
                             <p className="text-xs">
@@ -397,21 +442,16 @@ export function ReceivingWorkspace({
                               {t('checkIn')}
                             </Button>
                           )}
-                          {asn.receiptIds.length > 0 && (
+                          {asn.receiptIds.length > 0 && asn.status !== 'CANCELLED' && (
                             <Button
                               size="sm"
                               variant="outline"
                               disabled={busy || loading}
-                              onClick={() =>
-                                setCountSelection({
-                                  owner: user,
-                                  warehouse: activeWarehouse,
-                                  data: asn,
-                                })
-                              }
+                              onClick={() => openReceipt(asn)}
                             >
                               {t(
-                                can('warehouse.asn.recordCount')
+                                canCount &&
+                                  ['ARRIVED', 'RECEIVING', 'DISCREPANCY'].includes(asn.status)
                                   ? asn.reinspectionRequired
                                     ? 'reinspectionAction'
                                     : 'countOpen'

@@ -19,6 +19,7 @@
     "@hookform/resolvers": "5.2.2",
     "@noble/hashes": "2.4.0",
     "@tailwindcss/postcss": "4.2.4",
+    "@zxing/browser": "0.2.1",
     "clsx": "2.1.1",
     "cross-env": "10.1.0",
     "date-fns": "^4.4.0",

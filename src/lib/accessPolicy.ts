@@ -875,12 +875,20 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-41; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/reviews',
   ),
   capability(
+    'warehouse.asn.finalize',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'Assigned Staff closes the physical receipt after verified video, counts and QC',
+  ),
+  capability(
     'warehouse.asn.postStock',
     'warehouses',
     'PLATFORM',
     ['WAREHOUSE_STAFF'],
     'APPROVED',
-    'SS-1072 / RP3 FU-21; assigned warehouse, Manager-reviewed physical receipt through InventoryFacade.receive',
+    'SS-1072 / RP3 FU-21; assigned warehouse, finalized physical receipt through InventoryFacade.receive',
   ),
   capability(
     'warehouse.asn.reportDiscrepancy',
