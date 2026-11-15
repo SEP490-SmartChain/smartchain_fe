@@ -25,8 +25,14 @@ export const putawayConfirmationSchema = z
     qty: version,
   })
   .strict();
+export const putawayPlacementSchema = putawayConfirmationSchema.pick({
+  operationKey: true,
+  expectedVersion: true,
+  toBinScan: true,
+});
 export type PutawayAssignment = z.infer<typeof putawayAssignmentSchema>;
 export type PutawayConfirmation = z.infer<typeof putawayConfirmationSchema>;
+export type PutawayPlacement = z.infer<typeof putawayPlacementSchema>;
 export const putawayTaskSchema = z
   .object({
     id: z.string().uuid(),
@@ -158,11 +164,13 @@ export const putawayApi = {
     w: string,
     task: PutawayTask,
     actorId: string,
-    input: PutawayConfirmation,
+    input: PutawayConfirmation | PutawayPlacement,
     signal?: AbortSignal,
   ) {
-    const command = putawayConfirmationSchema.parse(input);
-    if (command.qty !== task.qty) throw new Error('Confirm the full assigned task quantity');
+    const command = putawayConfirmationSchema.or(putawayPlacementSchema).parse(input);
+    if ('qty' in command && command.qty !== task.qty) {
+      throw new Error('Confirm the full assigned task quantity');
+    }
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `${path(w)}/${encodeURIComponent(task.id)}/confirmation`,
       command,
@@ -173,7 +181,7 @@ export const putawayApi = {
       result.taskId !== task.id ||
       result.version !== command.expectedVersion + 1 ||
       result.status !== 'COMPLETED' ||
-      result.confirmedQty !== command.qty ||
+      result.confirmedQty !== task.qty ||
       result.assigneeId !== actorId
     ) {
       throw new Error('Physical result differs from the attempted task');

@@ -100,6 +100,7 @@ export const receivingStateSchema = z
           lineNo: z.number().int().positive(),
           sku: z.string(),
           productName: z.string(),
+          barcode: z.string().nullable().optional(),
           declaredQty: z.number().int().min(1).max(1_000_000),
           trackLot: z.boolean(),
           manufactureRequired: z.boolean(),

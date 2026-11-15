@@ -152,6 +152,7 @@ const expected = {
   'warehouse.asn.inspect': S,
   'warehouse.asn.reportDiscrepancy': S,
   'warehouse.asn.review': M,
+  'warehouse.asn.finalize': S,
   'warehouse.asn.postStock': S,
   'warehouse.putaway.assign': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'warehouse.putaway.confirm': S,

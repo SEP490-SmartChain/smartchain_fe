@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useForm, useWatch } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown, ChevronUp, RefreshCw, Warehouse } from 'lucide-react';
@@ -24,8 +25,10 @@ interface Props {
   warehouseId: string;
   asnId: string;
   recordId: string;
+  label?: string;
   receiptId: string;
   canWrite: boolean;
+  initiallyExpanded?: boolean;
   onSaved: () => void;
 }
 export function ReceiptStockPanel({
@@ -33,14 +36,17 @@ export function ReceiptStockPanel({
   warehouseId,
   asnId,
   recordId,
+  label,
   receiptId,
   canWrite,
+  initiallyExpanded = false,
   onSaved,
 }: Props) {
   const t = useTranslations('Receiving'),
     owner = useAuthStore((s) => s.user);
   const locale = useLocale();
-  const [expanded, setExpanded] = useState(false),
+  const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(initiallyExpanded),
     [state, setState] = useState<ReceiptStockState | null>(null),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(false),
@@ -177,7 +183,9 @@ export function ReceiptStockPanel({
   const panelId = `stock-${recordId}`;
   const quarantineZones = state?.zones.filter((zone) => zone.zoneType === 'QUARANTINE') ?? [];
   const primaryZones =
-    state && !state.load.primaryRequiresQuarantine ? state.zones : quarantineZones;
+    state && !state.load.primaryRequiresQuarantine
+      ? state.zones.filter((zone) => zone.zoneType === 'RECEIVING')
+      : quarantineZones;
   const primaryBins = state?.bins.filter((bin) => bin.zoneId === primaryZoneId) ?? [];
   const quarantineBins = state?.bins.filter((bin) => bin.zoneId === quarantineZoneId) ?? [];
   const hasSplitQty = (state?.load.quarantineQty ?? 0) > 0;
@@ -222,7 +230,7 @@ export function ReceiptStockPanel({
             onClick={() => setExpanded((v) => !v)}
           >
             <Warehouse size={20} aria-hidden="true" className={styles.panelIcon} />
-            <span>{t('stockTitle')}</span>
+            <span>{label ?? t('stockTitle')}</span>
             {expanded ? (
               <ChevronUp size={16} aria-hidden="true" className={styles.chevron} />
             ) : (
@@ -326,10 +334,20 @@ export function ReceiptStockPanel({
                   )}
                   {!state.canPost && state.recognizedQty === 0 && (
                     <p className="text-sm text-[var(--sc-text-secondary)]">
-                      {t('stockAwaitReview')}
+                      {t(state.qcState === 'APPROVED' ? 'stockNothingToPost' : 'stockAwaitReview')}
                     </p>
                   )}
                 </div>
+              )}
+              {canWrite && state.acceptedQty > 0 && state.recognizedQty > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy || loading || !!attempt}
+                  onClick={() => void navigate('/warehouse/putaway')}
+                >
+                  {t('goToPutaway')}
+                </Button>
               )}
               {canWrite && state.canPost && !attempt && (
                 <form

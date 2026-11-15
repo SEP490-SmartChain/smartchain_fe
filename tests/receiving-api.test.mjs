@@ -196,11 +196,11 @@ for (const [status, code] of [
   });
 }
 
-test('scan accepts ASN/carton references and preserves an unrelated external reference', () => {
-  assert.equal(scan.asnCodeFromScan(` ${arrival.asnCode}-C0001 `), arrival.asnCode);
-  assert.equal(scan.asnCodeFromScan(arrival.asnCode), arrival.asnCode);
-  assert.equal(scan.asnCodeFromScan(' PO-C0001 '), 'PO-C0001');
-  assert.equal(scan.asnCodeFromScan(`${arrival.asnCode}-C1`), `${arrival.asnCode}-C1`);
+test('scan sends the complete carton reference for server verification', () => {
+  const carton = `${arrival.asnCode}-C0001`;
+  assert.equal(scan.asnScanSchema.parse({ code: ` ${carton} ` }).code, carton);
+  assert.equal(scan.asnScanSchema.parse({ code: arrival.asnCode }).code, arrival.asnCode);
+  assert.equal(scan.asnScanSchema.parse({ code: ' PO-C0001 ' }).code, 'PO-C0001');
   assert.equal(scan.asnScanSchema.safeParse({ code: '  ' }).success, false);
   assert.equal(scan.asnScanSchema.safeParse({ code: 'a'.repeat(101) }).success, false);
   assert.equal(scan.asnScanSchema.safeParse({ code: 'a'.repeat(100) }).success, true);

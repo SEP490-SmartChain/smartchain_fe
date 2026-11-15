@@ -13,15 +13,16 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { InboundScanButton } from './InboundScanButton';
 import { PutawayBinOverridePanel } from './PutawayBinOverridePanel';
 import { PutawayPreparationPanel } from './PutawayPreparationPanel';
 import { PutawayTaskCard, PutawayWaitingActions } from './PutawayWorkCards';
 import { RelocationWorkspace } from './RelocationWorkspace';
 import {
   putawayApi,
-  putawayConfirmationSchema,
+  putawayPlacementSchema,
   type PutawayTask,
-  type PutawayConfirmation,
+  type PutawayPlacement,
   type PutawayAssignment,
   type PutawayWaitingItem,
 } from '../api/putawayApi';
@@ -416,7 +417,7 @@ function PutawayTaskForm({
     [error, setError] = useState(''),
     [attempt, setAttempt] = useState<
       | { kind: 'ASSIGN'; input: PutawayAssignment }
-      | { kind: 'CONFIRM'; input: PutawayConfirmation }
+      | { kind: 'CONFIRM'; input: PutawayPlacement }
       | null
     >(null);
   const generation = useRef(0),
@@ -425,19 +426,14 @@ function PutawayTaskForm({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm<PutawayConfirmation>({
-    resolver: zodResolver(
-      putawayConfirmationSchema.refine((v) => v.qty === task.qty, { path: ['qty'] }),
-    ),
+  } = useForm<PutawayPlacement>({
+    resolver: zodResolver(putawayPlacementSchema),
     defaultValues: {
       operationKey: createUuid(),
       expectedVersion: task.version,
-      fromBinScan: '',
       toBinScan: '',
-      skuScan: '',
-      lotScan: '',
-      qty: 0,
     },
   });
   useEffect(() => {
@@ -549,39 +545,23 @@ function PutawayTaskForm({
                 className="space-y-4"
                 onSubmit={handleSubmit((input) => void send({ kind: 'CONFIRM', input }))}
               >
-                <fieldset className="grid min-w-0 gap-4 sm:grid-cols-2" disabled={busy || disabled}>
+                <fieldset className="max-w-lg space-y-2" disabled={busy || disabled}>
                   <Input
-                    label={t('fromScan')}
+                    label={t('placementBin')}
                     required
-                    {...register('fromBinScan')}
-                    error={errors.fromBinScan ? t('scanRequired') : undefined}
+                    maxLength={128}
+                    {...register('toBinScan', { setValueAs: (value: string) => value.trim() })}
+                    error={errors.toBinScan ? t('placementBinRequired') : undefined}
                   />
-                  <Input
-                    label={t('toScan')}
-                    required
-                    {...register('toBinScan')}
-                    error={errors.toBinScan ? t('scanRequired') : undefined}
-                  />
-                  <Input
-                    label={t('skuScan')}
-                    required
-                    {...register('skuScan')}
-                    error={errors.skuScan ? t('scanRequired') : undefined}
-                  />
-                  <Input
-                    label={t('lotScan')}
-                    required
-                    {...register('lotScan')}
-                    error={errors.lotScan ? t('scanRequired') : undefined}
-                  />
-                  <Input
-                    label={t('quantity')}
-                    required
-                    type="number"
-                    min={1}
-                    max={task.qty}
-                    {...register('qty', { valueAsNumber: true })}
-                    error={errors.qty ? t('quantityRequired') : undefined}
+                  <InboundScanButton
+                    label={t('scanWithCamera', { field: t('placementBin') })}
+                    disabled={busy || disabled}
+                    onScan={(code) =>
+                      setValue('toBinScan', code.trim(), {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
                   />
                 </fieldset>
                 <Button type="submit" disabled={busy || disabled}>
