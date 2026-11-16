@@ -23,6 +23,10 @@ export interface AuthUser {
   warehouseIds?: readonly string[];
   /** Server-owned service state, refreshed independently of role permissions. */
   serviceStatus?: 'PENDING_ACTIVATION' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED' | null;
+  /** Whether this tenant user has attached a Google account. */
+  googleSubLinked?: boolean;
+  /** Optimistic concurrency revision used when linking a Google identity. */
+  version?: number;
 }
 
 export interface AuthSession {
