@@ -17,6 +17,14 @@ function mount({ dirty = true, fail = false } = {}) {
     calls = [];
   let cursor = 0,
     refCursor = 0;
+  let order = {
+    id: 'order',
+    version: 4,
+    status: 'FAILED',
+    holdReason: 'VALIDATION_FAILED',
+    fulfillmentOrders: [],
+  };
+  let allowed = true;
   const values = {
     recipientName: 'Edited recipient',
     recipientPhone: '0900000000',
@@ -54,7 +62,7 @@ function mount({ dirty = true, fail = false } = {}) {
     'next-intl': { useTranslations: () => (key) => key },
     '@/components/Common': { Alert: 'Alert', Button: 'Button', Input: 'Input', Select: 'Select' },
     '@/stores/authStore': { useAuthStore: () => null },
-    '@/hooks/useAccess': { useAccess: () => ({ can: () => true }) },
+    '@/hooks/useAccess': { useAccess: () => ({ can: () => allowed }) },
     '../api/orderLifecycleApi': {
       orderLifecycleApi: {
         transition: async () => calls.push('redispatch'),
@@ -85,7 +93,7 @@ function mount({ dirty = true, fail = false } = {}) {
   function render() {
     cursor = refCursor = 0;
     const view = exports.OrderLifecycleActions({
-      order: { id: 'order', version: 4, status: 'FAILED', holdReason: 'VALIDATION_FAILED' },
+      order,
       onChanged: () => calls.push('reload'),
     });
     const nodes = [];
@@ -101,7 +109,57 @@ function mount({ dirty = true, fail = false } = {}) {
       form: nodes.find((node) => node.type === 'form'),
     };
   }
-  return { render, calls, values };
+  return {
+    render,
+    calls,
+    values,
+    updateOrder(change) {
+      order = { ...order, ...change };
+    },
+    revokeAccess() {
+      allowed = false;
+    },
+  };
+}
+
+test('empty fulfillment allows revalidation without changing the original order reference or version', async () => {
+  const r = mount({ dirty: false });
+  r.render().button('revalidate').props.onClick();
+  await new Promise(setImmediate);
+  assert.deepEqual(r.calls, ['redispatch', 'reload']);
+});
+
+for (const [name, invalidate] of [
+  [
+    'a fulfillment child appears',
+    (r) => r.updateOrder({ fulfillmentOrders: [{ id: 'child', status: 'ALLOCATED' }] }),
+  ],
+  [
+    'validation failure is cleared',
+    (r) => r.updateOrder({ status: 'VALIDATED', holdReason: null }),
+  ],
+  ['correction permission is revoked', (r) => r.revokeAccess()],
+]) {
+  test(`rerender after ${name} blocks captured correction and revalidation handlers`, async () => {
+    const r = mount({ dirty: false });
+    const actions = r.render();
+    const staleRevalidate = actions.button('revalidate').props.onClick;
+    actions.button('correct').props.onClick();
+    const staleSubmit = r.render().form.props.onSubmit;
+
+    invalidate(r);
+    const unavailable = r.render();
+    assert.deepEqual(unavailable.nodes, [], 'ineligible actions and open form must disappear');
+    assert.equal(unavailable.form, undefined);
+    staleRevalidate();
+    await staleSubmit();
+    await new Promise(setImmediate);
+    assert.deepEqual(
+      r.calls,
+      [],
+      'captured handlers must not send writes after eligibility changes',
+    );
+  });
 }
 
 test('dirty recipient edits cannot redispatch the previously saved address, even through the handler', async () => {

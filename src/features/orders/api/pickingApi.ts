@@ -16,6 +16,8 @@ export const pickLineSchema = z
   .object({
     id: z.uuid(),
     version: z.number().int(),
+    orderCode: z.string(),
+    parcelNo: z.number().int().positive(),
     sku: z.string(),
     productName: z.string(),
     binCode: z.string(),
@@ -54,6 +56,47 @@ const detail = z
   .strict();
 export type PickLine = z.infer<typeof pickLineSchema>;
 export type PickWave = z.infer<typeof wave>;
+const backlog = z
+  .object({
+    lines: z
+      .array(
+        z
+          .object({
+            id: z.uuid(),
+            orderCode: z.string(),
+            parcelNo: z.number().int().positive(),
+            sku: z.string(),
+            productName: z.string(),
+            binCode: z.string(),
+            lotCode: z.string(),
+            remainingQty: z.number().int().nonnegative(),
+            eligibility: z.enum(['READY', 'RESERVATION_REQUIRED']),
+          })
+          .strict(),
+      )
+      .max(100),
+    nextCursor: z.uuid().nullable(),
+    pageTotals: z
+      .object({
+        lines: z.number().int(),
+        readyLines: z.number().int(),
+        blockedLines: z.number().int(),
+      })
+      .strict(),
+  })
+  .strict();
+export type PickBacklog = z.infer<typeof backlog>;
+const wavePreview = z
+  .object({
+    parcelLimit: z.number().int(),
+    proposedParcels: z.number().int(),
+    proposedOrders: z.number().int(),
+    proposedLines: z.number().int(),
+    firstParcelTooLarge: z.boolean(),
+    candidateScanLimitReached: z.boolean(),
+  })
+  .strict();
+export type PickWavePreview = z.infer<typeof wavePreview>;
 export type PickDetail = z.infer<typeof detail>;
 const result = z
   .object({
@@ -71,10 +114,10 @@ const result = z
     replacementLineIds: z.array(z.uuid()).optional(),
   })
   .strict();
-export interface PickPending {
-  path: string;
-  payload: Record<string, unknown>;
-}
+export const pickPendingSchema = z
+  .object({ path: z.string().min(1).max(200), payload: z.record(z.string(), z.unknown()) })
+  .strict();
+export type PickPending = z.infer<typeof pickPendingSchema>;
 const base = '/v1/warehouse-ops';
 export const pickingApi = {
   async requestStatus(warehouseId: string, id: string, signal?: AbortSignal) {
@@ -119,6 +162,27 @@ export const pickingApi = {
       .object({ items: z.array(wave), nextCursor: z.uuid().nullable() })
       .strict()
       .parse(data);
+  },
+  async backlog(warehouseId: string, cursor: string | null, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(`${base}/backlog`, {
+      params: { warehouseId, ...(cursor ? { cursor } : {}) },
+      signal,
+      silent: true,
+    });
+    return backlog.parse(data);
+  },
+  async previewWave(
+    warehouseId: string,
+    cutoffAt: string,
+    maxParcels: number,
+    signal?: AbortSignal,
+  ) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `${base}/waves/preview`,
+      { cutoffAt, maxParcels },
+      { params: { warehouseId }, signal, silent: true },
+    );
+    return wavePreview.parse(data);
   },
   async detail(warehouseId: string, id: string, signal?: AbortSignal, cursor?: string | null) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(

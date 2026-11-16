@@ -28,8 +28,19 @@ const reporting = [
 ];
 // Independently reviewed UI action expectations; proposed actions remain denied.
 const expected = {
+  'claims.view': ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
+  'claims.create': ['SELLER_OWNER', 'OPS_DISPATCHER'],
+  'claims.evidence.add': ['SELLER_OWNER', 'OPS_DISPATCHER'],
+  'claims.warehouseEvidence.view': ['WAREHOUSE_MANAGER'],
+  'claims.warehouseEvidence.submit': ['WAREHOUSE_MANAGER'],
+  'claims.investigate': ['OPS_DISPATCHER'],
+  'claims.decide': ['ORCA_ACCOUNTANT'],
   'webhooks.deliveries.view': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   'inventory.workflows.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  // UC-57–UC-59: narrow count authorities; the screen grant above never implies a mutation.
+  'inventory.counts.view': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+  'inventory.counts.plan': M,
+  'inventory.counts.observe': S,
   'inventory.notifications.override': ['OPS_DISPATCHER'],
 
   'orders.cancellation.ops': ['OPS_DISPATCHER'],
@@ -141,6 +152,7 @@ const expected = {
   'warehouse.asn.inspect': S,
   'warehouse.asn.reportDiscrepancy': S,
   'warehouse.asn.review': M,
+  'warehouse.asn.finalize': S,
   'warehouse.asn.postStock': S,
   'warehouse.putaway.assign': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'warehouse.putaway.confirm': S,
@@ -150,6 +162,7 @@ const expected = {
   'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'exceptions.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
+  'exceptions.manage': ['OPS_DISPATCHER'],
 };
 let server, policy;
 before(async () => {

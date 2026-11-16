@@ -219,3 +219,21 @@ credit limit and age threshold. This does not grant order acceptance or override
 service suspension. FREIGHT invoice lines have Vietnamese/English labels. The
 screen-six rehearsal uses the backend disposable runner and synthetic sessions;
 see `docs/SS-1041-FINANCE-REHEARSAL.md` in smartchain_be.
+
+Invoice payment instructions may include an optional locally encoded VietQR for
+outstanding onboarding obligations. The image is rendered inside the browser with
+`qrcode`; receiving account/invoice details are never sent to a QR image service.
+The contract screen links to `/billing?invoiceId=...`; signed PDF content is unchanged.
+The Seller UI does not offer mock payment. Verified backend transaction status stays
+authoritative; use Check payment status after transferring. Fully paid invoices do
+not offer another payment QR. Missing bank setup keeps manual instructions available.
+
+## Seller staff invitation (UC-06/15)
+
+Owner /iam/users exposes Invite staff using POST /v1/iam/users with fullName,
+email and fixed SELLER_STAFF. The form validates with RHF/Zod and sends no tenant,
+password, status or platform role. API creation returns PENDING; the existing
+worker sends the password-setup email. Creation does not claim email delivery or
+activate the staff account. Server errors retain the draft; closing is disabled
+during submission and auth changes discard pending responses. Existing central
+iam.users.manage capability remains Owner-only. No schema migration is required.

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDown, MessageSquare } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { z } from 'zod';
 
@@ -85,64 +86,78 @@ export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: 
     }
   });
   return (
-    <section
+    <details
       aria-busy={loading}
-      className="space-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5"
+      open={inquiries.length > 0 || !!error}
+      className="group rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)]"
     >
-      <h3 className="text-base font-semibold">{t('customInquiry')}</h3>
-      <p className="text-sm text-[var(--sc-text-secondary)]">{t('customInquiryHint')}</p>
-      {error && <Alert variant="error">{error}</Alert>}
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={loading || form.formState.isSubmitting}
-        onClick={() => void reload(controller.current?.signal)}
-      >
-        {t('refresh')}
-      </Button>
-      {loading && <p role="status">{t('inquiryLoading')}</p>}
-      {sent && <Alert variant="success">{t('inquirySubmitted')}</Alert>}
-      {!loading && inquiries.length > 0 && (
-        <>
-          {allowSubmit && <Alert variant="info">{t('inquiryPending')}</Alert>}
-          <h4 className="font-medium">{t('inquiryHistory')}</h4>
-          <ul className="space-y-3">
-            {inquiries.map((inquiry) => (
-              <li
-                key={inquiry.operationKey}
-                className="rounded-lg border border-[var(--sc-border-default)] p-4"
-              >
-                <p className="whitespace-pre-wrap break-words">{inquiry.message}</p>
-                <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">
-                  {t('inquirySentAt')}:{' '}
-                  <time dateTime={inquiry.submittedAt}>
-                    {new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                      timeZone: 'Asia/Ho_Chi_Minh',
-                    }).format(new Date(inquiry.submittedAt))}
-                  </time>
-                </p>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      {!loading && !error && inquiries.length === 0 && (
-        <p className="text-sm text-[var(--sc-text-secondary)]">{t('noInquiries')}</p>
-      )}
-      {allowSubmit && !loading && !error && inquiries.length === 0 && (
-        <form onSubmit={submit} className="space-y-3">
-          <Input
-            label={t('inquiryMessage')}
-            error={form.formState.errors.message ? t('inquiryInvalid') : undefined}
-            {...form.register('message')}
-          />
-          <Button type="submit" isLoading={form.formState.isSubmitting}>
-            {t('sendInquiry')}
-          </Button>
-        </form>
-      )}
-    </section>
+      <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3 rounded-2xl px-5 py-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)] sm:px-6 [&::-webkit-details-marker]:hidden">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]">
+          <MessageSquare size={19} aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">{t('customInquiry')}</span>
+          <span className="mt-0.5 block text-xs leading-5 text-[var(--sc-text-secondary)]">
+            {t(inquiries.length > 0 ? 'inquiryHistory' : 'customInquiryHint')}
+          </span>
+        </span>
+        <ChevronDown
+          size={16}
+          aria-hidden="true"
+          className="shrink-0 text-[var(--sc-text-secondary)] transition-transform group-open:rotate-180 motion-reduce:transition-none"
+        />
+      </summary>
+      <div className="space-y-3 border-t border-[var(--sc-border-light)] px-5 py-4 sm:px-6">
+        {error && <Alert variant="error">{error}</Alert>}
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={loading || form.formState.isSubmitting}
+          onClick={() => void reload(controller.current?.signal)}
+        >
+          {t('refresh')}
+        </Button>
+        {loading && <p role="status">{t('inquiryLoading')}</p>}
+        {sent && <Alert variant="success">{t('inquirySubmitted')}</Alert>}
+        {!loading && inquiries.length > 0 && (
+          <>
+            {allowSubmit && <Alert variant="info">{t('inquiryPending')}</Alert>}
+            <h4 className="font-medium">{t('inquiryHistory')}</h4>
+            <ul className="space-y-3">
+              {inquiries.map((inquiry) => (
+                <li
+                  key={inquiry.operationKey}
+                  className="rounded-lg border border-[var(--sc-border-default)] p-4"
+                >
+                  <p className="whitespace-pre-wrap break-words">{inquiry.message}</p>
+                  <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">
+                    {t('inquirySentAt')}:{' '}
+                    <time dateTime={inquiry.submittedAt}>
+                      {new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                      }).format(new Date(inquiry.submittedAt))}
+                    </time>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {allowSubmit && !loading && !error && inquiries.length === 0 && (
+          <form onSubmit={submit} className="space-y-3">
+            <Input
+              label={t('inquiryMessage')}
+              error={form.formState.errors.message ? t('inquiryInvalid') : undefined}
+              {...form.register('message')}
+            />
+            <Button type="submit" isLoading={form.formState.isSubmitting}>
+              {t('sendInquiry')}
+            </Button>
+          </form>
+        )}
+      </div>
+    </details>
   );
 }

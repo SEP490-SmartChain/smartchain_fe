@@ -63,6 +63,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   warehouse_handover: Truck,
   warehouse_returns: RotateCcw,
   warehouse_counts: ClipboardCheck,
+  warehouse_claim_evidence: ClipboardCheck,
   inventory: Boxes,
   rules: GitBranch,
   shipments: Truck,

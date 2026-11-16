@@ -200,30 +200,54 @@ class ApiClient {
       }
       if (response.ok && options.responseMode === 'pdf') {
         if (response.headers.get('Content-Type')?.split(';')[0] !== 'application/pdf') {
-          throw new ApiError('Invalid label response', response.status, 'API.INVALID_RESPONSE');
+          throw new ApiError(
+            this.message('Phản hồi nhãn vận chuyển không hợp lệ.', 'Invalid label response'),
+            response.status,
+            'API.INVALID_RESPONSE',
+          );
         }
         const blob = await response.blob();
         const signature = await blob.slice(0, 5).text();
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw new ApiError(
+            this.message('Phiên đăng nhập đã thay đổi.', 'Session changed'),
+            401,
+            'AUTH.UNAUTHENTICATED',
+          );
         }
         if (blob.size > 4 * 1024 * 1024 || signature !== '%PDF-') {
-          throw new ApiError('Invalid label response', response.status, 'API.INVALID_RESPONSE');
+          throw new ApiError(
+            this.message('Phản hồi nhãn vận chuyển không hợp lệ.', 'Invalid label response'),
+            response.status,
+            'API.INVALID_RESPONSE',
+          );
         }
         return blob as T;
       }
       if (response.ok && options.responseMode === 'xlsx') {
         // UC-142 export: only a real workbook (ZIP container) from the API is handed to the browser.
         if (response.headers.get('Content-Type')?.split(';')[0] !== XLSX_MIME) {
-          throw new ApiError('Invalid export response', response.status, 'API.INVALID_RESPONSE');
+          throw new ApiError(
+            this.message('Phản hồi xuất dữ liệu không hợp lệ.', 'Invalid export response'),
+            response.status,
+            'API.INVALID_RESPONSE',
+          );
         }
         const blob = await response.blob();
         const signature = await blob.slice(0, 2).text();
         if (revision !== useAuthStore.getState().revision) {
-          throw new ApiError('Session changed', 401, 'AUTH.UNAUTHENTICATED');
+          throw new ApiError(
+            this.message('Phiên đăng nhập đã thay đổi.', 'Session changed'),
+            401,
+            'AUTH.UNAUTHENTICATED',
+          );
         }
         if (blob.size > MAX_XLSX_BYTES || signature !== 'PK') {
-          throw new ApiError('Invalid export response', response.status, 'API.INVALID_RESPONSE');
+          throw new ApiError(
+            this.message('Phản hồi xuất dữ liệu không hợp lệ.', 'Invalid export response'),
+            response.status,
+            'API.INVALID_RESPONSE',
+          );
         }
         return blob as T;
       }
@@ -307,7 +331,11 @@ class ApiClient {
   refreshSession(): Promise<void> {
     if (this.logoutPromise) {
       return this.logoutPromise.then(() => {
-        throw new ApiError('Session ended', 401, 'AUTH.UNAUTHENTICATED');
+        throw new ApiError(
+          this.message('Phiên đăng nhập đã kết thúc.', 'Session ended'),
+          401,
+          'AUTH.UNAUTHENTICATED',
+        );
       });
     }
     if (this.refreshPromise) return this.refreshPromise;
@@ -402,9 +430,13 @@ class ApiClient {
 
   async currentUser(signal?: AbortSignal) {
     const revision = useAuthStore.getState().revision;
-    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me', { signal });
+    const { data } = await this.get<ApiResponse<unknown>>('/v1/auth/me', { signal, silent: true });
     if (!signal?.aborted && revision === useAuthStore.getState().revision) {
-      useAuthStore.getState().setUser(profileSchema.parse(data));
+      const user = profileSchema.parse(data);
+      const previous = profileSchema.safeParse(useAuthStore.getState().user);
+      if (!previous.success || JSON.stringify(user) !== JSON.stringify(previous.data)) {
+        useAuthStore.getState().setUser(user);
+      }
     }
   }
 

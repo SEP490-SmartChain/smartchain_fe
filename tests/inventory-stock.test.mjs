@@ -187,11 +187,11 @@ test('inventory KPI values are pluralized and number-formatted per locale', asyn
   assert.equal(en('totalSkusValue', { count: 248 }), '248 SKUs');
   assert.equal(en('availableStockValue', { count: 1 }), '1 unit');
   assert.equal(en('availableStockValue', { count: 14820 }), '14,820 units');
-  assert.equal(vi('totalSkusValue', { count: 248 }), '248 SKU');
+  assert.equal(vi('totalSkusValue', { count: 248 }), '248 mã sản phẩm');
   assert.equal(vi('availableStockValue', { count: 14820 }), '14.820 đơn vị');
   assert.equal(
     vi('availableStockHint'),
-    'Chỉ hàng bán được chưa giữ chỗ, đủ điều kiện lô/kệ tại SKU và kho đang hoạt động',
+    'Chỉ hàng bán được chưa giữ chỗ, đủ điều kiện lô/kệ tại mã sản phẩm và kho đang hoạt động',
   );
   assert.equal(
     en('availableStockHint'),

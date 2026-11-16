@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { BankReceiptForm } from './BankReceiptForm';
+import { InvoiceBankTransfer } from './InvoiceBankTransfer';
 import {
   invoiceApi,
   type FeeInvoice,
@@ -52,6 +53,7 @@ export function InvoiceDetail({
   const load = useCallback(async () => {
     const current = abort.current;
     setLoading(true);
+    setPayment(null);
     setError(null);
     try {
       const [header, page] = await Promise.all([
@@ -217,21 +219,17 @@ export function InvoiceDetail({
             {invoice.documentStatus === 'ISSUED' &&
               invoice.paymentStatus === 'UNPAID' &&
               !invoice.paymentRequired && <Alert variant="info">{t('noActiveObligation')}</Alert>}
-            {payment && (
-              <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">
-                <h4 className="font-semibold">{t('bankTitle')}</h4>
-                <p className="mt-2 text-sm leading-6">{t('bankHelp')}</p>
-                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt>{t('reference')}</dt>
-                    <dd className="break-all font-medium">{payment.reference}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('outstanding')}</dt>
-                    <dd className="font-medium">{money(payment.amountVnd)}</dd>
-                  </div>
-                </dl>
-              </div>
+            {payment && invoice.paymentRequired && (
+              <InvoiceBankTransfer
+                payment={payment}
+                busy={busy}
+                onRefresh={() => {
+                  void perform(async () => {
+                    await load();
+                    await onChanged();
+                  });
+                }}
+              />
             )}
             <div>
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -260,13 +258,15 @@ export function InvoiceDetail({
                       <tr key={line.id} className="border-t border-[var(--sc-border-default)]">
                         <td className="px-4 py-3">
                           <span className="font-medium">
-                            {line.feeType && t.has(`feeTypes.${line.feeType}`)
-                              ? t(`feeTypes.${line.feeType}`)
-                              : invoice.documentType === 'PLAN'
-                                ? t('kinds.PLAN')
-                                : line.ledgerEntryId
-                                  ? t('kinds.ADJUSTMENT')
-                                  : line.description}
+                            {line.description === 'CLAIM_CREDIT'
+                              ? t('feeTypes.CLAIM_CREDIT')
+                              : line.feeType && t.has(`feeTypes.${line.feeType}`)
+                                ? t(`feeTypes.${line.feeType}`)
+                                : invoice.documentType === 'PLAN'
+                                  ? t('kinds.PLAN')
+                                  : line.ledgerEntryId
+                                    ? t('kinds.ADJUSTMENT')
+                                    : line.description}
                           </span>
                           <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
                             {t.has(`units.${line.unit}`) ? t(`units.${line.unit}`) : line.unit}

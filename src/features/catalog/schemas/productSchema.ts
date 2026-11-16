@@ -71,6 +71,13 @@ export const productCreateFormSchema = productEditFormSchema.extend({
 });
 export type ProductCreateFormValues = z.infer<typeof productCreateFormSchema>;
 
+/** RHF also normalizes reset values; a nullable optional field must never become zero. */
+export function parseOptionalShelfLifeDays(value: unknown): number | null {
+  return value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+    ? null
+    : Number(value);
+}
+
 export const productConfigurationSchema = z
   .object({
     trackLot: z.boolean(),

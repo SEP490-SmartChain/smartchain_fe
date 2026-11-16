@@ -122,6 +122,18 @@ test('submits only current evidence references, decision, revision and stable op
   };
   assert.deepEqual(await api.decide(warehouse, id, id, input), review);
 });
+test('staff finalization posts the same scoped evidence to its dedicated endpoint', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(
+      new URL(String(url), 'http://localhost').pathname,
+      `/api/v1/warehouses/${warehouse}/asns/${id}/receiving/reviews/finalize`,
+    );
+    assert.equal(options.method, 'POST');
+    assert.deepEqual(JSON.parse(options.body), input);
+    return ok(review);
+  };
+  assert.deepEqual(await api.finalize(warehouse, id, id, input), review);
+});
 test('retries the exact decision after a lost response instead of inventing another operation', async () => {
   const commands = [];
   globalThis.fetch = async (url, options) => {

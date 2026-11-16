@@ -108,7 +108,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
           <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
             {detail.has(`lotState.${row.lotStatus}`)
               ? detail(`lotState.${row.lotStatus}`)
-              : row.lotStatus}
+              : detail('statusUnknown')}
           </p>
         </div>
       ),

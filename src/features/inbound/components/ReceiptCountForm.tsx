@@ -12,6 +12,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { InboundScanButton } from './InboundScanButton';
 import { ReceiptCartonPanel } from './ReceiptCartonPanel';
 import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
@@ -58,6 +59,7 @@ export function ReceiptCountForm({
   const [refresh, setRefresh] = useState(0);
   const [photoRevision, setPhotoRevision] = useState(0);
   const [activeLot, setActiveLot] = useState('');
+  const [skuScanError, setSkuScanError] = useState('');
   const [aiLot, setAiLot] = useState('');
   const [aiApplied, setAiApplied] = useState(false);
   const [aiQuarantine, setAiQuarantine] = useState(false);
@@ -98,6 +100,12 @@ export function ReceiptCountForm({
   const lineId = watch('inboundLineId');
   const line = receipt?.lines.find((row) => row.id === lineId);
   const openLines = receipt?.lines.filter((row) => row.count === null) ?? [];
+  function selectCountLine(id: string) {
+    setSkuScanError('');
+    if (id === lineId) return;
+    reset({ inboundLineId: id, lots: [] });
+    operationKey.current = createUuid();
+  }
   const editable =
     canWrite &&
     receipt?.status === 'RECEIVING' &&
@@ -107,6 +115,16 @@ export function ReceiptCountForm({
   const lots = countedLines.flatMap((row) => row.count?.lots ?? []);
   const inspectedLots = lots.filter((lot) => lot.qcState !== 'PENDING').length;
   const isApproved = receipt?.status === 'APPROVED' || receipt?.status === 'COMPLETED';
+  const canRecordLocations = can('warehouse.asn.postStock');
+  const locationSection = useRef<HTMLElement>(null);
+  const focusLocations = useRef(false);
+  useEffect(() => {
+    if (receipt?.status === 'APPROVED' && focusLocations.current && locationSection.current) {
+      focusLocations.current = false;
+      locationSection.current.focus();
+      locationSection.current.scrollIntoView({ block: 'start' });
+    }
+  }, [receipt?.status]);
   const reinspection = receipt?.status === 'RECEIVING' && receipt.lastReview?.decision === 'RETURN';
   const live = useRef({ receipt, isLocked, isDirty });
   useEffect(() => {
@@ -306,7 +324,9 @@ export function ReceiptCountForm({
                 title: t('progressReview'),
                 description: t(
                   isApproved
-                    ? 'progressApproved'
+                    ? receipt.status === 'COMPLETED'
+                      ? 'receiptCompleted'
+                      : 'progressApproved'
                     : reinspection
                       ? 'progressReinspection'
                       : receipt.status === 'CANCELLED'
@@ -368,6 +388,9 @@ export function ReceiptCountForm({
       {isLocked && <Alert variant="info" title={t('lockedWork')} />}
       {receipt && (
         <Card>
+          {editable && (
+            <p className="text-sm text-[var(--sc-text-secondary)]">{t('receivingVideoStep')}</p>
+          )}
           <ReceiptPhotos
             key={`media:${receipt.receivingRound}`}
             warehouseId={warehouseId}
@@ -412,11 +435,26 @@ export function ReceiptCountForm({
                     }))}
                     {...register('inboundLineId')}
                     error={errors.inboundLineId ? t('countInvalid') : undefined}
-                    onChange={(event) => {
-                      reset({ inboundLineId: event.target.value, lots: [] });
-                      operationKey.current = createUuid();
+                    onChange={(event) => selectCountLine(event.target.value)}
+                  />
+                  <InboundScanButton
+                    label={t('scanProduct')}
+                    onScan={(rawCode) => {
+                      const code = rawCode.trim();
+                      const matches = openLines.filter(
+                        (item) =>
+                          item.sku.toLowerCase() === code.toLowerCase() || item.barcode === code,
+                      );
+                      if (matches.length === 1) {
+                        selectCountLine(matches[0].id);
+                      } else {
+                        setSkuScanError(
+                          t(matches.length ? 'scanProductAmbiguous' : 'scanProductMismatch'),
+                        );
+                      }
                     }}
                   />
+                  {skuScanError && <Alert variant="warning">{skuScanError}</Alert>}
                   {line?.trackExpiry && (
                     <Alert
                       variant="info"
@@ -440,6 +478,7 @@ export function ReceiptCountForm({
                       }
                       required
                       type="number"
+                      inputMode="numeric"
                       min={0}
                       max={1_000_000}
                       step={1}
@@ -744,7 +783,13 @@ export function ReceiptCountForm({
                               )
                             }
                           >
-                            {t(activeLot === lot.recordId ? 'lotClose' : 'lotDetails')}
+                            {t(
+                              activeLot === lot.recordId
+                                ? 'lotClose'
+                                : receipt.status === 'APPROVED' && canWrite && !canRecordLocations
+                                  ? 'stockOpen'
+                                  : 'lotDetails',
+                            )}
                             {activeLot === lot.recordId ? (
                               <ChevronUp size={14} aria-hidden="true" />
                             ) : (
@@ -813,22 +858,19 @@ export function ReceiptCountForm({
                                 )
                               }
                             />
-                            <ReceiptStockPanel
-                              key={`stock:${lot.recordId}:${refresh}`}
-                              onPendingChange={handlePending}
-                              receiptId={receipt.receiptId}
-                              warehouseId={warehouseId}
-                              asnId={asnId}
-                              recordId={lot.recordId}
-                              canWrite={
-                                !otherPending(`stock:${lot.recordId}`) &&
-                                can('warehouse.asn.postStock')
-                              }
-                              onSaved={() => {
-                                setRefresh((v) => v + 1);
-                                onReceiptChanged();
-                              }}
-                            />
+                            {!canRecordLocations && (
+                              <ReceiptStockPanel
+                                key={`stock:${lot.recordId}:${refresh}`}
+                                initiallyExpanded={receipt.status === 'APPROVED' && canWrite}
+                                onPendingChange={handlePending}
+                                receiptId={receipt.receiptId}
+                                warehouseId={warehouseId}
+                                asnId={asnId}
+                                recordId={lot.recordId}
+                                canWrite={false}
+                                onSaved={onReceiptChanged}
+                              />
+                            )}
                           </div>
                         )}
                       </div>
@@ -845,6 +887,7 @@ export function ReceiptCountForm({
               asnId={asnId}
               receiptVersion={receipt.version}
               receiptStatus={receipt.status}
+              receiptLines={receipt.lines}
               canWrite={
                 !otherPending(`discrepancy:${asnId}`) && can('warehouse.asn.reportDiscrepancy')
               }
@@ -853,6 +896,37 @@ export function ReceiptCountForm({
                 onReceiptChanged();
               }}
             />
+          )}
+          {receipt && isApproved && canRecordLocations && lots.length > 0 && (
+            <section
+              ref={locationSection}
+              tabIndex={-1}
+              aria-labelledby="receipt-locations-heading"
+              className="space-y-3 scroll-mt-24"
+            >
+              <h2 id="receipt-locations-heading" className={styles.heading}>
+                {t('receivingLocationsTitle')}
+              </h2>
+              {receipt.status === 'APPROVED' && <p>{t('receivingLocationsHelp')}</p>}
+              {countedLines.flatMap((row) =>
+                (row.count?.lots ?? []).map((lot) => (
+                  <ReceiptStockPanel
+                    key={lot.recordId}
+                    initiallyExpanded
+                    warehouseId={warehouseId}
+                    asnId={asnId}
+                    receiptId={receipt.receiptId}
+                    recordId={lot.recordId}
+                    label={`${row.sku} · ${lot.lotCode}`}
+                    canWrite={
+                      !otherPending(`stock:${lot.recordId}`) && receipt.status === 'APPROVED'
+                    }
+                    onPendingChange={handlePending}
+                    onSaved={onReceiptChanged}
+                  />
+                )),
+              )}
+            </section>
           )}
         </div>
         <aside className={styles.sidebar} aria-label={t('reviewHistoryTitle')}>
@@ -869,6 +943,7 @@ export function ReceiptCountForm({
           )}
           {receipt && (
             <ReceiptReviewPanel
+              lines={receipt.lines}
               key={`review:${receipt.receivingRound}`}
               mediaRevision={photoRevision}
               onPendingChange={handlePending}
@@ -876,8 +951,11 @@ export function ReceiptCountForm({
               asnId={asnId}
               receiptVersion={receipt.version}
               isCountComplete={openLines.length === 0}
-              canWrite={!otherPending(`review:${asnId}`) && can('warehouse.asn.review')}
+              canWrite={
+                !otherPending(`review:${asnId}`) && can('warehouse.asn.finalize') && !isApproved
+              }
               onSaved={() => {
+                focusLocations.current = canRecordLocations;
                 setRefresh((v) => v + 1);
                 onReceiptChanged();
               }}

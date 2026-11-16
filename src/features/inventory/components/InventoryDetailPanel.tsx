@@ -57,6 +57,13 @@ const LOT_STATES = [
   'EXPIRED',
   'RECALLED',
 ];
+const SOURCE_MOVEMENTS: Record<string, string> = {
+  receiving_record: 'RECEIVE',
+  putaway_task: 'PUTAWAY',
+  pick_confirmation: 'PICK',
+  cycle_count_line: 'COUNT_ADJUST',
+  return_line: 'RETURN',
+};
 
 export function InventoryDetailPanel({
   kind,
@@ -90,7 +97,12 @@ export function InventoryDetailPanel({
     [locale],
   );
   const timestamp = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }),
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      }),
     [locale],
   );
   const activeFilters = Object.values(input).filter((value) => value?.trim()).length;
@@ -132,7 +144,9 @@ export function InventoryDetailPanel({
         'type' in row ? (
           <Badge
             status="info"
-            label={t.has(`movementType.${row.type}`) ? t(`movementType.${row.type}`) : row.type}
+            label={
+              t.has(`movementType.${row.type}`) ? t(`movementType.${row.type}`) : t('statusUnknown')
+            }
           />
         ) : (
           ''
@@ -184,10 +198,22 @@ export function InventoryDetailPanel({
       render: (row: DetailRow) =>
         'refId' in row ? (
           <div className="max-w-48">
-            <span className="text-xs">{row.refType}</span>
-            <p className="mb-0 mt-1 break-all font-mono text-xs text-[var(--sc-text-secondary)]">
-              {row.refId}
-            </p>
+            <span className="text-xs">
+              {SOURCE_MOVEMENTS[row.refType]
+                ? t(`movementType.${SOURCE_MOVEMENTS[row.refType]}`)
+                : t('reference')}
+            </span>
+            <details className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+              <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+                {t('lookupReferences')}
+              </summary>
+              <p className="mb-0 mt-1 break-all font-mono">
+                {row.refType} · {row.refId}
+              </p>
+              <p className="mb-0 mt-1 break-all">
+                {t('actor')}: {row.actorReference}
+              </p>
+            </details>
           </div>
         ) : (
           ''
@@ -195,14 +221,11 @@ export function InventoryDetailPanel({
     },
     {
       key: 'createdAt',
-      label: t('timeActor'),
+      label: t('time'),
       render: (row: DetailRow) =>
         'createdAt' in row ? (
           <div className="min-w-36">
             <span className="whitespace-nowrap">{timestamp.format(new Date(row.createdAt))}</span>
-            <p className="mb-0 mt-1 max-w-44 break-all text-xs text-[var(--sc-text-secondary)]">
-              {row.actorReference}
-            </p>
           </div>
         ) : (
           ''

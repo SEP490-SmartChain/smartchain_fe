@@ -49,6 +49,16 @@ const paymentSchema = z.object({
   dueOn: z.string(),
   method: z.literal('VERIFIED_BANK_TRANSFER'),
   verificationRequired: z.literal(true),
+  bankTransfer: z
+    .object({
+      bankCode: z.string().regex(/^[A-Za-z0-9_-]{2,20}$/),
+      bankBin: z.string().regex(/^\d{6}$/),
+      accountNumber: z.string().regex(/^[A-Za-z0-9]{1,19}$/),
+      accountName: z.string().max(100).optional(),
+      content: z.string().regex(/^ORCA[A-Z0-9]{1,46}$/),
+      qrPayload: z.string().min(50).max(512),
+    })
+    .optional(),
 });
 export type FeeInvoice = z.infer<typeof invoiceSchema>;
 export type FeeInvoiceLine = z.infer<typeof invoiceLineSchema>;

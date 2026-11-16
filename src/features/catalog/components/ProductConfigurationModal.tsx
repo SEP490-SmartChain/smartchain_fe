@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { productApi } from '../api/productApi';
 import {
   productConfigurationSchema,
+  parseOptionalShelfLifeDays,
   type ProductConfigurationValues,
 } from '../schemas/productSchema';
 
@@ -33,8 +34,11 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
     register,
     handleSubmit,
     reset,
+    control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProductConfigurationValues>({ resolver: zodResolver(productConfigurationSchema) });
+  const tracksExpiry = useWatch({ control, name: 'trackExpiry' });
   useEffect(() => {
     if (product) {
       reset({
@@ -52,7 +56,11 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
     if (!product) return;
     const principal = useAuthStore.getState().user;
     try {
-      await productApi.configure(product.id, { ...values, expectedUpdatedAt: product.updatedAt });
+      await productApi.configure(product.id, {
+        ...values,
+        shelfLifeDays: values.trackExpiry ? values.shelfLifeDays : null,
+        expectedUpdatedAt: product.updatedAt,
+      });
       if (principal !== useAuthStore.getState().user) return;
       onChanged();
       onClose();
@@ -79,32 +87,49 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
           {...register('trackLot')}
           error={errors.trackLot ? t('expiryRequiresLot') : undefined}
         />
-        <Checkbox label={t('trackExpiry')} {...register('trackExpiry')} />
+        <Checkbox
+          label={t('trackExpiry')}
+          {...register('trackExpiry', {
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+              if (event.target.checked) return;
+              setValue('shelfLifeDays', null, { shouldValidate: true });
+              setValue('minInboundShelfLifePct', Number(product?.minInboundShelfLifePct ?? 50), {
+                shouldValidate: true,
+              });
+              setValue('minOutboundDays', product?.minOutboundDays ?? 30, { shouldValidate: true });
+              setValue('nearExpiryDays', product?.nearExpiryDays ?? 30, { shouldValidate: true });
+            },
+          })}
+        />
         <Checkbox label={t('manufactureRequired')} {...register('manufactureRequired')} />
-        <div className="grid gap-4 sm:grid-cols-2">
-          {(
-            [
-              'shelfLifeDays',
-              'minInboundShelfLifePct',
-              'minOutboundDays',
-              'nearExpiryDays',
-            ] as const
-          ).map((field) => (
-            <Input
-              key={field}
-              label={t(field)}
-              type="number"
-              min={field === 'shelfLifeDays' ? 1 : 0}
-              max={field === 'minInboundShelfLifePct' ? 100 : 36500}
-              step={field === 'minInboundShelfLifePct' ? '0.01' : '1'}
-              {...register(field, {
-                setValueAs: (value: string) =>
-                  field === 'shelfLifeDays' && value === '' ? null : Number(value),
-              })}
-              error={errors[field] ? t('configurationInvalid') : undefined}
-            />
-          ))}
-        </div>
+        {tracksExpiry ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(
+              [
+                'shelfLifeDays',
+                'minInboundShelfLifePct',
+                'minOutboundDays',
+                'nearExpiryDays',
+              ] as const
+            ).map((field) => (
+              <Input
+                key={field}
+                label={t(field)}
+                type="number"
+                min={field === 'shelfLifeDays' ? 1 : 0}
+                max={field === 'minInboundShelfLifePct' ? 100 : 36500}
+                step={field === 'minInboundShelfLifePct' ? '0.01' : '1'}
+                {...register(field, {
+                  setValueAs: (value: unknown) =>
+                    field === 'shelfLifeDays' ? parseOptionalShelfLifeDays(value) : Number(value),
+                })}
+                error={errors[field] ? t('configurationInvalid') : undefined}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--sc-text-secondary)]">{t('noExpiryHint')}</p>
+        )}
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('configurationHint')}</p>
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>

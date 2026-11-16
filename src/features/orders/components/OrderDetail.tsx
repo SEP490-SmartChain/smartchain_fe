@@ -17,6 +17,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
   const status = (value: string) =>
     t.has(`statuses.${value}`) ? t(`statuses.${value}`) : t('processing');
   const owner = order.codAmount !== undefined;
+  const allocationCost = order.fulfillmentOrders.find(
+    (child) => child.allocationCost,
+  )?.allocationCost;
   const direct = order.collectionMode === 'DIRECT' || order.kind === 'WITHDRAWAL';
   const heading = 'text-base font-semibold';
   const history = [...order.statusHistory].sort(
@@ -34,14 +37,50 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
               ? t('withdrawalOrder')
               : order.sourceChannel === 'manual'
                 ? t('manual_channel')
-                : order.sourceChannel}
+                : order.sourceChannel === 'excel'
+                  ? t('excel_channel')
+                  : order.sourceChannel}
           </span>
         </div>
         <p className="text-xs text-[var(--sc-text-secondary)]">
           {t('created_at')}:{' '}
           <time dateTime={order.createdAt}>{formatOrderDate(order.createdAt, locale)}</time>
         </p>
+        <p className="text-xs text-[var(--sc-text-secondary)]">
+          {t('lastUpdated')}:{' '}
+          <time dateTime={order.updatedAt}>{formatOrderDate(order.updatedAt, locale)}</time>
+        </p>
       </header>
+      {owner && allocationCost && (
+        <Alert>
+          <p className="font-semibold">{t('totalCostSummary')}</p>
+          {allocationCost.extraShippingFeeVnd === null &&
+          allocationCost.savedGoodsValueVnd === null ? (
+            <p>{t('totalCostUnknown')}</p>
+          ) : allocationCost.extraShippingFeeVnd === '0' &&
+            allocationCost.savedGoodsValueVnd === '0' ? (
+            <p>{t('totalCostNoDifference')}</p>
+          ) : (
+            <>
+              {allocationCost.extraShippingFeeVnd !== null && (
+                <p>
+                  {t('totalCostExtraFreight', {
+                    amount: formatOrderMoney(allocationCost.extraShippingFeeVnd),
+                  })}
+                </p>
+              )}
+              {allocationCost.savedGoodsValueVnd !== null && (
+                <p>
+                  {t('totalCostSavedGoods', {
+                    amount: formatOrderMoney(allocationCost.savedGoodsValueVnd),
+                  })}
+                </p>
+              )}
+            </>
+          )}
+          <p className="mt-2 text-sm">{t('totalCostBoundedHint')}</p>
+        </Alert>
+      )}
       {order.status === 'VALIDATED' && order.holdReason !== 'CANCEL_PENDING' && (
         <Alert role="status">{t('allocationQueuedHint')}</Alert>
       )}
@@ -71,14 +110,20 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       />
       {detailTab === 'allocation' ? (
         <section className="space-y-4" aria-label={t('allocationTab')}>
-          <Alert>
-            {t(
-              order.kind === 'WITHDRAWAL'
-                ? 'withdrawalAllocationExplanation'
-                : 'allocationExplanation',
-            )}
-          </Alert>
-          {!order.fulfillmentOrders.length && <p>{t('allocationPending')}</p>}
+          {order.fulfillmentOrders.length > 0 && !(owner && allocationCost) && (
+            <Alert>
+              {t(
+                order.kind === 'WITHDRAWAL'
+                  ? 'withdrawalAllocationExplanation'
+                  : order.fulfillmentOrders.some(
+                        (child) => child.allocation?.reason === 'TOTAL_COST',
+                      )
+                    ? 'totalCostAllocationExplanation'
+                    : 'allocationExplanation',
+              )}
+            </Alert>
+          )}
+          {!order.fulfillmentOrders.length && <p>{t('allocationNotRecorded')}</p>}
           {order.fulfillmentOrders.map((child) => (
             <article
               key={child.id}
@@ -336,6 +381,19 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                             {t.has(`bookingStates.${shipment.bookingState}`)
                               ? t(`bookingStates.${shipment.bookingState}`)
                               : t('processing')}
+                          </span>
+                        )}
+                        {shipment.latestEvent && (
+                          <span className="block text-[var(--sc-text-secondary)]">
+                            {t('lastCarrierUpdate')}:{' '}
+                            {t.has(`statuses.${shipment.latestEvent.standardStatus}`)
+                              ? t(`statuses.${shipment.latestEvent.standardStatus}`)
+                              : t('processing')}{' '}
+                            ·{' '}
+                            <time dateTime={shipment.latestEvent.eventTime}>
+                              {formatOrderDate(shipment.latestEvent.eventTime, locale)}
+                            </time>
+                            {!shipment.latestEvent.isApplied && ` · ${t('trackingRecordedOnly')}`}
                           </span>
                         )}
                       </p>

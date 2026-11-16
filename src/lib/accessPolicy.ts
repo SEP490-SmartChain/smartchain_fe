@@ -277,6 +277,31 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'APPROVED',
     'Sprint5 physical count, putback and disposal workflows',
   ),
+  // UC-57–UC-59: the plan authority is Manager-only; blind observation is the Staff half.
+  capability(
+    'inventory.counts.view',
+    'inventory',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-57/UC-58: assigned Staff and the warehouse Manager read count plans in their own warehouse',
+  ),
+  capability(
+    'inventory.counts.plan',
+    'inventory',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'UC-57/UC-59: only the Manager creates, assigns, reviews and posts a count adjustment',
+  ),
+  capability(
+    'inventory.counts.observe',
+    'inventory',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'UC-58: assigned Staff submit blind observations; never expected, variance or money',
+  ),
   capability(
     'inventory.notifications.override',
     'inventory',
@@ -850,12 +875,20 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'RP3 FU-21/UC-41; assigned warehouse, POST /v1/warehouses/:warehouseId/asns/:asnId/receiving/reviews',
   ),
   capability(
+    'warehouse.asn.finalize',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_STAFF'],
+    'APPROVED',
+    'Assigned Staff closes the physical receipt after verified video, counts and QC',
+  ),
+  capability(
     'warehouse.asn.postStock',
     'warehouses',
     'PLATFORM',
     ['WAREHOUSE_STAFF'],
     'APPROVED',
-    'SS-1072 / RP3 FU-21; assigned warehouse, Manager-reviewed physical receipt through InventoryFacade.receive',
+    'SS-1072 / RP3 FU-21; assigned warehouse, finalized physical receipt through InventoryFacade.receive',
   ),
   capability(
     'warehouse.asn.reportDiscrepancy',
@@ -914,12 +947,76 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'ORCA-UI-REFACTOR-PLAN UI-03',
   ),
   capability(
+    'exceptions.manage',
+    'orders',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'Jira SS-1221; SRS UC-112/113/114',
+  ),
+  capability(
     'exceptions.view',
     'orders',
     'PLATFORM',
     ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
     'APPROVED',
     'ORCA-UI-REFACTOR-PLAN UI-03',
+  ),
+  capability(
+    'claims.view',
+    'finance',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER', 'ORCA_ACCOUNTANT', 'ORCA_ADMIN'],
+    'APPROVED',
+    'SS-1314 / UC-115–116: private claim evidence and decision queue',
+  ),
+  capability(
+    'claims.create',
+    'finance',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1314 / UC-115: Owner or assigned Ops opens an item claim',
+  ),
+  capability(
+    'claims.evidence.add',
+    'finance',
+    'ANY',
+    ['SELLER_OWNER', 'OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1314 / UC-115: verified private evidence',
+  ),
+  capability(
+    'claims.warehouseEvidence.view',
+    'finance',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1314 FE-45: allowlisted warehouse evidence task projection for current assignment only',
+  ),
+  capability(
+    'claims.warehouseEvidence.submit',
+    'finance',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'SS-1314 FE-45: image-only presign and confirm for current warehouse assignment',
+  ),
+  capability(
+    'claims.investigate',
+    'finance',
+    'PLATFORM',
+    ['OPS_DISPATCHER'],
+    'APPROVED',
+    'SS-1314 / UC-115: assigned Ops responsibility investigation',
+  ),
+  capability(
+    'claims.decide',
+    'finance',
+    'PLATFORM',
+    ['ORCA_ACCOUNTANT'],
+    'APPROVED',
+    'SS-1314 / UC-116: Accountant approves capped credit or rejects',
   ),
 ];
 
@@ -948,6 +1045,7 @@ export interface RoutePolicy {
 }
 
 export const ROUTE_POLICY: readonly RoutePolicy[] = [
+  { path: '/claims', prefix: true, capability: 'claims.view' },
   { path: '/admin/webhooks', capability: 'webhooks.deliveries.view' },
   { path: '/admin/tariffs', capability: 'tariffs.manage' },
   { path: '/admin/staff', capability: 'iam.warehouses.assign' },
@@ -962,7 +1060,13 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/warehouses', capability: 'warehouses.view' },
   { path: '/inventory', capability: 'inventory.view' },
   { path: '/warehouse/inventory-workflows', capability: 'inventory.workflows.view' },
+  { path: '/warehouse/counts', capability: 'inventory.counts.view' },
   { path: '/inventory/workflows', capability: 'inventory.workflows.view' },
+  {
+    path: '/warehouse/claim-evidence',
+    prefix: true,
+    capability: 'claims.warehouseEvidence.view',
+  },
   { path: '/warehouse', prefix: true, capability: 'warehouse.operations.view' },
   { path: '/rules', capability: 'rules.view' },
   { path: '/shipments', capability: 'shipments.view' },
@@ -1094,6 +1198,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     scope: 'platform',
     items: [
       {
+        key: 'warehouse_claim_evidence',
+        href: '/warehouse/claim-evidence',
+        capability: 'claims.warehouseEvidence.view',
+      },
+      {
         key: 'warehouse_intake',
         href: '/warehouse/inbound',
         capability: 'warehouse.operations.view',
@@ -1203,6 +1312,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
 
   // 4. CHUNG (MỌI ROLE)
+  {
+    key: 'claims_heading',
+    scope: 'shared',
+    items: [{ key: 'claims', href: '/claims', capability: 'claims.view' }],
+  },
   {
     key: 'account_heading',
     scope: 'shared',

@@ -82,3 +82,13 @@ account's other sessions were revoked server-side). Any API error whose code is
 tokens alike — switches the form to the same invalid-link state with a link to `/forgot-password`;
 other errors (same-as-current password, rate limit, network) surface through apiClient's default
 toast and leave the form on the input step for retry.
+
+## Staff invitation acceptance (UC-06/15)
+
+Public /accept-invite consumes the existing email query token into memory and
+removes it from the address bar. No activation occurs on GET/opening a link.
+The RHF/Zod form reuses the existing password policy and submits token/newPassword
+to POST /v1/iam/users/accept-invitation without a Bearer token. A validated ACTIVE
+Seller Staff response shows sign-in instructions, never an automatic session.
+Expired/used/invalid links use the same error state; other failures retain input.
+Tokens and passwords are not persisted in browser storage.

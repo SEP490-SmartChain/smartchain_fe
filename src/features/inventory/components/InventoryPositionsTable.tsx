@@ -51,7 +51,7 @@ function PositionProduct({ row }: { row: InventoryPosition }) {
               {row.lotStatus
                 ? t.has(`lotState.${row.lotStatus}`)
                   ? t(`lotState.${row.lotStatus}`)
-                  : row.lotStatus
+                  : t('statusUnknown')
                 : t('missingLotStatus')}
             </dd>
           </div>

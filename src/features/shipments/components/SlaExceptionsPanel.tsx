@@ -119,12 +119,29 @@ export function SlaExceptionsPanel() {
     }
   };
 
+  const handleRetryLabel = async (row: SlaException) => {
+    setAssigningId(row.id);
+    setActionError(null);
+    const revision = useAuthStore.getState().revision;
+    try {
+      await shipmentApi.retryLabelException(row.id);
+      if (revision !== useAuthStore.getState().revision) return;
+      await load(null);
+    } catch (failure) {
+      setActionError(failure instanceof Error ? failure.message : t('retryLabelError'));
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
   const columns: ColumnDef<SlaException>[] = [
     {
       key: 'reason',
       label: t('reason'),
       render: (row) =>
-        t(`reasonCode.${row.reasonCode === 'SLA.HANDOVER_OVERDUE' ? 'HANDOVER' : 'STALLED'}`),
+        t(
+          `reasonCode.${row.reasonCode === 'SLA.HANDOVER_OVERDUE' ? 'HANDOVER' : row.reasonCode === 'SLA.TRACKING_STALLED' ? 'STALLED' : 'LABEL'}`,
+        ),
     },
     { key: 'warehouseCode', label: t('warehouse') },
     {
@@ -138,7 +155,12 @@ export function SlaExceptionsPanel() {
       render: (row) =>
         row.reasonCode === 'SLA.HANDOVER_OVERDUE'
           ? t('deadlineValue', { time: formatTime(row.deadline) })
-          : t('stalledValue', { time: formatTime(row.lastProgressAt), hours: row.stallHours ?? 0 }),
+          : row.reasonCode === 'SLA.TRACKING_STALLED'
+            ? t('stalledValue', {
+                time: formatTime(row.lastProgressAt),
+                hours: row.stallHours ?? 0,
+              })
+            : formatTime(row.createdAt),
     },
     {
       key: 'status',
@@ -149,11 +171,15 @@ export function SlaExceptionsPanel() {
           label={
             row.status === 'RESOLVED'
               ? t('resolved')
-              : row.isAssignedToMe
-                ? t('mine')
-                : row.isAssigned
-                  ? t('assigned')
-                  : t('open')
+              : row.reasonCode === 'DISPATCH.LABEL_RETRIES_EXHAUSTED' &&
+                  row.isAssignedToMe &&
+                  !row.canRetryLabel
+                ? t('retryScheduled')
+                : row.isAssignedToMe
+                  ? t('mine')
+                  : row.isAssigned
+                    ? t('assigned')
+                    : t('open')
           }
         />
       ),
@@ -163,7 +189,19 @@ export function SlaExceptionsPanel() {
       key: 'actions',
       label: t('actions'),
       render: (row) =>
-        canAssign && row.status !== 'RESOLVED' && !row.isAssigned ? (
+        canAssign &&
+        row.reasonCode === 'DISPATCH.LABEL_RETRIES_EXHAUSTED' &&
+        row.isAssignedToMe &&
+        row.canRetryLabel ? (
+          <Button
+            size="sm"
+            variant="outline"
+            isLoading={assigningId === row.id}
+            onClick={() => void handleRetryLabel(row)}
+          >
+            {t('retryLabel')}
+          </Button>
+        ) : canAssign && row.status !== 'RESOLVED' && !row.isAssigned ? (
           <Button
             size="sm"
             variant="outline"

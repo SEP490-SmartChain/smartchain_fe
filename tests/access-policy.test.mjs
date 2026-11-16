@@ -517,6 +517,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'shipping_heading',
       'finance_heading',
       'monitoring_heading',
+      'claims_heading',
       'account_heading',
     ],
     OPS_DISPATCHER: [
@@ -525,6 +526,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'network_warehouses_heading',
       'shipping_heading',
       'monitoring_heading',
+      'claims_heading',
       'account_heading',
     ],
     WAREHOUSE_MANAGER: [
@@ -540,6 +542,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'overview_heading',
       'carrier_setup_heading',
       'finance_heading',
+      'claims_heading',
       'account_heading',
     ],
     SELLER_OWNER: [
@@ -549,6 +552,7 @@ test('sidebar derives from the same capability source for every role', () => {
       'finance_heading',
       'integrations_heading',
       'workspace_settings_heading',
+      'claims_heading',
       'account_heading',
     ],
     SELLER_STAFF: ['overview_heading', 'goods_heading', 'orders_heading', 'account_heading'],
@@ -575,7 +579,10 @@ test('shipping navigation follows the operator workflow without exposing seller-
   const sellerOrders = policy
     .getVisibleNavGroups(effective(OWNER, TENANT), false)
     .find((group) => group.key === 'orders_heading');
-  assert.deepEqual(sellerOrders?.items.map((item) => item.key), ['orders', 'returns']);
+  assert.deepEqual(
+    sellerOrders?.items.map((item) => item.key),
+    ['orders', 'returns'],
+  );
 });
 
 test('every visible nav/search href is route-allowed for that role (single source)', () => {

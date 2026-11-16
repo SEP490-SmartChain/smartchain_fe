@@ -9,12 +9,18 @@ import { Link } from 'react-router-dom';
 import { Alert, Button, Card, Input, PageHeader, Select } from '@/components/Common';
 import { encodeLabelBarcode } from '@/features/catalog';
 import { useAccess } from '@/hooks/useAccess';
+import {
+  clearFulfillmentPending,
+  loadFulfillmentPending,
+  persistFulfillmentPending,
+} from '@/features/orders/lib/fulfillmentPending';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
 import styles from './PackingWorkspace.module.css';
 import {
   packingApi,
+  packCommandSchema,
   type PackingDetail,
   type PackingQueue,
   type PackCommand,
@@ -31,6 +37,7 @@ export function PackingWorkspace() {
   return <PackingSession key={`${user?.userId}:${revision}`} />;
 }
 function PackingSession() {
+  const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const t = useTranslations('Packing'),
     { can } = useAccess();
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; code: string }[]>([]),
@@ -39,6 +46,7 @@ function PackingSession() {
     [detail, setDetail] = useState<PackingDetail | null>(null),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(true),
+    [pendingRecovery, setPendingRecovery] = useState<PackCommand | null>(null),
     [refresh, setRefresh] = useState(0);
   const abort = useRef(new AbortController());
   useEffect(() => {
@@ -81,6 +89,16 @@ function PackingSession() {
     }
     return () => c.abort();
   }, [warehouse, refresh, t]);
+  useEffect(() => {
+    setPendingRecovery(null);
+    if (!actorId || !warehouse || !detail) return;
+    setPendingRecovery(
+      loadFulfillmentPending(
+        { actorId, warehouseId: warehouse, operation: 'pack', resourceId: detail.id },
+        packCommandSchema,
+      ),
+    );
+  }, [actorId, warehouse, detail?.id]);
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   async function open(id: string) {
@@ -176,9 +194,14 @@ function PackingSession() {
             <PackingForm
               key={`${warehouse}:${detail.id}:${detail.version}`}
               warehouse={warehouse}
+              actorId={actorId}
               detail={detail}
+              recoveryOnly={detail.status !== 'PICKED' && !!pendingRecovery}
               writable={can('warehouse.packing.confirm')}
-              onPacked={() => setRefresh((n) => n + 1)}
+              onPacked={() => {
+                setPendingRecovery(null);
+                setRefresh((n) => n + 1);
+              }}
             />
           )}
         </div>
@@ -188,19 +211,29 @@ function PackingSession() {
 }
 function PackingForm({
   warehouse,
+  actorId,
   detail,
+  recoveryOnly,
   writable,
   onPacked,
 }: {
   warehouse: string;
+  actorId: string;
   detail: PackingDetail;
+  recoveryOnly: boolean;
   writable: boolean;
   onPacked: () => void;
 }) {
   const t = useTranslations('Packing');
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const pending = useRef<PackCommand | null>(null),
+  const scope = {
+    actorId,
+    warehouseId: warehouse,
+    operation: 'pack' as const,
+    resourceId: detail.id,
+  };
+  const pending = useRef<PackCommand | null>(loadFulfillmentPending(scope, packCommandSchema)),
     running = useRef(false),
     abort = useRef(new AbortController());
   const form = useForm<z.infer<typeof packingFormSchema>>({
@@ -225,28 +258,43 @@ function PackingForm({
     running.current = true;
     setBusy(true);
     setError('');
-    pending.current ??= {
-      operationId: createUuid(),
-      expectedVersion: detail.version,
-      actualWeightG: values.actualWeightG,
-      actualLengthCm: values.actualLengthCm,
-      actualWidthCm: values.actualWidthCm,
-      actualHeightCm: values.actualHeightCm,
-      contents: values.contents,
-      materials: values.materialCode
-        ? [{ materialCode: values.materialCode, qty: values.materialQty, unit: 'UNIT' }]
-        : [],
-    };
+    if (!pending.current) {
+      const command: PackCommand = {
+        operationId: createUuid(),
+        expectedVersion: detail.version,
+        actualWeightG: values.actualWeightG,
+        actualLengthCm: values.actualLengthCm,
+        actualWidthCm: values.actualWidthCm,
+        actualHeightCm: values.actualHeightCm,
+        contents: values.contents,
+        materials: values.materialCode
+          ? [{ materialCode: values.materialCode, qty: values.materialQty, unit: 'UNIT' }]
+          : [],
+      };
+      try {
+        persistFulfillmentPending(scope, command);
+        pending.current = command;
+      } catch {
+        setError(t('recoveryUnavailable'));
+        running.current = false;
+        setBusy(false);
+        return;
+      }
+    }
     try {
       await packingApi.pack(warehouse, detail.id, pending.current, abort.current.signal);
       if (!abort.current.signal.aborted) {
+        clearFulfillmentPending(scope, pending.current);
         pending.current = null;
         onPacked();
       }
     } catch (error: unknown) {
       if (!abort.current.signal.aborted) {
         const rejected = isRejectedOperation(error);
-        if (rejected) pending.current = null;
+        if (rejected) {
+          if (pending.current) clearFulfillmentPending(scope, pending.current);
+          pending.current = null;
+        }
         setError(t(rejected ? 'rejectedError' : 'writeError'));
       }
     } finally {
@@ -262,68 +310,109 @@ function PackingForm({
     <Card className="space-y-4">
       <h2 className="break-all text-lg font-semibold">{detail.orderCode}</h2>
       {error && <Alert variant="error">{error}</Alert>}
-      {detail.status === 'PICKED' && writable ? (
+      {(detail.status === 'PICKED' || recoveryOnly) && writable ? (
         <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
-          <Alert>{t('verifyHint')}</Alert>
-          {detail.items.map((item, index) => (
-            <Input
-              key={item.id}
-              type="number"
-              min={1}
-              max={item.qty}
-              required
-              label={`${item.name ?? t('item')}${item.sku ? ` · ${item.sku}` : ''} · ${t('expected', { qty: item.qty })}`}
-              {...form.register(`contents.${index}.qty`, { valueAsNumber: true })}
-              error={form.formState.errors.contents?.[index] ? t('invalidInput') : undefined}
-              disabled={busy || !!pending.current}
-            />
-          ))}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label={t('weight')}
-              type="number"
-              min={1}
-              required
-              {...form.register('actualWeightG', { valueAsNumber: true })}
-              error={form.formState.errors.actualWeightG ? t('invalidInput') : undefined}
-              disabled={busy || !!pending.current}
-            />
-            {(['actualLengthCm', 'actualWidthCm', 'actualHeightCm'] as const).map((name) => (
+          {recoveryOnly ? <Alert>{t('writeError')}</Alert> : <Alert>{t('verifyHint')}</Alert>}
+          {!recoveryOnly &&
+            detail.items.map((item, index) => (
               <Input
-                key={name}
-                label={t(name)}
-                inputMode="decimal"
+                key={item.id}
+                type="number"
+                min={1}
+                max={item.qty}
                 required
-                {...form.register(name)}
-                error={form.formState.errors[name] ? t('invalidInput') : undefined}
+                label={`${item.name ?? t('item')}${item.sku ? ` · ${item.sku}` : ''} · ${t('expected', { qty: item.qty })}`}
+                {...form.register(`contents.${index}.qty`, { valueAsNumber: true })}
+                error={form.formState.errors.contents?.[index] ? t('invalidInput') : undefined}
                 disabled={busy || !!pending.current}
               />
             ))}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Input
-              label={t('material')}
-              {...form.register('materialCode')}
-              error={form.formState.errors.materialCode ? t('invalidInput') : undefined}
-              disabled={busy || !!pending.current}
-            />
-            {form.watch('materialCode') && (
+          {!recoveryOnly && (
+            <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label={t('materialQty')}
-                inputMode="numeric"
-                {...form.register('materialQty')}
-                error={form.formState.errors.materialQty ? t('invalidInput') : undefined}
+                label={t('weight')}
+                type="number"
+                min={1}
+                required
+                {...form.register('actualWeightG', { valueAsNumber: true })}
+                error={form.formState.errors.actualWeightG ? t('invalidInput') : undefined}
                 disabled={busy || !!pending.current}
               />
-            )}
-          </div>
-          <p className="text-sm text-[var(--sc-text-secondary)]">{t('materialHint')}</p>
-          <Button type="submit" disabled={busy}>
+              {(['actualLengthCm', 'actualWidthCm', 'actualHeightCm'] as const).map((name) => (
+                <Input
+                  key={name}
+                  label={t(name)}
+                  inputMode="decimal"
+                  required
+                  {...form.register(name)}
+                  error={form.formState.errors[name] ? t('invalidInput') : undefined}
+                  disabled={busy || !!pending.current}
+                />
+              ))}
+            </div>
+          )}
+          {!recoveryOnly && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label={t('material')}
+                {...form.register('materialCode')}
+                error={form.formState.errors.materialCode ? t('invalidInput') : undefined}
+                disabled={busy || !!pending.current}
+              />
+              {form.watch('materialCode') && (
+                <Input
+                  label={t('materialQty')}
+                  inputMode="numeric"
+                  {...form.register('materialQty')}
+                  error={form.formState.errors.materialQty ? t('invalidInput') : undefined}
+                  disabled={busy || !!pending.current}
+                />
+              )}
+            </div>
+          )}
+          {!recoveryOnly && (
+            <p className="text-sm text-[var(--sc-text-secondary)]">{t('materialHint')}</p>
+          )}
+          <Button
+            type={recoveryOnly ? 'button' : 'submit'}
+            disabled={busy}
+            onClick={recoveryOnly ? () => void submit(form.getValues()) : undefined}
+          >
             {pending.current ? t('retryOperation') : t('confirmPack')}
           </Button>
         </form>
       ) : (
-        <Alert>{t('packedHint')}</Alert>
+        <div className="space-y-3">
+          <Alert>{t(detail.status === 'PICKED' ? 'awaitingStaff' : 'packedHint')}</Alert>
+          <ul className="divide-y divide-[var(--sc-border-default)]">
+            {detail.items.map((item) => (
+              <li key={item.id} className="py-2 text-sm">
+                {item.name ?? t('item')}
+                {item.sku ? ` · ${item.sku}` : ''} · {t('expected', { qty: item.qty })}
+              </li>
+            ))}
+          </ul>
+          {detail.packing.map((record) => (
+            <dl key={record.id} className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <dt>{t('weight')}</dt>
+                <dd>{record.actualWeightG}</dd>
+              </div>
+              <div>
+                <dt>{t('actualLengthCm')}</dt>
+                <dd>{record.actualLengthCm}</dd>
+              </div>
+              <div>
+                <dt>{t('actualWidthCm')}</dt>
+                <dd>{record.actualWidthCm}</dd>
+              </div>
+              <div>
+                <dt>{t('actualHeightCm')}</dt>
+                <dd>{record.actualHeightCm}</dd>
+              </div>
+            </dl>
+          ))}
+        </div>
       )}
       {tracking ? (
         <>
