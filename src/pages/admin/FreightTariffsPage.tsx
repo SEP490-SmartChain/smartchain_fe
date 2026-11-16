@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { useSearchParams } from 'react-router-dom';
+
 import { useTranslations } from 'next-intl';
 
 import { Tabs } from '@/components/Common/Tabs/Tabs';
@@ -8,7 +10,10 @@ import { ServiceTariffManager } from '@/features/tenants';
 
 export default function FreightTariffsPage() {
   const t = useTranslations('ServiceTariffs');
-  const [tab, setTab] = useState('freight');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(
+    searchParams.get('tab') === 'intelligence' ? 'intelligence' : 'freight',
+  );
   const intelligence = useTranslations('RateIntelligence');
   return (
     <div className="space-y-5">
@@ -25,9 +30,9 @@ export default function FreightTariffsPage() {
       {tab === 'service' ? (
         <ServiceTariffManager />
       ) : tab === 'intelligence' ? (
-        <RateIntelligenceManager />
+        <RateIntelligenceManager onOpenTariffs={() => setTab('freight')} />
       ) : (
-        <FreightTariffManager />
+        <FreightTariffManager onOpenRateData={() => setTab('intelligence')} />
       )}
     </div>
   );

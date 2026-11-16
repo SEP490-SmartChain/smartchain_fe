@@ -8,6 +8,8 @@ export { GlobalCarrierCatalog } from './components/GlobalCarrierCatalog';
 export { CarrierAccountManager } from './components/CarrierAccountManager';
 export { FreightTariffManager } from './components/FreightTariffManager';
 export { RateIntelligenceManager } from './components/RateIntelligenceManager';
+export { RateProposalPanel } from './components/RateProposalPanel';
+export { useProvinceNames } from './hooks/useProvinceNames';
 export { useCarrierCatalog } from './hooks/useCarrierCatalog';
 export type {
   CarrierSummary as GlobalCarrierSummary,

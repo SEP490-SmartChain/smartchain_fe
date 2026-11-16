@@ -1,66 +1,104 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
-
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { z } from 'zod';
 
-import { Badge } from '@/components/Common/Badge/Badge';
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Card, CardHeader } from '@/components/Common/Card/Card';
-import { Select } from '@/components/Common/Select/Select';
+import { Tabs } from '@/components/Common/Tabs/Tabs';
 
+import { RateContractImport } from './RateContractImport';
+import { RatePriceUpdateCard } from './RatePriceUpdateCard';
+import { RateProposalPanel } from './RateProposalPanel';
+import { RateQuoteComparisonTable } from './RateQuoteComparison';
+import { RateSnapshotsTable } from './RateSnapshotsTable';
+import { RateUpdateHistory } from './RateUpdateHistory';
+import { RateWatchedRoutes, type RateRouteInput } from './RateWatchedRoutes';
+import { RateWorkflowGuide } from './RateWorkflowGuide';
+import { adminDivisionApi, type AdminDivision } from '../api/adminDivisionApi';
+import { carrierAccountApi, type CarrierAccount } from '../api/carrierAccountApi';
 import { freightTariffApi } from '../api/freightTariffApi';
 import {
   rateIntelligenceApi,
   type RateCollectionJob,
-  type RateImportPreview,
+  type RateScenario,
   type RateSnapshot,
 } from '../api/rateIntelligenceApi';
 
-const importSchema = z.object({
-  carrierId: z.string().uuid('Select a carrier.'),
-  file: z.custom<FileList>(
-    (value) => typeof FileList !== 'undefined' && value instanceof FileList && value.length === 1,
-    'Choose one CSV file.',
-  ),
-  isSample: z.boolean(),
-});
-type ImportForm = z.infer<typeof importSchema>;
+type SectionId = 'overview' | 'quotes' | 'history' | 'advanced';
 
-function formatAmount(value: string | number) {
-  return new Intl.NumberFormat('vi-VN').format(Number(value));
+const POLL_INTERVAL_MS = 5000;
+
+interface RateIntelligenceManagerProps {
+  /** Opens the purchase tariff list, which lives on another tab of the page. */
+  onOpenTariffs?: () => void;
 }
 
-export function RateIntelligenceManager() {
+export function RateIntelligenceManager({ onOpenTariffs }: RateIntelligenceManagerProps = {}) {
   const t = useTranslations('RateIntelligence');
+  const [section, setSection] = useState<SectionId>('overview');
+  const [isContractOpen, setIsContractOpen] = useState(false);
   const [services, setServices] = useState<Awaited<ReturnType<typeof freightTariffApi.services>>>(
     [],
   );
   const [jobs, setJobs] = useState<RateCollectionJob[]>([]);
   const [snapshots, setSnapshots] = useState<RateSnapshot[]>([]);
-  const [preview, setPreview] = useState<RateImportPreview | null>(null);
-  const [importKey, setImportKey] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [actionError, setActionError] = useState('');
+  const [routes, setRoutes] = useState<RateScenario[]>([]);
+  const [accounts, setAccounts] = useState<CarrierAccount[]>([]);
+  const [provinces, setProvinces] = useState<AdminDivision[]>([]);
+  const [selectedCarrierId, setSelectedCarrierId] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadError, setHasLoadError] = useState(false);
+  const [busyAccountId, setBusyAccountId] = useState<string | null>(null);
+  const [isSavingRoute, setIsSavingRoute] = useState(false);
   const [notice, setNotice] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    resetField,
-    formState: { errors, isSubmitting },
-  } = useForm<ImportForm>({
-    resolver: zodResolver(importSchema),
-    defaultValues: { carrierId: '', isSample: true },
-  });
-  const selectedCarrierId = watch('carrierId');
+  const refresh = useCallback(async (carrierId?: string, isQuiet = false) => {
+    if (!isQuiet) setIsLoading(true);
+    setHasLoadError(false);
+    try {
+      const [serviceRows, jobRows, snapshotRows, routeRows, accountPage] = await Promise.all([
+        freightTariffApi.services(),
+        rateIntelligenceApi.jobs(),
+        rateIntelligenceApi.snapshots(carrierId),
+        rateIntelligenceApi.scenarios(),
+        carrierAccountApi.list({ environment: 'SANDBOX' }),
+      ]);
+      setServices(serviceRows);
+      setJobs(jobRows);
+      setSnapshots(snapshotRows);
+      setRoutes(routeRows);
+      setAccounts(accountPage.items.filter((account) => account.status === 'CONNECTED'));
+    } catch {
+      if (!isQuiet) setHasLoadError(true);
+    } finally {
+      if (!isQuiet) setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh(selectedCarrierId || undefined);
+  }, [refresh, selectedCarrierId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void adminDivisionApi
+      .provinces(controller.signal)
+      .then(setProvinces)
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
+  const hasRunningJob = jobs.some((job) => job.status === 'PENDING' || job.status === 'RUNNING');
+  useEffect(() => {
+    if (!hasRunningJob) return undefined;
+    const timer = window.setInterval(
+      () => void refresh(selectedCarrierId || undefined, true),
+      POLL_INTERVAL_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [hasRunningJob, refresh, selectedCarrierId]);
 
   const carriers = useMemo(() => {
     const unique = new Map<string, { id: string; code: string; name: string }>();
@@ -76,331 +114,182 @@ export function RateIntelligenceManager() {
     return [...unique.values()].sort((left, right) => left.name.localeCompare(right.name));
   }, [services]);
 
-  const refresh = useCallback(async (carrierId?: string) => {
-    setLoading(true);
-    setLoadError(false);
-    try {
-      const [serviceRows, jobRows, snapshotRows] = await Promise.all([
-        freightTariffApi.services(),
-        rateIntelligenceApi.jobs(),
-        rateIntelligenceApi.snapshots(carrierId),
-      ]);
-      setServices(serviceRows);
-      setJobs(jobRows);
-      setSnapshots(snapshotRows);
-    } catch {
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const updateAccounts = useMemo(
+    () =>
+      accounts.map((account) => ({
+        id: account.id,
+        carrierCode: account.orcaCarrier.code,
+        carrierName: account.orcaCarrier.name,
+      })),
+    [accounts],
+  );
 
-  useEffect(() => {
-    void refresh(selectedCarrierId || undefined);
-  }, [refresh, selectedCarrierId]);
+  const serviceOptions = useMemo(() => {
+    const connected = new Set(accounts.map((account) => account.carrierId));
+    return services
+      .filter((service) => connected.has(service.carrierId))
+      .map((service) => ({ id: service.id, label: `${service.carrier.name} · ${service.name}` }));
+  }, [accounts, services]);
 
-  const clearPreview = () => {
-    setPreview(null);
-    setImportKey(null);
-    setActionError('');
+  const handleUpdate = async (accountIds: string[]) => {
+    setBusyAccountId(accountIds.length > 1 ? 'all' : (accountIds[0] ?? null));
+    setError('');
     setNotice('');
+    try {
+      for (const accountId of accountIds) {
+        await rateIntelligenceApi.collect(accountId, crypto.randomUUID());
+      }
+      setNotice(t('updateQueued'));
+      await refresh(selectedCarrierId || undefined, true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('actionError'));
+    } finally {
+      setBusyAccountId(null);
+    }
   };
 
-  const onPreview = handleSubmit(async (values) => {
-    clearPreview();
-    const file = values.file[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setActionError(t('csvOnly'));
-      return;
-    }
-    setBusy(true);
+  const handleToggleRoute = async (route: RateScenario) => {
+    setIsSavingRoute(true);
+    setError('');
     try {
-      const carrier = carriers.find((item) => item.id === values.carrierId);
-      if (!carrier) throw new Error(t('selectCarrier'));
-      setPreview(await rateIntelligenceApi.preview(file, carrier.code, values.isSample));
-      setImportKey(crypto.randomUUID());
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('actionError'));
+      await rateIntelligenceApi.setScenarioActive(route.id, !route.isActive, route.updatedAt);
+      await refresh(selectedCarrierId || undefined, true);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('actionError'));
     } finally {
-      setBusy(false);
+      setIsSavingRoute(false);
     }
-  });
+  };
 
-  const onImport = handleSubmit(async (values) => {
-    const file = values.file[0];
-    const carrier = carriers.find((item) => item.id === values.carrierId);
-    if (!file || !carrier || !preview || !importKey || preview.issues.length > 0) return;
-    setSaving(true);
-    setActionError('');
+  const handleCreateRoute = async (input: RateRouteInput): Promise<boolean> => {
+    setIsSavingRoute(true);
+    setError('');
     setNotice('');
     try {
-      await rateIntelligenceApi.import(file, carrier.code, values.isSample, importKey);
-      setNotice(t('importSuccess'));
-      setPreview(null);
-      setImportKey(null);
-      resetField('file');
-      await refresh(values.carrierId);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : t('actionError'));
+      await rateIntelligenceApi.createScenario({
+        ...input,
+        receiverArea: 'WARD',
+        declaredValueVnd: 0,
+        codValueVnd: 0,
+      });
+      setNotice(t('routeSaved'));
+      await refresh(selectedCarrierId || undefined, true);
+      return true;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('actionError'));
+      return false;
     } finally {
-      setSaving(false);
+      setIsSavingRoute(false);
     }
-  });
+  };
 
-  const fileRegistration = register('file');
-  const carrierRegistration = register('carrierId', { onChange: clearPreview });
-  const sampleRegistration = register('isSample', { onChange: clearPreview });
+  const latestJob = jobs[0];
+  const refreshToken = latestJob ? `${latestJob.id}:${latestJob.status}` : 'none';
 
   return (
     <div className="space-y-5">
-      <Card>
-        <CardHeader title={t('title')} description={t('description')} />
-        <form
-          className="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_minmax(260px,1.3fr)_auto] lg:items-end"
-          onSubmit={onPreview}
-        >
-          <Select
-            label={t('carrier')}
-            options={carriers.map((carrier) => ({
-              value: carrier.id,
-              label: `${carrier.name} (${carrier.code})`,
-            }))}
-            placeholder={t('selectCarrier')}
-            error={errors.carrierId?.message ? t('selectCarrier') : undefined}
-            {...carrierRegistration}
-          />
-          <div>
-            <label
-              className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
-              htmlFor="rate-csv"
-            >
-              {t('csvFile')}
-            </label>
-            <input
-              id="rate-csv"
-              type="file"
-              accept=".csv,text/csv"
-              className="block min-h-[42px] w-full rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 py-2 text-sm text-[var(--sc-text-primary)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--sc-primary-alpha-08)] file:px-3 file:py-1 file:font-medium file:text-[var(--sc-primary-dark)]"
-              {...fileRegistration}
-              onChange={(event) => {
-                fileRegistration.onChange(event);
-                clearPreview();
-              }}
-            />
-            {errors.file?.message && (
-              <p className="mt-1 text-xs text-[var(--sc-error)]">{t('chooseCsv')}</p>
-            )}
-          </div>
-          <Button type="submit" isLoading={busy || isSubmitting}>
-            {t('previewImport')}
-          </Button>
-          <label className="flex items-center gap-2 text-sm text-[var(--sc-text-secondary)] lg:col-span-3">
-            <input
-              type="checkbox"
-              className="size-4 accent-[var(--sc-primary)]"
-              {...sampleRegistration}
-            />
-            {t('sampleData')}
-          </label>
-        </form>
-        <p className="mt-3 text-xs text-[var(--sc-text-secondary)]">{t('csvColumns')}</p>
-        {actionError && (
-          <p role="alert" className="mt-3 text-sm text-[var(--sc-error)]">
-            {actionError}
-          </p>
-        )}
-        {notice && (
-          <p role="status" className="mt-3 text-sm text-[var(--sc-success)]">
-            {notice}
-          </p>
-        )}
-      </Card>
+      <Tabs
+        variant="pills"
+        label={t('tabsLabel')}
+        activeId={section}
+        onChange={(id) => setSection(id as SectionId)}
+        tabs={[
+          { id: 'overview', label: t('tabOverview') },
+          { id: 'quotes', label: t('tabQuotes') },
+          { id: 'history', label: t('tabHistory') },
+          { id: 'advanced', label: t('tabAdvanced') },
+        ]}
+      />
 
-      {preview && (
-        <Card>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="text-base font-semibold text-[var(--sc-text-primary)]">
-                {t('previewTitle')}
-              </h3>
-              <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">
-                {t('previewCount', { valid: preview.validCount, total: preview.rowCount })}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" onClick={clearPreview}>
-                {t('cancel')}
-              </Button>
-              <Button
-                type="button"
-                isLoading={saving}
-                disabled={preview.issues.length > 0 || preview.validCount === 0}
-                onClick={onImport}
-              >
-                {t('confirmImport')}
-              </Button>
-            </div>
-          </div>
-          {preview.isSample && (
-            <div className="mt-3">
-              <Badge status="warning" label={t('sampleLabel')} />
-            </div>
-          )}
-          {preview.issues.length > 0 && (
-            <ul
-              className="mt-4 space-y-1 text-sm text-[var(--sc-error)]"
-              aria-label={t('validationIssues')}
+      {hasLoadError ? (
+        <Alert variant="error">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{t('loadError')}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => void refresh(selectedCarrierId || undefined)}
             >
-              {preview.issues.map((issue) => (
-                <li key={`${issue.row}-${issue.field}-${issue.message}`}>
-                  {t('rowIssue', { row: issue.row, field: issue.field, message: issue.message })}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
-
-      <Card padding="none">
-        <div className="border-b border-[var(--sc-border-default)] p-5">
-          <CardHeader title={t('snapshotsTitle')} description={t('snapshotsDescription')} />
-          <div className="max-w-sm">
-            <Select
-              label={t('filterCarrier')}
-              value={selectedCarrierId}
-              options={carriers.map((carrier) => ({
-                value: carrier.id,
-                label: `${carrier.name} (${carrier.code})`,
-              }))}
-              placeholder={t('allCarriers')}
-              isPlaceholderDisabled={false}
-              onChange={(event) => {
-                setValue('carrierId', event.target.value || '', { shouldValidate: false });
-                clearPreview();
-              }}
-            />
-          </div>
-        </div>
-        {loading ? (
-          <p className="p-6 text-sm text-[var(--sc-text-secondary)]">{t('loading')}</p>
-        ) : loadError ? (
-          <div className="p-6">
-            <p role="alert" className="text-sm text-[var(--sc-error)]">
-              {t('loadError')}
-            </p>
-            <Button className="mt-3" variant="secondary" onClick={() => void refresh()}>
               {t('reload')}
             </Button>
           </div>
-        ) : snapshots.length === 0 ? (
-          <p className="p-6 text-sm text-[var(--sc-text-secondary)]">{t('emptySnapshots')}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table
-              className="min-w-full divide-y divide-[var(--sc-border-default)] text-left text-sm"
-              aria-label={t('snapshotsTitle')}
-            >
-              <thead className="bg-[var(--sc-bg-secondary)] text-xs uppercase tracking-wide text-[var(--sc-text-secondary)]">
-                <tr>
-                  {[
-                    'carrier',
-                    'service',
-                    'route',
-                    'area',
-                    'weight',
-                    'basePrice',
-                    'stepPrice',
-                    'effective',
-                    'version',
-                    'source',
-                  ].map((key) => (
-                    <th key={key} scope="col" className="whitespace-nowrap px-4 py-3">
-                      {t(key)}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--sc-border-default)]">
-                {snapshots.map((snapshot) => (
-                  <tr key={snapshot.id} className="hover:bg-[var(--sc-bg-secondary)]">
-                    <td className="whitespace-nowrap px-4 py-3">{snapshot.carrier.name}</td>
-                    <td className="whitespace-nowrap px-4 py-3">{snapshot.service.name}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {snapshot.originZone} → {snapshot.destZone}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {t(snapshot.receiverArea === 'WARD' ? 'ward' : 'commune')}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {snapshot.weightMinG}–{snapshot.weightMaxG} g
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {formatAmount(snapshot.basePriceVnd)} / {snapshot.baseWeightG} g
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      +{formatAmount(snapshot.stepPriceVnd)} / {snapshot.stepWeightG} g
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {new Date(snapshot.effectiveFrom).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">v{snapshot.version}</td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span>{t('contractImport')}</span>
-                      {snapshot.isSample && (
-                        <span className="ml-2">
-                          <Badge status="warning" label={t('sampleLabel')} />
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+        </Alert>
+      ) : null}
 
-      <Card padding="none">
-        <div className="border-b border-[var(--sc-border-default)] p-5">
-          <CardHeader title={t('jobsTitle')} description={t('jobsDescription')} />
-        </div>
-        {jobs.length === 0 ? (
-          <p className="p-6 text-sm text-[var(--sc-text-secondary)]">{t('emptyJobs')}</p>
-        ) : (
-          <ul className="divide-y divide-[var(--sc-border-default)]">
-            {jobs.map((job) => (
-              <li
-                key={job.id}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
-              >
-                <div>
-                  <p className="font-medium text-[var(--sc-text-primary)]">
-                    {job.carrier.name} · {job.recordCount} {t('records')}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
-                    {new Date(job.startedAt).toLocaleString()} ·{' '}
-                    {job.source === 'CONTRACT_IMPORT' ? t('contractImport') : job.environment}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    status={
-                      job.status === 'SUCCEEDED'
-                        ? 'success'
-                        : job.status === 'PARTIAL'
-                          ? 'warning'
-                          : 'error'
-                    }
-                    label={t(`status_${job.status}`)}
-                  />
-                  {job.isSample && <Badge status="warning" label={t('sampleLabel')} />}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      {section === 'overview' ? (
+        <>
+          <RateWorkflowGuide
+            routes={routes}
+            jobs={jobs}
+            refreshToken={refreshToken}
+            onOpenRoutes={() => setSection('advanced')}
+            onOpenQuotes={() => setSection('quotes')}
+            {...(onOpenTariffs ? { onOpenTariffs } : {})}
+          />
+          <RatePriceUpdateCard
+            accounts={updateAccounts}
+            jobs={jobs}
+            busyAccountId={busyAccountId}
+            notice={notice}
+            error={error}
+            onUpdate={(ids) => void handleUpdate(ids)}
+          />
+          <RateProposalPanel refreshToken={refreshToken} />
+        </>
+      ) : null}
+
+      {section === 'quotes' ? <RateQuoteComparisonTable refreshToken={refreshToken} /> : null}
+
+      {section === 'history' ? <RateUpdateHistory jobs={jobs} /> : null}
+
+      {section === 'advanced' ? (
+        <>
+          {error ? <Alert variant="error">{error}</Alert> : null}
+          {notice ? <Alert variant="success">{notice}</Alert> : null}
+          <RateWatchedRoutes
+            routes={routes}
+            serviceOptions={serviceOptions}
+            provinces={provinces}
+            isSaving={isSavingRoute}
+            onToggle={(route) => void handleToggleRoute(route)}
+            onCreate={handleCreateRoute}
+          />
+          <Card>
+            <CardHeader
+              title={t('advancedContractTitle')}
+              description={t('advancedContractHint')}
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsContractOpen((open) => !open)}
+                >
+                  {isContractOpen ? t('routeAddClose') : t('advancedContractOpen')}
+                </Button>
+              }
+            />
+          </Card>
+          {isContractOpen ? (
+            <>
+              <RateContractImport
+                carriers={carriers}
+                onImported={async (carrierId) => {
+                  setSelectedCarrierId(carrierId);
+                  await refresh(carrierId, true);
+                }}
+              />
+              <RateSnapshotsTable
+                snapshots={snapshots}
+                carriers={carriers}
+                selectedCarrierId={selectedCarrierId}
+                isLoading={isLoading}
+                onCarrierChange={setSelectedCarrierId}
+              />
+            </>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }

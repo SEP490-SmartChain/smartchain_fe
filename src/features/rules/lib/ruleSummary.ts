@@ -4,6 +4,8 @@ export interface ConditionLabels {
   field: (field: RuleField) => string;
   operator: (operator: string) => string;
   boolean: (value: boolean) => string;
+  /** Optional plain-language wording; returning null keeps the technical clause. */
+  predicate?: (condition: Extract<RuleCondition, { kind: 'PREDICATE' }>) => string | null;
 }
 
 export interface ConditionSummary {
@@ -17,6 +19,8 @@ function valueText(value: RuleValue, labels: ConditionLabels): string {
 
 function clauseText(condition: RuleCondition, labels: ConditionLabels): string | null {
   if (condition.kind === 'PREDICATE') {
+    const plain = labels.predicate?.(condition);
+    if (plain) return plain;
     const head = `${labels.field(condition.field)} ${labels.operator(condition.operator)}`;
     if (condition.operator === 'EXISTS') return head;
     if ('values' in condition) {
