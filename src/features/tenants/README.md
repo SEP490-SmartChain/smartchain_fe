@@ -70,8 +70,11 @@ Historical FE identifiers below are not the SS-990 requirement mapping.
   signing/window fallback, server polling, signed evidence and invoices.
 - All new Owners see the same published Basic/Standard choices until they create
   a personal contract. Once a current contract exists, choices are hidden. Basic
-  is 7,000,000 VND/month for the confirmed demo; historical contracts keep their
-  original plan fee. Monthly fee, deposit and permitted service debt are distinct.
+  is 4,000,000 VND/month (1 warehouse, 500 parent orders, 10 m³) and Standard is
+  12,000,000 VND/month (3 warehouses, 1,500 parent orders, 30 m³), with default
+  3,000,000 VND deposit and 5,000,000 VND credit limit per SRS BR-52; historical
+  contracts keep their original plan fee. Monthly fee, deposit and permitted
+  service debt are distinct.
 - New `BUSINESS_PROFILE_V1` terms require RHF/Zod contracting party declarations
   and explicit review before preparation. PDF previews are read-only; ORCA locks
   the declared details and server commercial data before opening signNow. Sample
