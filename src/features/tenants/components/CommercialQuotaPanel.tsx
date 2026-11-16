@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight, CalendarClock, Layers3, Package, ShieldCheck, Warehouse } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
-import { ArrowRight, CalendarClock, Layers3, Package, ShieldCheck, Warehouse } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -29,12 +29,24 @@ import {
 const changeSchema = z.object({ planVersionId: z.string().uuid() });
 const closeSchema = z.object({ reason: z.string().trim().min(3).max(500) });
 
-export function CommercialQuotaPanel({ tenantId }: { tenantId?: string }) {
+export function CommercialQuotaPanel({
+  tenantId,
+  compact = false,
+}: {
+  tenantId?: string;
+  compact?: boolean;
+}) {
   const revision = useAuthStore((value) => value.revision);
-  return <CommercialQuotaContent key={`${revision}:${tenantId ?? 'own'}`} tenantId={tenantId} />;
+  return (
+    <CommercialQuotaContent
+      key={`${revision}:${tenantId ?? 'own'}`}
+      tenantId={tenantId}
+      compact={compact}
+    />
+  );
 }
 
-function CommercialQuotaContent({ tenantId }: { tenantId?: string }) {
+function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; compact: boolean }) {
   const t = useTranslations('CommercialQuota');
   const { can } = useAccess();
   const [quota, setQuota] = useState<CommercialQuota | null>(null);
@@ -184,15 +196,19 @@ function CommercialQuotaContent({ tenantId }: { tenantId?: string }) {
   };
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-5 sm:px-6">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] ${compact ? 'px-4 py-3' : 'bg-[var(--sc-bg-secondary)] p-5 sm:px-6'}`}
+      >
         <div className="flex items-center gap-3">
           <span className="rounded-xl bg-[var(--sc-bg-elevated)] p-2.5 text-[var(--sc-primary)]">
             <Layers3 size={20} aria-hidden="true" />
           </span>
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sc-text-secondary)]">
-              {t('eyebrow')}
-            </p>
+            {!compact && (
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--sc-text-secondary)]">
+                {t('eyebrow')}
+              </p>
+            )}
             <h2 className="text-lg font-semibold">{t('title')}</h2>
           </div>
         </div>
@@ -208,35 +224,45 @@ function CommercialQuotaContent({ tenantId }: { tenantId?: string }) {
           {t('refresh')}
         </Button>
       </div>
-      <div className="space-y-5 p-5 sm:p-6">
+      <div className={compact ? 'space-y-3 p-4' : 'space-y-5 p-5 sm:p-6'}>
         {error && <Alert variant="error">{error}</Alert>}
         {notice && <Alert variant="success">{notice}</Alert>}
         {!quota && !error && <p role="status">{t('loading')}</p>}
         {quota && !quota.plan && <Alert variant="info">{t('noPlan')}</Alert>}
         {quota?.plan && (
           <>
-            <Alert variant="info">{t('freightSeparateHint')}</Alert>
+            {!compact && <Alert variant="info">{t('freightSeparateHint')}</Alert>}
             <h3 className="flex items-center gap-2 text-xl font-semibold">
               <ShieldCheck size={19} className="text-[var(--sc-primary)]" aria-hidden="true" />
               {quota.plan.name} · v{quota.plan.versionNo}
             </h3>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-xl border border-[var(--sc-border-default)] p-4">
-                <Warehouse size={18} className="mb-3 text-[var(--sc-primary)]" aria-hidden="true" />
+                {!compact && (
+                  <Warehouse
+                    size={18}
+                    className="mb-3 text-[var(--sc-primary)]"
+                    aria-hidden="true"
+                  />
+                )}
                 <p className="text-sm text-[var(--sc-text-secondary)]">{t('warehouses')}</p>
                 <p className="mt-1 text-lg font-semibold">
                   {quota.usage?.occupiedWarehouses ?? '—'} / {quota.plan.warehouseAllowance}
                 </p>
               </div>
               <div className="rounded-xl border border-[var(--sc-border-default)] p-4">
-                <Package size={18} className="mb-3 text-[var(--sc-info)]" aria-hidden="true" />
+                {!compact && (
+                  <Package size={18} className="mb-3 text-[var(--sc-info)]" aria-hidden="true" />
+                )}
                 <p className="text-sm text-[var(--sc-text-secondary)]">{t('orders')}</p>
                 <p className="mt-1 text-lg font-semibold">
                   {quota.usage?.salesOrdersCreated ?? '—'} / {quota.plan.salesOrderAllowance}
                 </p>
               </div>
               <div className="rounded-xl border border-[var(--sc-border-default)] p-4">
-                <Layers3 size={18} className="mb-3 text-[var(--sc-warning)]" aria-hidden="true" />
+                {!compact && (
+                  <Layers3 size={18} className="mb-3 text-[var(--sc-warning)]" aria-hidden="true" />
+                )}
                 <p className="text-sm text-[var(--sc-text-secondary)]">{t('storage')}</p>
                 <p className="mt-1 text-lg font-semibold">
                   {quota.usage?.knownStockVolumeM3 ?? '—'} / {quota.plan.storageAllowanceM3} m³
@@ -244,6 +270,9 @@ function CommercialQuotaContent({ tenantId }: { tenantId?: string }) {
               </div>
             </div>
             <p className="text-xs text-[var(--sc-text-secondary)]">{t('meterHint')}</p>
+            {compact && (
+              <p className="text-xs text-[var(--sc-text-secondary)]">{t('freightSeparateHint')}</p>
+            )}
             {quota.usage && !quota.usage.storageUsageComplete && (
               <Alert variant="warning">{t('volumeIncomplete')}</Alert>
             )}

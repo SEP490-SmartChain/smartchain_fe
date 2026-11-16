@@ -28,7 +28,7 @@ export function tenantCsvExport(
     tenant.name,
     tenant.slug,
     tenant.adminEmail ?? '',
-    tenant.subscription.planCode ?? 'STANDARD',
+    tenant.subscription.planCode ?? '',
     tenant.status,
     tenant.quota.ordersUsed,
     tenant.quota.ordersTotal,

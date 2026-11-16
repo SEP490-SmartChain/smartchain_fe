@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   Activity,
@@ -21,18 +21,20 @@ import { toast } from 'sonner';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
-import { Card } from '@/components/Common/Card/Card';
 import Modal from '@/components/Common/Modal/Modal';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
 
-import type { TenantDetail } from '../types/tenant.types';
+import { CommercialQuotaPanel } from './CommercialQuotaPanel';
 import { TenantContractTab } from './TenantContractTab';
+
+import type { TenantDetail } from '../types/tenant.types';
 
 interface TenantDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   tenant: TenantDetail | null;
   onToggleStatusClick: () => void;
+  initialTab?: DetailTab;
 }
 
 type DetailTab = 'overview' | 'metrics' | 'audit' | 'contract';
@@ -42,10 +44,12 @@ export function TenantDetailModal({
   onClose,
   tenant,
   onToggleStatusClick,
+  initialTab = 'overview',
 }: TenantDetailModalProps) {
   const t = useTranslations('AdminTenants');
   const commercial = useTranslations('CommercialAdmin');
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
+  const tabBody = useRef<HTMLDivElement>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   if (!tenant) return null;
@@ -70,10 +74,17 @@ export function TenantDetailModal({
   const domainUrl = `${tenant.slug}.orca.vn`;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" width="680px">
-      <div className="flex max-h-[82vh] flex-col overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={tenant.name}
+      width="800px"
+      height="min(780px, calc(100dvh - 2rem))"
+      bodyClassName=""
+    >
+      <div className="flex h-full min-h-0 flex-col">
         {/* Modal Header */}
-        <div className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-6 py-5">
+        <div className="shrink-0 border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-4 pt-3 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)] text-base font-semibold text-[var(--sc-primary-dark)]">
@@ -81,9 +92,6 @@ export function TenantDetailModal({
               </div>
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h2 className="m-0 text-lg font-medium leading-6 text-[var(--sc-text-primary)]">
-                    {tenant.name}
-                  </h2>
                   <Badge
                     status={isSuspended ? 'error' : 'success'}
                     label={isSuspended ? t('status_suspended') : t('status_active')}
@@ -140,10 +148,13 @@ export function TenantDetailModal({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="mt-5">
+          <div className="mt-3 overflow-x-auto">
             <Tabs
               activeId={activeTab}
-              onChange={(id) => setActiveTab(id as DetailTab)}
+              onChange={(id) => {
+                setActiveTab(id as DetailTab);
+                tabBody.current?.scrollTo({ top: 0 });
+              }}
               tabs={[
                 { id: 'overview', label: 'Tổng quan' },
                 { id: 'metrics', label: 'Chỉ số & Quota' },
@@ -155,7 +166,10 @@ export function TenantDetailModal({
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6 text-sm">
+        <div
+          ref={tabBody}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4 text-sm [scrollbar-gutter:stable] sm:px-6"
+        >
           {activeTab === 'contract' && <TenantContractTab key={tenant.id} tenantId={tenant.id} />}
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
@@ -245,7 +259,7 @@ export function TenantDetailModal({
                           ? 'success'
                           : 'default'
                     }
-                    label={tenant.subscription?.planCode || 'STANDARD'}
+                    label={tenant.subscription?.planCode ?? t('noSubscription')}
                   />
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-[var(--sc-text-secondary)]">
@@ -254,7 +268,7 @@ export function TenantDetailModal({
                     <strong className="text-[var(--sc-text-primary)]">
                       {tenant.subscription?.startDate
                         ? new Date(tenant.subscription.startDate).toLocaleDateString('vi-VN')
-                        : 'Theo kỳ kích hoạt'}
+                        : '—'}
                     </strong>
                   </div>
                   <div>
@@ -262,7 +276,7 @@ export function TenantDetailModal({
                     <strong className="text-[var(--sc-text-primary)]">
                       {tenant.subscription?.endDate
                         ? new Date(tenant.subscription.endDate).toLocaleDateString('vi-VN')
-                        : 'Tự động gia hạn'}
+                        : '—'}
                     </strong>
                   </div>
                 </div>
@@ -273,6 +287,7 @@ export function TenantDetailModal({
           {/* TAB 2: METRICS & QUOTA */}
           {activeTab === 'metrics' && (
             <div className="space-y-4">
+              <CommercialQuotaPanel tenantId={tenant.id} compact />
               {/* Aggregates row */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 text-center">
@@ -378,7 +393,7 @@ export function TenantDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-6 py-3.5">
+        <div className="flex shrink-0 justify-end border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-6 py-3.5">
           <Button variant="outline" size="sm" onClick={onClose}>
             {t('cancel')}
           </Button>
