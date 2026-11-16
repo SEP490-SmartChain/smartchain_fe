@@ -1,4 +1,5 @@
 export type TenantStatus = 'ACTIVE' | 'SUSPENDED';
+export type SellerServiceStatus = 'PENDING_ACTIVATION' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
 
 export type SuspensionReason = 'PAYMENT_DEFAULT' | 'CONTRACT_VIOLATION' | 'ADMIN_REQUEST';
 
@@ -21,6 +22,7 @@ export interface TenantSummary {
   name: string;
   slug: string;
   status: TenantStatus;
+  serviceStatus?: SellerServiceStatus;
   adminEmail: string | null;
   subscription: TenantSubscriptionSummary;
   quota: TenantQuota;
@@ -58,6 +60,7 @@ export interface TenantDetail extends TenantSummary {
 export interface TenantListQuery {
   search?: string;
   status?: TenantStatus | '';
+  serviceStatus?: SellerServiceStatus | '';
   cursor?: string;
   limit?: number;
   registeredFrom?: string;
