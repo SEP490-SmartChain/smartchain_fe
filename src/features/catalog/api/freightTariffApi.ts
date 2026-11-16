@@ -15,6 +15,25 @@ const pagination = z.object({
   hasNext: z.boolean(),
   nextCursor: z.string().uuid().nullable(),
 });
+const money = z.string().regex(/^\d{1,12}$/);
+const purchaseSuggestionSchema = z.object({
+  bands: z
+    .array(
+      z.object({
+        minWeightG: z.number().int().nonnegative(),
+        maxWeightG: z.number().int().positive().nullable(),
+        includedWeightG: z.number().int().positive(),
+        stepWeightG: z.number().int().positive(),
+        basePriceVnd: money,
+        stepPriceVnd: money,
+      }),
+    )
+    .min(1),
+  routeCount: z.number().int().nonnegative(),
+  observedAt: z.string().datetime({ offset: true }),
+  isSample: z.boolean(),
+});
+export type PurchaseSuggestion = z.infer<typeof purchaseSuggestionSchema>;
 const root = '/v1/platform/tariffs';
 export const freightTariffApi = {
   async zoneCodes(carrierId: string, signal?: AbortSignal) {
@@ -23,6 +42,14 @@ export const freightTariffApi = {
       { signal, silent: true },
     );
     return z.array(z.string().regex(/^[A-Z0-9_-]{1,40}$/)).parse(result.data);
+  },
+  /** Card bands built from the newest carrier API prices for one service and zone. */
+  async purchaseSuggestion(serviceId: string, zone: string) {
+    const r = await apiClient.get<ApiResponse<unknown>>(`${root}/purchase/api-suggestion`, {
+      params: { serviceId, zone },
+      silent: true,
+    });
+    return purchaseSuggestionSchema.parse(r.data);
   },
   async read(kind: 'purchase' | 'sell', id: string) {
     const r = await apiClient.get<ApiResponse<unknown>>(
