@@ -65,6 +65,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   warehouse_counts: ClipboardCheck,
   warehouse_claim_evidence: ClipboardCheck,
   inventory: Boxes,
+  demandForecast: ChartNoAxesCombined,
   rules: GitBranch,
   shipments: Truck,
   reconciliation: Scale,

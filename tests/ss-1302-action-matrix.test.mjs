@@ -72,6 +72,7 @@ const expected = {
   'inventory.stocks.view': ['SELLER_OWNER', 'SELLER_STAFF'],
   'inventory.expiry.view': ['SELLER_OWNER', 'WAREHOUSE_MANAGER'],
   'inventory.notifications.manage': O,
+  'inventory.forecast.view': O,
   'inventory.positions.view': ['SELLER_OWNER', 'SELLER_STAFF', 'WAREHOUSE_MANAGER'],
   'inventory.ledger.view': ['SELLER_OWNER', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   'inventory.reservations.view': [],

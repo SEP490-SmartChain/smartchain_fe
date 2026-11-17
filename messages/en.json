@@ -64,7 +64,11 @@
     "stale": "Another operator updated this exception. The latest details have been loaded; review them before submitting again.",
     "rejected": "Current permissions or business state rejected this action. Review the refreshed details before continuing.",
     "uncertain": "The result is not confirmed. Check the request again before taking another action.",
-    "statuses": { "OPEN": "Open", "ASSIGNED": "In progress", "RESOLVED": "Resolved" },
+    "statuses": {
+      "OPEN": "Open",
+      "ASSIGNED": "In progress",
+      "RESOLVED": "Resolved"
+    },
     "types": {
       "ORDER": "Order",
       "DISPATCH": "Shipping label",
@@ -728,7 +732,6 @@
   },
   "Orders": {
     "excel_channel": "Spreadsheet import",
-
     "backorderHint": "There is not enough stock meeting allocation requirements. The order is waiting for eligible stock; allocation will retry when inventory is updated.",
     "allocationQueuedHint": "The order is validated and waiting for allocation. Its status will update automatically when processing completes.",
     "allocationLineValue": "Line declared value",
@@ -1157,7 +1160,8 @@
     "platform_staff": "Staff warehouse access",
     "claims": "Claims",
     "claims_heading": "Claims",
-    "inventory_workflows": "Inventory restoration"
+    "inventory_workflows": "Inventory restoration",
+    "demandForecast": "Demand forecast"
   },
   "Topbar": {
     "title_dashboard": "Operations Dashboard",
@@ -2481,7 +2485,6 @@
   "InventoryDetail": {
     "lookupReferences": "View lookup references",
     "statusUnknown": "Status unavailable",
-
     "positions": "Lot & bin",
     "ledger": "Movement ledger",
     "sku": "SKU",
@@ -2594,7 +2597,6 @@
   },
   "Warehouses": {
     "saveError": "Could not save working hours. Please try again.",
-
     "additionalInformation": "Additional information",
     "cutoffExplanation": "How does the cut-off affect orders?",
     "warehouseDetailTitle": "Warehouse details · {code}",
@@ -2883,7 +2885,6 @@
     "goToPutaway": "Go to putaway",
     "discrepancyProductCandidate": "{product} · {type} · {qty} units",
     "discrepancyProductComparison": "{product}: actual {actual}",
-
     "sellerShipment": "Seller shipment",
     "shipmentSku": "Item",
     "declaredQuantity": "Declared",
@@ -3390,7 +3391,10 @@
       "ALREADY_REQUESTED": "A cancellation request was already recorded.",
       "ALREADY_CANCELLED": "The waybill is already cancelled.",
       "RETRY_SCHEDULED": "A new check of the cancellation outcome with the carrier is scheduled."
-    }
+    },
+    "label": "Label",
+    "labelReady": "Ready",
+    "labelPending": "Not ready"
   },
   "CarrierBreakers": {
     "title": "Carrier circuit breakers",
@@ -3626,7 +3630,6 @@
     "scanWithCamera": "Open camera · {field}",
     "completedReadOnly": "This putaway task is complete.",
     "cancelledReadOnly": "This putaway task was cancelled.",
-
     "title": "Putaway tasks",
     "description": "Claim work, scan codes and confirm putaway.",
     "warehouse": "Warehouse",
@@ -3970,7 +3973,6 @@
   },
   "PutawayBinOverride": {
     "actorReference": "Staff reference",
-
     "title": "Change suggested storage bin",
     "description": "Choose a compatible bin and record the reason. Stock becomes sellable only after Staff physically scans and confirms the task.",
     "search": "Find bin by code or barcode",
@@ -4188,7 +4190,10 @@
     "remainingQty": "Remaining {qty}",
     "nextBacklog": "Next 100 lines",
     "firstBacklog": "First backlog page",
-    "eligibility": { "READY": "Ready", "RESERVATION_REQUIRED": "Reserve stock first" },
+    "eligibility": {
+      "READY": "Ready",
+      "RESERVATION_REQUIRED": "Reserve stock first"
+    },
     "empty": "No waves at this warehouse.",
     "chooseWave": "Choose a wave to view its pick list.",
     "chooseWaveHint": "Choose a wave from the list to view its status and continue picking.",
@@ -4984,14 +4989,12 @@
   },
   "InventoryWorkflows": {
     "unknownStatus": "Status unavailable",
-
     "noWarehouse": "No warehouses are available in your access scope.",
     "reference": "Reference",
     "executedQty": "Actually disposed: {qty}",
     "policyAuthorization": "Under an approved policy",
     "consentAuthorization": "With the goods owner’s consent",
     "policyExpiry": "Policy valid until: {date}",
-
     "title": "Inventory restoration",
     "description": "Review physical counts, restore cancelled picks and execute authorized disposal.",
     "warehouse": "Warehouse",
@@ -5087,7 +5090,6 @@
   },
   "Returns": {
     "returnReference": "Return reference",
-
     "title": "Returns",
     "description": "Return requests, physical receipt and inspection at the original warehouse.",
     "warehouse": "Origin warehouse",
@@ -5259,7 +5261,6 @@
   },
   "Packing": {
     "differentCarrier": "Uses a different carrier connection. Create a separate manifest for this group.",
-
     "nextPage": "Next page",
     "printManifest": "Print manifest",
     "printDraftManifest": "Print handover form for signing",
@@ -5624,8 +5625,14 @@
     "evidenceSubmitted": "Evidence submitted",
     "evidenceAlreadySubmittedNotice": "This task already has confirmed evidence recorded in the system. The case is awaiting review by Operations (Ops). You can submit additional photos below if more angles are needed, or close this form.",
     "closeTaskForm": "Close form",
-    "incidents": { "LOST": "Lost", "DAMAGED": "Damaged" },
-    "statuses": { "OPEN": "Open", "INVESTIGATING": "Investigating" },
+    "incidents": {
+      "LOST": "Lost",
+      "DAMAGED": "Damaged"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "INVESTIGATING": "Investigating"
+    },
     "uploadErrors": {
       "generic": "The upload result could not be confirmed. Retry the same request to resolve it safely.",
       "expired": "The upload intent expired. Start a new upload; the previous intent will not be reused.",
@@ -5968,5 +5975,119 @@
     "proposalRuleWeight": "Weight",
     "proposalUpTo": "Up to",
     "proposalViewRules": "View active rules"
+  },
+  "DemandForecast": {
+    "title": "Demand forecast",
+    "description": "Estimate how many units you will sell in the next 30 days so you can send stock to the warehouse before you run out or overstock.",
+    "formTitle": "Which product do you want to forecast?",
+    "sku": "Product",
+    "choose": "Select a product",
+    "chooseRequired": "Please select a product.",
+    "region": "Delivery region",
+    "regionHint": "The region where customers receive orders. The forecast uses orders delivered to this region.",
+    "run": "View forecast",
+    "quotaLeft": "{left}/{limit} forecasts left today. Reopening a product forecast from today does not use another one.",
+    "loading": "Loading…",
+    "noProducts": "No active products yet.",
+    "retryProducts": "Reload products",
+    "moreProducts": "Load more products",
+    "unknownProduct": "Product no longer in catalog",
+    "retry": "Retry",
+    "notFound": "This forecast was not found. It may have been rerun; pick it from the list.",
+    "loadError": "Unable to load the forecast. Please retry.",
+    "createError": "Unable to request the forecast. Please retry.",
+    "quota": "You have used all of today's forecasts. Existing forecasts are still available.",
+    "retryLimit": "No retries left for this product today. You can try again tomorrow.",
+    "notRetryable": "This forecast already has a result, so it does not need a rerun.",
+    "emptyTitle": "How to view a forecast",
+    "emptyStep1": "Pick the product you are planning stock for.",
+    "emptyStep2": "Pick the delivery region to forecast.",
+    "emptyStep3": "Select “View forecast” to estimate sales for the next 30 days.",
+    "recent": "Recent forecasts",
+    "noRuns": "No forecasts yet.",
+    "NORTH": "North",
+    "CENTRAL": "Central",
+    "SOUTH": "South",
+    "badge_QUEUED": "Queued",
+    "badge_RUNNING": "Analyzing",
+    "badge_PREDICTED": "AI analysis ready",
+    "badge_DISABLED": "No AI analysis",
+    "badge_PROVIDER_UNAVAILABLE": "No AI analysis",
+    "badge_INSUFFICIENT_DATA": "Not enough data",
+    "badge_FAILED": "Not completed",
+    "pendingTitle": "Analyzing sales history…",
+    "pendingBody": "This usually takes under a minute. You can leave this page; the result is saved.",
+    "period": "Next 30 days ({from} – {to})",
+    "headline": "About {total} units expected",
+    "dailyAverage": "Around {value} units per day",
+    "compareLabel": "Compared with the last 30 days",
+    "compareUp": "Up {pct}% (last 30 days: {recent} sold)",
+    "compareDown": "Down {pct}% (last 30 days: {recent} sold)",
+    "compareFlat": "About the same (last 30 days: {recent} sold)",
+    "peakLabel": "Busiest days",
+    "DISABLED_title": "AI market research is turned off",
+    "DISABLED_body": "AI analysis is turned off, so there is no forecast result yet.",
+    "PROVIDER_UNAVAILABLE_title": "Market research is unavailable",
+    "PROVIDER_UNAVAILABLE_body": "The AI service is busy or found no reliable sources.",
+    "INSUFFICIENT_DATA_title": "Not enough data to forecast",
+    "INSUFFICIENT_DATA_body": "The product needs orders delivered to this region from at least 90 days ago.",
+    "FAILED_title": "Market research did not complete",
+    "FAILED_body": "It is not rerun automatically, so no attempt is wasted.",
+    "retryRun": "Retry analysis ({left} left)",
+    "chartTitle": "Sales history and forecast",
+    "chartLabel": "Comparison of units sold in the last 30 days and forecast for the next 30 days, in 6-day blocks",
+    "today": "Today",
+    "tableToggle": "Show expected units per day",
+    "tableLabel": "Expected units per day for the next 30 days",
+    "tableDate": "Date",
+    "nextTitle": "Next step",
+    "nextBody": "Compare with your current stock. If it will not cover the next 30 days, create an inbound shipment.",
+    "goInventory": "View stock",
+    "goAsn": "Create inbound shipment",
+    "sourceApplied": "AI forecast",
+    "marketTitle": "AI market research",
+    "marketSuggestion": "Suggested adjustment {pct}% → about {total} units",
+    "marketSources": "Sources",
+    "marketSearchSuggestions": "Google Search Suggestions",
+    "impact_UP": "Raises demand",
+    "impact_DOWN": "Lowers demand",
+    "marketDetail": "Details",
+    "historyOpen": "Sales history",
+    "historyTitle": "Sales data used for the forecast",
+    "historyIntro": "Units sold per day over the last {days} days for this product and region. Compare with your orders to check accuracy.",
+    "historyTotal": "Total {days} days",
+    "historySoldDays": "Days with sales",
+    "historyRecentAvg": "Avg/day (last {days} days)",
+    "historyPreviousAvg": "Avg/day (previous {days} days)",
+    "historyTable": "Units sold per day",
+    "historyUnits": "Sold",
+    "historyNote": "The sales-based forecast uses the 28-day average, adjusted for trend and weekday pattern.",
+    "noAiResult": "This screen only shows AI results. See the actual sales rate under Inventory.",
+    "marketCalcTitle": "How does the AI reach this figure?",
+    "marketCalcRecent": "Actual sales: an average of {avg} units per day over the last 28 days",
+    "marketCalcTrend": " ({pct}% versus the previous 28 days)",
+    "marketCalcBaseline": "Sales-based forecast: {total} units over the next 30 days, from recent sales, trend and weekday pattern.",
+    "marketCalcAdjust": "Market adjustment proposed by the AI: {pct}%. Result: {baseline} × {factor} ≈ {total} units.",
+    "marketCalcTrendDown": "This is lower than the {recent} units you sold over the last 30 days because recent sales are trending down.",
+    "marketCalcTrendUp": "This is higher than the {recent} units you sold over the last 30 days because recent sales are trending up.",
+    "marketCalcNote": "The AI only proposes an adjustment rate; the base quantity is always calculated from your sales data.",
+    "marketDisclaimerKnowledge": "The analysis is produced by an AI model from the product name, delivery region and period only; ORCA does not send your sales figures. Treat the result as a reference.",
+    "marketDisclaimer": "The AI searches the web by product name, region and period; ORCA does not send your sales figures. Check the cited sources before relying on the result.",
+    "marketSummaryLabel": "AI assessment",
+    "marketFactors": "Contributing factors",
+    "marketCalcStep1": "Your actual sales: an average of {average} units/day over the last 28 days, adjusted for trend and weekday pattern, give about {base} units over the next 30 days.",
+    "marketCalcStep1NoAverage": "Your actual sales, adjusted for trend and weekday pattern, give about {base} units over the next 30 days.",
+    "marketCalcStep2": "The AI weighs the market factors below and proposes an adjustment of {pct}% on the step 1 figure (not on the last 30 days): {base} × {factor} ≈ {total} units.",
+    "marketCalcStep2Zero": "The AI found no factor clear enough to adjust (0%), so about {base} units stay unchanged.",
+    "marketKnowledgeNote": "This adjustment is based on general knowledge of seasons and shopping events in the forecast period. Current news was not searched on the web, so there are no cited sources, and the adjustment is capped at ±20%.",
+    "chartPast": "Sold in the last 30 days: {total}",
+    "chartFuture": "AI forecast, next 30 days: {total}",
+    "chartHint": "Each bar is the total sold in 6 days. Blue bars are sold units, green bars are the forecast.",
+    "marketAnalysisLabel": "Detailed analysis",
+    "impact_NEUTRAL": "Unclear impact",
+    "modelTitle": "AI model forecast",
+    "modelSuggestion": "The model expects about {total} units in the next 30 days.",
+    "tableBaseline": "From sales",
+    "tableAi": "With AI adjustment"
   }
 }
