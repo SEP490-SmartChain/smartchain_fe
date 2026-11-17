@@ -1,5 +1,12 @@
 # features/catalog
 
+The Admin carrier page includes a **Carrier webhooks** tab for inbound GHN,
+GHTK and Viettel Post setup (UC-92/102). It uses the existing
+`carriers.credentials.manage` capability and `/v1/platform/carrier-webhooks` API.
+Saves use version checks; secrets are never loaded back. A newly saved secret and
+the GHTK URL can be copied before leaving. Provider registration remains manual;
+configured status does not verify live delivery. J&T is explicitly unsupported.
+
 ## Manual testing feedback (5 November 2026)
 
 Optional shelf-life input preserves `null` on form reset and clearing. Expiry thresholds

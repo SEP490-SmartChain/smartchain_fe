@@ -11,6 +11,7 @@ const fields = z.enum([
   'itemCount',
   'codAmountVnd',
   'isCod',
+  'deliveryTier',
 ]);
 const value = z.union([z.string(), z.number(), z.boolean()]);
 const node: z.ZodType<RuleCondition, RuleCondition> = z.lazy(() =>
