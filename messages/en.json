@@ -3247,7 +3247,10 @@
       "ALREADY_REQUESTED": "A cancellation request was already recorded.",
       "ALREADY_CANCELLED": "The waybill is already cancelled.",
       "RETRY_SCHEDULED": "A new check of the cancellation outcome with the carrier is scheduled."
-    }
+    },
+    "label": "Label",
+    "labelReady": "Ready",
+    "labelPending": "Not ready"
   },
   "CarrierBreakers": {
     "title": "Carrier circuit breakers",

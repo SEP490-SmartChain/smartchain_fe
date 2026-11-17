@@ -3188,7 +3188,7 @@
     "notBooked": "Chưa có mã",
     "carrier": "Đơn vị vận chuyển",
     "unknownCarrier": "Chưa xác định",
-    "state": "Trạng thái booking",
+    "state": "Trạng thái đặt chỗ",
     "labelFetching": "Đã có mã, đang lấy nhãn PDF",
     "failureCodeLabel": "Mã lỗi: {code}",
     "failureReasons": {
