@@ -143,12 +143,27 @@ for (const status of ['DRAFT', 'TERMINATED']) {
 }
 
 test('keeps initial onboarding separate when no current contract exists', () => {
-  const { state } = globalThis[fixtureKey].flow;
-  state.currentContractId = null;
-  state.contracts = [];
+  const { auth, flow } = globalThis[fixtureKey];
+  auth.user.serviceStatus = 'PENDING_ACTIVATION';
+  flow.state.serviceStatus = 'PENDING_ACTIVATION';
+  flow.state.currentContractId = null;
+  flow.state.contracts = [];
   const html = renderContractRoute();
   assert.ok(!html.includes(messages.CommercialQuota.title.replaceAll('&', '&amp;')));
+  assert.ok(html.includes(messages.Commercial.customInquiry));
 });
+
+for (const status of ['DRAFT', 'ACCEPTED']) {
+  test(`hides the initial custom-plan inquiry once a ${status} contract exists`, () => {
+    const { auth, flow } = globalThis[fixtureKey];
+    auth.user.serviceStatus = 'PENDING_ACTIVATION';
+    flow.state.serviceStatus = 'PENDING_ACTIVATION';
+    flow.state.contracts[0].status = status;
+    const html = renderContractRoute();
+    assert.ok(html.includes('SYNTHETIC-ROUTE'));
+    assert.ok(!html.includes(messages.Commercial.customInquiry));
+  });
+}
 
 for (const [actorScope, roles] of [
   ['TENANT', ['SELLER_STAFF']],

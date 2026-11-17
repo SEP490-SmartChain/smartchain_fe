@@ -3,7 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronRight, FileSignature, Layers, Plus, RefreshCw } from 'lucide-react';
+import {
+  ChevronRight,
+  Crown,
+  FileSignature,
+  Layers,
+  Package,
+  Plus,
+  RefreshCw,
+  Zap,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { z } from 'zod';
 
@@ -47,6 +56,7 @@ export function CommercialPlanAdmin() {
   const t = useTranslations('CommercialAdmin');
   const locale = useLocale();
   const [activeTab, setActiveTab] = useState('versions');
+  const [replacementPlanId, setReplacementPlanId] = useState<string | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [terms, setTerms] = useState<PublishedCommercialTerms | null>(null);
@@ -150,7 +160,15 @@ export function CommercialPlanAdmin() {
       if (current()) setBusy(false);
     }
   });
+  const eligiblePlans =
+    terms?.plans.filter((item) => {
+      if (item.code !== 'BASIC' && item.code !== 'STANDARD') return false;
+      return replacementPlanId
+        ? item.id === replacementPlanId && Boolean(item.publishedAgreementVersionRef)
+        : item.publishedAgreementVersionRef === null;
+    }) ?? [];
   const publish = agreement.handleSubmit(async (value) => {
+    if (!eligiblePlans.some((item) => item.id === value.planVersionId)) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -161,6 +179,9 @@ export function CommercialPlanAdmin() {
       );
       if (current()) {
         setNotice(t('agreementSaved'));
+        agreement.reset();
+        setReplacementPlanId(null);
+        setActiveTab('versions');
         await reload(controller.current?.signal);
       }
     } catch (failure) {
@@ -184,7 +205,14 @@ export function CommercialPlanAdmin() {
       icon: <FileSignature size={16} aria-hidden="true" />,
     },
   ];
-  const formatVnd = (amount: string) => `${BigInt(amount).toLocaleString(locale)} VND`;
+  const formatVnd = (amount?: string) => {
+    if (!amount) return '—';
+    try {
+      return `${BigInt(amount).toLocaleString(locale)} VND`;
+    } catch {
+      return `${amount} VND`;
+    }
+  };
   const formatDate = (value: string) =>
     new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const selectedVersion = terms?.plans.find((item) => item.id === selectedVersionId);
@@ -198,6 +226,7 @@ export function CommercialPlanAdmin() {
       if (current()) setLoadingDetails(false);
     }
   };
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -212,21 +241,30 @@ export function CommercialPlanAdmin() {
               void reload(controller.current?.signal);
             }}
           >
-            <RefreshCw size={16} aria-hidden="true" />
+            <RefreshCw size={15} aria-hidden="true" className={busy ? 'animate-spin' : ''} />
             {t('refresh')}
           </Button>
         }
       />
+
       {error && <Alert variant="error">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
+
       <Tabs
         id="commercial-plan"
         label={t('title')}
         tabs={tabs}
         activeId={activeTab}
-        onChange={setActiveTab}
+        onChange={(tab) => {
+          if (tab !== 'agreement' && replacementPlanId) {
+            setReplacementPlanId(null);
+            agreement.reset();
+          }
+          setActiveTab(tab);
+        }}
         disabled={busy}
       />
+
       <section
         role="tabpanel"
         id="commercial-plan-panel-versions"
@@ -235,29 +273,43 @@ export function CommercialPlanAdmin() {
         className="overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]"
       >
         {!terms && !error && (
-          <p className="m-0 px-5 py-6 text-sm" role="status">
+          <p className="m-0 px-5 py-6 text-sm text-[var(--sc-text-secondary)]" role="status">
             {t('loading')}
           </p>
         )}
         {terms?.plans.length === 0 && (
-          <p className="m-0 px-5 py-6 text-sm">{t('noPlanVersions')}</p>
+          <p className="m-0 px-5 py-6 text-sm text-[var(--sc-text-secondary)]">
+            {t('noPlanVersions')}
+          </p>
         )}
         {!!terms?.plans.length && (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[510px] border-collapse text-left text-sm">
-              <thead className="bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]">
+            <table
+              aria-label={t('agreementStatus')}
+              className="w-full min-w-[880px] border-collapse text-left text-sm"
+            >
+              <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                 <tr>
-                  <th scope="col" className="px-4 py-3 font-medium sm:px-6">
+                  <th scope="col" className="px-6 py-3.5">
                     {t('planName')}
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className="px-5 py-3.5">
+                    {t('planCode')}
+                  </th>
+                  <th scope="col" className="px-4 py-3.5">
                     {t('planVersion')}
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium sm:px-6">
+                  <th scope="col" className="px-6 py-3.5 text-right">
                     {t('monthlyFee')}
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">
-                    <span className="sr-only">{t('planDetailsAction')}</span>
+                  <th scope="col" className="px-6 py-3.5">
+                    {t('agreementStatus')}
+                  </th>
+                  <th scope="col" className="px-6 py-3.5">
+                    {t('agreementRef')}
+                  </th>
+                  <th scope="col" className="px-6 py-3.5 text-right">
+                    {t('actions')}
                   </th>
                 </tr>
               </thead>
@@ -265,46 +317,125 @@ export function CommercialPlanAdmin() {
                 {terms.plans.map((item) => (
                   <tr
                     key={item.id}
-                    className="group transition-colors hover:bg-[var(--sc-bg-secondary)]"
+                    className="group cursor-pointer transition-colors duration-100 hover:bg-[var(--sc-bg-secondary)]/30"
+                    onClick={() => void openDetails(item)}
                   >
-                    <th scope="row" className="px-4 py-3 font-medium sm:px-6">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <button
-                          type="button"
-                          className="rounded text-left font-semibold text-[var(--sc-text-primary)] hover:text-[var(--sc-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]"
-                          onClick={() => void openDetails(item)}
-                          aria-label={t('planDetailsLabel', {
-                            name: item.name,
-                            version: item.versionNo,
-                          })}
-                        >
-                          {item.name}
-                        </button>
-                        <Badge
-                          status={item.code === 'ENTERPRISE' ? 'info' : 'default'}
-                          label={item.code}
-                        />
-                      </div>
-                    </th>
-                    <td className="px-4 py-3 text-[var(--sc-text-secondary)]">v{item.versionNo}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums sm:px-6">
-                      {formatVnd(item.monthlyFeeVnd)}
-                    </td>
-                    <td className="w-px px-4 py-2 text-right">
-                      <Button
+                    {/* 1. Tên gói */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <button
                         type="button"
-                        size="sm"
-                        variant="ghost"
+                        className="text-left text-sm font-medium text-[var(--sc-text-primary)] transition-colors hover:text-[var(--sc-primary)]"
+                        onClick={() => void openDetails(item)}
                         aria-label={t('planDetailsLabel', {
                           name: item.name,
                           version: item.versionNo,
                         })}
-                        tabIndex={-1}
-                        className="!size-8 !rounded-full !px-0 text-[var(--sc-text-secondary)] group-hover:bg-[var(--sc-primary-alpha-08)] group-hover:text-[var(--sc-primary)]"
-                        onClick={() => void openDetails(item)}
                       >
-                        <ChevronRight size={17} aria-hidden />
-                      </Button>
+                        {item.name}
+                      </button>
+                    </td>
+
+                    {/* 2. Phân loại */}
+                    <td className="whitespace-nowrap px-5 py-4">
+                      {item.code === 'ENTERPRISE' ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                          <Crown size={14} className="text-amber-500" aria-hidden="true" />
+                          Enterprise
+                        </span>
+                      ) : item.code === 'STANDARD' ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-400">
+                          <Zap size={14} className="text-indigo-500" aria-hidden="true" />
+                          Standard
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                          <Package size={14} className="text-slate-500" aria-hidden="true" />
+                          Basic
+                        </span>
+                      )}
+                    </td>
+
+                    {/* 3. Phiên bản */}
+                    <td className="whitespace-nowrap px-4 py-4">
+                      <span className="inline-flex items-center rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 px-2 py-0.5 font-mono text-xs text-[var(--sc-text-secondary)]">
+                        v{item.versionNo}
+                      </span>
+                    </td>
+
+                    {/* 4. Phí tháng */}
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      <span className="text-sm font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                        {formatVnd(item.monthlyFeeVnd)}
+                      </span>
+                    </td>
+
+                    {/* 5. Trạng thái ký */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {item.code === 'ENTERPRISE' ? (
+                        <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                          {t('customAgreement')}
+                        </span>
+                      ) : item.availableAgreementVersionRef ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+                          <span
+                            className="size-1.5 rounded-full bg-emerald-500"
+                            aria-hidden="true"
+                          />
+                          {t('agreementPublished')}
+                        </span>
+                      ) : item.publishedAgreementVersionRef ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400">
+                          <span className="size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                          {t('agreementUnavailable')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 dark:bg-slate-800">
+                          {t('agreementUnpublished')}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* 6. Mã mẫu điều khoản */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {item.publishedAgreementVersionRef ? (
+                        <span className="select-all font-mono text-xs font-medium tracking-wide text-slate-700 hover:text-[var(--sc-primary)] dark:text-slate-300">
+                          {item.availableAgreementVersionRef ?? item.publishedAgreementVersionRef}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--sc-text-tertiary)]">—</span>
+                      )}
+                    </td>
+
+                    {/* 7. Thao tác */}
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2.5">
+                        {item.code !== 'ENTERPRISE' && (
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-[var(--sc-primary)] transition-colors hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              agreement.reset({
+                                ...agreement.formState.defaultValues,
+                                planVersionId: item.id,
+                              });
+                              setReplacementPlanId(
+                                item.publishedAgreementVersionRef ? item.id : null,
+                              );
+                              setActiveTab('agreement');
+                            }}
+                          >
+                            {t(
+                              item.publishedAgreementVersionRef
+                                ? 'replaceAgreement'
+                                : 'publishAgreement',
+                            )}
+                          </button>
+                        )}
+                        <span className="inline-flex size-6 items-center justify-center rounded-full text-[var(--sc-text-tertiary)] transition-colors group-hover:bg-[var(--sc-bg-secondary)] group-hover:text-[var(--sc-text-primary)]">
+                          <ChevronRight size={14} aria-hidden="true" />
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -413,6 +544,10 @@ export function CommercialPlanAdmin() {
         hidden={activeTab !== 'agreement'}
       >
         <form onSubmit={publish} className={section}>
+          {replacementPlanId && <Alert variant="info">{t('replaceAgreementHelp')}</Alert>}
+          {terms && eligiblePlans.length === 0 && (
+            <Alert variant="info">{t('noEligibleAgreementPlans')}</Alert>
+          )}
           {terms && (!terms.serviceTariffs.length || !terms.freightTariffs.length) && (
             <Alert variant="warning">{t('tariffsMissing')}</Alert>
           )}
@@ -422,14 +557,10 @@ export function CommercialPlanAdmin() {
               isRequired
               error={agreementError('planVersionId')}
               placeholder={t('choose')}
-              options={
-                terms?.plans
-                  .filter((item) => item.code === 'BASIC' || item.code === 'STANDARD')
-                  .map((item) => ({
-                    value: item.id,
-                    label: `${item.name} · v${item.versionNo} · ${formatVnd(item.monthlyFeeVnd)}`,
-                  })) ?? []
-              }
+              options={eligiblePlans.map((item) => ({
+                value: item.id,
+                label: `${item.name} · v${item.versionNo} · ${formatVnd(item.monthlyFeeVnd)}`,
+              }))}
               {...agreement.register('planVersionId', {
                 onChange: (event) => {
                   const selected = terms?.plans.find((item) => item.id === event.target.value);
@@ -518,9 +649,13 @@ export function CommercialPlanAdmin() {
             <Button
               type="submit"
               isLoading={busy}
-              disabled={!terms?.serviceTariffs.length || !terms.freightTariffs.length}
+              disabled={
+                !eligiblePlans.length ||
+                !terms?.serviceTariffs.length ||
+                !terms.freightTariffs.length
+              }
             >
-              {t('publishAgreement')}
+              {t(replacementPlanId ? 'replaceAgreement' : 'publishAgreement')}
             </Button>
           </div>
         </form>
@@ -530,28 +665,29 @@ export function CommercialPlanAdmin() {
           isOpen
           title={selectedVersion.name}
           onClose={() => setSelectedVersionId(null)}
-          width="560px"
+          width="520px"
         >
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Badge
                   status={selectedVersion.code === 'ENTERPRISE' ? 'info' : 'default'}
                   label={selectedVersion.code}
                 />
-                <span className="text-sm text-[var(--sc-text-secondary)]">
+                <span className="font-mono text-xs text-[var(--sc-text-secondary)]">
                   v{selectedVersion.versionNo}
                 </span>
               </div>
               <div className="text-right">
-                <p className="text-xs text-[var(--sc-text-secondary)]">{t('monthlyFee')}</p>
-                <p className="text-xl font-semibold tracking-tight tabular-nums text-[var(--sc-primary-dark)]">
+                <span className="text-xs text-[var(--sc-text-secondary)]">{t('monthlyFee')}: </span>
+                <span className="text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
                   {formatVnd(selectedVersion.monthlyFeeVnd)}
-                </p>
+                </span>
               </div>
             </div>
+
             {loadingDetails ? (
-              <p className="text-sm text-[var(--sc-text-secondary)]" role="status">
+              <p className="py-4 text-center text-sm text-[var(--sc-text-secondary)]" role="status">
                 {t('loading')}
               </p>
             ) : selectedVersion.warehouseAllowance === undefined ? (
@@ -567,59 +703,81 @@ export function CommercialPlanAdmin() {
                 </Button>
               </Alert>
             ) : (
-              <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {[
-                  [
-                    t('warehouseAllowance'),
-                    selectedVersion.warehouseAllowance?.toLocaleString(locale) ?? '—',
-                  ],
-                  [
-                    t('ordersAllowance'),
-                    selectedVersion.salesOrderAllowance?.toLocaleString(locale) ?? '—',
-                  ],
-                  [
-                    t('storageAllowance'),
-                    selectedVersion.storageAllowanceM3 !== undefined
-                      ? `${selectedVersion.storageAllowanceM3} m³`
-                      : '—',
-                  ],
-                  ...(selectedVersion.effectiveFrom
-                    ? [[t('effectiveFrom'), formatDate(selectedVersion.effectiveFrom)]]
-                    : []),
-                  ...(selectedVersion.effectiveTo
-                    ? [[t('planEffectiveTo'), formatDate(selectedVersion.effectiveTo)]]
-                    : []),
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="min-w-0 rounded-lg border border-[var(--sc-border-default)] px-3 py-2.5"
-                  >
-                    <dt className="text-xs text-[var(--sc-text-secondary)]">{label}</dt>
-                    <dd className="mt-1 break-words text-sm font-semibold tabular-nums">{value}</dd>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="rounded-lg border border-[var(--sc-border-default)] p-3">
+                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('warehouseAllowance')}
+                    </p>
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                      {selectedVersion.warehouseAllowance?.toLocaleString(locale) ?? '—'}
+                    </p>
                   </div>
-                ))}
-              </dl>
+                  <div className="rounded-lg border border-[var(--sc-border-default)] p-3">
+                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('ordersAllowance')}
+                    </p>
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                      {selectedVersion.salesOrderAllowance?.toLocaleString(locale) ?? '—'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--sc-border-default)] p-3">
+                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('storageAllowance')}
+                    </p>
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                      {selectedVersion.storageAllowanceM3 !== undefined
+                        ? `${selectedVersion.storageAllowanceM3} m³`
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
+
+                {(selectedVersion.effectiveFrom || selectedVersion.effectiveTo) && (
+                  <div className="flex flex-wrap gap-4 text-xs text-[var(--sc-text-secondary)]">
+                    {selectedVersion.effectiveFrom && (
+                      <span>
+                        {t('effectiveFrom')}:{' '}
+                        <strong className="font-medium text-[var(--sc-text-primary)]">
+                          {formatDate(selectedVersion.effectiveFrom)}
+                        </strong>
+                      </span>
+                    )}
+                    {selectedVersion.effectiveTo && (
+                      <span>
+                        {t('planEffectiveTo')}:{' '}
+                        <strong className="font-medium text-[var(--sc-text-primary)]">
+                          {formatDate(selectedVersion.effectiveTo)}
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
+
             {selectedVersion.includedServices && (
-              <section className="rounded-xl border border-[var(--sc-border-default)] p-4">
-                <h4 className="text-sm font-semibold">{t('includedServices')}</h4>
+              <div className="rounded-lg border border-[var(--sc-border-default)] p-3.5">
+                <h4 className="text-xs font-medium text-[var(--sc-text-secondary)]">
+                  {t('includedServices')}
+                </h4>
                 {selectedVersion.includedServices.length ? (
-                  <ul className="mt-2 flex flex-wrap gap-2">
+                  <ul className="mt-2 flex flex-wrap gap-1.5">
                     {[...new Set(selectedVersion.includedServices)].map((service) => (
                       <li
                         key={service}
-                        className="rounded-md bg-[var(--sc-bg-secondary)] px-2.5 py-1 text-xs [overflow-wrap:anywhere]"
+                        className="rounded bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs text-[var(--sc-text-primary)]"
                       >
                         {service}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+                  <p className="mt-1 text-xs text-[var(--sc-text-tertiary)]">
                     {t('noIncludedServices')}
                   </p>
                 )}
-              </section>
+              </div>
             )}
           </div>
         </Modal>

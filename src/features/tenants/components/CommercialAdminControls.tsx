@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
@@ -12,6 +13,7 @@ import { Input } from '@/components/Common/Input/Input';
 import { useAuthStore } from '@/stores/authStore';
 
 import { CommercialDisclosure } from './CommercialDisclosure';
+import { CommercialPdfPreview } from './CommercialPdfPreview';
 import { commercialApi, type SellerCommercialState } from '../api/commercialApi';
 import { launchSigningSession } from '../lib/signingPresentation';
 
@@ -27,6 +29,7 @@ export function CommercialAdminControls({
   onChanged: () => Promise<void>;
 }) {
   const t = useTranslations('CommercialAdmin');
+  const tCommercial = useTranslations('Commercial');
   const revision = useAuthStore((value) => value.revision);
   const contract = state.contracts.find((item) => item.id === state.currentContractId);
   const canManageService =
@@ -56,6 +59,12 @@ export function CommercialAdminControls({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [preview, setPreview] = useState<{
+    requestId: string;
+    revision: number;
+    url: string;
+  } | null>(null);
   const signingRequest = state.signingRequests.find(
     (item) => item.contractId === state.currentContractId && item.canSignAsOrcaAdmin,
   );
@@ -89,6 +98,22 @@ export function CommercialAdminControls({
       if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
     } finally {
       if (current()) setBusy(false);
+    }
+  };
+  const handlePreview = async () => {
+    if (!signingRequest) return;
+    setIsPreviewLoading(true);
+    setError(null);
+    try {
+      const { downloadUrl } = await commercialApi.originalPdf(
+        signingRequest.id,
+        controller.current?.signal,
+      );
+      if (current()) setPreview({ requestId: signingRequest.id, revision, url: downloadUrl });
+    } catch (failure) {
+      if (current()) setError(failure instanceof Error ? failure.message : tCommercial('pdfError'));
+    } finally {
+      if (current()) setIsPreviewLoading(false);
     }
   };
   const setStatus = service.handleSubmit(async (input) => {
@@ -192,9 +217,34 @@ export function CommercialAdminControls({
         </form>
       )}
       {signingRequest && (
-        <Button type="button" onClick={() => void countersign()} isLoading={busy}>
-          {t('signAsOrca')}
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            onClick={() => void countersign()}
+            isLoading={busy}
+            disabled={isPreviewLoading}
+          >
+            {t('signAsOrca')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void handlePreview()}
+            isLoading={isPreviewLoading}
+            disabled={busy}
+          >
+            <FileText size={16} />
+            {tCommercial('preparedPdf')}
+          </Button>
+        </div>
+      )}
+      {preview?.revision === revision && preview.requestId === signingRequest?.id && (
+        <CommercialPdfPreview
+          url={preview.url}
+          onClose={() => setPreview(null)}
+          title={tCommercial('preparedPdfTitle')}
+          hint={tCommercial('preparedPdfHelp')}
+        />
       )}
       {request && (
         <CommercialDisclosure

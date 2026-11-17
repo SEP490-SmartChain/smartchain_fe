@@ -21,7 +21,9 @@ export function contractBusinessProfileSchema(required: boolean) {
     phone: z
       .string()
       .trim()
-      .regex(required ? /^\+?[0-9][0-9 ()-]{6,24}$/ : /^$|^\+?[0-9][0-9 ()-]{6,24}$/),
+      .regex(required ? /^\+?[0-9][0-9 ()-]{6,24}$/ : /^$|^\+?[0-9][0-9 ()-]{6,24}$/)
+      .transform((value) => value.replace(/[ ()-]/g, ''))
+      .refine((value) => (!required && value === '') || /^\+?\d{7,15}$/.test(value)),
     hasReviewedTerms: z.boolean().refine((value) => value),
   });
 }

@@ -5,16 +5,29 @@ import { createPortal } from 'react-dom';
 import {
   ArrowDown,
   ArrowUp,
-  ChevronDown,
+  Check,
   ChevronRight,
+  Clock,
+  Copy,
   Filter,
+  Info,
   LoaderCircle,
   LockKeyhole,
   LockKeyholeOpen,
+  Mail,
   MoreVertical,
+  Phone,
   Plus,
+  RefreshCw,
+  RotateCcw,
   Search,
-  Trash2,
+  ShieldAlert,
+  ShieldCheck,
+  User,
+  UserCheck,
+  Users,
+  UserX,
+  X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -24,7 +37,7 @@ import { Avatar } from '@/components/Common/Avatar/Avatar';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Can } from '@/components/Common/Can/Can';
-import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
+import { Card } from '@/components/Common/Card/Card';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
@@ -62,8 +75,8 @@ function StaffAvatar({ account }: { account: StaffAccount }) {
     <Avatar
       src={avatarUrl}
       fallback={account.fullName}
-      size="lg"
-      className="rounded-full border-[var(--sc-border-default)]"
+      size="md"
+      className="rounded-full border border-[var(--sc-border-default)] shadow-xs"
     />
   );
 }
@@ -90,7 +103,6 @@ export function StaffAccountDirectory() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<StaffAccount | null>(null);
   const [actionMenu, setActionMenu] = useState<ActionMenuState | null>(null);
@@ -127,10 +139,18 @@ export function StaffAccountDirectory() {
         SELLER_OWNER: t('roleSellerOwner'),
         SELLER_STAFF: t('roleSellerStaff'),
       };
-      return labels[role];
+      return labels[role] ?? role;
     },
     [t],
   );
+
+  const summaryStats = useMemo(() => {
+    const total = accounts.length;
+    const active = accounts.filter((a) => a.status === 'ACTIVE').length;
+    const pending = accounts.filter((a) => a.status === 'PENDING').length;
+    const locked = accounts.filter((a) => a.status === 'LOCKED').length;
+    return { total, active, pending, locked };
+  }, [accounts]);
 
   const sortedAccounts = useMemo(() => {
     const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
@@ -161,10 +181,6 @@ export function StaffAccountDirectory() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
-  const selectableAccounts = visibleAccounts.filter((account) => account.userId !== currentUserId);
-  const allVisibleSelected =
-    selectableAccounts.length > 0 &&
-    selectableAccounts.every((account) => selectedIds.has(account.userId));
   const activeFilterCount =
     Number(Boolean(filters.role)) +
     Number(Boolean(filters.status)) +
@@ -173,7 +189,6 @@ export function StaffAccountDirectory() {
 
   const handleFilter = (name: keyof StaffAccountFilters, value: string) => {
     setCurrentPage(1);
-    setSelectedIds(new Set());
     setFilters((current) => ({ ...current, [name]: value }));
   };
 
@@ -182,7 +197,6 @@ export function StaffAccountDirectory() {
     setFromDate('');
     setToDate('');
     setCurrentPage(1);
-    setSelectedIds(new Set());
   };
 
   const toggleSort = (key: SortKey) => {
@@ -192,27 +206,6 @@ export function StaffAccountDirectory() {
       setSortKey(key);
       setSortDirection('asc');
     }
-  };
-
-  const toggleAllVisible = () => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) {
-        selectableAccounts.forEach((account) => next.delete(account.userId));
-      } else {
-        selectableAccounts.forEach((account) => next.add(account.userId));
-      }
-      return next;
-    });
-  };
-
-  const toggleSelected = (userId: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
   };
 
   const handlePageChange = async (page: number) => {
@@ -243,22 +236,110 @@ export function StaffAccountDirectory() {
 
   const renderSortIcon = (key: SortKey) => {
     if (sortKey !== key) return null;
-    return sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={13} className="text-[var(--sc-primary)]" />
+    ) : (
+      <ArrowDown size={13} className="text-[var(--sc-primary)]" />
+    );
   };
 
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(text);
+    toast.success(t('emailCopied', { email: text }));
+    setTimeout(() => setCopiedText(null), 2000);
+  };
+
+  const fromIndex = visibleAccounts.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
+  const toIndex = Math.min(currentPage * PAGE_SIZE, sortedAccounts.length);
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title={t('title')}
+        description={t('subtitle')}
         actions={
           <Can capability="iam.users.manage">
-            <Button type="button" onClick={() => setAddModalOpen(true)}>
-              <Plus size={17} aria-hidden="true" />
+            <Button
+              type="button"
+              onClick={() => setAddModalOpen(true)}
+              className="shadow-sm transition-transform active:scale-95"
+            >
+              <Plus size={16} aria-hidden="true" />
               {t('inviteTitle')}
             </Button>
           </Can>
         }
       />
+
+      {/* KPI Overview Cards */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary-dark)]">
+              <Users size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
+                {t('totalStaff')}
+              </p>
+              <p className="text-xl font-bold tracking-tight text-[var(--sc-text-primary)]">
+                {summaryStats.total}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)] border border-[var(--sc-success-border)]">
+              <UserCheck size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
+                {t('activeAccounts')}
+              </p>
+              <p className="text-xl font-bold tracking-tight text-[var(--sc-success-dark)]">
+                {summaryStats.active}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-warning-bg)] text-[var(--sc-warning-dark)] border border-[var(--sc-warning-border)]">
+              <Clock size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
+                {t('pending')}
+              </p>
+              <p className="text-xl font-bold tracking-tight text-[var(--sc-warning-dark)]">
+                {summaryStats.pending}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-error-bg)] text-[var(--sc-error-dark)] border border-[var(--sc-error-border)]">
+              <UserX size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
+                {t('lockedAccounts')}
+              </p>
+              <p className="text-xl font-bold tracking-tight text-[var(--sc-error-dark)]">
+                {summaryStats.locked}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       {error ? (
         <Alert variant="error" title={t('loadError')}>
@@ -267,173 +348,241 @@ export function StaffAccountDirectory() {
           </Button>
         </Alert>
       ) : (
-        <section className="sc-surface overflow-hidden" aria-label={t('tableLabel')}>
-          <div className="flex min-h-[54px] items-center border-b border-[var(--sc-border-default)] px-3 sm:px-4">
-            <button
-              type="button"
-              aria-label={t('deleteSelected')}
-              title={t('deleteSelected')}
-              disabled={selectedIds.size === 0}
-              onClick={() => toast.info(t('bulkDeleteUnavailable'))}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--sc-text-tertiary)] transition-[background-color,color,transform] hover:bg-[var(--sc-error-bg)] hover:text-[var(--sc-error)] active:scale-95 disabled:pointer-events-none disabled:opacity-35"
-            >
-              <Trash2 size={17} aria-hidden="true" />
-            </button>
-            <span className="mx-3 h-6 w-px bg-[var(--sc-border-default)]" />
-            <label className="relative flex min-w-0 max-w-[420px] flex-1 items-center">
-              <span className="sr-only">{t('searchLabel')}</span>
-              <Search
-                size={17}
-                aria-hidden="true"
-                className="pointer-events-none absolute left-1 text-[var(--sc-text-tertiary)]"
-              />
-              <input
-                type="search"
-                value={filters.search}
-                placeholder={t('searchHere')}
-                onChange={(event) => handleFilter('search', event.target.value)}
-                className="h-10 w-full border-0 bg-transparent pl-8 pr-3 text-base leading-5 text-[var(--sc-text-primary)] outline-none placeholder:text-[var(--sc-text-tertiary)] focus-visible:shadow-none"
-              />
-            </label>
-            <button
-              type="button"
-              aria-expanded={filtersOpen}
-              onClick={() => setFiltersOpen((current) => !current)}
-              className={cn(
-                'ml-auto flex h-9 items-center gap-2 rounded-lg px-3 text-base leading-5 text-[var(--sc-text-primary)] transition-colors hover:bg-[var(--sc-primary-alpha-08)]',
-                filtersOpen && 'bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary-dark)]',
-              )}
-            >
-              <Filter size={16} aria-hidden="true" />
-              {t('filter')}
-              {activeFilterCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sc-primary)] px-1.5 text-[11px] font-medium text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+        <section
+          className="rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)] overflow-hidden"
+          aria-label={t('tableLabel')}
+        >
+          {/* Refined Action & Search Toolbar */}
+          <div className="flex flex-col gap-3 border-b border-[var(--sc-border-default)] p-3.5 sm:flex-row sm:items-center sm:justify-between">
+            {/* Left: Search input */}
+            <div className="flex flex-1 items-center gap-2">
+              <div className="relative flex h-10 w-full max-w-sm items-center rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 text-sm transition-[border-color,box-shadow] focus-within:border-[var(--sc-primary)] focus-within:ring-2 focus-within:ring-[var(--sc-primary-alpha-08)] hover:border-[var(--sc-border-strong)]">
+                <Search
+                  size={16}
+                  aria-hidden="true"
+                  className="shrink-0 text-[var(--sc-text-tertiary)]"
+                />
+                <input
+                  type="search"
+                  value={filters.search}
+                  placeholder={t('searchPlaceholder')}
+                  onChange={(event) => handleFilter('search', event.target.value)}
+                  className="h-full w-full border-0 bg-transparent px-2 text-sm text-[var(--sc-text-primary)] outline-none placeholder:text-[var(--sc-text-tertiary)]"
+                />
+                {filters.search && (
+                  <button
+                    type="button"
+                    aria-label={t('reset')}
+                    onClick={() => handleFilter('search', '')}
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[var(--sc-text-tertiary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)]"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Filter trigger & refresh button */}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                aria-expanded={filtersOpen}
+                onClick={() => setFiltersOpen((current) => !current)}
+                className={cn(
+                  'flex h-10 items-center gap-2 rounded-xl border border-[var(--sc-border-default)] px-3.5 text-sm font-medium text-[var(--sc-text-primary)] transition-all hover:bg-[var(--sc-bg-secondary)] active:scale-95',
+                  filtersOpen &&
+                    'border-[var(--sc-primary-light)] bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary-dark)] font-semibold',
+                )}
+              >
+                <Filter size={15} aria-hidden="true" />
+                <span>{t('filter')}</span>
+                {activeFilterCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--sc-primary)] px-1.5 text-[11px] font-semibold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                aria-label={t('retry')}
+                title={t('retry')}
+                onClick={() => void refetch()}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sc-border-default)] text-[var(--sc-text-secondary)] transition-all hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] active:scale-95"
+              >
+                <RefreshCw size={15} className={cn(isLoading && 'animate-spin')} />
+              </button>
+            </div>
           </div>
 
+          {/* Filter Drawer */}
           {filtersOpen && (
-            <div className="sc-card-enter grid gap-3 border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_170px_170px_auto]">
-              <Select
-                aria-label={t('roleFilter')}
-                value={filters.role}
-                placeholder={t('allRoles')}
-                isPlaceholderDisabled={false}
-                options={[
-                  { value: 'SELLER_OWNER', label: t('roleSellerOwner') },
-                  { value: 'SELLER_STAFF', label: t('roleSellerStaff') },
-                ]}
-                onChange={(event) => handleFilter('role', event.target.value)}
-              />
-              <Select
-                aria-label={t('statusFilter')}
-                value={filters.status}
-                placeholder={t('allStatuses')}
-                isPlaceholderDisabled={false}
-                options={[
-                  { value: 'ACTIVE', label: t('active') },
-                  { value: 'LOCKED', label: t('locked') },
-                ]}
-                onChange={(event) => handleFilter('status', event.target.value)}
-              />
-              <Input
-                type="date"
-                aria-label={t('fromDate')}
-                value={fromDate}
-                onChange={(event) => {
-                  setFromDate(event.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              <Input
-                type="date"
-                aria-label={t('toDate')}
-                value={toDate}
-                onChange={(event) => {
-                  setToDate(event.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              <Button type="button" size="sm" variant="ghost" onClick={resetFilters}>
-                {t('reset')}
-              </Button>
+            <div className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 p-4 transition-all animate-in slide-in-from-top-1 duration-150">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_170px_170px_auto] items-end">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--sc-text-secondary)]">
+                    {t('roleFilter')}
+                  </label>
+                  <Select
+                    aria-label={t('roleFilter')}
+                    value={filters.role}
+                    placeholder={t('allRoles')}
+                    isPlaceholderDisabled={false}
+                    options={[
+                      { value: 'SELLER_OWNER', label: t('roleSellerOwner') },
+                      { value: 'SELLER_STAFF', label: t('roleSellerStaff') },
+                    ]}
+                    onChange={(event) => handleFilter('role', event.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--sc-text-secondary)]">
+                    {t('statusFilter')}
+                  </label>
+                  <Select
+                    aria-label={t('statusFilter')}
+                    value={filters.status}
+                    placeholder={t('allStatuses')}
+                    isPlaceholderDisabled={false}
+                    options={[
+                      { value: 'ACTIVE', label: t('active') },
+                      { value: 'LOCKED', label: t('locked') },
+                    ]}
+                    onChange={(event) => handleFilter('status', event.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--sc-text-secondary)]">
+                    {t('fromDate')}
+                  </label>
+                  <Input
+                    type="date"
+                    aria-label={t('fromDate')}
+                    value={fromDate}
+                    onChange={(event) => {
+                      setFromDate(event.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--sc-text-secondary)]">
+                    {t('toDate')}
+                  </label>
+                  <Input
+                    type="date"
+                    aria-label={t('toDate')}
+                    value={toDate}
+                    onChange={(event) => {
+                      setToDate(event.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="flex pb-0.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={resetFilters}
+                    className="h-10 text-xs font-medium gap-1.5 text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]"
+                  >
+                    <RotateCcw size={13} />
+                    {t('reset')}
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
+          {/* Polished Table */}
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse text-left">
+            <table className="w-full min-w-[850px] border-collapse text-left">
               <thead>
-                <tr className="bg-[var(--sc-primary-alpha-08)]">
-                  <th className="w-14 border-b border-[var(--sc-border-default)] px-4 py-3">
-                    <Checkbox
-                      aria-label={t('selectAll')}
-                      checked={allVisibleSelected}
-                      disabled={selectableAccounts.length === 0}
-                      onChange={toggleAllVisible}
-                    />
-                  </th>
-                  <th className="w-12 border-b border-[var(--sc-border-default)] px-2 py-3" />
-                  <th className="min-w-56 border-b border-[var(--sc-border-default)] px-4 py-3">
+                <tr className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/70">
+                  <th className="w-10 px-3 py-3.5" />
+                  <th className="min-w-60 px-4 py-3.5">
                     <button
                       type="button"
                       onClick={() => toggleSort('profile')}
-                      className="inline-flex items-center gap-1.5 text-sm font-normal leading-[18px] text-[var(--sc-text-primary)]"
+                      className="group inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)] transition-colors hover:text-[var(--sc-text-primary)]"
                     >
-                      {t('profile')}
+                      <span>{t('profile')}</span>
                       {renderSortIcon('profile')}
                     </button>
                   </th>
-                  <th className="min-w-44 border-b border-[var(--sc-border-default)] px-4 py-3 text-sm font-normal leading-[18px] text-[var(--sc-text-primary)]">
+                  <th className="min-w-44 px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                     {t('assignedRole')}
                   </th>
-                  <th className="min-w-36 border-b border-[var(--sc-border-default)] px-4 py-3">
+                  <th className="min-w-36 px-4 py-3.5">
                     <button
                       type="button"
                       onClick={() => toggleSort('lastSessionAt')}
-                      className="inline-flex items-center gap-1.5 text-sm font-normal leading-[18px] text-[var(--sc-text-primary)]"
+                      className="group inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)] transition-colors hover:text-[var(--sc-text-primary)]"
                     >
-                      {t('lastActivity')}
+                      <span>{t('lastActivity')}</span>
                       {renderSortIcon('lastSessionAt')}
                     </button>
                   </th>
-                  <th className="min-w-28 border-b border-[var(--sc-border-default)] px-4 py-3 text-sm font-normal leading-[18px] text-[var(--sc-text-primary)]">
+                  <th className="min-w-28 px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                     {t('date')}
                   </th>
-                  <th className="min-w-24 border-b border-[var(--sc-border-default)] px-4 py-3">
+                  <th className="min-w-28 px-4 py-3.5">
                     <button
                       type="button"
                       onClick={() => toggleSort('status')}
-                      className="inline-flex items-center gap-1.5 text-sm font-normal leading-[18px] text-[var(--sc-text-primary)]"
+                      className="group inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)] transition-colors hover:text-[var(--sc-text-primary)]"
                     >
-                      {t('status')}
+                      <span>{t('status')}</span>
                       {renderSortIcon('status')}
                     </button>
                   </th>
-                  <th className="w-14 border-b border-[var(--sc-border-default)] px-3 py-3" />
+                  <th className="w-12 px-3 py-3.5 text-right" />
                 </tr>
               </thead>
-              <tbody className="bg-[var(--sc-bg-surface)]">
+              <tbody className="divide-y divide-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]">
                 {isLoading ? (
                   <tr>
                     <td
-                      colSpan={8}
-                      className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
+                      colSpan={7}
+                      className="p-16 text-center text-sm text-[var(--sc-text-secondary)]"
                     >
-                      <span className="inline-flex items-center gap-2">
-                        <LoaderCircle size={17} className="animate-spin" />
+                      <span className="inline-flex items-center gap-2.5 font-medium">
+                        <LoaderCircle size={18} className="animate-spin text-[var(--sc-primary)]" />
                         {t('loading')}
                       </span>
                     </td>
                   </tr>
                 ) : visibleAccounts.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={8}
-                      className="p-12 text-center text-sm text-[var(--sc-text-secondary)]"
-                    >
-                      {t('noAccounts')}
+                    <td colSpan={7} className="p-16 text-center">
+                      <div className="mx-auto flex max-w-sm flex-col items-center justify-center text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--sc-bg-secondary)] text-[var(--sc-text-tertiary)]">
+                          <Users size={24} />
+                        </div>
+                        <h4 className="mt-3 text-base font-semibold text-[var(--sc-text-primary)]">
+                          {t('noAccounts')}
+                        </h4>
+                        <p className="mt-1 text-xs text-[var(--sc-text-secondary)] leading-relaxed">
+                          {t('noAccountsDescription')}
+                        </p>
+                        {activeFilterCount > 0 && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={resetFilters}
+                            className="mt-4 gap-1.5 text-xs"
+                          >
+                            <RotateCcw size={12} />
+                            {t('clearFilters')}
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -445,16 +594,14 @@ export function StaffAccountDirectory() {
 
                     return (
                       <Fragment key={account.userId}>
-                        <tr className="border-b border-[var(--sc-border-default)] transition-colors hover:bg-[var(--sc-primary-alpha-08)]">
-                          <td className="px-4 py-3.5">
-                            <Checkbox
-                              aria-label={t('selectUser', { name: account.fullName })}
-                              checked={selectedIds.has(account.userId)}
-                              disabled={isSelf}
-                              onChange={() => toggleSelected(account.userId)}
-                            />
-                          </td>
-                          <td className="px-2 py-3.5">
+                        <tr
+                          className={cn(
+                            'transition-colors duration-150 hover:bg-[var(--sc-bg-secondary)]/60',
+                            isExpanded && 'bg-[var(--sc-bg-secondary)]/30',
+                          )}
+                        >
+                          {/* Expand chevron */}
+                          <td className="px-3 py-3.5 align-middle">
                             <button
                               type="button"
                               aria-label={
@@ -468,45 +615,109 @@ export function StaffAccountDirectory() {
                                   current === account.userId ? null : account.userId,
                                 )
                               }
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-[background-color,color,transform] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-primary-dark)] active:scale-95"
+                              className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-all hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] active:scale-95',
+                                isExpanded &&
+                                  'text-[var(--sc-primary)] bg-[var(--sc-primary-alpha-08)]',
+                              )}
                             >
-                              {isExpanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
+                              <ChevronRight
+                                size={16}
+                                className={cn(
+                                  'transition-transform duration-200',
+                                  isExpanded && 'rotate-90',
+                                )}
+                              />
                             </button>
                           </td>
-                          <td className="px-4 py-3.5">
+
+                          {/* Profile: Avatar + Full Name + Email + Self Tag */}
+                          <td className="px-4 py-3.5 align-middle">
                             <div className="flex min-w-0 items-center gap-3">
                               <StaffAvatar account={account} />
-                              <span className="min-w-0">
-                                <span className="block truncate text-sm font-medium leading-[18px] text-[var(--sc-text-primary)]">
-                                  {account.fullName}
-                                </span>
-                                <span className="mt-0.5 block truncate text-xs leading-4 text-[var(--sc-text-tertiary)]">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="truncate text-sm font-semibold text-[var(--sc-text-primary)]">
+                                    {account.fullName}
+                                  </span>
+                                  {isSelf && (
+                                    <span className="inline-flex shrink-0 items-center rounded-md border border-[var(--sc-primary-light)] bg-[var(--sc-primary-lighter)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--sc-primary-dark)]">
+                                      {t('currentAccount')}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="block truncate text-xs text-[var(--sc-text-secondary)]">
                                   {account.email}
                                 </span>
-                              </span>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 text-sm leading-[18px] text-[var(--sc-text-primary)]">
-                            <span>{visibleRoles.map(roleLabel).join(', ')}</span>
-                            {additionalRoles > 0 && (
-                              <span className="ml-2 inline-flex rounded-full border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-2 py-0.5 text-[11px] text-[var(--sc-text-secondary)]">
-                                {t('moreRoles', { count: additionalRoles })}
-                              </span>
-                            )}
+
+                          {/* Assigned Role: Semantic Pill Badges */}
+                          <td className="px-4 py-3.5 align-middle">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {visibleRoles.map((role) => {
+                                const isOwner = role === 'SELLER_OWNER';
+                                return (
+                                  <span
+                                    key={role}
+                                    className={cn(
+                                      'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border shadow-2xs',
+                                      isOwner
+                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                        : 'border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]',
+                                    )}
+                                  >
+                                    {isOwner ? (
+                                      <ShieldCheck
+                                        size={12}
+                                        className="text-emerald-600 dark:text-emerald-400"
+                                      />
+                                    ) : (
+                                      <User size={12} className="text-[var(--sc-text-tertiary)]" />
+                                    )}
+                                    <span>{roleLabel(role)}</span>
+                                  </span>
+                                );
+                              })}
+                              {additionalRoles > 0 && (
+                                <span className="inline-flex rounded-full border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-2 py-0.5 text-[11px] font-medium text-[var(--sc-text-secondary)]">
+                                  {t('moreRoles', { count: additionalRoles })}
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-4 py-3.5">
-                            <span className="block text-sm leading-[18px] text-[var(--sc-text-primary)]">
-                              {account.status === 'ACTIVE'
-                                ? t('signedIn')
-                                : account.status === 'PENDING'
-                                  ? t('pending')
-                                  : t('accountLocked')}
-                            </span>
-                            <span className="mt-0.5 block text-xs text-[var(--sc-text-tertiary)]">
-                              {relativeTime(account.lastSessionAt, locale, t('never'))}
-                            </span>
+
+                          {/* Last Activity: Status Dot + Relative time */}
+                          <td className="px-4 py-3.5 align-middle">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={cn(
+                                  'h-2 w-2 shrink-0 rounded-full',
+                                  account.status === 'ACTIVE'
+                                    ? 'bg-[var(--sc-success)]'
+                                    : account.status === 'PENDING'
+                                      ? 'bg-[var(--sc-warning)]'
+                                      : 'bg-[var(--sc-error)]',
+                                )}
+                              />
+                              <div>
+                                <span className="block text-xs font-medium text-[var(--sc-text-primary)]">
+                                  {account.status === 'ACTIVE'
+                                    ? t('signedIn')
+                                    : account.status === 'PENDING'
+                                      ? t('pending')
+                                      : t('accountLocked')}
+                                </span>
+                                <span className="block text-[11px] text-[var(--sc-text-tertiary)]">
+                                  {relativeTime(account.lastSessionAt, locale, t('never'))}
+                                </span>
+                              </div>
+                            </div>
                           </td>
-                          <td className="px-4 py-3.5 text-sm leading-[18px] text-[var(--sc-text-primary)]">
+
+                          {/* Date */}
+                          <td className="px-4 py-3.5 text-xs font-medium text-[var(--sc-text-secondary)] tabular-nums align-middle">
                             {account.lastSessionAt
                               ? new Date(account.lastSessionAt).toLocaleDateString(locale, {
                                   day: '2-digit',
@@ -515,7 +726,9 @@ export function StaffAccountDirectory() {
                                 })
                               : '—'}
                           </td>
-                          <td className="px-4 py-3.5">
+
+                          {/* Status Badge */}
+                          <td className="px-4 py-3.5 align-middle">
                             <Badge
                               status={
                                 account.status === 'ACTIVE'
@@ -531,69 +744,221 @@ export function StaffAccountDirectory() {
                                     ? t('pending')
                                     : t('blocked')
                               }
-                              size="md"
+                              size="sm"
+                              variant="solid"
                             />
                           </td>
-                          <td className="px-3 py-3.5 text-right">
+
+                          {/* Actions button */}
+                          <td className="px-3 py-3.5 text-right align-middle">
                             <button
                               type="button"
                               aria-label={t('userActions', { name: account.fullName })}
                               aria-haspopup="menu"
                               onClick={(event) => openActionMenu(event, account)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-[background-color,color,transform] hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] active:scale-95"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sc-text-secondary)] transition-all hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] active:scale-95"
                             >
-                              <MoreVertical size={17} />
+                              <MoreVertical size={16} />
                             </button>
                           </td>
                         </tr>
 
+                        {/* Expandable detail card */}
                         {isExpanded && (
-                          <tr className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]">
-                            <td colSpan={8} className="px-6 py-5">
-                              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-[1.25fr_1fr_1fr_1.2fr_auto] xl:items-center">
-                                {[
-                                  [t('emailAddress'), account.email],
-                                  [t('contactNumber'), account.phone || t('notProvided')],
-                                  [
-                                    t('assignedRole'),
-                                    account.roles.map(roleLabel).join(', ') || t('notProvided'),
-                                  ],
-                                  [
-                                    t('lastLogin'),
-                                    account.lastSessionAt
-                                      ? new Date(account.lastSessionAt).toLocaleString(locale)
-                                      : t('never'),
-                                  ],
-                                ].map(([label, value]) => (
-                                  <div key={label} className="min-w-0">
-                                    <span className="block text-xs text-[var(--sc-text-tertiary)]">
-                                      {label}
-                                    </span>
-                                    <span className="mt-1 block truncate text-[13px] text-[var(--sc-text-primary)]">
-                                      {value}
-                                    </span>
+                          <tr className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/25 animate-in fade-in duration-150">
+                            <td colSpan={7} className="p-3 sm:p-4">
+                              <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-5 shadow-xs">
+                                {/* Top Bar: Identity & Actions */}
+                                <div className="flex flex-col gap-3 border-b border-[var(--sc-border-default)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <StaffAvatar account={account} />
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <h4 className="text-sm font-bold text-[var(--sc-text-primary)]">
+                                          {account.fullName}
+                                        </h4>
+                                        {isSelf && (
+                                          <span className="rounded-md border border-[var(--sc-primary-light)] bg-[var(--sc-primary-lighter)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--sc-primary-dark)]">
+                                            {t('currentAccount')}
+                                          </span>
+                                        )}
+                                        <Badge
+                                          status={
+                                            account.status === 'ACTIVE'
+                                              ? 'success'
+                                              : account.status === 'PENDING'
+                                                ? 'warning'
+                                                : 'error'
+                                          }
+                                          label={
+                                            account.status === 'ACTIVE'
+                                              ? t('active')
+                                              : account.status === 'PENDING'
+                                                ? t('pending')
+                                                : t('blocked')
+                                          }
+                                          size="sm"
+                                          variant="solid"
+                                        />
+                                      </div>
+                                      <p className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">
+                                        {t('accountIdentifier')}:{' '}
+                                        <span className="font-mono text-[11px] text-[var(--sc-text-tertiary)]">
+                                          {account.userId}
+                                        </span>
+                                      </p>
+                                    </div>
                                   </div>
-                                ))}
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
-                                  disabled={
-                                    isSelf ||
-                                    updatingUserId === account.userId ||
-                                    account.status === 'PENDING'
-                                  }
-                                  isLoading={updatingUserId === account.userId}
-                                  title={isSelf ? t('cannotLockSelf') : undefined}
-                                  onClick={() => setSelectedAccount(account)}
-                                >
-                                  {account.status === 'ACTIVE' ? (
-                                    <LockKeyhole size={14} />
+
+                                  {/* Direct Lock/Unlock action in header */}
+                                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
+                                      disabled={
+                                        isSelf ||
+                                        updatingUserId === account.userId ||
+                                        account.status === 'PENDING'
+                                      }
+                                      isLoading={updatingUserId === account.userId}
+                                      title={isSelf ? t('cannotLockSelf') : undefined}
+                                      onClick={() => setSelectedAccount(account)}
+                                      className="gap-1.5 text-xs font-medium"
+                                    >
+                                      {account.status === 'ACTIVE' ? (
+                                        <LockKeyhole size={14} />
+                                      ) : (
+                                        <LockKeyholeOpen size={14} />
+                                      )}
+                                      {account.status === 'ACTIVE' ? t('lock') : t('unlock')}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* 3 Information Tiles */}
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                  {/* Contact Information */}
+                                  <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-3.5">
+                                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                                      <Mail size={14} className="text-[var(--sc-primary)]" />
+                                      <span>{t('contactInfo')}</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="truncate text-xs font-semibold text-[var(--sc-text-primary)]">
+                                          {account.email}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          aria-label={t('copyEmail')}
+                                          title={t('copyEmail')}
+                                          onClick={() => handleCopy(account.email)}
+                                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--sc-text-tertiary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] active:scale-95"
+                                        >
+                                          {copiedText === account.email ? (
+                                            <Check size={12} className="text-[var(--sc-success)]" />
+                                          ) : (
+                                            <Copy size={12} />
+                                          )}
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
+                                        <Phone
+                                          size={13}
+                                          className="shrink-0 text-[var(--sc-text-tertiary)]"
+                                        />
+                                        <span className="truncate">
+                                          {account.phone || t('notProvided')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Role & Scope */}
+                                  <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-3.5">
+                                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                                      <ShieldCheck
+                                        size={14}
+                                        className="text-teal-600 dark:text-teal-400"
+                                      />
+                                      <span>{t('roleAndPermissions')}</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {account.roles.map((role) => (
+                                          <span
+                                            key={role}
+                                            className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
+                                          >
+                                            {roleLabel(role)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                      <p className="text-[11px] leading-relaxed text-[var(--sc-text-secondary)]">
+                                        {account.roles.includes('SELLER_OWNER')
+                                          ? t('ownerRoleHint')
+                                          : t('staffRoleHint')}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Activity & Security */}
+                                  <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-3.5">
+                                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                                      <Clock
+                                        size={14}
+                                        className="text-amber-600 dark:text-amber-400"
+                                      />
+                                      <span>{t('activityAndSecurity')}</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className={cn(
+                                            'h-2 w-2 rounded-full',
+                                            account.status === 'ACTIVE'
+                                              ? 'bg-[var(--sc-success)]'
+                                              : account.status === 'PENDING'
+                                                ? 'bg-[var(--sc-warning)]'
+                                                : 'bg-[var(--sc-error)]',
+                                          )}
+                                        />
+                                        <span className="text-xs font-semibold text-[var(--sc-text-primary)]">
+                                          {account.lastSessionAt
+                                            ? new Date(account.lastSessionAt).toLocaleString(locale)
+                                            : t('never')}
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-[var(--sc-text-tertiary)]">
+                                        {account.lastSessionAt
+                                          ? relativeTime(account.lastSessionAt, locale, t('never'))
+                                          : t('never')}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Security Guidance Banner */}
+                                <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/60 px-3.5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
+                                  {isSelf ? (
+                                    <>
+                                      <ShieldAlert
+                                        size={15}
+                                        className="shrink-0 text-amber-600 dark:text-amber-400"
+                                      />
+                                      <span>{t('selfAccountHint')}</span>
+                                    </>
                                   ) : (
-                                    <LockKeyholeOpen size={14} />
+                                    <>
+                                      <Info
+                                        size={15}
+                                        className="shrink-0 text-[var(--sc-primary)]"
+                                      />
+                                      <span>{t('staffAccountHint')}</span>
+                                    </>
                                   )}
-                                  {account.status === 'ACTIVE' ? t('lock') : t('unlock')}
-                                </Button>
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -606,22 +971,34 @@ export function StaffAccountDirectory() {
             </table>
           </div>
 
-          <div className="relative">
-            <Pagination
-              currentPage={Math.min(currentPage, totalPages)}
-              totalPages={totalPages}
-              onPageChange={(page) => void handlePageChange(page)}
-            />
-            {isLoadingMore && (
-              <span className="absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
-                <LoaderCircle size={14} className="animate-spin" />
-                {t('loading')}
-              </span>
-            )}
+          {/* Table Footer with Record Counter & Pagination */}
+          <div className="flex flex-col gap-3 border-t border-[var(--sc-border-default)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-[var(--sc-text-secondary)] font-medium">
+              {t('showingResults', {
+                from: fromIndex,
+                to: toIndex,
+                total: sortedAccounts.length,
+              })}
+            </span>
+
+            <div className="relative flex items-center justify-end">
+              <Pagination
+                currentPage={Math.min(currentPage, totalPages)}
+                totalPages={totalPages}
+                onPageChange={(page) => void handlePageChange(page)}
+              />
+              {isLoadingMore && (
+                <span className="ml-3 inline-flex items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
+                  <LoaderCircle size={14} className="animate-spin text-[var(--sc-primary)]" />
+                  {t('loading')}
+                </span>
+              )}
+            </div>
           </div>
         </section>
       )}
 
+      {/* Floating Action Menu Popover */}
       {actionMenu &&
         createPortal(
           <>
@@ -633,7 +1010,7 @@ export function StaffAccountDirectory() {
             />
             <div
               role="menu"
-              className="sc-popover-enter fixed z-[90] w-40 overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-1.5 shadow-[var(--sc-shadow-popover)]"
+              className="sc-popover-enter fixed z-[90] w-44 overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-1.5 shadow-[var(--sc-shadow-popover)]"
               style={{ top: actionMenu.top, left: actionMenu.left }}
             >
               <button
@@ -647,20 +1024,21 @@ export function StaffAccountDirectory() {
                   setSelectedAccount(actionMenu.account);
                   setActionMenu(null);
                 }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[var(--sc-text-primary)] hover:bg-[var(--sc-bg-secondary)] disabled:pointer-events-none disabled:opacity-40"
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-[var(--sc-text-primary)] hover:bg-[var(--sc-bg-secondary)] disabled:pointer-events-none disabled:opacity-40 transition-colors"
               >
                 {actionMenu.account.status === 'ACTIVE' ? (
-                  <LockKeyhole size={15} />
+                  <LockKeyhole size={14} className="text-[var(--sc-error)]" />
                 ) : (
-                  <LockKeyholeOpen size={15} />
+                  <LockKeyholeOpen size={14} className="text-[var(--sc-success)]" />
                 )}
-                {actionMenu.account.status === 'ACTIVE' ? t('lock') : t('unlock')}
+                <span>{actionMenu.account.status === 'ACTIVE' ? t('lock') : t('unlock')}</span>
               </button>
             </div>
           </>,
           document.body,
         )}
 
+      {/* Modal: Invite staff account */}
       <Can capability="iam.users.manage">
         {addModalOpen && (
           <AddStaffAccountModal
@@ -675,6 +1053,7 @@ export function StaffAccountDirectory() {
         )}
       </Can>
 
+      {/* Modal: Confirm Lock / Unlock */}
       <Modal
         isOpen={selectedAccount !== null}
         onClose={() => setSelectedAccount(null)}
