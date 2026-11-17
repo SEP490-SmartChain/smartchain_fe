@@ -3,6 +3,38 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
+
+import type { P3WireRequests } from './p3-wire.generated';
+
+/**
+ * Request payloads frozen by P3 C02 (`p3-wire.generated.ts`). These types are erased at build
+ * time, so every response still crosses the Zod schemas below before it can reach the UI.
+ * The request body itself is validated by the backend DTO; the component validates the form
+ * and the identities/versions it interpolates into paths and payloads.
+ */
+export type CountPlanRequest = P3WireRequests['countPlan'];
+export type EvidenceDigest = P3WireRequests['countEvidence'];
+/** Count, disposal and putback command bodies share the `counts` and `disposals` sub-routes. */
+export type InventoryWorkflowCommandInput =
+  | P3WireRequests['countPlan']
+  | P3WireRequests['countAssignment']
+  | P3WireRequests['countObservation']
+  | P3WireRequests['countReview']
+  | P3WireRequests['countCommand']
+  | P3WireRequests['disposalRequest']
+  | P3WireRequests['disposalReview']
+  | P3WireRequests['disposalExecute']
+  | P3WireRequests['putbackRequest']
+  | P3WireRequests['putbackRetarget']
+  | P3WireRequests['putbackConfirm'];
+
+const EVIDENCE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+type EvidenceContentType = (typeof EVIDENCE_CONTENT_TYPES)[number];
+
+function isEvidenceContentType(value: string): value is EvidenceContentType {
+  return EVIDENCE_CONTENT_TYPES.some((type) => type === value);
+}
+
 const countLine = z
   .object({
     id: z.uuid(),
@@ -111,7 +143,7 @@ export const inventoryWorkflowApi = {
     });
     return countOptionsSchema.parse(data);
   },
-  async createCount(wh: string, input: unknown) {
+  async createCount(wh: string, input: CountPlanRequest) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(`${base(wh)}/counts`, input, {
       silent: true,
     });
@@ -143,26 +175,27 @@ export const inventoryWorkflowApi = {
     });
     return z.object({ items: z.array(putbackSchema), nextCursor: z.uuid().nullable() }).parse(data);
   },
-  async command(wh: string, path: string, input: unknown) {
+  async command(wh: string, path: string, input: InventoryWorkflowCommandInput) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(`${base(wh)}/${path}`, input, {
       silent: true,
     });
     return result.parse(data);
   },
-  async evidence(wh: string, path: string, file: File, uploadBase = base(wh)) {
+  async evidence(
+    wh: string,
+    path: string,
+    file: File,
+    uploadBase = base(wh),
+  ): Promise<EvidenceDigest> {
     const revision = useAuthStore.getState().revision;
-    if (
-      !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
-      file.size < 12 ||
-      file.size > 5242880
-    ) {
+    if (!isEvidenceContentType(file.type) || file.size < 12 || file.size > 5242880) {
       throw new Error('INVALID_EVIDENCE');
     }
     const bytes = await file.arrayBuffer();
     const digest = globalThis.crypto?.subtle
       ? await crypto.subtle.digest('SHA-256', bytes)
       : sha256(new Uint8Array(bytes));
-    const evidence = {
+    const evidence: EvidenceDigest = {
       contentType: file.type,
       fileSizeBytes: file.size,
       sha256: Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, '0')).join(''),
