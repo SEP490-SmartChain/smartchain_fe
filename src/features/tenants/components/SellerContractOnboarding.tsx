@@ -253,11 +253,9 @@ export function SellerContractOnboarding() {
           {flow.error && <Alert variant="error">{flow.error.message}</Alert>}
         </Modal>
       )}
-      {flow.state && !flow.loading && (
-        <CommercialCustomInquiry
-          allowSubmit={!currentContract && flow.state.serviceStatus === 'PENDING_ACTIVATION'}
-        />
-      )}
+      {flow.state?.serviceStatus === 'PENDING_ACTIVATION' &&
+        !flow.state.currentContractId &&
+        !flow.loading && <CommercialCustomInquiry />}
       {contract && (
         <article className={style}>
           <div className="flex flex-wrap items-start justify-between gap-3">

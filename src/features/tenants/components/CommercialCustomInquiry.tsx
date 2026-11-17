@@ -18,7 +18,7 @@ import { commercialApi } from '../api/commercialApi';
 const schema = z.object({ message: z.string().trim().min(10).max(2000) });
 type Inquiry = Awaited<ReturnType<typeof commercialApi.inquiries>>[number];
 
-export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: boolean }) {
+export function CommercialCustomInquiry() {
   const t = useTranslations('Commercial');
   const locale = useLocale();
   const revision = useAuthStore((state) => state.revision);
@@ -60,7 +60,7 @@ export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: 
     };
   }, [reload]);
   const submit = form.handleSubmit(async (input) => {
-    if (!allowSubmit || loading || inquiries.length > 0 || running.current) return;
+    if (loading || inquiries.length > 0 || running.current) return;
     running.current = true;
     setError(null);
     const current = () =>
@@ -121,7 +121,7 @@ export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: 
         {sent && <Alert variant="success">{t('inquirySubmitted')}</Alert>}
         {!loading && inquiries.length > 0 && (
           <>
-            {allowSubmit && <Alert variant="info">{t('inquiryPending')}</Alert>}
+            <Alert variant="info">{t('inquiryPending')}</Alert>
             <h4 className="font-medium">{t('inquiryHistory')}</h4>
             <ul className="space-y-3">
               {inquiries.map((inquiry) => (
@@ -145,7 +145,7 @@ export function CommercialCustomInquiry({ allowSubmit = true }: { allowSubmit?: 
             </ul>
           </>
         )}
-        {allowSubmit && !loading && !error && inquiries.length === 0 && (
+        {!loading && !error && inquiries.length === 0 && (
           <form onSubmit={submit} className="space-y-3">
             <Input
               label={t('inquiryMessage')}
