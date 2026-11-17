@@ -38,10 +38,14 @@ const updateProfileResponseSchema = z
   .passthrough();
 
 export const staffAccountApi = {
-  async create(data: { email: string; fullName: string; roleCode: string }): Promise<StaffAccount> {
+  async create(
+    data: { email: string; fullName: string },
+    signal?: AbortSignal,
+  ): Promise<StaffAccount> {
     const { data: responseData } = await apiClient.post<ApiResponse<unknown>>(
       '/v1/iam/users',
-      data,
+      { email: data.email, fullName: data.fullName, roleCode: 'SELLER_STAFF' },
+      { signal, silent: true },
     );
     return staffAccountSchema.parse(responseData);
   },

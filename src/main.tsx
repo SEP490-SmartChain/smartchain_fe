@@ -20,6 +20,7 @@ import RegisterPage from '@/pages/public/RegisterPage';
 
 const ForgotPasswordPage = React.lazy(() => import('@/pages/public/ForgotPasswordPage'));
 const ResetPasswordPage = React.lazy(() => import('@/pages/public/ResetPasswordPage'));
+const AcceptInvitationPage = React.lazy(() => import('@/pages/public/AcceptInvitationPage'));
 const OtpPage = React.lazy(() => import('@/pages/public/OtpPage'));
 const ForbiddenPage = React.lazy(() => import('@/pages/public/ForbiddenPage'));
 
@@ -27,9 +28,13 @@ const ForbiddenPage = React.lazy(() => import('@/pages/public/ForbiddenPage'));
 const DashboardPage = React.lazy(() => import('@/pages/workspace/DashboardPage'));
 const OrdersPage = React.lazy(() => import('@/pages/workspace/OrdersPage'));
 const InventoryPage = React.lazy(() => import('@/pages/workspace/InventoryPage'));
+const DemandForecastPage = React.lazy(
+  () => import('@/pages/workspace/DemandForecastWorkspacePage'),
+);
 const RulesPage = React.lazy(() => import('@/pages/workspace/RulesPage'));
 const ShipmentsPage = React.lazy(() => import('@/pages/workspace/ShipmentsPage'));
 const ReconciliationPage = React.lazy(() => import('@/pages/workspace/ReconciliationPage'));
+const ClaimsPage = React.lazy(() => import('@/pages/workspace/ClaimsPage'));
 const AnalyticsPage = React.lazy(() => import('@/pages/workspace/AnalyticsPage'));
 const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
 const BillingPage = React.lazy(() => import('@/pages/workspace/BillingPage'));
@@ -58,6 +63,9 @@ const WarehousePackingPage = React.lazy(() => import('@/pages/warehouse/PackingP
 const WarehouseHandoverPage = React.lazy(() => import('@/pages/warehouse/HandoverPage'));
 const WarehouseReturnsPage = React.lazy(() => import('@/pages/warehouse/ReturnsPage'));
 const WarehouseCountsPage = React.lazy(() => import('@/pages/warehouse/CountsPage'));
+const WarehouseEvidenceTasksPage = React.lazy(
+  () => import('@/pages/warehouse/WarehouseEvidenceTasksPage'),
+);
 
 // ORCA operations portal
 const TenantsPage = React.lazy(() => import('@/pages/admin/TenantsPage'));
@@ -108,6 +116,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/accept-invite" element={<AcceptInvitationPage />} />
               <Route path="/otp" element={<OtpPage />} />
             </Route>
 
@@ -140,6 +149,7 @@ function App() {
                   <Route path="/billing" element={<BillingPage />} />
                   <Route path="/statements" element={<StatementsPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
+                  <Route path="/inventory/forecast" element={<DemandForecastPage />} />
                   <Route path="/warehouses" element={<WarehousesPage />} />
                   <Route path="/warehouse" element={<Navigate to="/warehouse/inbound" replace />} />
                   <Route element={<WarehouseInboundLayoutPage />}>
@@ -157,9 +167,15 @@ function App() {
                   <Route path="/warehouse/handover" element={<WarehouseHandoverPage />} />
                   <Route path="/warehouse/returns" element={<WarehouseReturnsPage />} />
                   <Route path="/warehouse/counts" element={<WarehouseCountsPage />} />
+                  <Route
+                    path="/warehouse/claim-evidence"
+                    element={<WarehouseEvidenceTasksPage />}
+                  />
                   <Route path="/rules" element={<RulesPage />} />
                   <Route path="/shipments" element={<ShipmentsPage />} />
                   <Route path="/exceptions" element={<ExceptionsPage />} />
+                  <Route path="/claims" element={<ClaimsPage />} />
+                  <Route path="/claims/:claimId" element={<ClaimsPage />} />
                   <Route path="/reconciliation" element={<ReconciliationPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/settings/:tab" element={<SettingsPage />} />

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 
 const productId = '00000000-0000-4000-8000-000000000001';
 const timestamp = '2026-10-08T03:00:00.000Z';
+const totalCostPreview = process.env['PREVIEW_TOTAL_COST'] === '1';
 const money = {
   codAmount: '100000',
   totalAmount: '100000',
@@ -135,6 +136,11 @@ const server = await createServer({
               { limit: 50, hasNext: false, nextCursor: null },
             );
           }
+          const cancellationOrder = orders.find(
+            (entry) => url.pathname === `/api/v1/orders/${entry.id}/cancellation`,
+          );
+          if (cancellationOrder)
+            return respond({ id: cancellationOrder.id, status: 'NOT_REQUESTED', code: null });
           const order = orders.find((entry) => url.pathname === `/api/v1/orders/${entry.id}`);
           if (order)
             return respond({
@@ -155,15 +161,50 @@ const server = await createServer({
                 {
                   productId,
                   sku: 'DEMO-001',
-                  productName: 'Áo thun mẫu',
-                  qty: 1,
-                  ...(owner ? { unitPrice: '100000' } : {}),
+                  productName: totalCostPreview ? 'Trà mô phỏng' : 'Áo thun mẫu',
+                  qty: totalCostPreview ? 2 : 1,
+                  ...(owner ? { unitPrice: totalCostPreview ? '50000' : '100000' } : {}),
                 },
               ],
               statusHistory: [
                 { fromStatus: null, toStatus: 'RECEIVED', reason: null, changedAt: timestamp },
               ],
-              fulfillmentOrders: [],
+              fulfillmentOrders: totalCostPreview
+                ? [1, 2].map((sequenceNo) => ({
+                    id: `00000000-0000-4000-8000-${String(900 + sequenceNo).padStart(12, '0')}`,
+                    warehouseId: `00000000-0000-4000-8000-${String(800 + sequenceNo).padStart(12, '0')}`,
+                    warehouseName:
+                      sequenceNo === 1 ? 'Kho Đà Nẵng mô phỏng' : 'Kho Hà Nội mô phỏng',
+                    sequenceNo,
+                    status: 'STOCK_RESERVED',
+                    items: [{ productId, sku: 'DEMO-001', productName: 'Trà mô phỏng', qty: 1 }],
+                    parcels: [],
+                    shipments: [],
+                    allocation: {
+                      reason: 'TOTAL_COST',
+                      ruleVersion: 1,
+                      lots: [
+                        {
+                          sku: 'DEMO-001',
+                          lotCode: 'LOT-SYNTHETIC',
+                          expiresOn: '2027-01-01',
+                          binCode: 'A01',
+                          qty: 1,
+                        },
+                      ],
+                    },
+                    ...(owner
+                      ? {
+                          codAmount: '50000',
+                          allocationCost: {
+                            extraShippingFeeVnd: '13000',
+                            savedGoodsValueVnd: '90000',
+                            globalOptimum: false,
+                          },
+                        }
+                      : {}),
+                  }))
+                : [],
             });
           res.writeHead(404);
           res.end();

@@ -131,6 +131,18 @@ test('posts actual scan intent only and verifies task/actor/version/quantity res
   };
   assert.deepEqual(await api.confirm(warehouse, task, id, input), result);
 });
+test('confirms the assigned quantity with the actual storage bin code only', async () => {
+  const placement = { operationKey: id, expectedVersion: 2, toBinScan: 'ST-01' };
+  const commands = [];
+  globalThis.fetch = async (_url, opts) => {
+    commands.push(JSON.parse(opts.body));
+    return ok(result);
+  };
+  assert.deepEqual(await api.confirm(warehouse, task, id, placement), result);
+  assert.deepEqual(commands, [placement]);
+  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, qty: 7 }));
+  assert.deepEqual(commands, [placement]);
+});
 test('preserves exact scans and operation after unknown transport failure', async () => {
   const commands = [];
   globalThis.fetch = async (url, opts) => {

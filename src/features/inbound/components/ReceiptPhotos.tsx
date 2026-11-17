@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -30,15 +30,20 @@ import {
   type ReceiptEvidence,
 } from '../api/evidenceApi';
 
+const MAX_FILES = 10;
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const VIDEO_TYPES = ['video/mp4', 'video/webm'];
+const MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES];
+const mediaFile = z.custom<File>(
+  (value) =>
+    value instanceof File &&
+    MEDIA_TYPES.includes(value.type) &&
+    value.size >= 12 &&
+    value.size <= (value.type.startsWith('video/') ? 50 : 5) * 1024 * 1024,
+);
 const formSchema = z.object({
   note: z.string().trim().max(1000),
-  photo: z.custom<File>(
-    (value) =>
-      value instanceof File &&
-      ['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'].includes(value.type) &&
-      value.size >= 12 &&
-      value.size <= (value.type.startsWith('video/') ? 50 : 5) * 1024 * 1024,
-  ),
+  files: z.array(mediaFile).min(1).max(MAX_FILES),
 });
 interface Props {
   onPendingChange?: (key: string, locked: boolean) => void;
@@ -55,6 +60,10 @@ interface Attempt {
   input: EvidenceIntentInput;
 }
 
+function fileKey(file: File) {
+  return JSON.stringify([file.name, file.size, file.lastModified, file.type]);
+}
+
 export function ReceiptPhotos({
   warehouseId,
   asnId,
@@ -69,8 +78,10 @@ export function ReceiptPhotos({
   const owner = useAuthStore((state) => state.user);
   const [expanded, setExpanded] = useState(recordId === null);
   const [camera, setCamera] = useState<'photo' | 'video' | null>(null);
-  const [localPreview, setLocalPreview] = useState('');
+  const [localPreviews, setLocalPreviews] = useState<{ file: File; url: string }[]>([]);
   const [photos, setPhotos] = useState<ReceiptEvidence[]>([]);
+  const [listError, setListError] = useState('');
+  const [selectionError, setSelectionError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -78,7 +89,6 @@ export function ReceiptPhotos({
   const [deleteTarget, setDeleteTarget] = useState<ReceiptEvidence | null>(null);
   const [deleteError, setDeleteError] = useState('');
   const [refresh, setRefresh] = useState(0);
-  const [fileRevision, setFileRevision] = useState(0);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const generation = useRef(0);
   const active = useRef<AbortController | null>(null);
@@ -89,34 +99,38 @@ export function ReceiptPhotos({
   const noteId = useId();
   const noteErrorId = useId();
   const {
-    control,
+    getValues,
     register,
     setValue,
     watch,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<{ photo: File; note: string }>({
+  } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { note: '' },
+    defaultValues: { files: [], note: '' },
   });
-  const selectedFile = watch('photo');
+  const selectedFiles = watch('files');
+  const remainingSlots = Math.max(0, MAX_FILES - photos.length);
+  const pickerDisabled =
+    busy ||
+    loading ||
+    attempt !== null ||
+    selectedFiles.length >= remainingSlots ||
+    camera !== null;
+  const invalidFileMessage = t(recordId === null ? 'photoInvalid' : 'lotPhotoInvalid');
   useEffect(() => {
     onPendingChange?.(
       `photo:${recordId}`,
-      busy || attempt !== null || camera !== null || Boolean(selectedFile),
+      busy || attempt !== null || camera !== null || selectedFiles.length > 0,
     );
     return () => onPendingChange?.(`photo:${recordId}`, false);
-  }, [onPendingChange, recordId, busy, attempt, camera, selectedFile]);
+  }, [onPendingChange, recordId, busy, attempt, camera, selectedFiles.length]);
   useEffect(() => {
-    if (!selectedFile) {
-      setLocalPreview('');
-      return;
-    }
-    const url = URL.createObjectURL(selectedFile);
-    setLocalPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [selectedFile]);
+    const previews = selectedFiles.map((file) => ({ file, url: URL.createObjectURL(file) }));
+    setLocalPreviews(previews);
+    return () => previews.forEach(({ url }) => URL.revokeObjectURL(url));
+  }, [selectedFiles]);
   const current = useCallback(
     (revision: number) => revision === generation.current && owner === useAuthStore.getState().user,
     [owner],
@@ -132,6 +146,8 @@ export function ReceiptPhotos({
     setDeleteTarget(null);
     setDeleteError('');
     setError('');
+    setListError('');
+    setSelectionError('');
     setAttempt(null);
     setBusy(false);
     reset();
@@ -154,12 +170,12 @@ export function ReceiptPhotos({
             throw new Error('Evidence belongs to another receipt');
           }
           setPhotos(items);
-          setError('');
+          setListError('');
         }
       })
       .catch((reason) => {
         if (!controller.signal.aborted && current(revision)) {
-          setError(reason instanceof ApiError ? reason.message : t('photoError'));
+          setListError(reason instanceof ApiError ? reason.message : t('photoError'));
         }
       })
       .finally(() => {
@@ -168,70 +184,102 @@ export function ReceiptPhotos({
     return () => controller.abort();
   }, [warehouseId, asnId, recordId, owner, expanded, refresh, t, current, receiptId]);
 
-  async function upload(file?: File) {
-    if (busy || !canWrite || owner !== useAuthStore.getState().user) return;
+  function selectFiles(files: File[]) {
+    if (!files.length) return;
+    if (
+      files.some(
+        (file) =>
+          !mediaFile.safeParse(file).success ||
+          (recordId !== null && !IMAGE_TYPES.includes(file.type)),
+      )
+    ) {
+      setSelectionError(invalidFileMessage);
+      return;
+    }
+    const next = new Map(getValues('files').map((file) => [fileKey(file), file]));
+    for (const file of files) {
+      const key = fileKey(file);
+      if (!next.has(key)) next.set(key, file);
+    }
+    if (next.size > remainingSlots) {
+      setSelectionError(t('mediaLimit', { count: remainingSlots }));
+      return;
+    }
+    setSelectionError('');
+    setError('');
+    setValue('files', [...next.values()], { shouldValidate: true });
+  }
+
+  async function upload({ files, note }: z.infer<typeof formSchema>) {
+    if (busy || loading || camera !== null || !canWrite || owner !== useAuthStore.getState().user) {
+      return;
+    }
+    if (!attempt && files.length > remainingSlots) return;
     const controller = active.current;
     if (!controller) return;
     const revision = generation.current;
     setBusy(true);
     setError('');
+    setSelectionError('');
+    let saved = attempt;
+    let uploaded = false;
+    let failedFileName = '';
     let stage: 'prepare' | 'intent' | 'upload' | 'confirm' = 'prepare';
     try {
-      const saved =
-        attempt ??
-        (file
-          ? {
-              file,
-              input: {
-                ...(await imageIntent(file, createUuid())),
-                ...(recordId === null
-                  ? { note: watch('note')?.trim() ?? '', expectedRound: receivingRound }
-                  : {}),
-              },
-            }
-          : null);
-      if (!saved || !current(revision)) return;
-      setAttempt(saved);
-      stage = 'intent';
-      const result = await evidenceApi.presign(
-        warehouseId,
-        asnId,
-        recordId,
-        saved.input,
-        controller.signal,
-      );
-      if (!current(revision)) return;
-      if (recordId === null && result.evidence.receiptId !== receiptId) {
-        throw new Error('Evidence belongs to another receipt');
-      }
-      if (result.upload) {
-        stage = 'upload';
-        await apiClient.uploadSignedImage(
-          result.upload.uploadUrl,
-          saved.file,
-          result.upload.headers,
-          controller.signal,
-        );
+      for (const file of files) {
+        failedFileName = file.name;
+        stage = 'prepare';
+        saved ??= {
+          file,
+          input: {
+            ...(await imageIntent(file, createUuid())),
+            ...(recordId === null ? { note, expectedRound: receivingRound } : {}),
+          },
+        };
         if (!current(revision)) return;
-        stage = 'confirm';
-        await evidenceApi.confirm(
+        stage = 'intent';
+        const result = await evidenceApi.presign(
           warehouseId,
           asnId,
           recordId,
-          result.evidence.id,
+          saved.input,
           controller.signal,
         );
-      }
-      if (current(revision)) {
+        if (!current(revision)) return;
+        if (recordId === null && result.evidence.receiptId !== receiptId) {
+          throw new Error('Evidence belongs to another receipt');
+        }
+        if (result.upload) {
+          stage = 'upload';
+          await apiClient.uploadSignedImage(
+            result.upload.uploadUrl,
+            saved.file,
+            result.upload.headers,
+            controller.signal,
+          );
+          if (!current(revision)) return;
+          stage = 'confirm';
+          await evidenceApi.confirm(
+            warehouseId,
+            asnId,
+            recordId,
+            result.evidence.id,
+            controller.signal,
+          );
+        }
+        if (!current(revision)) return;
+        uploaded = true;
+        saved = null;
         setAttempt(null);
-        reset();
-        setFileRevision((value) => value + 1);
-        setRefresh((value) => value + 1);
-        onUploaded?.();
+        setValue(
+          'files',
+          getValues('files').filter((item) => item !== file),
+        );
       }
+      reset();
     } catch (reason) {
       if (controller.signal.aborted || !current(revision)) return;
-      setError(
+      const message =
         reason instanceof ApiError
           ? reason.message
           : t(
@@ -240,14 +288,23 @@ export function ReceiptPhotos({
                 : stage === 'confirm'
                   ? 'mediaConfirmError'
                   : 'photoError',
-            ),
-      );
+            );
+      setError(t('mediaSaveError', { name: failedFileName, message }));
       // Preserve the exact intent and file across lost responses or expired upload URLs.
-      if (reason instanceof ApiError && [400, 403, 404, 409, 422, 429].includes(reason.status)) {
-        setAttempt(null);
-      }
+      const rejected =
+        reason instanceof ApiError &&
+        ([400, 403, 404, 409, 422].includes(reason.status) ||
+          (reason.status === 429 && attempt === null));
+      setAttempt(rejected ? null : saved);
     } finally {
-      if (current(revision)) setBusy(false);
+      if (current(revision)) {
+        if (uploaded) {
+          setLoading(true);
+          setRefresh((value) => value + 1);
+          onUploaded?.();
+        }
+        setBusy(false);
+      }
     }
   }
   async function view(id: string) {
@@ -325,7 +382,7 @@ export function ReceiptPhotos({
           </span>
         </span>
         <span className="flex shrink-0 items-center gap-3">
-          <Badge status="default" label={`${photos.length}/10`} />
+          <Badge status="default" label={`${photos.length}/${MAX_FILES}`} />
           {expanded ? (
             <ChevronUp size={18} aria-hidden="true" />
           ) : (
@@ -343,6 +400,7 @@ export function ReceiptPhotos({
               {t('loading')}
             </p>
           )}
+          {listError && <Alert variant="error" title={listError} />}
           {error && <Alert variant="error" title={error} />}
           {photos.length > 0 && (
             <ul className="grid gap-3 sm:grid-cols-2" aria-label={t('photoList')}>
@@ -418,7 +476,7 @@ export function ReceiptPhotos({
           {canWrite && (
             <form
               className="flex flex-col gap-4 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4"
-              onSubmit={handleSubmit((values) => void upload(values.photo))}
+              onSubmit={handleSubmit((values) => void upload(values))}
             >
               <div className={recordId === null ? 'grid gap-4 lg:grid-cols-2' : 'space-y-3'}>
                 <div className="space-y-3">
@@ -426,7 +484,7 @@ export function ReceiptPhotos({
                     <Button
                       type="button"
                       variant="outline"
-                      disabled={busy || attempt !== null || photos.length >= 10 || camera !== null}
+                      disabled={pickerDisabled}
                       onClick={() =>
                         typeof navigator.mediaDevices?.getUserMedia === 'function'
                           ? setCamera('photo')
@@ -440,9 +498,7 @@ export function ReceiptPhotos({
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={
-                          busy || attempt !== null || photos.length >= 10 || camera !== null
-                        }
+                        disabled={pickerDisabled}
                         onClick={() =>
                           typeof navigator.mediaDevices?.getUserMedia === 'function'
                             ? setCamera('video')
@@ -456,7 +512,7 @@ export function ReceiptPhotos({
                     <Button
                       type="button"
                       variant="outline"
-                      disabled={busy || attempt !== null || photos.length >= 10 || camera !== null}
+                      disabled={pickerDisabled}
                       onClick={() => uploadInput.current?.click()}
                     >
                       <FolderOpen size={16} aria-hidden="true" />
@@ -492,30 +548,17 @@ export function ReceiptPhotos({
                 )}
               </div>
               <div className="hidden">
-                <Controller
-                  name="photo"
-                  control={control}
-                  render={({ field }) => (
-                    <Input
-                      key={fileRevision}
-                      type="file"
-                      label={t('photoSelect')}
-                      accept={
-                        recordId === null
-                          ? 'image/png,image/jpeg,image/webp,video/mp4,video/webm'
-                          : 'image/png,image/jpeg,image/webp'
-                      }
-                      disabled={busy || attempt !== null || photos.length >= 10 || camera !== null}
-                      name={field.name}
-                      ref={(node) => {
-                        field.ref(node);
-                        uploadInput.current = node;
-                      }}
-                      onBlur={field.onBlur}
-                      onChange={(event) => field.onChange(event.target.files?.[0])}
-                      error={errors.photo ? t('photoInvalid') : undefined}
-                    />
-                  )}
+                <Input
+                  ref={uploadInput}
+                  type="file"
+                  label={t('photoSelect')}
+                  accept={(recordId === null ? MEDIA_TYPES : IMAGE_TYPES).join(',')}
+                  disabled={pickerDisabled}
+                  multiple
+                  onChange={(event) => {
+                    selectFiles(Array.from(event.target.files ?? []));
+                    event.target.value = '';
+                  }}
                 />
                 <Input
                   ref={nativePhoto}
@@ -525,7 +568,7 @@ export function ReceiptPhotos({
                   aria-label={t('takePhoto')}
                   onChange={(event) => {
                     const file = event.target.files?.[0];
-                    if (file) setValue('photo', file, { shouldValidate: true });
+                    if (file) selectFiles([file]);
                     event.target.value = '';
                   }}
                 />
@@ -538,7 +581,7 @@ export function ReceiptPhotos({
                     aria-label={t('recordVideo')}
                     onChange={(event) => {
                       const file = event.target.files?.[0];
-                      if (file) setValue('photo', file, { shouldValidate: true });
+                      if (file) selectFiles([file]);
                       event.target.value = '';
                     }}
                   />
@@ -549,67 +592,85 @@ export function ReceiptPhotos({
                   mode={camera}
                   onClose={() => setCamera(null)}
                   onCaptured={(file) => {
-                    setValue('photo', file, { shouldValidate: true });
+                    selectFiles([file]);
                     setCamera(null);
                   }}
                 />
               )}
-              {selectedFile && localPreview && (
-                <div className="flex flex-col gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-3 sm:flex-row sm:items-center">
-                  <div className="flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-md bg-[var(--sc-bg-secondary)] sm:w-40">
-                    {selectedFile.type.startsWith('video/') ? (
-                      <video
-                        src={localPreview}
-                        controls
-                        playsInline
-                        aria-label={t('videoPreview')}
-                        className="max-h-28 w-full object-contain"
-                      />
-                    ) : (
-                      <img
-                        src={localPreview}
-                        alt={t('photoPreview')}
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="break-all text-sm font-medium text-[var(--sc-text-primary)]">
-                      {selectedFile.name}
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
-                      {Math.ceil(selectedFile.size / 1024)} KB
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={busy || attempt !== null}
-                      onClick={() => {
-                        reset();
-                        setFileRevision((value) => value + 1);
-                      }}
-                    >
-                      {t('discardMedia')}
-                    </Button>
-                    {attempt ? (
-                      <Button type="button" disabled={busy} onClick={() => void upload()}>
-                        {t('photoRetry')}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="submit"
-                        disabled={busy || loading || photos.length >= 10 || camera !== null}
+              {selectedFiles.length > 0 && (
+                <ul className="space-y-2" aria-label={t('pendingMediaList')}>
+                  {localPreviews
+                    .filter(({ file }) => selectedFiles.includes(file))
+                    .map(({ file, url }) => (
+                      <li
+                        key={fileKey(file)}
+                        className="flex flex-col gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-3 sm:flex-row sm:items-center"
                       >
-                        {t('photoUpload')}
-                      </Button>
-                    )}
-                  </div>
+                        <div className="flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-md bg-[var(--sc-bg-secondary)] sm:w-40">
+                          {file.type.startsWith('video/') ? (
+                            <video
+                              src={url}
+                              controls
+                              playsInline
+                              aria-label={t('videoPreview')}
+                              className="max-h-28 w-full object-contain"
+                            />
+                          ) : (
+                            <img src={url} alt="" className="h-full w-full object-cover" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="break-all text-sm font-medium text-[var(--sc-text-primary)]">
+                            {file.name}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+                            {Math.ceil(file.size / 1024)} KB
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={busy || attempt !== null}
+                          aria-label={t('discardNamedMedia', { name: file.name })}
+                          onClick={() => {
+                            setValue(
+                              'files',
+                              getValues('files').filter((item) => item !== file),
+                            );
+                            setSelectionError('');
+                            setError('');
+                          }}
+                        >
+                          {t('discardMedia')}
+                        </Button>
+                      </li>
+                    ))}
+                </ul>
+              )}
+              {selectionError && <Alert variant="error" title={selectionError} />}
+              {errors.files && selectedFiles.length > 0 && (
+                <Alert variant="error" title={invalidFileMessage} />
+              )}
+              {!attempt && selectedFiles.length > remainingSlots && !selectionError && (
+                <Alert variant="error" title={t('mediaLimit', { count: remainingSlots })} />
+              )}
+              {attempt && <Alert variant="warning" title={t('photoRetryHelp')} />}
+              {selectedFiles.length > 0 && (
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    isLoading={busy}
+                    disabled={
+                      busy ||
+                      loading ||
+                      camera !== null ||
+                      (!attempt && selectedFiles.length > remainingSlots)
+                    }
+                  >
+                    {attempt ? t('photoRetry') : t('photoUpload')}
+                  </Button>
                 </div>
               )}
-              {errors.photo && <Alert variant="error" title={t('photoInvalid')} />}
-              {attempt && <Alert variant="warning" title={t('photoRetryHelp')} />}
             </form>
           )}
         </div>

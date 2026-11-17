@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, CloudDownload, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, RequiredNote, Select } from '@/components/Common';
@@ -115,6 +115,11 @@ export function FreightTariffEditor({
   const [fresh, setFresh] = useState<PurchaseTariff | SellerTariff | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [expected, setExpected] = useState(row ? { id: row.id, version: row.version } : undefined);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState<{
+    tone: 'info' | 'warning';
+    text: string;
+  } | null>(null);
   const source = row ?? template;
   const purchase = source && 'carrierId' in source ? source : null;
   const seller = source && 'code' in source ? source : null;
@@ -192,6 +197,45 @@ export function FreightTariffEditor({
       ...registered,
       error: form.getFieldState(name, form.formState).error ? t('fieldInvalid') : undefined,
     };
+  }
+  /** Replaces the bands with the newest carrier API prices for the chosen service and zone. */
+  async function fillFromApi() {
+    const { serviceId, zone } = form.getValues();
+    if (!serviceId || !zones.includes(zone)) {
+      setSuggestion({ tone: 'warning', text: t('apiFillNeedsZone') });
+      return;
+    }
+    setSuggesting(true);
+    setSuggestion(null);
+    try {
+      const result = await freightTariffApi.purchaseSuggestion(serviceId, zone);
+      form.setValue('policy.roundingGram', 500);
+      form.setValue(
+        'bands',
+        result.bands.map((band) => ({ ...emptyBand(), ...band })),
+        { shouldValidate: true },
+      );
+      setSuggestion({
+        tone: 'info',
+        text: t('apiFillDone', {
+          routes: result.routeCount,
+          time: new Date(result.observedAt).toLocaleString(),
+        }),
+      });
+    } catch (failure) {
+      const known: Record<string, string> = {
+        'RATE_PROPOSAL.NO_API_QUOTES': 'apiFillNoQuotes',
+        'RATE_PROPOSAL.NO_API_QUOTES_FOR_ZONE': 'apiFillNoZoneQuotes',
+      };
+      setSuggestion({
+        tone: 'warning',
+        text: t(
+          failure instanceof ApiError ? (known[failure.code] ?? 'apiFillError') : 'apiFillError',
+        ),
+      });
+    } finally {
+      setSuggesting(false);
+    }
   }
   async function readLatest() {
     if (!row) return;
@@ -399,6 +443,22 @@ export function FreightTariffEditor({
 
         <Section title={t('sectionPrices')}>
           <p className="text-sm text-[var(--sc-text-secondary)]">{t('bandHelp')}</p>
+          {kind === 'purchase' && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="secondary"
+                isLoading={suggesting}
+                disabled={!carrierId || !form.watch('zone') || form.formState.isSubmitting}
+                onClick={() => void fillFromApi()}
+              >
+                <CloudDownload size={16} aria-hidden="true" />
+                {t('apiFill')}
+              </Button>
+              <p className="text-xs text-[var(--sc-text-secondary)]">{t('apiFillHint')}</p>
+              {suggestion && <Alert variant={suggestion.tone}>{suggestion.text}</Alert>}
+            </div>
+          )}
           {fields.map((field, index) => {
             const hint = (key: string) => (index === 0 ? t(key) : undefined);
             return (

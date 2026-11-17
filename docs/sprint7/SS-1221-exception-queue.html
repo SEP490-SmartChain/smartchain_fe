@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SS-1222 — Thiết kế sự cố vận hành</title>
+    <style>
+      :root {
+        font-family: Inter, system-ui, sans-serif;
+        color: #182230;
+        background: #f7f9fc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+      }
+      header p {
+        color: #526174;
+        max-width: 760px;
+        line-height: 1.6;
+      }
+      .surface {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 24px;
+        margin: 20px 0;
+      }
+      .filters {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .field {
+        flex: 1;
+        min-width: 150px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      select,
+      input,
+      button {
+        font: inherit;
+        min-height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 10px;
+        background: white;
+        width: 100%;
+      }
+      button {
+        background: #1278c3;
+        color: white;
+        cursor: pointer;
+        width: auto;
+        align-self: end;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 16px 12px;
+        border-bottom: 1px solid #edf1f6;
+      }
+      th {
+        color: #526174;
+        font-size: 12px;
+      }
+      .scroll {
+        overflow: auto;
+      }
+      .badge {
+        display: inline-block;
+        background: #fff2d6;
+        color: #815c08;
+        border-radius: 20px;
+        padding: 5px 10px;
+        white-space: nowrap;
+      }
+      .hint {
+        padding: 16px;
+        background: #edf6ff;
+        border-radius: 10px;
+        line-height: 1.6;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .muted {
+        font-size: 13px;
+        color: #66788d;
+      }
+      .history {
+        padding: 12px 0;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      @media (max-width: 720px) {
+        body {
+          padding: 16px;
+        }
+        .surface {
+          padding: 16px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="muted">SS-1222 · Bản thiết kế tham chiếu · Dữ liệu minh họa</p>
+        <h1>Sự cố vận hành</h1>
+        <p>
+          Điều tra lỗi đơn hàng và hàng đợi, phân công xử lý và yêu cầu thử lại sau khi kiểm tra
+          trạng thái nghiệp vụ.
+        </p>
+      </header>
+      <section class="surface">
+        <div class="filters">
+          <div class="field">
+            <label for="status">Trạng thái</label
+            ><select id="status">
+              <option>Chưa xử lý</option>
+              <option>Đang xử lý</option>
+              <option>Đã xử lý</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="type">Loại sự cố</label
+            ><select id="type">
+              <option>Tất cả</option>
+              <option>Đơn hàng</option>
+              <option>Tạo vận đơn</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="warehouse">Kho</label
+            ><select id="warehouse">
+              <option>Tất cả kho được phép</option>
+              <option>Kho Hà Nội</option>
+            </select>
+          </div>
+          <button>Lọc</button><button>Tải lại</button>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Đơn / nghiệp vụ nguồn</th>
+                <th>Seller</th>
+                <th>Mã sự cố</th>
+                <th>Kho</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>DEMO-108 / 1</td>
+                <td>Seller minh họa</td>
+                <td>DISPATCH.UNKNOWN</td>
+                <td>Kho Hà Nội</td>
+                <td><span class="badge">Đang xử lý</span></td>
+                <td><button>Điều tra</button></td>
+              </tr>
+              <tr>
+                <td>DEMO-109</td>
+                <td>Seller minh họa</td>
+                <td>ALLOCATION_COST_INPUT_REQUIRED</td>
+                <td>Chưa gắn kho</td>
+                <td><span class="badge">Chưa xử lý</span></td>
+                <td><button>Điều tra</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="surface" aria-label="Ví dụ bảng điều tra">
+        <h2>Điều tra sự cố · DEMO-108 / 1</h2>
+        <div class="grid">
+          <div>
+            <p class="muted">Người phụ trách</p>
+            <p>Ops Dispatcher minh họa</p>
+          </div>
+          <div>
+            <p class="muted">Trạng thái nghiệp vụ nguồn</p>
+            <p>UNKNOWN · Cần xác minh carrier</p>
+          </div>
+        </div>
+        <p class="hint">
+          Giữ nguyên booking reference để xác minh trước khi tạo lại vận đơn. Chỉ đóng sự cố sau khi
+          hệ thống xác nhận nghiệp vụ nguồn đã được xử lý.
+        </p>
+        <div class="grid">
+          <div>
+            <label for="action">Thao tác xử lý</label
+            ><select id="action">
+              <option>Thêm ghi chú</option>
+              <option>Phân công</option>
+              <option>Yêu cầu thử lại</option>
+              <option disabled>Đóng sự cố đã xác minh</option>
+            </select>
+          </div>
+          <div>
+            <label for="note">Ghi chú điều tra</label
+            ><input id="note" placeholder="Mô tả bằng chứng và bước xử lý…" />
+          </div>
+        </div>
+        <p><button>Gửi thao tác</button></p>
+        <h3>Lịch sử xử lý gần nhất</h3>
+        <div class="history">
+          <strong>Phân công · 30/10/2026, 14:10</strong>
+          <p>Đã giao Ops kiểm tra kết quả carrier với reference cũ.</p>
+        </div>
+      </section>
+      <footer class="muted">
+        Trạng thái cần thiết: loading · lỗi tải có tải lại · danh sách trống · telemetry không khả
+        dụng/partial · cập nhật cũ phải tải lại · kết quả chưa rõ giữ mã thao tác · Admin/Manager
+        chỉ xem. Đây là bản thiết kế tĩnh, không gửi thao tác nghiệp vụ.
+      </footer>
+    </main>
+  </body>
+</html>

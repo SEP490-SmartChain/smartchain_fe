@@ -120,7 +120,9 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         productId: line.productId,
         declaredQty: line.declaredQty,
         declaredLotCode: line.declaredLotCode || undefined,
-        declaredExpiryOn: line.declaredExpiryOn || undefined,
+        declaredExpiryOn: products.find((product) => product.id === line.productId)?.trackExpiry
+          ? line.declaredExpiryOn || undefined
+          : undefined,
       })),
     };
     try {
@@ -211,7 +213,13 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
                   value: product.id,
                   label: `${product.sku} — ${product.name}`,
                 }))}
-                {...register(`lines.${index}.productId`)}
+                {...register(`lines.${index}.productId`, {
+                  onChange: () =>
+                    setValue(`lines.${index}.declaredExpiryOn`, '', {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    }),
+                })}
                 error={errors.lines?.[index]?.productId ? t('invalidForm') : undefined}
               />
               <Input
@@ -228,18 +236,24 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
                 {...register(`lines.${index}.declaredLotCode`)}
                 error={errors.lines?.[index]?.declaredLotCode ? t('invalidForm') : undefined}
               />
-              <Input
-                label={t('expiry')}
-                type="date"
-                {...register(`lines.${index}.declaredExpiryOn`)}
-                error={errors.lines?.[index]?.declaredExpiryOn ? t('invalidForm') : undefined}
-              />
+              {products.find((product) => product.id === lines[index]?.productId)?.trackExpiry && (
+                <Input
+                  label={t('expiry')}
+                  type="date"
+                  {...register(`lines.${index}.declaredExpiryOn`)}
+                  error={errors.lines?.[index]?.declaredExpiryOn ? t('invalidForm') : undefined}
+                />
+              )}
             </div>
             {!draft && (
               <AsnAllocationSuggestion
                 productId={lines[index]?.productId ?? ''}
                 quantity={lines[index]?.declaredQty ?? 0}
-                expiry={lines[index]?.declaredExpiryOn}
+                expiry={
+                  products.find((product) => product.id === lines[index]?.productId)?.trackExpiry
+                    ? lines[index]?.declaredExpiryOn
+                    : undefined
+                }
                 disabled={isSubmitting || loading}
                 onChoose={(warehouseId, quantity) => {
                   setValue('warehouseId', warehouseId, { shouldDirty: true, shouldValidate: true });

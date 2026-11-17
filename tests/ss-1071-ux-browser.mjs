@@ -27,7 +27,7 @@ let version=approved||scenario==='returned'?5:4,asnStatus=scenario==='waiting'?'
 let count=['returned','uncounted','waiting','expiry','derived-expiry','manufacture-only','untracked'].includes(scenario)?null:{id:uuid(8),receiptId:receipt,inboundLineId:line,receivedQty:7,receiptVersion:2,countedAt:stamp,lots:[{recordId:record,lotId:uuid(10),lotCode:'LOT-LOCAL-01',receivedQty:7,quarantinedQty:0,qcState:scenario==='blockers'?'PENDING':approved?'APPROVED':'REVIEW_REQUIRED',manufacturedOn:null,expiresOn:null,lotStatus:'SELLABLE'}]};
 let qc=scenario==='blockers'||!count?null:{id:inspection,acceptedQty:7,quarantinedQty:0,rejectedQty:0,reasonCode:'NONE',reason:'',photoIds:[]};
 let reports=qc&&!approved?[{id:report,inboundLineId:line,receivingRecordId:null,discrepancyType:'SHORT',qty:3,reason:'Thiếu 3 sản phẩm khi đếm thực tế',photoIds:[],receiptVersion:4,status:'OPEN',reportedAt:stamp}]:[];
-let reviews=scenario==='returned'?[{id:uuid(30),receiptId:receipt,receivingRound:1,receiptVersion:5,decision:'RETURN',reason:'Kiểm lại kiện niêm phong và đếm lại toàn bộ hàng. Số đếm cũ cần xác minh.',inspectionIds:[],discrepancyIds:[report],reviewedAt:stamp,notificationState:'PENDING'}]:approved?[{receivingRound:1,id:uuid(30),receiptId:receipt,receiptVersion:5,decision:'APPROVE',reason:'Đã kiểm đủ số lượng, đúng mã hàng và lô, không có bất thường.',inspectionIds:[inspection],discrepancyIds:[],reviewedAt:stamp,notificationState:'PENDING'}]:[],calls=0,savedOperation=null,photos=[];
+let reviews=scenario==='returned'?[{id:uuid(30),receiptId:receipt,receivingRound:1,receiptVersion:5,decision:'RETURN',reason:'Kiểm lại kiện niêm phong và đếm lại toàn bộ hàng. Số đếm cũ cần xác minh.',inspectionIds:[],discrepancyIds:[report],reviewedAt:stamp,notificationState:'PENDING'}]:approved?[{receivingRound:1,id:uuid(30),receiptId:receipt,receiptVersion:5,decision:'APPROVE',reason:'Đã kiểm đủ số lượng, đúng mã hàng và lô, không có bất thường.',inspectionIds:[inspection],discrepancyIds:[],reviewedAt:stamp,notificationState:'PENDING'}]:[],calls=0,savedOperation=null,photos=[],stockItems=[];
 const ok=(data,pagination)=>Response.json({success:true,data,meta:{timestamp:stamp,requestId:'local-fixture',...(pagination?{pagination}:{})}});
 const fail=(status,code,message)=>Response.json({success:false,error:{statusCode:status,code,message},meta:{}},{status});
 window.fetch=async(input,init={})=>{
@@ -44,7 +44,7 @@ window.fetch=async(input,init={})=>{
   count={id:uuid(8),receiptId:receipt,inboundLineId:line,receivedQty:command.receivedQty,receiptVersion:version,countedAt:stamp,lots:incomingLots.map((lot,i)=>({recordId:uuid(40+i),lotId:uuid(50+i),lotCode:lot.lotCode,receivedQty:lot.receivedQty,quarantinedQty:0,qcState:'PENDING',manufacturedOn:lot.manufacturedOn??null,expiresOn:lot.expiresOn??null,lotStatus:'SELLABLE'}))};
   return ok(count);
  }
- if(p.endsWith('/reviews')){
+ if(p.endsWith('/reviews')||p.endsWith('/reviews/finalize')){
   if(method==='POST'){
    const command=JSON.parse(init.body);calls++;
    document.querySelector('output').textContent='Review calls='+calls+'; same operation='+(savedOperation===null||savedOperation===command.operationKey)+'; decision='+command.decision;
@@ -57,7 +57,7 @@ window.fetch=async(input,init={})=>{
   }
   const ready=Boolean(qc&&count&&receiptStatus==='RECEIVING'&&(!reviews.length||reviews.at(-1).decision!=='RETURN'));
   const blockers=!count?[{code:'COUNT_REQUIRED',inboundLineId:line,receivingRecordId:null}]:!qc?[{code:'INSPECTION_REQUIRED',inboundLineId:line,receivingRecordId:record},{code:'DISCREPANCY_REPORT_REQUIRED',inboundLineId:line,receivingRecordId:null}]:[];
-  return ok({receiptId:receipt,receivingRound,receiptVersion:version,asnId:id,asnStatus,status:receiptStatus,ready,canApprove:ready&&reports.length>0,unreportedDiscrepancies:count&&!reports.length&&!approved?1:0,blockers,inspectionIds:qc?[inspection]:[],discrepancyIds:reports.map(r=>r.id),records:count?[{receivingRecordId:record,lotCode:'LOT-LOCAL-01',receivedQty:count.receivedQty,qcState:count.lots[0].qcState,inspection:qc}]:[],items:reviews});
+  return ok({receiptId:receipt,receivingRound,receiptVersion:version,asnId:id,asnStatus,status:receiptStatus,ready,hasVerifiedVideo:scenario==='ready',canApprove:ready&&reports.length>0,unreportedDiscrepancies:count&&!reports.length&&!approved?1:0,blockers,inspectionIds:qc?[inspection]:[],discrepancyIds:reports.map(r=>r.id),records:count?[{receivingRecordId:record,lotCode:'LOT-LOCAL-01',receivedQty:count.receivedQty,qcState:count.lots[0].qcState,inspection:qc}]:[],items:reviews});
  }
  if(p.endsWith('/discrepancies'))return ok({receiptId:receipt,receiptVersion:version,asnId:id,asnStatus,ready:!approved&&Boolean(count&&qc),lines:[{inboundLineId:line,lineNo:1,declaredQty:null,variance:qc&&!approved?{discrepancyType:'SHORT',qty:3}:null,receivedQty:count?.receivedQty??null,exceptions:[]}],items:reports});
  if(p.endsWith('/inspections'))return ok({receivingRecordId:record,receivedQty:7,receiptVersion:version,qcState:count.lots[0].qcState,lastDecision:reviews.at(-1)?.decision??null,items:qc?[{...qc,receivingRecordId:record,inspectionVersion:1,receiptVersion:3,inspectedAt:stamp,status:'PROPOSED'}]:[]});
@@ -70,7 +70,21 @@ window.fetch=async(input,init={})=>{
  if(p==='/synthetic-photo'&&method==='PUT')return new Response(null,{status:200});
  if(p.endsWith('/confirm')){photos[0].verifiedAt=stamp;return ok(photos[0]);}
  if(p.endsWith('/evidence'))return ok({items:photos});
- if(p.endsWith('/stock'))return ok({receivingRecordId:record,receiptId:receipt,receiptVersion:version,recognizedQty:0,items:[],receivedQty:7,qcState:count.lots[0].qcState,acceptedQty:qc?.acceptedQty??0,quarantinedQty:0,rejectedQty:0,canPost:false,moreBins:false,bins:[]});
+ if(p.endsWith('/stock')){
+  const zone={id:uuid(61),code:'KHU-NHAN',zoneType:'RECEIVING'};
+  const bin={id:uuid(62),code:'KE-NHAN',zoneId:zone.id,zoneType:zone.zoneType,maxWeightG:'20000',maxVolumeM3:'10',availableWeightG:'20000',availableVolumeM3:'10',primaryBlocker:null,quarantineBlocker:'ZONE'};
+  if(method==='POST'){
+   const body=JSON.parse(init.body);
+   if(receiptStatus!=='APPROVED'||body.binId!==bin.id||body.expectedVersion!==version){
+    return fail(409,'INBOUND.STOCK_CONFLICT','Vị trí nhận hàng đã thay đổi.');
+   }
+   stockItems=[{stockId:uuid(63),binId:bin.id,quantity:7}];
+   document.querySelector('output').textContent='Stock recognized: '+stockItems[0].quantity;
+   return ok({receivingRecordId:record,receiptId:receipt,recognizedQty:7,items:stockItems});
+  }
+  const acceptedQty=receiptStatus==='APPROVED'?(qc?.acceptedQty??0):0;
+  return ok({receivingRecordId:record,receiptId:receipt,receiptVersion:version,recognizedQty:stockItems.length?7:0,items:stockItems,receivedQty:7,qcState:count.lots[0].qcState,acceptedQty,quarantinedQty:0,rejectedQty:0,canPost:acceptedQty>0&&!stockItems.length,moreBins:false,zones:[zone],bins:[bin],load:{unitWeightG:100,lengthCm:'10',widthCm:'10',heightCm:'10',unitVolumeM3:'0.001',primaryQty:acceptedQty,quarantineQty:0,primaryRequiresQuarantine:false}});
+ }
  return fail(403,'AUTH.FORBIDDEN','Local fixture: endpoint not enabled');
 };
 history.replaceState(null,'',(scenario==='waiting'?'/warehouse/inbound':'/warehouse/receiving')+'?'+query.toString());

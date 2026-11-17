@@ -70,8 +70,11 @@ Historical FE identifiers below are not the SS-990 requirement mapping.
   signing/window fallback, server polling, signed evidence and invoices.
 - All new Owners see the same published Basic/Standard choices until they create
   a personal contract. Once a current contract exists, choices are hidden. Basic
-  is 7,000,000 VND/month for the confirmed demo; historical contracts keep their
-  original plan fee. Monthly fee, deposit and permitted service debt are distinct.
+  is 4,000,000 VND/month (1 warehouse, 500 parent orders, 10 m³) and Standard is
+  12,000,000 VND/month (3 warehouses, 1,500 parent orders, 30 m³), with default
+  3,000,000 VND deposit and 5,000,000 VND credit limit per SRS BR-52; historical
+  contracts keep their original plan fee. Monthly fee, deposit and permitted
+  service debt are distinct.
 - New `BUSINESS_PROFILE_V1` terms require RHF/Zod contracting party declarations
   and explicit review before preparation. PDF previews are read-only; ORCA locks
   the declared details and server commercial data before opening signNow. Sample
@@ -219,3 +222,21 @@ credit limit and age threshold. This does not grant order acceptance or override
 service suspension. FREIGHT invoice lines have Vietnamese/English labels. The
 screen-six rehearsal uses the backend disposable runner and synthetic sessions;
 see `docs/SS-1041-FINANCE-REHEARSAL.md` in smartchain_be.
+
+Invoice payment instructions may include an optional locally encoded VietQR for
+outstanding onboarding obligations. The image is rendered inside the browser with
+`qrcode`; receiving account/invoice details are never sent to a QR image service.
+The contract screen links to `/billing?invoiceId=...`; signed PDF content is unchanged.
+The Seller UI does not offer mock payment. Verified backend transaction status stays
+authoritative; use Check payment status after transferring. Fully paid invoices do
+not offer another payment QR. Missing bank setup keeps manual instructions available.
+
+## Seller staff invitation (UC-06/15)
+
+Owner /iam/users exposes Invite staff using POST /v1/iam/users with fullName,
+email and fixed SELLER_STAFF. The form validates with RHF/Zod and sends no tenant,
+password, status or platform role. API creation returns PENDING; the existing
+worker sends the password-setup email. Creation does not claim email delivery or
+activate the staff account. Server errors retain the draft; closing is disabled
+during submission and auth changes discard pending responses. Existing central
+iam.users.manage capability remains Owner-only. No schema migration is required.

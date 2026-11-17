@@ -72,6 +72,7 @@ export const reviewStateSchema = z
     status: z.enum(['RECEIVING', 'APPROVED', 'COMPLETED', 'CANCELLED']),
     ready: z.boolean(),
     canApprove: z.boolean(),
+    hasVerifiedVideo: z.boolean().optional(),
     unreportedDiscrepancies: z.number().int().nonnegative().max(5100),
     blockers: z
       .array(
@@ -143,29 +144,47 @@ export const reviewApi = {
     if (state.asnId !== asn) throw new Error('Review belongs to another ASN');
     return state;
   },
-  async decide(
+  decide(
     warehouse: string,
     asn: string,
     receipt: string,
     input: ReviewInput,
     signal?: AbortSignal,
   ) {
-    const command = reviewInputSchema.parse(input);
-    const { data } = await apiClient.post<ApiResponse<unknown>>(path(warehouse, asn), command, {
-      silent: true,
-      signal,
-    });
-    const result = reviewSchema.parse(data);
-    if (
-      result.receiptId !== receipt ||
-      result.decision !== command.decision ||
-      result.reason !== command.reason ||
-      result.receiptVersion !== command.expectedVersion + 1 ||
-      [...result.inspectionIds].sort().join() !== [...command.inspectionIds].sort().join() ||
-      [...result.discrepancyIds].sort().join() !== [...command.discrepancyIds].sort().join()
-    ) {
-      throw new Error('Review does not match the submitted decision');
-    }
-    return result;
+    return sendReview(path(warehouse, asn), receipt, input, signal);
+  },
+  finalize(
+    warehouse: string,
+    asn: string,
+    receipt: string,
+    input: ReviewInput,
+    signal?: AbortSignal,
+  ) {
+    return sendReview(`${path(warehouse, asn)}/finalize`, receipt, input, signal);
   },
 };
+
+async function sendReview(
+  endpoint: string,
+  receipt: string,
+  input: ReviewInput,
+  signal?: AbortSignal,
+) {
+  const command = reviewInputSchema.parse(input);
+  const { data } = await apiClient.post<ApiResponse<unknown>>(endpoint, command, {
+    silent: true,
+    signal,
+  });
+  const result = reviewSchema.parse(data);
+  if (
+    result.receiptId !== receipt ||
+    result.decision !== command.decision ||
+    result.reason !== command.reason ||
+    result.receiptVersion !== command.expectedVersion + 1 ||
+    [...result.inspectionIds].sort().join() !== [...command.inspectionIds].sort().join() ||
+    [...result.discrepancyIds].sort().join() !== [...command.discrepancyIds].sort().join()
+  ) {
+    throw new Error('Review does not match the submitted decision');
+  }
+  return result;
+}

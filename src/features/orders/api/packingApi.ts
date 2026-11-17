@@ -74,6 +74,7 @@ const options = z
           carrierAccountId: z.uuid(),
           carrierAckRef: z.string().nullable(),
           signedAt: z.string().nullable(),
+          carrierSignerName: z.string().nullable().optional().default(null),
           hasHandoverPhoto: z.boolean(),
           shipments: z.array(
             z
@@ -109,16 +110,25 @@ export type PackingDetail = z.infer<typeof detail>;
 export type PackingQueue = z.infer<typeof list>;
 export type HandoverOptions = z.infer<typeof options>;
 export type PutbackTask = z.infer<typeof putbackTask>;
-export interface PackCommand {
-  operationId: string;
-  expectedVersion: number;
-  actualWeightG: number;
-  actualLengthCm: string;
-  actualWidthCm: string;
-  actualHeightCm: string;
-  contents: { itemId: string; qty: number }[];
-  materials: { materialCode: string; qty: string; unit: string }[];
-}
+export const packCommandSchema = z
+  .object({
+    operationId: z.uuid(),
+    expectedVersion: z.number().int().positive(),
+    actualWeightG: z.number().int().positive(),
+    actualLengthCm: z.string().min(1),
+    actualWidthCm: z.string().min(1),
+    actualHeightCm: z.string().min(1),
+    contents: z.array(z.object({ itemId: z.uuid(), qty: z.number().int().nonnegative() }).strict()),
+    materials: z.array(
+      z.object({ materialCode: z.string(), qty: z.string(), unit: z.string() }).strict(),
+    ),
+  })
+  .strict();
+export type PackCommand = z.infer<typeof packCommandSchema>;
+export const manifestCommandSchema = z
+  .object({ operationId: z.uuid(), shipmentIds: z.array(z.uuid()).min(1).max(50) })
+  .strict();
+export type ManifestCommand = z.infer<typeof manifestCommandSchema>;
 const base = '/v1/warehouse/fulfillment';
 export const packingApi = {
   async list(warehouseId: string, signal?: AbortSignal, cursor?: string) {

@@ -23,6 +23,7 @@ export { RunningLowCard } from './components/RunningLowCard';
 export { useRunningLow } from './hooks/useRunningLow';
 export type { RunningLowItem, RunningLowUrgency } from './types/inventoryStock.types';
 export { InventoryWorkspace } from './components/InventoryWorkspace';
+export { DemandForecast } from './components/DemandForecast';
 
 export { InventoryWorkflowWorkspace } from './components/InventoryWorkflowWorkspace';
 export { ReturnsWorkspace } from './components/ReturnsWorkspace';

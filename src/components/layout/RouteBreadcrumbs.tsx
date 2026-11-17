@@ -78,7 +78,15 @@ export default function RouteBreadcrumbs() {
     if (WAREHOUSE_INBOUND_TABS.some((tab) => tab.href === pathname)) {
       items.push({ label: sidebar('warehouse_intake'), href: '/warehouse/inbound' });
     }
-    items.push({ label: sidebar(`warehouse_${sub}`) });
+    items.push({
+      label: sidebar(
+        sub === 'inventory-workflows'
+          ? 'inventory_workflows'
+          : sub === 'claim-evidence'
+            ? 'warehouse_claim_evidence'
+            : `warehouse_${sub}`,
+      ),
+    });
   } else if (primaryPath === '/settings') {
     const settingTab = pathname.split('/').filter(Boolean)[1] ?? 'profile';
     items.push({
@@ -87,6 +95,9 @@ export default function RouteBreadcrumbs() {
     if (['profile', 'general', 'integrations', 'webhooks'].includes(settingTab)) {
       items.push({ label: settings(settingTab) });
     }
+  } else if (pathname === '/inventory/forecast' || pathname.startsWith('/inventory/forecast/')) {
+    items.push({ label: sidebar('inventory'), href: '/inventory' });
+    items.push({ label: sidebar('demandForecast') });
   } else if (primaryPath === '/iam') {
     items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('staff_accounts') });

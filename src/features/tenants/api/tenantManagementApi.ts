@@ -15,6 +15,7 @@ const tenantSummarySchema = z.object({
   name: z.string(),
   slug: z.string(),
   status: z.enum(['ACTIVE', 'SUSPENDED']),
+  serviceStatus: z.enum(['PENDING_ACTIVATION', 'ACTIVE', 'SUSPENDED', 'CLOSED']).optional(),
   adminEmail: z.string().nullable(),
   subscription: z.object({
     planCode: z.string().nullable(),
@@ -50,6 +51,7 @@ export const tenantManagementApi = {
     const params: Record<string, string> = {};
     if (query.search?.trim()) params.search = query.search.trim();
     if (query.status) params.status = query.status;
+    if (query.serviceStatus) params.serviceStatus = query.serviceStatus;
     if (query.cursor) params.cursor = query.cursor;
     if (query.limit) params.limit = String(query.limit);
     if (query.registeredFrom) params.registeredFrom = query.registeredFrom;

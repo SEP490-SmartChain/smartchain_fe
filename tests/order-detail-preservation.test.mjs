@@ -7,6 +7,10 @@ const source = readFileSync(
   new URL('../src/features/orders/components/SellerOrders.tsx', import.meta.url),
   'utf8',
 );
+const orderDetailSource = readFileSync(
+  new URL('../src/features/orders/components/OrderDetail.tsx', import.meta.url),
+  'utf8',
+);
 const tree = ts.createSourceFile(
   'seller.tsx',
   source,
@@ -30,6 +34,7 @@ function refresh(current, id) {
     'setDetailId',
     'setModal',
     'execute',
+    'activeDetailId',
     code + '; return openDetail',
   )(
     (update) => {
@@ -38,6 +43,7 @@ function refresh(current, id) {
     () => {},
     () => {},
     () => {},
+    { current: null },
   );
   open(id);
   return value;
@@ -48,4 +54,12 @@ test('same-order refresh keeps mounted detail and its unsaved action drafts whil
 });
 test('opening another order removes previous details before its request runs', () => {
   assert.equal(refresh({ id: 'order-a' }, 'order-b'), null);
+});
+
+test('seller detail exposes an explicit refresh and its source update time', () => {
+  assert.match(source, /activeDetailId\.current === id/);
+  assert.match(source, /current\.version > response\.version/);
+  assert.match(source, /onClick=\{\(\) => openDetail\(detail\.id\)\}/);
+  assert.match(orderDetailSource, /dateTime=\{order\.updatedAt\}/);
+  assert.match(orderDetailSource, /shipment\.latestEvent/);
 });

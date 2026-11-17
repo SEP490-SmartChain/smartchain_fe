@@ -1,23 +1,37 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Button, Card, Input, PageHeader, Select, Tabs } from '@/components/Common';
+import {
+  clearFulfillmentPending,
+  loadFulfillmentPending,
+  persistFulfillmentPending,
+} from '@/features/orders/lib/fulfillmentPending';
 import { useAccess } from '@/hooks/useAccess';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import styles from './PackingWorkspace.module.css';
-import { packingApi, type HandoverOptions, type PutbackTask } from '../api/packingApi';
-import { pickingApi } from '../api/pickingApi';
-import { handoverAckSchema, putbackFormSchema } from '../schemas/packingSchema';
-import { isRejectedOperation } from '../lib/fulfillmentRetry';
-import { carrierPickupRecorded } from '../lib/handoverTracking';
 import { downloadHandoverEvidence, uploadHandoverEvidence } from '../api/handoverEvidenceApi';
+import {
+  packingApi,
+  manifestCommandSchema,
+  type HandoverOptions,
+  type ManifestCommand,
+  type PutbackTask,
+} from '../api/packingApi';
+import { pickingApi } from '../api/pickingApi';
+import { isRejectedOperation } from '../lib/fulfillmentRetry';
+import { createHandoverSignRecovery } from '../lib/handoverSignRecovery';
+import { carrierPickupRecorded } from '../lib/handoverTracking';
+import { handoverAckSchema, putbackFormSchema } from '../schemas/packingSchema';
+
 import type { z } from 'zod';
 
 export function HandoverWorkspace() {
@@ -28,6 +42,7 @@ export function HandoverWorkspace() {
 function HandoverSession() {
   const t = useTranslations('Packing'),
     { can } = useAccess();
+  const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; code: string }[]>([]),
     [warehouse, setWarehouse] = useState('');
   useEffect(() => {
@@ -62,6 +77,7 @@ function HandoverSession() {
       {warehouse && (
         <WarehouseHandover
           key={warehouse}
+          actorId={actorId}
           warehouse={warehouse}
           warehouseSelector={warehouseSelector}
           warehouseName={warehouses.find((w) => w.id === warehouse)?.name ?? warehouse}
@@ -74,6 +90,7 @@ function HandoverSession() {
   );
 }
 function WarehouseHandover({
+  actorId,
   warehouse,
   warehouseSelector,
   warehouseName,
@@ -81,6 +98,7 @@ function WarehouseHandover({
   sign,
   putback,
 }: {
+  actorId: string;
   warehouse: string;
   warehouseName: string;
   warehouseSelector?: ReactNode;
@@ -89,6 +107,7 @@ function WarehouseHandover({
   putback: boolean;
 }) {
   const t = useTranslations('Packing');
+  const locale = useLocale();
   const [data, setData] = useState<HandoverOptions | null>(null),
     [tasks, setTasks] = useState<PutbackTask[]>([]),
     [selected, setSelected] = useState<string[]>([]),
@@ -119,7 +138,15 @@ function WarehouseHandover({
     window.print();
     return () => window.removeEventListener('afterprint', clear);
   }, [printManifest]);
-  const pending = useRef<{ operationId: string; shipmentIds: string[] } | null>(null),
+  const pendingScope = {
+    actorId,
+    warehouseId: warehouse,
+    operation: 'manifest' as const,
+    resourceId: 'active',
+  };
+  const pending = useRef<ManifestCommand | null>(
+      loadFulfillmentPending(pendingScope, manifestCommandSchema),
+    ),
     running = useRef(false),
     abort = useRef(new AbortController());
   useEffect(() => {
@@ -149,14 +176,29 @@ function WarehouseHandover({
     return () => c.abort();
   }, [warehouse, reload, t, cursors]);
   async function manifest() {
-    if (running.current || !create || !selected.length) return;
+    if (running.current || !create || (!selected.length && !pending.current)) return;
     running.current = true;
     setBusy(true);
     setError('');
-    pending.current ??= { operationId: createUuid(), shipmentIds: [...selected].sort() };
+    if (!pending.current) {
+      const command: ManifestCommand = {
+        operationId: createUuid(),
+        shipmentIds: [...selected].sort(),
+      };
+      try {
+        persistFulfillmentPending(pendingScope, command);
+        pending.current = command;
+      } catch {
+        setError(t('recoveryUnavailable'));
+        running.current = false;
+        setBusy(false);
+        return;
+      }
+    }
     try {
       await packingApi.manifest(warehouse, pending.current, abort.current.signal);
       if (!abort.current.signal.aborted) {
+        clearFulfillmentPending(pendingScope, pending.current);
         pending.current = null;
         setTab('drafts');
         setCursors({});
@@ -165,7 +207,10 @@ function WarehouseHandover({
     } catch (error: unknown) {
       if (!abort.current.signal.aborted) {
         const rejected = isRejectedOperation(error);
-        if (rejected) pending.current = null;
+        if (rejected) {
+          if (pending.current) clearFulfillmentPending(pendingScope, pending.current);
+          pending.current = null;
+        }
         setError(t(rejected ? 'rejectedError' : 'writeError'));
       }
     } finally {
@@ -249,6 +294,11 @@ function WarehouseHandover({
                     />
                     <span className="min-w-0 break-all">{s.trackingNumber}</span>
                   </label>
+                  {account && s.carrierAccountId !== account && (
+                    <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">
+                      {t('differentCarrier')}
+                    </p>
+                  )}
                   <details className="mt-2 text-xs text-[var(--sc-text-secondary)]">
                     <summary className="cursor-pointer rounded focus-visible:outline-2">
                       {t('carrierConnection')}
@@ -258,7 +308,10 @@ function WarehouseHandover({
                 </div>
               ))}
               {create && (selected.length > 0 || !!pending.current) && (
-                <Button disabled={busy || !selected.length} onClick={() => void manifest()}>
+                <Button
+                  disabled={busy || (!selected.length && !pending.current)}
+                  onClick={() => void manifest()}
+                >
                   {pending.current ? t('retryOperation') : t('createManifest')}
                 </Button>
               )}
@@ -339,7 +392,7 @@ function WarehouseHandover({
                         ))}
                       </ul>
                       <Button variant="outline" onClick={() => setPrintManifest(m)}>
-                        {t('printManifest')}
+                        {t(m.status === 'SIGNED' ? 'printSignedManifest' : 'printDraftManifest')}
                       </Button>
                       {m.status === 'SIGNED' &&
                         (m.hasHandoverPhoto ? (
@@ -426,34 +479,140 @@ function WarehouseHandover({
           )}
         </div>
       </details>
-      {printManifest && (
-        <div className={styles.manifestPrint}>
-          <h1>{t('handoverTitle')}</h1>
-          <p>{printManifest.manifestCode}</p>
-          <p>
-            {t('warehouse')}: {warehouseName}
-          </p>
-          <p>
-            {t('carrierAccount')}: {printManifest.carrierAccountId}
-          </p>
-          <p>
-            {t('parcelCount', { qty: printManifest.parcelCount })} ·{' '}
-            {printManifest.status === 'SIGNED' ? t('signed') : t('draft')}
-          </p>
-          <ol>
-            {printManifest.shipments.map((s) => (
-              <li key={s.id}>{s.trackingNumber}</li>
-            ))}
-          </ol>
-          <p>
-            {t('carrierAckRef')}: {printManifest.carrierAckRef ?? '________________'}
-          </p>
-          <p>{t('carrierSignerName')}: ____________________</p>
-          <p>{t('handoverDate')}: ____________________</p>
-          <p>{t('warehouseSignature')}: ____________________</p>
-          <p>{t('carrierSignature')}: ____________________</p>
-        </div>
-      )}
+      {printManifest &&
+        createPortal(
+          <div className={styles.manifestPrint}>
+            <style media="print">
+              {
+                '@page { size: A4 portrait; margin: 15mm 14mm; } @page:first { margin-top: 0; margin-bottom: 0; }'
+              }
+            </style>
+            <header className={styles.documentHeader}>
+              <div className={styles.documentBrand}>
+                <span className={styles.documentLogo} aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span>ORCA</span>
+              </div>
+              <div className={styles.documentStatus}>
+                {t(printManifest.status === 'SIGNED' ? 'printConfirmedStatus' : 'draft')}
+              </div>
+            </header>
+            <section className={styles.documentHeading}>
+              <p className={styles.documentEyebrow}>{t('printDocumentCategory')}</p>
+              <h1>
+                {t(printManifest.status === 'SIGNED' ? 'signedPrintTitle' : 'draftPrintTitle')}
+              </h1>
+              <p className={styles.documentReference}>
+                <span>{t('printReference')}</span>
+                <strong>{printManifest.manifestCode}</strong>
+              </p>
+            </section>
+            <dl className={styles.documentDetails}>
+              <div>
+                <dt>{t('printWarehouse')}</dt>
+                <dd>{warehouseName}</dd>
+              </div>
+              <div>
+                <dt>{t('carrierSignerName')}</dt>
+                <dd>
+                  {printManifest.status === 'SIGNED'
+                    ? printManifest.carrierSignerName || t('recordNotAvailable')
+                    : '____________________________'}
+                </dd>
+              </div>
+              <div>
+                <dt>
+                  {t(printManifest.status === 'SIGNED' ? 'warehouseConfirmedAt' : 'handoverDate')}
+                </dt>
+                <dd>
+                  {printManifest.status === 'SIGNED'
+                    ? printManifest.signedAt
+                      ? new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZone: 'Asia/Ho_Chi_Minh',
+                        }).format(new Date(printManifest.signedAt))
+                      : t('recordNotAvailable')
+                    : '____________________________'}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('carrierAckRef')}</dt>
+                <dd>
+                  {printManifest.carrierAckRef ||
+                    (printManifest.status === 'SIGNED'
+                      ? t('notProvided')
+                      : '____________________________')}
+                </dd>
+              </div>
+            </dl>
+            <section className={styles.documentParcels}>
+              <div className={styles.documentSectionHeader}>
+                <h2>{t('printShipmentList')}</h2>
+                <strong>{t('parcelCount', { qty: printManifest.parcelCount })}</strong>
+              </div>
+              <table aria-label={t('printShipmentList')}>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('printRowNumber')}</th>
+                    <th scope="col">{t('printTrackingNumber')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {printManifest.shipments.map((shipment, index) => (
+                    <tr key={shipment.id}>
+                      <td>{index + 1}</td>
+                      <td>{shipment.trackingNumber || t('recordNotAvailable')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={2}>{t('printParcelTotal', { qty: printManifest.parcelCount })}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </section>
+            <aside className={styles.documentNote}>
+              <h2>
+                {t(
+                  printManifest.status === 'SIGNED'
+                    ? 'printConfirmationNote'
+                    : 'printHandoverInstructions',
+                )}
+              </h2>
+              <p>
+                {t(printManifest.status === 'SIGNED' ? 'signedPrintEvidence' : 'draftPrintHint')}
+              </p>
+            </aside>
+            {printManifest.status !== 'SIGNED' && (
+              <div className={styles.documentSignatures}>
+                <section>
+                  <h2>{t('warehouseSignature')}</h2>
+                  <p>{t('printSignatureHint')}</p>
+                  <div>____________________________</div>
+                </section>
+                <section>
+                  <h2>{t('carrierSignature')}</h2>
+                  <p>{t('printSignatureHint')}</p>
+                  <div>____________________________</div>
+                </section>
+              </div>
+            )}
+            <footer className={styles.documentFooter}>
+              <strong>ORCA</strong>
+              <span>{t('printFooter')}</span>
+            </footer>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
@@ -473,11 +632,17 @@ function SignManifest({
     [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false),
     [photoName, setPhotoName] = useState('');
+  const recovery = useRef<ReturnType<typeof createHandoverSignRecovery> | null>(null);
+  recovery.current ??= createHandoverSignRecovery(warehouse, id);
+  const pending = useRef(recovery.current.pending());
   const form = useForm<z.infer<typeof handoverAckSchema>>({
       resolver: zodResolver(handoverAckSchema),
-      defaultValues: { carrierAckRef: '', carrierSignerName: '', evidenceKey: '' },
+      defaultValues: pending.current ?? {
+        carrierAckRef: '',
+        carrierSignerName: '',
+        evidenceKey: '',
+      },
     }),
-    pending = useRef<({ operationId: string } & z.infer<typeof handoverAckSchema>) | null>(null),
     running = useRef(false),
     abort = useRef(new AbortController());
   useEffect(() => {
@@ -490,14 +655,14 @@ function SignManifest({
     running.current = true;
     setBusy(true);
     setError('');
-    pending.current ??= { operationId: createUuid(), ...values };
     try {
-      await packingApi.sign(warehouse, id, pending.current, abort.current.signal);
-      if (!abort.current.signal.aborted) onSigned();
+      const signed = await recovery.current?.submit(values, abort.current.signal);
+      pending.current = recovery.current?.pending() ?? null;
+      if (signed && !abort.current.signal.aborted) onSigned();
     } catch (error: unknown) {
+      pending.current = recovery.current?.pending() ?? null;
       if (!abort.current.signal.aborted) {
         const rejected = isRejectedOperation(error);
-        if (rejected) pending.current = null;
         setError(
           t(
             error instanceof ApiError && error.code === 'PACK.PARCEL_COUNT_MISMATCH'

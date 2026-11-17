@@ -10,7 +10,7 @@ const source = readFileSync(
 const code = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React },
 }).outputText;
-function render(status, holdReason, allowed = true) {
+function render(status, holdReason, allowed = true, fulfillmentOrders = []) {
   const exports = {};
   const bindings = {
     react: {
@@ -37,7 +37,10 @@ function render(status, holdReason, allowed = true) {
     exports,
     { createElement: (type, props, ...children) => ({ type, props, children }) },
   );
-  return exports.OrderLifecycleActions({ order: { status, holdReason }, onChanged: () => {} });
+  return exports.OrderLifecycleActions({
+    order: { status, holdReason, fulfillmentOrders },
+    onChanged: () => {},
+  });
 }
 test('correction actions do not render an empty duplicate section for valid or held orders', () => {
   for (const status of [
@@ -54,5 +57,15 @@ test('correction actions do not render an empty duplicate section for valid or h
 });
 test('only an authorized validation failure shows correction actions', () => {
   assert.equal(render('FAILED', 'VALIDATION_FAILED', false), null);
-  assert.equal(render('FAILED', 'VALIDATION_FAILED').type, 'section');
+  assert.equal(render('FAILED', 'VALIDATION_FAILED', true, []).type, 'section');
+});
+
+test('any fulfillment child blocks correction and revalidation regardless of child state', () => {
+  for (const status of ['ALLOCATED', 'PICKING', 'PACKED', 'HANDED_OVER', 'CANCELLED', 'UNKNOWN']) {
+    assert.equal(
+      render('FAILED', 'VALIDATION_FAILED', true, [{ id: 'child', status }]),
+      null,
+      `${status} child must block recipient correction and revalidation`,
+    );
+  }
 });

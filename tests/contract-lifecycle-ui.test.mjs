@@ -165,3 +165,12 @@ for (const [actorScope, roles] of [
     assert.ok(!html.includes('SYNTHETIC-ROUTE'));
   });
 }
+
+test('Seller contract route never offers a mock-payment action even when the legacy server flag is on', () => {
+  globalThis[fixtureKey].flow.mockPaymentsEnabled = true;
+  globalThis[fixtureKey].flow.state.signingRequests = [{ contractId: id, status: 'COMPLETED' }];
+  const html = renderContractRoute();
+  assert.ok(!html.includes(messages.Commercial.mockPaid));
+  assert.ok(!html.includes(messages.Commercial.mockPaymentHelp));
+  assert.ok(html.includes(messages.Commercial.download));
+});

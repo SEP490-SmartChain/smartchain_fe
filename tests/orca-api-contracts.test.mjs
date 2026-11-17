@@ -50,6 +50,7 @@ const carrier = {
   name: 'Giao Hang Nhanh',
   logoUrl: null,
   isActive: true,
+  monthlyPurchaseVolumeCount: 7,
   endpointsCount: 1,
   servicesCount: 2,
   connectedTenantsCount: 0,

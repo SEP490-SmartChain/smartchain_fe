@@ -121,6 +121,8 @@ test('strict operational line refuses financial and blind expected fields', () =
   const line = {
     id: '00000000-0000-4000-8000-000000000001',
     version: 1,
+    orderCode: 'DH-1001',
+    parcelNo: 1,
     sku: 'RICE',
     productName: 'Rice',
     binCode: 'B-1',

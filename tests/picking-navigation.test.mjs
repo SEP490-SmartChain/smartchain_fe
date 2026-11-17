@@ -25,6 +25,13 @@ function visit(node) {
 }
 visit(tree);
 const elements = nodes.filter(ts.isJsxElement);
+const referenceDeclaration = tree.statements.find(
+  (node) => ts.isFunctionDeclaration(node) && node.name?.text === 'shortWaveReference',
+);
+const referenceCode = ts.transpileModule(referenceDeclaration.getText(tree), {
+  compilerOptions: { target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const shortWaveReference = new Function(`${referenceCode}; return shortWaveReference;`)();
 function translatedElement(key, tag = 'Button') {
   return elements.find(
     (node) =>
@@ -54,7 +61,14 @@ before(async () => {
 after(async () => server?.close());
 function evaluate(node, bindings = {}) {
   assert.ok(node, 'Expected the picking control to exist');
-  const scope = { React, Button, t: (key) => key, ...bindings };
+  const scope = {
+    React,
+    Button,
+    Badge: ({ label }) => React.createElement('span', null, label),
+    shortWaveReference,
+    t: (key, values) => (key === 'waveReference' ? `Wave ${values.code}` : key),
+    ...bindings,
+  };
   const code = ts.transpileModule(`function render() { return (${node.getText(tree)}); }`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React },
   }).outputText;
@@ -81,6 +95,9 @@ function waveControl(overrides = {}) {
     w: wave,
     waveId: wave.id,
     locale: 'en-GB',
+    cutoff: '26/10/2026, 15:09:10',
+    status: 'statuses.ASSIGNED',
+    badgeStatus: 'default',
     pending: null,
     busy: false,
     setWaveId: () => {},
@@ -88,9 +105,10 @@ function waveControl(overrides = {}) {
   });
 }
 
-test('wave rows expose their full real code, cutoff date/time and status', () => {
+test('wave rows show short references, cutoff and status with the full code available on demand', () => {
   const html = renderToStaticMarkup(waveControl());
   assert.ok(html.includes(wave.waveCode));
+  assert.ok(html.includes(`Wave ${shortWaveReference(wave.waveCode)}`));
   assert.ok(html.includes('26/10/2026'));
   assert.ok(html.includes('15:09:10'));
   assert.ok(html.includes('statuses.ASSIGNED'));
@@ -111,9 +129,10 @@ test('wave selection announces the selected state and preserves selection identi
   assert.equal(waveControl({ busy: true }).props.disabled, true);
 });
 
-test('the pick-list heading identifies the current wave by its authoritative code', () => {
+test('the pick-list heading shares the row reference and retains the authoritative code in its title', () => {
   const heading = evaluate(translatedElement('pickList', 'h2'), { detail: wave });
-  assert.ok(renderToStaticMarkup(heading).includes(wave.waveCode));
+  assert.equal(heading.props.title, wave.waveCode);
+  assert.ok(renderToStaticMarkup(heading).includes(`Wave ${shortWaveReference(wave.waveCode)}`));
 });
 
 test('refresh returns to the first wave page without altering the pending command or selection', () => {
@@ -146,7 +165,9 @@ test('the first wave page control resets its cursor and stays blocked during unc
   const node = translatedElement('firstWaves');
   let visibility = node.parent;
   while (!ts.isJsxExpression(visibility)) visibility = visibility.parent;
-  assert.equal(evaluate(visibility.expression, { cursor: null }), null);
+  const firstPage = renderToStaticMarkup(evaluate(visibility.expression, { cursor: null }));
+  assert.ok(!firstPage.includes('<button'));
+  assert.ok(!firstPage.includes('firstWaves'));
   const control = evaluate(node, {
     pending: null,
     busy: false,

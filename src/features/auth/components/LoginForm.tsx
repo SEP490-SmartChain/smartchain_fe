@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
@@ -9,25 +9,51 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { GoogleLoginFlow } from '@/features/google-oauth/features/google-login-flow';
+import { HttpGoogleOAuthApiClient } from '@/features/google-oauth/runtime';
+import type { GooglePublicConfigDto } from '@/features/google-oauth/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/apiClient';
 
 import { getLoginSchema, type LoginFormData } from '../schemas/loginSchema';
+
+/** Single Google OAuth transport for the login screen (cookie-based session). */
+const googleOAuthApi = new HttpGoogleOAuthApiClient();
 
 export function LoginForm() {
   const t = useTranslations();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [needsWorkspace, setNeedsWorkspace] = useState(false);
+  const [googleConfig, setGoogleConfig] = useState<GooglePublicConfigDto | null>(null);
   const {
     register,
     handleSubmit,
     setError,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(getLoginSchema(t)),
     defaultValues: { email: '', password: '', rememberSession: false, workspaceSlug: '' },
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    googleOAuthApi
+      .getConfig()
+      .then((config) => {
+        if (!cancelled) setGoogleConfig(config);
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleConfig({ enabled: false, clientId: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const rememberSession = watch('rememberSession');
+  const workspaceSlugInput = watch('workspaceSlug');
 
   const onSubmit = async ({ workspaceSlug, ...input }: LoginFormData) => {
     try {
@@ -42,6 +68,20 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
+      {googleConfig && (
+        <GoogleLoginFlow
+          api={googleOAuthApi}
+          config={googleConfig}
+          rememberSession={rememberSession}
+          {...(workspaceSlugInput ? { workspaceSlug: workspaceSlugInput } : {})}
+          onWorkspaceRequired={() => setNeedsWorkspace(true)}
+          onError={(message) =>
+            setError('root', {
+              message: message ?? t('Auth.login_error_generic'),
+            })
+          }
+        />
+      )}
       {errors.root && (
         <p
           role="alert"

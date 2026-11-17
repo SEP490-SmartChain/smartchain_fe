@@ -21,6 +21,7 @@ export const ORDER_STATUSES = [
   'BACKORDER',
 ] as const;
 const money = z.string().regex(/^(0|[1-9]\d{0,11})$/);
+const aggregateMoney = z.string().regex(/^(0|[1-9]\d*)$/);
 export const paymentBreakdownSchema = z
   .object({
     discountAmount: money,
@@ -268,6 +269,15 @@ const shipment = z
     bookingState: z.string(),
     active: z.boolean(),
     direction: z.string(),
+    latestEvent: z
+      .object({
+        standardStatus: z.string(),
+        eventTime: z.iso.datetime(),
+        isApplied: z.boolean(),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 const child = z.object({
@@ -323,7 +333,21 @@ const ownerDetail = ownerOrder
     provinceName: z.string().nullable().optional(),
     wardName: z.string().nullable().optional(),
     items: z.array(item.extend({ unitPrice: money }).strict()),
-    fulfillmentOrders: z.array(child.extend({ codAmount: money }).strict()),
+    fulfillmentOrders: z.array(
+      child
+        .extend({
+          codAmount: money,
+          allocationCost: z
+            .object({
+              extraShippingFeeVnd: aggregateMoney.nullable(),
+              savedGoodsValueVnd: aggregateMoney.nullable(),
+              globalOptimum: z.literal(false),
+            })
+            .strict()
+            .optional(),
+        })
+        .strict(),
+    ),
   })
   .strict();
 const staffDetail = staffOrder
@@ -333,7 +357,14 @@ export type SellerOrder = z.infer<typeof staffOrder> & Partial<z.infer<typeof ow
 export type SellerOrderDetail = Omit<z.infer<typeof staffDetail>, 'items' | 'fulfillmentOrders'> &
   Partial<Omit<z.infer<typeof ownerDetail>, 'items' | 'fulfillmentOrders'>> & {
     items: (z.infer<typeof item> & { unitPrice?: string })[];
-    fulfillmentOrders: (z.infer<typeof child> & { codAmount?: string })[];
+    fulfillmentOrders: (z.infer<typeof child> & {
+      codAmount?: string;
+      allocationCost?: {
+        extraShippingFeeVnd: string | null;
+        savedGoodsValueVnd: string | null;
+        globalOptimum: false;
+      };
+    })[];
   };
 export const paginationSchema = z.object({
   limit: z.number().int().positive(),

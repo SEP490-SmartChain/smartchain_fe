@@ -31,6 +31,7 @@ interface Props {
   asnId: string;
   receiptVersion: number;
   receiptStatus: ReceivingState['status'];
+  receiptLines: readonly Pick<ReceivingState['lines'][number], 'id' | 'sku' | 'productName'>[];
   canWrite: boolean;
   onSaved: () => void;
 }
@@ -40,6 +41,7 @@ export function ReceiptDiscrepancyPanel({
   asnId,
   receiptVersion,
   receiptStatus,
+  receiptLines,
   canWrite,
   onSaved,
 }: Props) {
@@ -117,6 +119,10 @@ export function ReceiptDiscrepancyPanel({
       });
     return () => controller.abort();
   }, [expanded, warehouseId, asnId, owner, receiptVersion, refresh, t]);
+  const productLabel = (inboundLineId: string) => {
+    const product = receiptLines.find((line) => line.id === inboundLineId);
+    return product ? `${product.sku} · ${product.productName}` : t('shipmentSku');
+  };
   const candidates = (state?.lines ?? []).flatMap((line) => {
     const result: {
       key: string;
@@ -134,7 +140,11 @@ export function ReceiptDiscrepancyPanel({
         inboundLineId: line.inboundLineId,
         discrepancyType: type,
         qty,
-        label: t('discrepancyCandidate', { line: line.lineNo, type: t(`discrepancy${type}`), qty }),
+        label: t('discrepancyProductCandidate', {
+          product: productLabel(line.inboundLineId),
+          type: t(`discrepancy${type}`),
+          qty,
+        }),
       });
     }
     for (const qc of line.exceptions) {
@@ -144,7 +154,7 @@ export function ReceiptDiscrepancyPanel({
         receivingRecordId: qc.receivingRecordId,
         discrepancyType: qc.discrepancyType,
         qty: qc.qty,
-        label: `${t('discrepancyCandidate', { line: line.lineNo, type: t(`discrepancy${qc.discrepancyType}`), qty: qc.qty })} · ${qc.lotCode}`,
+        label: `${t('discrepancyProductCandidate', { product: productLabel(line.inboundLineId), type: t(`discrepancy${qc.discrepancyType}`), qty: qc.qty })} · ${qc.lotCode}`,
       });
     }
     return result.filter(
@@ -259,8 +269,8 @@ export function ReceiptDiscrepancyPanel({
                       className="m-0 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)] px-3 py-2 text-sm"
                       key={line.inboundLineId}
                     >
-                      {t('discrepancyComparison', {
-                        line: line.lineNo,
+                      {t('discrepancyProductComparison', {
+                        product: productLabel(line.inboundLineId),
                         actual: line.receivedQty ?? '—',
                       })}
                       {line.variance &&
@@ -274,6 +284,7 @@ export function ReceiptDiscrepancyPanel({
                   key={item.id}
                   className="space-y-2 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)] p-4 text-sm"
                 >
+                  <p className="break-words font-medium">{productLabel(item.inboundLineId)}</p>
                   <p className="font-medium">
                     {t('discrepancyReported', {
                       type: t(`discrepancy${item.discrepancyType}`),

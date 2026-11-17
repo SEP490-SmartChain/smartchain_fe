@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { Camera, Mail, Phone } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Mail, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Button, Input, Radio } from '@/components/Common';
+import { Alert } from '@/components/Common/Alert/Alert';
+import { Badge } from '@/components/Common/Badge/Badge';
+import { Button } from '@/components/Common/Button/Button';
+import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { useAuthStore } from '@/stores/authStore';
 
 import { staffAccountApi } from '../api/staffAccountApi';
+import {
+  createStaffInvitationSchema,
+  type StaffInvitationValues,
+} from '../schemas/staffInvitationSchema';
 
 export interface AddStaffAccountModalProps {
   isOpen: boolean;
@@ -15,191 +26,95 @@ export interface AddStaffAccountModalProps {
   onSuccess?: () => void;
 }
 
-type DraftAccountStatus = 'ACTIVE' | 'PENDING' | 'REPORTED' | 'BLOCKED';
-
 export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAccountModalProps) {
   const t = useTranslations('StaffAccounts');
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [status, setStatus] = useState<DraftAccountStatus>('PENDING');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const revision = useAuthStore((state) => state.revision);
+  const [error, setError] = useState<string | null>(null);
+  const running = useRef(false);
+  const controller = useRef<AbortController | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<StaffInvitationValues>({
+    resolver: zodResolver(
+      createStaffInvitationSchema({
+        nameLength: t('inviteNameLength'),
+        emailInvalid: t('inviteEmailInvalid'),
+      }),
+    ),
+    defaultValues: { fullName: '', email: '' },
+  });
 
-  useEffect(() => {
-    if (!isOpen) {
-      setPhotoPreview(null);
-      setStatus('PENDING');
-    }
-  }, [isOpen]);
+  useEffect(() => () => controller.current?.abort(), []);
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.addEventListener('load', () => {
-      if (typeof reader.result === 'string') setPhotoPreview(reader.result);
-    });
-    reader.readAsDataURL(file);
+  const close = () => {
+    if (!running.current) onClose();
   };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const email = formData.get('email') as string;
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
-    const roleCode = 'SELLER_STAFF';
-
+  const submit = handleSubmit(async (values) => {
+    if (running.current) return;
+    running.current = true;
+    setError(null);
+    const abort = new AbortController();
+    controller.current = abort;
+    const isCurrent = () => !abort.signal.aborted && revision === useAuthStore.getState().revision;
     try {
-      setIsSubmitting(true);
-      await staffAccountApi.create({
-        email,
-        fullName: `${firstName} ${lastName}`.trim(),
-        roleCode,
-      });
-      toast.success(t('addUserSuccess', { fallback: 'Staff account created successfully' }));
+      await staffAccountApi.create(values, abort.signal);
+      if (!isCurrent()) return;
+      toast.success(t('inviteCreated'));
       onSuccess?.();
       onClose();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || 'Failed to create staff account');
+    } catch (failure) {
+      if (isCurrent()) setError(failure instanceof Error ? failure.message : t('inviteFailed'));
     } finally {
-      setIsSubmitting(false);
+      running.current = false;
     }
-  };
+  });
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('addNewUser')} width="720px">
-      <form className="-m-5 sm:-m-6" noValidate onSubmit={handleSubmit}>
-        <div className="p-5 sm:p-6">
-          <p className="mb-6 mt-0 text-sm leading-5 text-[var(--sc-text-secondary)]">
-            {t('addUserDescription')}
+    <Modal isOpen={isOpen} onClose={close} title={t('inviteTitle')} width="480px">
+      <form noValidate onSubmit={submit} className="space-y-5">
+        <p className="m-0 text-sm leading-6 text-[var(--sc-text-secondary)]">
+          {t('inviteDescription')}
+        </p>
+        {error && <Alert variant="error">{error}</Alert>}
+        <fieldset disabled={isSubmitting} className="m-0 space-y-4 border-0 p-0">
+          <Input
+            label={t('fullName')}
+            {...register('fullName')}
+            autoComplete="name"
+            autoFocus
+            isRequired
+            maxLength={100}
+            leftIcon={<UserRound size={17} aria-hidden="true" />}
+            error={errors.fullName?.message}
+          />
+          <Input
+            label={t('workEmail')}
+            {...register('email')}
+            type="email"
+            autoComplete="email"
+            placeholder={t('emailPlaceholder')}
+            isRequired
+            leftIcon={<Mail size={17} aria-hidden="true" />}
+            error={errors.email?.message}
+          />
+        </fieldset>
+        <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">{t('assignedRole')}</span>
+            <Badge status="neutral" label={t('roleSellerStaff')} />
+          </div>
+          <p className="m-0 text-xs leading-5 text-[var(--sc-text-secondary)]">
+            {t('inviteRoleHint')}
           </p>
-
-          <h4 className="mb-4 mt-0 text-base font-medium text-[var(--sc-text-primary)]">
-            {t('personalDetail')}
-          </h4>
-
-          <div className="mb-6">
-            <button
-              type="button"
-              aria-label={t('uploadPhoto')}
-              className="group relative flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-[var(--sc-primary-light)] bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)] outline-none transition-[border-color,background-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-[var(--sc-primary)] hover:bg-[var(--sc-primary-lighter)] focus-visible:shadow-[var(--sc-shadow-focus)] active:translate-y-0"
-              onClick={() => photoInputRef.current?.click()}
-            >
-              {photoPreview ? (
-                <img
-                  src={photoPreview}
-                  alt={t('profilePhoto')}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <Camera aria-hidden="true" size={30} strokeWidth={1.7} />
-              )}
-              {photoPreview && (
-                <span className="absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--sc-bg-surface)] bg-[var(--sc-primary)] text-white shadow-[var(--sc-shadow-button)]">
-                  <Camera aria-hidden="true" size={13} />
-                </span>
-              )}
-            </button>
-            <input
-              ref={photoInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="sr-only"
-              aria-label={t('uploadPhoto')}
-              onChange={handlePhotoChange}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              name="firstName"
-              label={t('firstName')}
-              placeholder={t('firstNamePlaceholder')}
-              required
-            />
-            <Input
-              name="lastName"
-              label={t('lastName')}
-              placeholder={t('lastNamePlaceholder')}
-              required
-            />
-            <Input
-              name="username"
-              label={t('username')}
-              placeholder={t('usernamePlaceholder')}
-              required
-            />
-            <Input
-              name="email"
-              type="email"
-              label={t('workEmail')}
-              placeholder={t('emailPlaceholder')}
-              leftIcon={<Mail aria-hidden="true" size={16} />}
-              required
-            />
-            <Input
-              name="contactNumber"
-              type="tel"
-              label={t('contactNumber')}
-              placeholder={t('contactNumberPlaceholder')}
-              leftIcon={<Phone aria-hidden="true" size={16} />}
-              required
-            />
-            <Input name="joiningDate" type="date" label={t('joiningDate')} required />
-
-            <div className="sm:col-span-2">
-              <label
-                htmlFor="staff-address"
-                className="mb-2 block text-sm font-medium text-[var(--sc-text-primary)]"
-              >
-                {t('address')}
-                <span className="ml-1 text-[var(--sc-error)]">*</span>
-              </label>
-              <textarea
-                id="staff-address"
-                name="address"
-                rows={4}
-                required
-                placeholder={t('addressPlaceholder')}
-                className="w-full resize-y rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 py-2.5 text-sm text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-[var(--sc-text-tertiary)] hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]"
-              />
-            </div>
-          </div>
-
-          <fieldset className="mt-5 border-0 p-0">
-            <legend className="mb-3 text-sm font-medium text-[var(--sc-text-primary)]">
-              {t('status')}
-            </legend>
-            <div className="flex flex-wrap gap-x-6 gap-y-3">
-              {(
-                [
-                  ['ACTIVE', t('active')],
-                  ['PENDING', t('pending')],
-                  ['REPORTED', t('reported')],
-                  ['BLOCKED', t('blocked')],
-                ] as const
-              ).map(([value, label]) => (
-                <Radio
-                  key={value}
-                  name="status"
-                  value={value}
-                  label={label}
-                  checked={status === value}
-                  onChange={() => setStatus(value)}
-                />
-              ))}
-            </div>
-          </fieldset>
         </div>
-
-        <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-5 py-4 sm:px-6">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <div className="flex justify-end gap-3 border-t border-[var(--sc-border-default)] pt-4">
+          <Button type="button" variant="secondary" onClick={close} disabled={isSubmitting}>
             {t('cancel')}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : t('createUser')}
+          <Button type="submit" isLoading={isSubmitting}>
+            {t('inviteSubmit')}
           </Button>
         </div>
       </form>
