@@ -28,6 +28,9 @@ const ForbiddenPage = React.lazy(() => import('@/pages/public/ForbiddenPage'));
 const DashboardPage = React.lazy(() => import('@/pages/workspace/DashboardPage'));
 const OrdersPage = React.lazy(() => import('@/pages/workspace/OrdersPage'));
 const InventoryPage = React.lazy(() => import('@/pages/workspace/InventoryPage'));
+const DemandForecastPage = React.lazy(
+  () => import('@/pages/workspace/DemandForecastWorkspacePage'),
+);
 const RulesPage = React.lazy(() => import('@/pages/workspace/RulesPage'));
 const ShipmentsPage = React.lazy(() => import('@/pages/workspace/ShipmentsPage'));
 const ReconciliationPage = React.lazy(() => import('@/pages/workspace/ReconciliationPage'));
@@ -146,6 +149,7 @@ function App() {
                   <Route path="/billing" element={<BillingPage />} />
                   <Route path="/statements" element={<StatementsPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
+                  <Route path="/inventory/forecast" element={<DemandForecastPage />} />
                   <Route path="/warehouses" element={<WarehousesPage />} />
                   <Route path="/warehouse" element={<Navigate to="/warehouse/inbound" replace />} />
                   <Route element={<WarehouseInboundLayoutPage />}>

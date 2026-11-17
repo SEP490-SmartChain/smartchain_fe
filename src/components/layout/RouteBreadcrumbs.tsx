@@ -95,6 +95,9 @@ export default function RouteBreadcrumbs() {
     if (['profile', 'general', 'integrations', 'webhooks'].includes(settingTab)) {
       items.push({ label: settings(settingTab) });
     }
+  } else if (pathname === '/inventory/forecast' || pathname.startsWith('/inventory/forecast/')) {
+    items.push({ label: sidebar('inventory'), href: '/inventory' });
+    items.push({ label: sidebar('demandForecast') });
   } else if (primaryPath === '/iam') {
     items.push({ label: sidebar('manage_accounts_heading') });
     items.push({ label: sidebar('staff_accounts') });
