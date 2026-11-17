@@ -42,7 +42,9 @@ export default function Modal({
     dialogRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current();
+      if (event.key !== 'Escape') return;
+      const dialogs = document.querySelectorAll('[data-sc-modal]');
+      if (dialogRef.current === dialogs[dialogs.length - 1]) onCloseRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -63,6 +65,7 @@ export default function Modal({
     >
       <div
         ref={dialogRef}
+        data-sc-modal=""
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
