@@ -148,9 +148,9 @@ export default function Sidebar() {
                   {group.items.map((item) => {
                     const Icon = NAV_ICONS[item.key] ?? Settings;
                     const hasActiveChild = item.children?.some((child) =>
-                      isNavItemActive(child, pathname),
+                      isNavItemActive(child, pathname, item.children),
                     );
-                    const isActive = hasActiveChild || isNavItemActive(item, pathname);
+                    const isActive = hasActiveChild || isNavItemActive(item, pathname, group.items);
                     const isExpanded = Boolean(expandedMenus[item.key]) || Boolean(hasActiveChild);
 
                     if (item.children) {

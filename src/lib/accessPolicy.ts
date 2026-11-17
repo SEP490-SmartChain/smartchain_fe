@@ -262,6 +262,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
   ),
   capability('inventory.view', 'inventory', 'ANY', ALL_ORCA_ROLES, 'APPROVED', R3_MATRIX),
   capability(
+    'inventory.forecast.view',
+    'inventory',
+    'TENANT',
+    ['SELLER_OWNER'],
+    'APPROVED',
+    'R3 UC-164 [Optional] demand forecast: own Seller Owner; inventory.read API with live owner gate',
+  ),
+  capability(
     'inventory.stocks.view',
     'inventory',
     'TENANT',
@@ -1059,6 +1067,7 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/statements', capability: 'statements.view' },
   { path: '/warehouses', capability: 'warehouses.view' },
   { path: '/inventory', capability: 'inventory.view' },
+  { path: '/inventory/forecast', capability: 'inventory.forecast.view' },
   { path: '/warehouse/inventory-workflows', capability: 'inventory.workflows.view' },
   { path: '/warehouse/counts', capability: 'inventory.counts.view' },
   { path: '/inventory/workflows', capability: 'inventory.workflows.view' },
@@ -1120,10 +1129,29 @@ export const WAREHOUSE_INBOUND_TABS = [
   { key: 'warehouse_putaway', href: '/warehouse/putaway' },
 ] as const;
 
-export function isNavItemActive(item: NavItem, pathname: string): boolean {
+function navMatchLength(item: NavItem, current: string): number {
+  return Math.max(
+    -1,
+    ...(item.activePaths ?? [item.href])
+      .filter((href) => current === href || current.startsWith(`${href}/`))
+      .map((href) => href.length),
+  );
+}
+
+/**
+ * An item is active when it matches the path and no sibling matches more specifically,
+ * so `/inventory` stays inactive on its sibling `/inventory/forecast`.
+ */
+export function isNavItemActive(
+  item: NavItem,
+  pathname: string,
+  siblings: readonly NavItem[] = [],
+): boolean {
   const current = normalizePathname(pathname);
-  return (item.activePaths ?? [item.href]).some(
-    (href) => current === href || current.startsWith(`${href}/`),
+  const length = navMatchLength(item, current);
+  return (
+    length >= 0 &&
+    !siblings.some((sibling) => sibling !== item && navMatchLength(sibling, current) > length)
   );
 }
 
@@ -1156,6 +1184,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'skus', href: '/catalog/skus', capability: 'catalog.products.view' },
       { key: 'asns', href: '/asns', capability: 'asns.view' },
       { key: 'inventory', href: '/inventory', capability: 'inventory.view' },
+      { key: 'demandForecast', href: '/inventory/forecast', capability: 'inventory.forecast.view' },
       { key: 'warehouses', href: '/warehouses', capability: 'warehouses.view' },
     ],
   },

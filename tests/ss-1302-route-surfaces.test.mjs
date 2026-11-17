@@ -42,6 +42,7 @@ const routes = {
     'SELLER_OWNER',
   ],
   '/inventory': roles,
+  '/inventory/forecast': O,
   '/warehouse': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   '/rules': ['ORCA_ADMIN', 'OPS_DISPATCHER'],
   '/shipments': [
