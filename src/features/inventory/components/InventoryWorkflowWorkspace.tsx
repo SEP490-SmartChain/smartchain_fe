@@ -26,6 +26,8 @@ export function InventoryWorkflowWorkspace({
 function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putbacks' }) {
   const t = useTranslations('InventoryWorkflows');
   const locale = useLocale();
+  // Session/role/tenant changes remount this workspace through the key in the wrapper above.
+  const revision = useAuthStore((s) => s.revision);
   const { roles, actorScope, can } = useAccess();
   const manager = roles.includes('WAREHOUSE_MANAGER'),
     staff = roles.includes('WAREHOUSE_STAFF');
@@ -61,6 +63,11 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
   useEffect(() => {
     if (!wh || !permitted) return;
     const abort = new AbortController();
+    // The wrapper's key already remounts on scope change; this check also drops a response
+    // that resolves in the gap between the store update and that unmount.
+    const requestedRevision = revision;
+    const isCurrent = () =>
+      !abort.signal.aborted && useAuthStore.getState().revision === requestedRevision;
     setLoading(true);
     setError(false);
     setCounts([]);
@@ -71,38 +78,40 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
       try {
         if (tab === 'counts') {
           const page = await inventoryWorkflowApi.counts(wh, cursor, abort.signal);
-          if (!abort.signal.aborted) {
+          if (isCurrent()) {
             setCounts(page.items);
             setNext(page.nextCursor);
           }
         } else if (tab === 'disposals') {
           const page = await inventoryWorkflowApi.disposals(wh, cursor, abort.signal);
-          if (!abort.signal.aborted) {
+          if (isCurrent()) {
             setDisposals(page.items);
             setNext(page.nextCursor);
           }
         } else {
           const page = await inventoryWorkflowApi.putbacks(wh, cursor, abort.signal);
-          if (!abort.signal.aborted) {
+          if (isCurrent()) {
             setPutbacks(page.items);
             setNext(page.nextCursor);
           }
         }
       } catch {
-        if (!abort.signal.aborted) setError(true);
+        if (isCurrent()) setError(true);
       } finally {
-        if (!abort.signal.aborted) setLoading(false);
+        if (isCurrent()) setLoading(false);
       }
     })();
     return () => abort.abort();
-  }, [wh, tab, reload, cursor, permitted]);
+  }, [wh, tab, reload, cursor, permitted, revision]);
   async function evidence(kind: 'counts' | 'disposals', id: string) {
     setDownloadError(false);
+    const requestedRevision = revision;
     try {
       const value = await inventoryWorkflowApi.download(wh, kind, id);
+      if (useAuthStore.getState().revision !== requestedRevision) return;
       window.open(value.downloadUrl, '_blank', 'noopener,noreferrer');
     } catch {
-      setDownloadError(true);
+      if (useAuthStore.getState().revision === requestedRevision) setDownloadError(true);
     }
   }
   const status = (s: string) => (t.has(`status.${s}`) ? t(`status.${s}`) : t('unknownStatus'));

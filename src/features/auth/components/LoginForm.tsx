@@ -1,21 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { z } from 'zod';
 
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
-import { GoogleLoginFlow } from '@/features/google-oauth/features/google-login-flow';
+import {
+  GOOGLE_WORKSPACE_REQUIRED_CODE,
+  GoogleLoginFlow,
+} from '@/features/google-oauth/features/google-login-flow';
 import { HttpGoogleOAuthApiClient } from '@/features/google-oauth/runtime';
 import type { GooglePublicConfigDto } from '@/features/google-oauth/shared';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/services/apiClient';
 
 import { getLoginSchema, type LoginFormData } from '../schemas/loginSchema';
+
+type LoginMethod = 'password' | 'google';
 
 /** Single Google OAuth transport for the login screen (cookie-based session). */
 const googleOAuthApi = new HttpGoogleOAuthApiClient();
@@ -24,16 +30,25 @@ export function LoginForm() {
   const t = useTranslations();
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [needsWorkspace, setNeedsWorkspace] = useState(false);
+  const [workspaceMethod, setWorkspaceMethod] = useState<LoginMethod | null>(null);
   const [googleConfig, setGoogleConfig] = useState<GooglePublicConfigDto | null>(null);
+  const focusWorkspace = useRef(false);
+  const loginSchema = getLoginSchema(t);
   const {
+    clearErrors,
+    control,
     register,
+    resetField,
     handleSubmit,
     setError,
-    watch,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(getLoginSchema(t)),
+    resolver: zodResolver(
+      workspaceMethod === 'password'
+        ? loginSchema
+        : loginSchema.extend({ workspaceSlug: z.string() }),
+    ),
     defaultValues: { email: '', password: '', rememberSession: false, workspaceSlug: '' },
   });
 
@@ -52,35 +67,112 @@ export function LoginForm() {
     };
   }, []);
 
-  const rememberSession = watch('rememberSession');
-  const workspaceSlugInput = watch('workspaceSlug');
+  useEffect(() => {
+    if (focusWorkspace.current && workspaceMethod && !isSubmitting) {
+      focusWorkspace.current = false;
+      setFocus('workspaceSlug');
+    }
+  }, [workspaceMethod, isSubmitting, setFocus]);
+
+  const rememberSession = useWatch({ control, name: 'rememberSession' });
+  const workspaceSlugInput = useWatch({ control, name: 'workspaceSlug' });
+  const googleWorkspace =
+    workspaceMethod === 'google'
+      ? loginSchema.shape.workspaceSlug.safeParse(workspaceSlugInput)
+      : null;
+  const googleWorkspaceSlug = googleWorkspace?.success ? googleWorkspace.data : '';
+
+  const requireWorkspace = (method: LoginMethod) => {
+    clearErrors('root');
+    if (workspaceMethod !== method) {
+      focusWorkspace.current = true;
+      resetField('workspaceSlug');
+    }
+    setWorkspaceMethod(method);
+  };
+
+  const resetWorkspace = () => {
+    clearErrors('root');
+    resetField('workspaceSlug');
+    setWorkspaceMethod(null);
+  };
 
   const onSubmit = async ({ workspaceSlug, ...input }: LoginFormData) => {
+    if (workspaceMethod === 'password' && !workspaceSlug) {
+      setError('workspaceSlug', { message: t('Auth.workspaceRequired') }, { shouldFocus: true });
+      return;
+    }
     try {
-      await login({ ...input, ...(workspaceSlug ? { workspaceSlug } : {}) });
+      await login({
+        ...input,
+        ...(workspaceMethod === 'password' ? { workspaceSlug } : {}),
+      });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) setNeedsWorkspace(true);
+      if (
+        error instanceof ApiError &&
+        error.status === 409 &&
+        error.code === GOOGLE_WORKSPACE_REQUIRED_CODE
+      ) {
+        requireWorkspace('password');
+        return;
+      }
       setError('root', {
         message: error instanceof ApiError ? error.message : t('Auth.login_error_generic'),
       });
     }
   };
 
+  const workspaceInput = workspaceMethod && (
+    <div>
+      <Input
+        id="login-workspace"
+        label={t('Auth.workspaceSlug')}
+        autoCapitalize="none"
+        aria-describedby="login-workspace-hint"
+        isRequired
+        disabled={isSubmitting}
+        {...register('workspaceSlug')}
+        error={
+          errors.workspaceSlug?.message ??
+          (workspaceSlugInput.trim() ? googleWorkspace?.error?.issues[0]?.message : undefined)
+        }
+      />
+      <p id="login-workspace-hint" className="mb-0 mt-1.5 text-xs text-[var(--sc-text-secondary)]">
+        {t(
+          workspaceMethod === 'google' ? 'Auth.workspaceGoogleHint' : 'Auth.workspacePasswordHint',
+        )}
+      </p>
+      {workspaceMethod === 'google' && (
+        <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={resetWorkspace}>
+          {t('Auth.workspaceGoogleReset')}
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
-      {googleConfig && (
-        <GoogleLoginFlow
-          api={googleOAuthApi}
-          config={googleConfig}
-          rememberSession={rememberSession}
-          {...(workspaceSlugInput ? { workspaceSlug: workspaceSlugInput } : {})}
-          onWorkspaceRequired={() => setNeedsWorkspace(true)}
-          onError={(message) =>
-            setError('root', {
-              message: message ?? t('Auth.login_error_generic'),
-            })
-          }
-        />
+      {googleConfig?.enabled && googleConfig.clientId && (
+        <div className="flex flex-col gap-3">
+          {workspaceMethod === 'google' && workspaceInput}
+          <fieldset
+            className="m-0 min-w-0 border-0 p-0"
+            disabled={isSubmitting || (workspaceMethod === 'google' && !googleWorkspaceSlug)}
+          >
+            <GoogleLoginFlow
+              api={googleOAuthApi}
+              config={googleConfig}
+              rememberSession={rememberSession}
+              {...(googleWorkspaceSlug ? { workspaceSlug: googleWorkspaceSlug } : {})}
+              onWorkspaceRequired={() => requireWorkspace('google')}
+              onError={(message) =>
+                setError('root', {
+                  message: message ?? t('Auth.login_error_generic'),
+                })
+              }
+            />
+          </fieldset>
+        </div>
       )}
       {errors.root && (
         <p
@@ -99,7 +191,11 @@ export function LoginForm() {
         autoCapitalize="none"
         required
         disabled={isSubmitting}
-        {...register('email')}
+        {...register('email', {
+          onChange: () => {
+            if (workspaceMethod === 'password') resetWorkspace();
+          },
+        })}
         error={errors.email?.message}
         aria-invalid={!!errors.email}
       />
@@ -134,24 +230,7 @@ export function LoginForm() {
           </Link>
         </div>
       </div>
-      <details open={needsWorkspace || undefined}>
-        <summary className="cursor-pointer text-sm text-[var(--sc-primary-dark)]">
-          {t('Auth.workspaceOptional')}
-        </summary>
-        <div className="mt-3">
-          <Input
-            id="login-workspace"
-            label={t('Auth.workspaceSlug')}
-            placeholder="my-company"
-            autoCapitalize="none"
-            disabled={isSubmitting}
-            {...register('workspaceSlug')}
-            error={errors.workspaceSlug?.message}
-            aria-invalid={!!errors.workspaceSlug}
-            helperText={t('Auth.workspaceHint')}
-          />
-        </div>
-      </details>
+      {workspaceMethod === 'password' && workspaceInput}
       <label className="flex items-center gap-2.5 text-sm text-slate-600">
         <input
           type="checkbox"

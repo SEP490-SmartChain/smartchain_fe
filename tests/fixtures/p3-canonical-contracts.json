@@ -1,0 +1,510 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "eb5891cd299675b62bbf244d3249a5ae4f77f6f45d6fd712de0ca02dd2ca2e8f",
+  "wireSha": "35d8727bb8a0ddb253a41c2572604fbe395cc08aac52933cf60a2e2ce5289d2f",
+  "requests": {
+    "countPlan": {
+      "operationId": "00000000-0000-4000-8000-000000000101",
+      "binIds": ["00000000-0000-4000-8000-000000000122"],
+      "skuCodes": ["P3-SYNTHETIC-SKU"],
+      "countWindowStart": "2026-11-13T01:00:00.000Z",
+      "countWindowEnd": "2026-11-13T03:00:00.000Z",
+      "assigneeId": "00000000-0000-4000-8000-000000000124",
+      "reason": "Periodic count fixture"
+    },
+    "countAssignment": {
+      "operationId": "00000000-0000-4000-8000-000000000102",
+      "expectedVersion": 2,
+      "assigneeId": "00000000-0000-4000-8000-000000000124",
+      "reason": "Reassign blind count fixture"
+    },
+    "countObservation": {
+      "operationId": "00000000-0000-4000-8000-000000000103",
+      "expectedVersion": 3,
+      "lineId": "00000000-0000-4000-8000-000000000128",
+      "binScan": "BIN-P3-01",
+      "skuScan": "P3-SYNTHETIC-SKU",
+      "lotScan": "LOT-P3-001",
+      "observedQty": 0,
+      "evidence": {
+        "contentType": "image/png",
+        "fileSizeBytes": 12,
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "countReview": {
+      "operationId": "00000000-0000-4000-8000-000000000104",
+      "expectedVersion": 4,
+      "decision": "APPROVE",
+      "reason": "Count difference reviewed"
+    },
+    "countCommand": {
+      "operationId": "00000000-0000-4000-8000-000000000101",
+      "expectedVersion": 3
+    },
+    "countEvidence": {
+      "contentType": "image/png",
+      "fileSizeBytes": 12,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "workflowListQuery": { "cursor": "00000000-0000-4000-8000-000000000120" },
+    "disposalRequest": {
+      "operationId": "00000000-0000-4000-8000-000000000106",
+      "stockId": "00000000-0000-4000-8000-000000000126",
+      "qty": 2,
+      "reason": "Expired stock disposal fixture",
+      "authorizationMode": "CONSENT"
+    },
+    "disposalReview": {
+      "operationId": "00000000-0000-4000-8000-000000000107",
+      "expectedVersion": 1,
+      "decision": "APPROVE",
+      "reason": "Consent verified by manager"
+    },
+    "disposalExecute": {
+      "operationId": "00000000-0000-4000-8000-000000000108",
+      "expectedVersion": 2,
+      "binScan": "BIN-P3-01",
+      "skuScan": "P3-SYNTHETIC-SKU",
+      "lotScan": "LOT-P3-001",
+      "evidence": {
+        "contentType": "image/png",
+        "fileSizeBytes": 12,
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "putbackRequest": {
+      "operationId": "00000000-0000-4000-8000-000000000109",
+      "pickConfirmationId": "00000000-0000-4000-8000-000000000131",
+      "toBinId": "00000000-0000-4000-8000-000000000122",
+      "assigneeId": "00000000-0000-4000-8000-000000000124",
+      "qty": 1,
+      "reason": "Cancelled parcel putback fixture"
+    },
+    "putbackRetarget": {
+      "operationId": "00000000-0000-4000-8000-000000000110",
+      "expectedVersion": 1,
+      "toBinId": "00000000-0000-4000-8000-000000000123",
+      "assigneeId": "00000000-0000-4000-8000-000000000124",
+      "reason": "Retarget putback fixture"
+    },
+    "putbackConfirm": {
+      "operationId": "00000000-0000-4000-8000-000000000111",
+      "expectedVersion": 2,
+      "binScan": "BIN-P3-01",
+      "skuScan": "P3-SYNTHETIC-SKU",
+      "lotScan": "LOT-P3-001"
+    },
+    "returnRequest": {
+      "operationId": "00000000-0000-4000-8000-000000000112",
+      "fulfillmentOrderId": "00000000-0000-4000-8000-000000000132",
+      "reason": "Post-delivery return fixture",
+      "lines": [
+        {
+          "fulfillmentItemLotId": "00000000-0000-4000-8000-000000000133",
+          "qty": 1
+        }
+      ],
+      "pickup": {
+        "name": "Synthetic Recipient",
+        "phone": "0900000001",
+        "address": "1 Synthetic Street, Ward 1",
+        "provinceCode": "HCM",
+        "wardCode": "W01"
+      }
+    },
+    "returnAuthorize": {
+      "operationId": "00000000-0000-4000-8000-000000000113",
+      "expectedVersion": 1,
+      "parcel": {
+        "weightG": 1200,
+        "lengthCm": 20,
+        "widthCm": 15,
+        "heightCm": 10
+      }
+    },
+    "returnArrival": {
+      "operationId": "00000000-0000-4000-8000-000000000114",
+      "expectedVersion": 2,
+      "parcelScan": "RETURN-PARCEL-P3-001"
+    },
+    "returnInspect": {
+      "operationId": "00000000-0000-4000-8000-000000000115",
+      "expectedVersion": 3,
+      "lineId": "00000000-0000-4000-8000-000000000135",
+      "receivedQty": 1,
+      "classification": "ACCEPTED",
+      "evidence": {
+        "contentType": "image/png",
+        "fileSizeBytes": 12,
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "returnReview": {
+      "operationId": "00000000-0000-4000-8000-000000000116",
+      "expectedVersion": 4,
+      "lineId": "00000000-0000-4000-8000-000000000135",
+      "decision": "APPROVE",
+      "reason": "Inspection verified by manager"
+    },
+    "returnStock": {
+      "operationId": "00000000-0000-4000-8000-000000000117",
+      "expectedVersion": 5,
+      "lineId": "00000000-0000-4000-8000-000000000135",
+      "toBinId": "00000000-0000-4000-8000-000000000122",
+      "destination": "SELLABLE",
+      "binScan": "BIN-P3-01",
+      "skuScan": "P3-SYNTHETIC-SKU",
+      "lotScan": "LOT-P3-001"
+    },
+    "recall": {
+      "operationId": "00000000-0000-4000-8000-000000000118",
+      "expectedVersion": 7,
+      "reason": "Quality hold recall fixture"
+    },
+    "recallNotify": {
+      "operationId": "00000000-0000-4000-8000-000000000119",
+      "expectedVersion": 8,
+      "cursor": "00000000-0000-4000-8000-000000000120"
+    }
+  },
+  "responses": {
+    "countPage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000127",
+          "version": 4,
+          "status": "COUNTING",
+          "round": 1,
+          "reviewReason": null,
+          "createReason": "Periodic count fixture",
+          "countWindowStart": "2026-11-13T01:00:00.000Z",
+          "countWindowEnd": "2026-11-13T03:00:00.000Z",
+          "snapshotAt": "2026-11-13T00:59:00.000Z",
+          "assignedToPlatformUserId": "00000000-0000-4000-8000-000000000124",
+          "lines": [
+            {
+              "id": "00000000-0000-4000-8000-000000000128",
+              "sku": "P3-SYNTHETIC-SKU",
+              "lotCode": "LOT-P3-001",
+              "binCode": "BIN-P3-01",
+              "observedQty": 0,
+              "reviewStatus": "APPROVED",
+              "hasEvidence": true,
+              "expectedQty": 2,
+              "varianceQty": -2,
+              "variancePercent": -100
+            }
+          ]
+        }
+      ],
+      "nextCursor": null
+    },
+    "countOptions": {
+      "bins": [
+        {
+          "id": "00000000-0000-4000-8000-000000000122",
+          "code": "BIN-P3-01",
+          "barcode": "BC-P3-01"
+        }
+      ],
+      "staff": [
+        {
+          "id": "00000000-0000-4000-8000-000000000124",
+          "fullName": "Synthetic Warehouse Staff"
+        }
+      ],
+      "skuCodes": ["P3-SYNTHETIC-SKU"]
+    },
+    "countPlanResult": {
+      "id": "00000000-0000-4000-8000-000000000127",
+      "version": 1,
+      "status": "PLANNED",
+      "lineCount": 1
+    },
+    "countCommandResult": {
+      "id": "00000000-0000-4000-8000-000000000127",
+      "version": 4,
+      "status": "COUNTING"
+    },
+    "countEvidenceUpload": {
+      "method": "PUT",
+      "uploadUrl": "https://private.example.test/p3/upload?signature=synthetic",
+      "expiresInSeconds": 60,
+      "headers": { "content-type": "image/png" }
+    },
+    "evidenceDownload": {
+      "downloadUrl": "https://private.example.test/p3/download?signature=synthetic",
+      "expiresInSeconds": 60
+    },
+    "disposalPage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000129",
+          "version": 2,
+          "status": "APPROVED",
+          "qty": 2,
+          "executedQty": 0,
+          "reason": "Expired stock disposal fixture",
+          "reviewReason": "Consent verified by manager",
+          "authorizationMode": "CONSENT",
+          "policyExceptionCode": null,
+          "policyExpiresAt": null,
+          "sku": "P3-SYNTHETIC-SKU",
+          "binCode": "BIN-P3-01",
+          "lotCode": "LOT-P3-001",
+          "hasEvidence": true
+        }
+      ],
+      "nextCursor": null
+    },
+    "disposalCommandResult": {
+      "id": "00000000-0000-4000-8000-000000000129",
+      "version": 1,
+      "status": "REQUESTED"
+    },
+    "disposalEvidenceUpload": {
+      "method": "PUT",
+      "uploadUrl": "https://private.example.test/p3/upload?signature=synthetic",
+      "expiresInSeconds": 60,
+      "headers": { "content-type": "image/png" }
+    },
+    "putbackPage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000130",
+          "version": 2,
+          "status": "OPEN",
+          "qty": 1,
+          "binCode": "BIN-P3-01",
+          "lotCode": "LOT-P3-001",
+          "sku": "P3-SYNTHETIC-SKU"
+        }
+      ],
+      "nextCursor": null
+    },
+    "putbackOptions": {
+      "staff": [
+        {
+          "id": "00000000-0000-4000-8000-000000000124",
+          "fullName": "Synthetic Warehouse Staff"
+        }
+      ],
+      "sources": [
+        {
+          "id": "00000000-0000-4000-8000-000000000131",
+          "sku": "P3-SYNTHETIC-SKU",
+          "lotCode": "LOT-P3-001",
+          "qty": 1
+        }
+      ],
+      "bins": [
+        {
+          "id": "00000000-0000-4000-8000-000000000122",
+          "code": "BIN-P3-01",
+          "zoneType": "STORAGE"
+        }
+      ]
+    },
+    "putbackCommandResult": {
+      "id": "00000000-0000-4000-8000-000000000130",
+      "version": 1,
+      "status": "OPEN"
+    },
+    "returnPage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000134",
+          "version": 4,
+          "fulfillmentOrderId": "00000000-0000-4000-8000-000000000132",
+          "kind": "POST_DELIVERY",
+          "status": "ARRIVED",
+          "reason": "Post-delivery return fixture",
+          "requestedAt": "2026-11-10T02:00:00.000Z",
+          "arrivedAt": "2026-11-12T04:00:00.000Z",
+          "inspectionDueAt": "2026-11-14T04:00:00.000Z",
+          "inspectionOverdue": false,
+          "reverseBookingState": "UNKNOWN",
+          "reverseTrackingNumber": "RETURN-TRACK-P3-001",
+          "reverseShipmentStatus": "INTENT",
+          "warehouseNoticeStatus": "SENT",
+          "lines": [
+            {
+              "id": "00000000-0000-4000-8000-000000000135",
+              "sourceId": "00000000-0000-4000-8000-000000000133",
+              "lotId": "00000000-0000-4000-8000-000000000136",
+              "sku": "P3-SYNTHETIC-SKU",
+              "lotCode": "LOT-P3-001",
+              "requestedQty": 1,
+              "receivedQty": 1,
+              "restockedQty": 0,
+              "quarantinedQty": 0,
+              "classification": "ACCEPTED",
+              "reviewed": true,
+              "hasEvidence": true,
+              "targetStockId": null,
+              "reviewReason": "Inspection verified by manager"
+            }
+          ]
+        }
+      ],
+      "nextCursor": null
+    },
+    "returnEligiblePage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000133",
+          "fulfillmentOrderId": "00000000-0000-4000-8000-000000000132",
+          "sku": "P3-SYNTHETIC-SKU",
+          "lotCode": "LOT-P3-001",
+          "remainingQty": 1
+        }
+      ],
+      "nextCursor": null
+    },
+    "returnBins": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000122",
+          "code": "BIN-P3-01",
+          "zoneType": "STORAGE"
+        }
+      ],
+      "truncated": false
+    },
+    "returnCommandResult": {
+      "id": "00000000-0000-4000-8000-000000000134",
+      "version": 5,
+      "status": "ARRIVED"
+    },
+    "returnEvidenceUpload": {
+      "method": "PUT",
+      "uploadUrl": "https://private.example.test/p3/upload?signature=synthetic",
+      "expiresInSeconds": 60,
+      "headers": { "content-type": "image/png" }
+    },
+    "returnEvidenceDownload": {
+      "downloadUrl": "https://private.example.test/p3/download?signature=synthetic",
+      "expiresInSeconds": 60
+    },
+    "tracePage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000133",
+          "lotId": "00000000-0000-4000-8000-000000000136",
+          "lotCode": "LOT-P3-001",
+          "lotStatus": "SELLABLE",
+          "lotVersion": 3,
+          "sku": "P3-SYNTHETIC-SKU",
+          "binCode": "BIN-P3-01",
+          "allocatedQty": 2,
+          "pickedQty": 2,
+          "returnedQty": 0,
+          "fulfillmentOrderId": "00000000-0000-4000-8000-000000000132",
+          "orderId": "00000000-0000-4000-8000-000000000140",
+          "status": "HANDED_OVER",
+          "picks": [
+            {
+              "id": "00000000-0000-4000-8000-000000000138",
+              "qty": 2,
+              "pickedAt": "2026-11-11T03:00:00.000Z",
+              "pickerId": "00000000-0000-4000-8000-000000000124"
+            }
+          ],
+          "shipments": [
+            {
+              "id": "00000000-0000-4000-8000-000000000139",
+              "trackingNumber": "TRACK-P3-001",
+              "deliveredAt": "2026-11-12T03:00:00.000Z",
+              "status": "DELIVERED"
+            }
+          ]
+        }
+      ],
+      "nextCursor": null
+    },
+    "parcelTracePage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000133",
+          "lotId": "00000000-0000-4000-8000-000000000136",
+          "lotCode": "LOT-P3-001",
+          "lotStatus": "SELLABLE",
+          "lotVersion": 3,
+          "sku": "P3-SYNTHETIC-SKU",
+          "binCode": "BIN-P3-01",
+          "allocatedQty": 2,
+          "pickedQty": 2,
+          "returnedQty": 0,
+          "fulfillmentOrderId": "00000000-0000-4000-8000-000000000132",
+          "orderId": "00000000-0000-4000-8000-000000000140",
+          "status": "HANDED_OVER",
+          "picks": [
+            {
+              "id": "00000000-0000-4000-8000-000000000138",
+              "qty": 2,
+              "pickedAt": "2026-11-11T03:00:00.000Z",
+              "pickerId": "00000000-0000-4000-8000-000000000124"
+            }
+          ],
+          "shipments": [
+            {
+              "id": "00000000-0000-4000-8000-000000000139",
+              "trackingNumber": "TRACK-P3-001",
+              "deliveredAt": "2026-11-12T03:00:00.000Z",
+              "status": "DELIVERED"
+            }
+          ]
+        }
+      ],
+      "nextCursor": null
+    },
+    "affectedPage": {
+      "items": [
+        {
+          "id": "00000000-0000-4000-8000-000000000133",
+          "orderId": "00000000-0000-4000-8000-000000000140",
+          "parcelId": "00000000-0000-4000-8000-000000000132",
+          "name": "S***",
+          "phone": "*********01",
+          "qty": 2
+        }
+      ],
+      "nextCursor": null
+    },
+    "recallResult": {
+      "id": "00000000-0000-4000-8000-000000000136",
+      "version": 8,
+      "status": "RECALLED",
+      "releasedQty": 2,
+      "reallocatedQty": 2,
+      "recoveryCount": 1
+    },
+    "recallNotifyResult": { "queued": 1, "examined": 1, "nextCursor": null }
+  },
+  "privacy": {
+    "staffBlindCountLine": {
+      "id": "00000000-0000-4000-8000-000000000128",
+      "sku": "P3-SYNTHETIC-SKU",
+      "lotCode": "LOT-P3-001",
+      "binCode": "BIN-P3-01",
+      "observedQty": 0,
+      "reviewStatus": "PENDING",
+      "hasEvidence": true
+    },
+    "managerCountLine": {
+      "id": "00000000-0000-4000-8000-000000000128",
+      "sku": "P3-SYNTHETIC-SKU",
+      "lotCode": "LOT-P3-001",
+      "binCode": "BIN-P3-01",
+      "observedQty": 0,
+      "reviewStatus": "APPROVED",
+      "hasEvidence": true,
+      "expectedQty": 2,
+      "varianceQty": -2,
+      "variancePercent": -100
+    },
+    "piiCanary": "P3-CANARY-SYNTHETIC-RECIPIENT-ONLY",
+    "maskedPhoneCanary": "*********01"
+  }
+}
