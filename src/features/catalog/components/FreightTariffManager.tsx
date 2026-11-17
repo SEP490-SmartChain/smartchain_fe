@@ -28,14 +28,18 @@ function formatUtc(value: string, locale: string): string {
   }).format(date);
 }
 
-export function FreightTariffManager() {
+interface FreightTariffManagerProps {
+  onOpenRateData?: () => void;
+}
+
+export function FreightTariffManager({ onOpenRateData }: FreightTariffManagerProps) {
   const { can } = useAccess();
   const user = useAuthStore((s) => s.user);
   const revision = useAuthStore((s) => s.revision);
   if (!can('tariffs.manage') || !user) return null;
-  return <Manager key={`${user.userId}:${revision}`} />;
+  return <Manager key={`${user.userId}:${revision}`} onOpenRateData={onOpenRateData} />;
 }
-function Manager() {
+function Manager({ onOpenRateData }: FreightTariffManagerProps) {
   const t = useTranslations('FreightTariffs');
   const locale = useLocale();
   const vnd = (amount: string) => t('priceVnd', { amount: BigInt(amount).toLocaleString(locale) });
@@ -106,6 +110,11 @@ function Manager() {
           description={t('subtitle')}
           actions={
             <div className="flex flex-wrap gap-2">
+              {onOpenRateData && kind === 'purchase' ? (
+                <Button variant="outline" onClick={onOpenRateData}>
+                  {t('compareCarrierPrices')}
+                </Button>
+              ) : null}
               <Button
                 variant="outline"
                 disabled={loading}

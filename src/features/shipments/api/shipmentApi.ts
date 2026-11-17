@@ -56,7 +56,7 @@ export const shipmentApi = {
   },
   async list(cursor?: string, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>('/v1/shipments', {
-      params: { limit: '20', ...(cursor ? { cursor } : {}) },
+      params: { limit: '10', ...(cursor ? { cursor } : {}) },
       signal,
       silent: true,
     });

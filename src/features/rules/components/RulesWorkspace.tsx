@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { useNavigate } from 'react-router-dom';
+
 import {
   ArrowDown,
   ArrowUp,
@@ -40,6 +42,7 @@ import type { RuleKind, RuleRecord } from '../types/rule.types';
 
 function ScopedRules() {
   const t = useTranslations('Rules');
+  const navigate = useNavigate();
   const { can } = useAccess();
   const canOperate = can('routing.rule.set');
   const [kind, setKind] = useState<RuleKind>('ALLOCATION');
@@ -96,6 +99,14 @@ function ScopedRules() {
           description={t('subtitle')}
           actions={
             <div className="flex gap-2">
+              {canOperate && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/admin/tariffs?tab=intelligence')}
+                >
+                  {t('suggestFromPrices')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 disabled={isLoading || modalOpen}

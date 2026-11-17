@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 
 import { Avatar, Button, Card, Input, Select } from '@/components/Common';
 import { usePasswordResetRequest } from '@/features/auth';
+import { GoogleProfileLinkCard } from '@/features/google-oauth/features/google-profile-link';
+import { HttpGoogleOAuthApiClient } from '@/features/google-oauth/runtime';
 import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
 import { useAccess } from '@/hooks/useAccess';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -13,6 +15,8 @@ import type { OrcaRole } from '@/lib/accessPolicy';
 import { cn } from '@/lib/utils';
 import { uploadApi, UploadStorageConnectionError } from '@/services/uploadApi';
 import { useAuthStore, useLocaleStore } from '@/stores';
+
+const googleOAuthApi = new HttpGoogleOAuthApiClient();
 
 interface SettingsSectionHeaderProps {
   title: string;
@@ -469,6 +473,23 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
           </div>
         </div>
       </Card>
+
+      {user?.actorScope === 'TENANT' && (
+        <GoogleProfileLinkCard
+          api={googleOAuthApi}
+          linked={Boolean(user.googleSubLinked)}
+          {...(typeof user.version === 'number' ? { expectedUserVersion: user.version } : {})}
+          onLinked={(result) => {
+            const currentUser = useAuthStore.getState().user;
+            if (!currentUser) return;
+            useAuthStore.getState().setUser({
+              ...currentUser,
+              googleSubLinked: true,
+              version: result.version,
+            });
+          }}
+        />
+      )}
 
       {/* Display preferences */}
       <Card

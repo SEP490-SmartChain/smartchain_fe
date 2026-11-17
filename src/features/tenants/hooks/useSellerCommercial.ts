@@ -106,17 +106,19 @@ export function useSellerCommercial() {
     if (busy || !plan.agreementId || !plan.agreementVersionRef) return false;
     setBusy(true);
     setError(null);
+    const previousContractId = state?.currentContractId;
     if (operation.current?.agreementId !== plan.agreementId) {
       operation.current = { agreementId: plan.agreementId, key: createUuid() };
     }
     try {
-      await commercialApi.start(
+      const request = await commercialApi.start(
         plan.agreementId,
         plan.agreementVersionRef,
         operation.current.key,
         controller.current?.signal,
         businessProfile,
       );
+      if (request.contractId !== previousContractId) operation.current = null;
       await reload(controller.current?.signal);
       return true;
     } catch (failure) {

@@ -461,6 +461,18 @@ test('each ORCA role only reaches routes granted by the capability catalog', () 
   }
 });
 
+test('demand forecast route and navigation are limited to Seller Owner', () => {
+  for (const [role, scope] of ALL_ROLES) {
+    const allowed = role === 'SELLER_OWNER';
+    assert.equal(
+      policy.isRouteAllowed(effective([role], scope), '/inventory/forecast'),
+      allowed,
+      role,
+    );
+    assert.equal(hrefs([role], scope).includes('/inventory/forecast'), allowed, role);
+  }
+});
+
 test('direct URL across portals and scopes is denied in both directions', () => {
   const owner = effective(OWNER, TENANT);
   const ops = effective(OPS, PLATFORM);
@@ -626,6 +638,19 @@ test('inbound stages share one sidebar/search entry and keep their route guards'
       assert.equal(policy.isNavItemActive(items[0], '/warehouse/receiving-other'), false);
     }
   }
+});
+
+test('only the most specific sibling nav item is active on nested seller routes', () => {
+  const items = policy.getVisibleNavGroups(['SELLER_OWNER'], false).flatMap((group) => group.items);
+  const inventory = items.find((item) => item.href === '/inventory');
+  const forecast = items.find((item) => item.href === '/inventory/forecast');
+  assert.ok(inventory && forecast);
+
+  assert.equal(policy.isNavItemActive(forecast, '/inventory/forecast', items), true);
+  assert.equal(policy.isNavItemActive(inventory, '/inventory/forecast', items), false);
+  assert.equal(policy.isNavItemActive(inventory, '/inventory', items), true);
+  assert.equal(policy.isNavItemActive(inventory, '/inventory/123', items), true);
+  assert.equal(policy.isNavItemActive(forecast, '/inventory', items), false);
 });
 
 test('component catalog is omitted from navigation and search for every role', () => {

@@ -2,6 +2,8 @@ import { Fragment } from 'react';
 
 import { useTranslations } from 'next-intl';
 
+import { useProvinceNames } from '@/features/catalog';
+
 import { ServiceChain } from './ServiceChain';
 import { summarizeCondition } from '../lib/ruleSummary';
 
@@ -26,7 +28,34 @@ export function RuleSentence({
   areServicesReady,
 }: RuleSentenceProps) {
   const t = useTranslations('Rules');
+  const provinceNames = useProvinceNames();
+  const weight = (grams: unknown) =>
+    Number(grams) >= 1000 ? `${Number(grams) / 1000} kg` : `${String(grams)} g`;
+  const plainClause = (predicate: Extract<RuleCondition, { kind: 'PREDICATE' }>): string | null => {
+    if (
+      predicate.field === 'provinceCode' &&
+      'values' in predicate &&
+      predicate.operator === 'IN'
+    ) {
+      return t('sentence.deliverTo', {
+        names: predicate.values.map((code) => provinceNames.get(String(code)) ?? code).join(', '),
+      });
+    }
+    if (predicate.field === 'weightG' && 'value' in predicate) {
+      if (predicate.operator === 'LTE') {
+        return t('sentence.weightUpTo', { weight: weight(predicate.value) });
+      }
+      if (predicate.operator === 'GT') {
+        return t('sentence.weightOver', { weight: weight(predicate.value) });
+      }
+    }
+    if (predicate.field === 'isCod' && 'value' in predicate && predicate.operator === 'EQ') {
+      return t(predicate.value ? 'sentence.cod' : 'sentence.noCod');
+    }
+    return null;
+  };
   const summary = summarizeCondition(condition, {
+    predicate: plainClause,
     field: (field: RuleField) => t(`fields.${field}`),
     operator: (operator) => t(`operators.${operator}`),
     boolean: (value) => t(value ? 'yes' : 'no'),

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { useNavigate } from 'react-router-dom';
+
 import {
   ArrowRight,
   CircleCheck,
@@ -14,7 +16,6 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useNavigate } from 'react-router-dom';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -45,8 +46,19 @@ export function SellerContractOnboarding() {
   );
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
-  const contract = flow.state?.contracts.find((item) => item.id === flow.state?.currentContractId);
+  const currentContract = flow.state?.contracts.find(
+    (item) => item.id === flow.state?.currentContractId,
+  );
+  const canRestartSigning = flow.state?.signingRequests.some(
+    (item) => item.contractId === currentContract?.id && item.canRestartSigning,
+  );
+  const contract = canRestartSigning ? undefined : currentContract;
   const request = flow.state?.signingRequests.find((item) => item.contractId === contract?.id);
+  const isCustomDraft = contract?.contractKind === 'CUSTOM' && contract.status === 'DRAFT';
+  const isCustomAwaitingPayment =
+    contract?.contractKind === 'CUSTOM' &&
+    contract.status === 'CONFIRMED' &&
+    flow.state?.serviceStatus === 'PENDING_ACTIVATION';
   const style = 'rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-5';
 
   return (
@@ -80,6 +92,7 @@ export function SellerContractOnboarding() {
         </Alert>
       )}
       {flow.loading && <p role="status">{t('loading')}</p>}
+      {canRestartSigning && <Alert variant="warning">{t('restartSigningHelp')}</Alert>}
       {flow.state && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
           <span>{t('serviceStatus')}</span>
@@ -242,7 +255,7 @@ export function SellerContractOnboarding() {
       )}
       {flow.state && !flow.loading && (
         <CommercialCustomInquiry
-          allowSubmit={!contract && flow.state.serviceStatus === 'PENDING_ACTIVATION'}
+          allowSubmit={!currentContract && flow.state.serviceStatus === 'PENDING_ACTIVATION'}
         />
       )}
       {contract && (
@@ -258,7 +271,15 @@ export function SellerContractOnboarding() {
             <div role="status" aria-label={t('signingStatus')}>
               <Badge
                 status={request?.status === 'COMPLETED' ? 'success' : 'warning'}
-                label={request ? t(`status.${request.status}`) : contract.status}
+                label={
+                  isCustomDraft
+                    ? t('customDraftStatus')
+                    : isCustomAwaitingPayment
+                      ? t('customPaymentStatus')
+                      : request
+                        ? t(`status.${request.status}`)
+                        : contract.status
+                }
               />
             </div>
           </div>
@@ -305,6 +326,16 @@ export function SellerContractOnboarding() {
                 {t('preparedPdf')}
               </Button>
             </div>
+          )}
+          {isCustomDraft && <Alert variant="info">{t('customDraftHelp')}</Alert>}
+          {isCustomAwaitingPayment && (
+            <Alert variant="info">
+              {t(
+                flow.invoices.some((invoice) => invoice.contractId === contract.id)
+                  ? 'customPaymentHelp'
+                  : 'customInvoiceHelp',
+              )}
+            </Alert>
           )}
           {contract.contractKind === 'CUSTOM' && contract.status === 'CONFIRMED' && (
             <Button
@@ -402,6 +433,10 @@ export function SellerContractOnboarding() {
           )}
         </div>
       )}
+      {request?.status === 'COMPLETED' &&
+        !flow.invoices.some((invoice) => invoice.contractId === contract?.id) && (
+          <Alert variant="info">{t('invoicePendingAfterSigning')}</Alert>
+        )}
       {flow.invoices.map((invoice) => (
         <article
           key={invoice.id}

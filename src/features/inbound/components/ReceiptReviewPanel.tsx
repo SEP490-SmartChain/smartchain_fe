@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
-
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   CheckCircle2,
   ChevronDown,
@@ -13,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Alert, Button, Card, Checkbox, Input, Select } from '@/components/Common';
+import { Alert, Button, Card } from '@/components/Common';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,15 +18,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { ReceiptReviewEvidence } from './ReceiptReviewEvidence';
 import styles from './ReceiptWorkspace.module.css';
 import { discrepancyApi, type DiscrepancyState } from '../api/discrepancyApi';
-import {
-  reviewApi,
-  reviewValuesSchema,
-  type ReviewInput,
-  type ReviewState,
-} from '../api/reviewApi';
+import { reviewApi, type ReviewInput, type ReviewState } from '../api/reviewApi';
 
 import type { ReceivingState } from '../api/receivingApi';
-import type { z } from 'zod';
 
 interface Props {
   onPendingChange?: (key: string, locked: boolean) => void;
@@ -72,18 +63,6 @@ export function ReceiptReviewPanel({
   const generation = useRef(0),
     active = useRef<AbortController | null>(null),
     operation = useRef(createUuid());
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors },
-  } = useForm<z.infer<typeof reviewValuesSchema>>({
-    resolver: zodResolver(reviewValuesSchema),
-    defaultValues: { decision: 'APPROVE', reason: '' },
-  });
-  const decision = watch('decision');
-  const [returnConfirmed, setReturnConfirmed] = useState(false);
   const [decisionError, setDecisionError] = useState('');
   const current = useCallback(
     (version: number) => version === generation.current && owner === useAuthStore.getState().user,
@@ -100,14 +79,12 @@ export function ReceiptReviewPanel({
     setError('');
     setSuccess('');
     setDecisionError('');
-    setReturnConfirmed(false);
     operation.current = createUuid();
-    reset({ decision: 'APPROVE', reason: '' });
     return () => {
       generation.current = version + 1;
       controller.abort();
     };
-  }, [warehouseId, asnId, owner, reset]);
+  }, [warehouseId, asnId, owner]);
   useEffect(() => {
     if (!expanded) return;
     const version = generation.current,
@@ -147,8 +124,7 @@ export function ReceiptReviewPanel({
     if (
       busy ||
       !canWrite ||
-      (input.decision === 'RETURN' && !returnConfirmed) ||
-      (!attempt && (!state?.ready || (input.decision === 'APPROVE' && !state.canApprove)))
+      (!attempt && (!state?.canApprove || state.hasVerifiedVideo !== true))
     ) {
       return;
     }
@@ -159,19 +135,11 @@ export function ReceiptReviewPanel({
     setSuccess('');
     setDecisionError('');
     try {
-      const result = await reviewApi.decide(
-        warehouseId,
-        asnId,
-        receiptId,
-        input,
-        active.current?.signal,
-      );
+      await reviewApi.finalize(warehouseId, asnId, receiptId, input, active.current?.signal);
       if (!current(version)) return;
       setAttempt(null);
       operation.current = createUuid();
-      reset({ decision: 'APPROVE', reason: '' });
-      setReturnConfirmed(false);
-      setSuccess(t(result.decision === 'APPROVE' ? 'reviewApproved' : 'reviewReturned'));
+      setSuccess(t('receiptFinalized'));
       setRefresh((v) => v + 1);
       onSaved();
     } catch (reason: unknown) {
@@ -187,7 +155,6 @@ export function ReceiptReviewPanel({
       );
       if (reason instanceof ApiError && [400, 403, 404, 409, 422].includes(reason.status)) {
         setAttempt(null);
-        setReturnConfirmed(false);
         operation.current = createUuid();
         setState(null);
         setRefresh((v) => v + 1);
@@ -223,7 +190,7 @@ export function ReceiptReviewPanel({
             onClick={() => setExpanded((v) => !v)}
           >
             <ClipboardCheck size={20} aria-hidden="true" className={styles.panelIcon} />
-            <span>{t(canWrite ? 'reviewTitle' : 'reviewHistoryTitle')}</span>
+            <span>{t(canWrite ? 'finalizeTitle' : 'reviewHistoryTitle')}</span>
             {expanded ? (
               <ChevronUp size={16} aria-hidden="true" className={styles.chevron} />
             ) : (
@@ -262,15 +229,17 @@ export function ReceiptReviewPanel({
                   <Clock3 size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
                 )}
                 {t(
-                  isApproved
-                    ? 'receiptApproved'
-                    : returned
-                      ? 'progressReinspection'
-                      : state.status === 'CANCELLED'
-                        ? 'progressCancelled'
-                        : state.canApprove
-                          ? 'reviewReadyTitle'
-                          : 'receiptIncomplete',
+                  state.status === 'COMPLETED'
+                    ? 'receiptCompleted'
+                    : isApproved
+                      ? 'receiptApproved'
+                      : returned
+                        ? 'progressReinspection'
+                        : state.status === 'CANCELLED'
+                          ? 'progressCancelled'
+                          : state.canApprove && (!canWrite || state.hasVerifiedVideo)
+                            ? 'reviewReadyTitle'
+                            : 'receiptIncomplete',
                 )}
               </p>
             </div>
@@ -347,60 +316,40 @@ export function ReceiptReviewPanel({
               ))}
             </details>
           )}
-          {canWrite && state?.ready && (
-            <form
-              className="space-y-3"
-              onSubmit={handleSubmit((values) => {
-                void send(
-                  {
-                    ...values,
-                    operationKey: operation.current,
-                    expectedVersion: state.receiptVersion,
-                    inspectionIds: state.inspectionIds,
-                    discrepancyIds: state.discrepancyIds,
-                  },
-                  state.receiptId,
-                );
-              })}
-            >
-              <p className="text-sm text-[var(--sc-text-secondary)]">
-                {t('reviewDecisionScopeHint')}
-              </p>
-              <fieldset disabled={busy || loading || !!attempt} className="space-y-3">
-                <Select
-                  label={t('reviewDecision')}
-                  {...register('decision')}
-                  options={[
-                    { value: 'APPROVE', label: t('reviewApproveChoice') },
-                    { value: 'RETURN', label: t('reviewReturnChoice') },
-                  ]}
-                />
-                <Input
-                  label={t('reviewReason')}
-                  {...register('reason')}
-                  maxLength={1000}
-                  error={errors.reason ? t('reviewReasonRequired') : undefined}
-                />
-                {decision === 'RETURN' && (
-                  <>
-                    <Alert variant="warning" title={t('reviewReturnWarning')} />
-                    <Checkbox
-                      label={t('reviewReturnConfirm')}
-                      checked={returnConfirmed}
-                      onChange={(event) => setReturnConfirmed(event.target.checked)}
-                    />
-                  </>
+          {canWrite && state?.status === 'RECEIVING' && (
+            <div className="space-y-3">
+              <p className="text-sm text-[var(--sc-text-secondary)]">{t('finalizeHelp')}</p>
+              {state.hasVerifiedVideo !== true && (
+                <Alert variant="info">{t('finalizeVideoRequired')}</Alert>
+              )}
+              <Button
+                type="button"
+                className="w-full"
+                isLoading={busy}
+                disabled={
+                  loading || !!attempt || !state.canApprove || state.hasVerifiedVideo !== true
+                }
+                onClick={() =>
+                  void send(
+                    {
+                      decision: 'APPROVE',
+                      reason: t('finalizeRecordedReason'),
+                      operationKey: operation.current,
+                      expectedVersion: state.receiptVersion,
+                      inspectionIds: state.inspectionIds,
+                      discrepancyIds: state.discrepancyIds,
+                    },
+                    state.receiptId,
+                  )
+                }
+              >
+                {t(
+                  totals && totals.accepted + totals.quarantine > 0
+                    ? 'finalizeAndChooseLocations'
+                    : 'finalizeAction',
                 )}
-                <Button
-                  type="submit"
-                  disabled={decision === 'APPROVE' ? !state.canApprove : !returnConfirmed}
-                  isLoading={busy}
-                  className="w-full"
-                >
-                  {t(decision === 'APPROVE' ? 'reviewApproveChoice' : 'reviewReturnChoice')}
-                </Button>
-              </fieldset>
-            </form>
+              </Button>
+            </div>
           )}
           {attempt && canWrite && (
             <Button

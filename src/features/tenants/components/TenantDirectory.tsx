@@ -21,10 +21,10 @@ import { Card } from '@/components/Common/Card/Card';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
 import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
-
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
+import { CustomInquiryInbox } from './CustomInquiryInbox';
 import { PlatformDashboardOverview } from './PlatformDashboardOverview';
 import { TenantDetailModal } from './TenantDetailModal';
 import { TenantStatusModal } from './TenantStatusModal';
@@ -53,6 +53,7 @@ export function TenantDirectory() {
 
   const [searchInput, setSearchInput] = useState(query.search || '');
   const [selectedPlan, setSelectedPlan] = useState<string>('ALL');
+  const [openContract, setOpenContract] = useState(false);
   const [statusModalTenant, setStatusModalTenant] = useState<TenantSummary | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
@@ -80,7 +81,7 @@ export function TenantDirectory() {
 
   const displayedTenants = tenants.filter((tn) => {
     if (selectedPlan === 'ALL') return true;
-    return (tn.subscription?.planCode || 'STANDARD') === selectedPlan;
+    return (tn.subscription.planCode ?? 'UNASSIGNED') === selectedPlan;
   });
 
   const handleExportCSV = () => {
@@ -181,10 +182,29 @@ export function TenantDirectory() {
       key: 'subscription',
       label: t('col_subscription'),
       render: (tenant) => {
-        const plan = tenant.subscription?.planCode || 'STANDARD';
+        const plan = tenant.subscription.planCode;
         const status = plan === 'ENTERPRISE' ? 'info' : plan === 'PRO' ? 'success' : 'default';
-        return <Badge status={status} label={plan} />;
+        return <Badge status={status} label={plan ?? t('noSubscription')} />;
       },
+    },
+    {
+      key: 'serviceStatus',
+      label: t('colServiceStatus'),
+      render: (tenant) =>
+        tenant.serviceStatus ? (
+          <Badge
+            status={
+              tenant.serviceStatus === 'ACTIVE'
+                ? 'success'
+                : tenant.serviceStatus === 'PENDING_ACTIVATION'
+                  ? 'warning'
+                  : 'default'
+            }
+            label={t(`serviceStatus.${tenant.serviceStatus}`)}
+          />
+        ) : (
+          '—'
+        ),
     },
     {
       key: 'quota',
@@ -258,7 +278,10 @@ export function TenantDirectory() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => selectTenant(tenant.slug)}
+            onClick={() => {
+              setOpenContract(false);
+              void selectTenant(tenant.slug);
+            }}
             title={t('view_detail')}
           >
             <Eye size={13} className="mr-1 text-[var(--sc-primary)]" />
@@ -318,11 +341,24 @@ export function TenantDirectory() {
         </Alert>
       )}
 
+      {can('platform.tenants.manage') && (
+        <CustomInquiryInbox
+          key={selectedTenant?.id ?? 'directory'}
+          onSelect={(id) => {
+            setOpenContract(true);
+            void selectTenant(id);
+          }}
+        />
+      )}
+
       {/* 4 Connected Metric Cards */}
       <PlatformDashboardOverview
         overview={overview}
         isLoading={isLoading}
-        onSelectTenant={selectTenant}
+        onSelectTenant={(id) => {
+          setOpenContract(false);
+          void selectTenant(id);
+        }}
       />
 
       {/* Toolbar: Search and Filter Tabs */}
@@ -353,21 +389,42 @@ export function TenantDirectory() {
           <div className="flex flex-wrap items-center gap-2">
             {/* Subscription Plan Filter */}
             <div className="flex items-center rounded-xl bg-[var(--sc-bg-secondary)] p-1 text-xs">
-              {(['ALL', 'ENTERPRISE', 'PRO', 'STANDARD'] as const).map((plan) => (
-                <button
-                  key={plan}
-                  type="button"
-                  onClick={() => setSelectedPlan(plan)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
-                    selectedPlan === plan
-                      ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)]'
-                      : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
-                  }`}
-                >
-                  {plan === 'ALL' ? 'Tất cả gói' : plan}
-                </button>
-              ))}
+              {(['ALL', 'UNASSIGNED', 'BASIC', 'STANDARD', 'PRO', 'ENTERPRISE'] as const).map(
+                (plan) => (
+                  <button
+                    key={plan}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan)}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
+                      selectedPlan === plan
+                        ? 'bg-[var(--sc-bg-surface)] text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)]'
+                        : 'text-[var(--sc-text-secondary)] hover:text-[var(--sc-text-primary)]'
+                    }`}
+                  >
+                    {plan === 'ALL'
+                      ? t('allPlans')
+                      : plan === 'UNASSIGNED'
+                        ? t('noSubscription')
+                        : plan}
+                  </button>
+                ),
+              )}
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              aria-pressed={query.serviceStatus === 'PENDING_ACTIVATION'}
+              onClick={() =>
+                setQuery((current) => ({
+                  ...current,
+                  cursor: undefined,
+                  serviceStatus:
+                    current.serviceStatus === 'PENDING_ACTIVATION' ? '' : 'PENDING_ACTIVATION',
+                }))
+              }
+            >
+              {t('serviceStatus.PENDING_ACTIVATION')}
+            </Button>
 
             {/* Status Filter */}
             <div className="flex items-center rounded-xl bg-[var(--sc-bg-secondary)] p-1 text-xs">
@@ -444,9 +501,11 @@ export function TenantDirectory() {
 
       {/* Tenant Detail Modal */}
       <TenantDetailModal
+        key={`${selectedTenant?.id ?? ''}:${openContract}`}
         isOpen={Boolean(selectedTenant)}
         onClose={() => setSelectedTenant(null)}
         tenant={selectedTenant}
+        initialTab={openContract ? 'contract' : 'overview'}
         onToggleStatusClick={() => {
           if (selectedTenant) {
             setStatusModalTenant(selectedTenant);

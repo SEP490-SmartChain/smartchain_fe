@@ -42,7 +42,7 @@ window.fetch=async(input,init={})=>{
   document.querySelector('output').textContent=JSON.stringify({confirmationCount,body,replayMatches:lastConfirmation!==null&&JSON.stringify(body)===JSON.stringify(lastConfirmation)});
   if(scenario==='revoked-confirmation'){accessRevoked=true;return fail(403,'Đã thu hồi phân công kho.');}
   if(scenario==='stale-confirmation'){task={...task,version:task.version+1,assigneeId:uuid(10)};return fail(409,'Công việc đã được phân công lại.');}
-  if(body.fromBinScan!=='NHAN-01'||body.toBinScan!=='KE-A01'||body.skuScan!=='Tivi'||body.lotScan!=='RCV-TEST')return fail(scenario==='scan-validation'?422:409,'Mã quét không khớp công việc.');
+  if(body.toBinScan!=='KE-A01'||Object.keys(body).sort().join(',')!=='expectedVersion,operationKey,toBinScan')return fail(scenario==='scan-validation'?422:409,'Mã kệ không khớp công việc.');
   if(scenario==='lost-confirmation'&&confirmationCount===1){lastConfirmation=body;throw new TypeError('Synthetic lost reply');}
   if(lastConfirmation!==null&&JSON.stringify(body)!==JSON.stringify(lastConfirmation))return fail(409,'Lần thử lại đã đổi thao tác.');
   task={...task,status:'COMPLETED',confirmedQty:10,version:body.expectedVersion+1};
