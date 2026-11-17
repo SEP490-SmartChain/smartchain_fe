@@ -15,6 +15,8 @@ import { useAuthStore } from '@/stores/authStore';
 import {
   inventoryWorkflowApi,
   type CountPlanOptions,
+  type EvidenceDigest,
+  type InventoryWorkflowCommandInput,
   type PutbackOptions,
 } from '../api/inventoryWorkflowApi';
 export type WorkflowAction = {
@@ -53,6 +55,23 @@ const schema = z.object({
   windowEnd: z.string().max(32),
 });
 type Form = z.infer<typeof schema>;
+
+type WorkflowCommand = { path: string; body: InventoryWorkflowCommandInput };
+
+/**
+ * Blind counting may observe a physical zero; every disposal/putback movement must move at
+ * least one whole unit. Exported as a pure rule so the Node regression suite can pin it.
+ */
+export function isWorkflowQuantityValid(
+  kind: WorkflowAction['kind'],
+  qty: number,
+  maxQty?: number,
+): boolean {
+  if (!Number.isInteger(qty) || qty < 0) return false;
+  if (qty > (maxQty ?? 1000000)) return false;
+  return kind === 'observe' || qty >= 1;
+}
+
 export function InventoryWorkflowAction({
   warehouseId,
   action,
@@ -70,7 +89,7 @@ export function InventoryWorkflowAction({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<'failed' | 'tariff' | null>(null),
     [file, setFile] = useState<File | null>(null),
-    [pending, setPending] = useState<{ path: string; body: unknown } | null>(null);
+    [pending, setPending] = useState<WorkflowCommand | null>(null);
   const running = useRef(false);
   const [options, setOptions] = useState<PutbackOptions | null>(null);
   const putbackPlan = ['putbackRequest', 'putbackRetarget'].includes(action.kind);
@@ -124,6 +143,25 @@ export function InventoryWorkflowAction({
         action.kind,
       ),
     image = ['observe', 'execute'].includes(action.kind);
+  // The frozen wire request types require real UUID references and a positive CAS version.
+  // Validate those here, before a request can be built, and keep the exact same body for retry.
+  function targetId(): string {
+    return z.uuid().parse(action.id);
+  }
+  function commandBase() {
+    return {
+      operationId,
+      expectedVersion: z.number().int().positive().parse(action.version),
+    };
+  }
+  async function signEvidence(): Promise<EvidenceDigest> {
+    if (!file) throw new Error('EVIDENCE_REQUIRED');
+    const path =
+      action.kind === 'observe'
+        ? `counts/${targetId()}/evidence?lineId=${z.uuid().parse(action.lineId)}`
+        : `disposals/${targetId()}/evidence`;
+    return inventoryWorkflowApi.evidence(warehouseId, path, file);
+  }
   async function submit(values: Form) {
     if (running.current || useAuthStore.getState().revision !== revision) return;
     running.current = true;
@@ -133,26 +171,11 @@ export function InventoryWorkflowAction({
       let command = pending;
       if (!command) {
         if (reason && values.reason.trim().length < 3) throw new Error('REASON_REQUIRED');
-        if (
-          quantity &&
-          (values.qty > (action.maxQty ?? 1000000) || (action.kind !== 'observe' && values.qty < 1))
-        ) {
+        if (quantity && !isWorkflowQuantityValid(action.kind, values.qty, action.maxQty)) {
           throw new Error('INVALID_QUANTITY');
         }
         if (scans && [values.binScan, values.skuScan, values.lotScan].some((v) => !v)) {
           throw new Error('SCAN_REQUIRED');
-        }
-        const common = { operationId, expectedVersion: action.version };
-        let evidence;
-        if (image) {
-          if (!file) throw new Error('EVIDENCE_REQUIRED');
-          evidence = await inventoryWorkflowApi.evidence(
-            warehouseId,
-            action.kind === 'observe'
-              ? `counts/${action.id}/evidence?lineId=${action.lineId}`
-              : `disposals/${action.id}/evidence`,
-            file,
-          );
         }
         switch (action.kind) {
           case 'countPlan': {
@@ -182,9 +205,9 @@ export function InventoryWorkflowAction({
           }
           case 'countAssign':
             command = {
-              path: `counts/${action.id}/assignment`,
+              path: `counts/${targetId()}/assignment`,
               body: {
-                ...common,
+                ...commandBase(),
                 assigneeId: z.uuid().parse(values.assigneeId),
                 reason: values.reason,
               },
@@ -192,34 +215,34 @@ export function InventoryWorkflowAction({
             break;
           case 'observe':
             command = {
-              path: `counts/${action.id}/observation`,
+              path: `counts/${targetId()}/observation`,
               body: {
-                ...common,
-                lineId: action.lineId,
+                ...commandBase(),
+                lineId: z.uuid().parse(action.lineId),
                 observedQty: values.qty,
                 binScan: values.binScan,
                 skuScan: values.skuScan,
                 lotScan: values.lotScan,
-                evidence,
+                evidence: await signEvidence(),
               },
             };
             break;
           case 'countReview':
           case 'resnapshot':
             command = {
-              path: `counts/${action.id}/${action.kind === 'resnapshot' ? 'resnapshot' : 'review'}`,
-              body: { ...common, reason: values.reason, decision: values.decision },
+              path: `counts/${targetId()}/${action.kind === 'resnapshot' ? 'resnapshot' : 'review'}`,
+              body: { ...commandBase(), reason: values.reason, decision: values.decision },
             };
             break;
           case 'post':
-            command = { path: `counts/${action.id}/post`, body: common };
+            command = { path: `counts/${targetId()}/post`, body: commandBase() };
             break;
           case 'disposalRequest':
             command = {
               path: 'disposals',
               body: {
                 operationId,
-                stockId: action.stockId,
+                stockId: z.uuid().parse(action.stockId),
                 qty: values.qty,
                 reason: values.reason,
                 authorizationMode: 'CONSENT',
@@ -228,22 +251,22 @@ export function InventoryWorkflowAction({
             break;
           case 'disposalReview':
             command = {
-              path: `disposals/${action.id}/review`,
-              body: { ...common, reason: values.reason, decision: values.decision },
+              path: `disposals/${targetId()}/review`,
+              body: { ...commandBase(), reason: values.reason, decision: values.decision },
             };
             break;
           case 'revoke':
-            command = { path: `disposals/${action.id}/revoke`, body: common };
+            command = { path: `disposals/${targetId()}/revoke`, body: commandBase() };
             break;
           case 'execute':
             command = {
-              path: `disposals/${action.id}/execute`,
+              path: `disposals/${targetId()}/execute`,
               body: {
-                ...common,
+                ...commandBase(),
                 binScan: values.binScan,
                 skuScan: values.skuScan,
                 lotScan: values.lotScan,
-                evidence,
+                evidence: await signEvidence(),
               },
             };
             break;
@@ -262,9 +285,9 @@ export function InventoryWorkflowAction({
             break;
           case 'putbackRetarget':
             command = {
-              path: `putbacks/${action.id}/retarget`,
+              path: `putbacks/${targetId()}/retarget`,
               body: {
-                ...common,
+                ...commandBase(),
                 reason: values.reason,
                 toBinId: z.uuid().parse(values.toBinId),
                 assigneeId: z.uuid().parse(values.assigneeId),
@@ -273,9 +296,9 @@ export function InventoryWorkflowAction({
             break;
           case 'putbackConfirm':
             command = {
-              path: `putbacks/${action.id}/confirm`,
+              path: `putbacks/${targetId()}/confirm`,
               body: {
-                ...common,
+                ...commandBase(),
                 binScan: values.binScan,
                 skuScan: values.skuScan,
                 lotScan: values.lotScan,

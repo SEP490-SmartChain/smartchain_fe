@@ -64,7 +64,11 @@
     "stale": "Sự cố vừa được người khác cập nhật. Chi tiết mới đã được tải lại; hãy kiểm tra trước khi gửi tiếp.",
     "rejected": "Thao tác bị từ chối theo quyền hoặc trạng thái nghiệp vụ hiện tại. Kiểm tra chi tiết mới trước khi gửi lại.",
     "uncertain": "Chưa xác nhận được kết quả. Chọn Kiểm tra lại yêu cầu trước khi thao tác tiếp.",
-    "statuses": { "OPEN": "Chưa xử lý", "ASSIGNED": "Đang xử lý", "RESOLVED": "Đã xử lý" },
+    "statuses": {
+      "OPEN": "Chưa xử lý",
+      "ASSIGNED": "Đang xử lý",
+      "RESOLVED": "Đã xử lý"
+    },
     "types": {
       "ORDER": "Đơn hàng",
       "DISPATCH": "Tạo vận đơn",
@@ -632,7 +636,6 @@
   },
   "Orders": {
     "excel_channel": "Nhập từ bảng tính",
-
     "backorderHint": "Chưa đủ tồn kho đáp ứng điều kiện phân bổ. Đơn đang chờ bổ sung hàng đủ điều kiện; hệ thống sẽ thử lại khi tồn kho được cập nhật.",
     "allocationQueuedHint": "Đơn đã được xác thực và đang chờ hệ thống phân bổ. Trạng thái sẽ tự cập nhật khi có kết quả.",
     "allocationLineValue": "Tổng giá trị khai báo",
@@ -2329,7 +2332,6 @@
   "InventoryDetail": {
     "lookupReferences": "Xem mã tra cứu",
     "statusUnknown": "Chưa có trạng thái",
-
     "positions": "Lô và vị trí",
     "ledger": "Sổ biến động",
     "sku": "Mã sản phẩm",
@@ -2442,7 +2444,6 @@
   },
   "Warehouses": {
     "saveError": "Không lưu được lịch làm việc. Vui lòng thử lại.",
-
     "additionalInformation": "Thông tin bổ sung",
     "cutoffExplanation": "Giờ chốt đơn ảnh hưởng thế nào?",
     "warehouseDetailTitle": "Chi tiết kho · {code}",
@@ -2709,7 +2710,6 @@
   "Receiving": {
     "discrepancyProductCandidate": "{product} · {type} · {qty} đơn vị",
     "discrepancyProductComparison": "{product}: thực nhận {actual}",
-
     "sellerShipment": "Người bán gửi",
     "shipmentSku": "Mặt hàng",
     "declaredQuantity": "Khai gửi",
@@ -3422,7 +3422,6 @@
   "Putaway": {
     "completedReadOnly": "Công việc cất hàng đã hoàn thành.",
     "cancelledReadOnly": "Công việc cất hàng đã hủy.",
-
     "title": "Công việc cất hàng",
     "description": "Nhận việc, quét mã và xác nhận cất hàng.",
     "warehouse": "Kho",
@@ -3764,7 +3763,6 @@
   },
   "PutawayBinOverride": {
     "actorReference": "Mã tham chiếu nhân viên",
-
     "title": "Đổi vị trí lưu trữ gợi ý",
     "description": "Chọn vị trí phù hợp và ghi lý do. Nhân viên kho cần quét và xác nhận trước khi hàng được bán.",
     "search": "Tìm vị trí theo mã hoặc mã vạch",
@@ -3982,7 +3980,10 @@
     "remainingQty": "Còn {qty}",
     "nextBacklog": "Xem 100 dòng tiếp",
     "firstBacklog": "Về trang đầu danh sách chờ",
-    "eligibility": { "READY": "Đủ điều kiện", "RESERVATION_REQUIRED": "Cần giữ tồn trước" },
+    "eligibility": {
+      "READY": "Đủ điều kiện",
+      "RESERVATION_REQUIRED": "Cần giữ tồn trước"
+    },
     "empty": "Kho chưa có đợt soạn.",
     "chooseWave": "Chọn đợt để xem danh sách soạn.",
     "chooseWaveHint": "Chọn một đợt ở danh sách bên trái để xem trạng thái và tiếp tục soạn hàng.",
@@ -4778,14 +4779,12 @@
   },
   "InventoryWorkflows": {
     "unknownStatus": "Chưa xác định trạng thái",
-
     "noWarehouse": "Chưa có kho trong phạm vi truy cập của bạn.",
     "reference": "Mã tham chiếu",
     "executedQty": "Đã tiêu hủy thực tế: {qty}",
     "policyAuthorization": "Theo chính sách đã được phê duyệt",
     "consentAuthorization": "Theo chấp thuận của chủ hàng",
     "policyExpiry": "Chính sách có hiệu lực đến: {date}",
-
     "title": "Kiểm kê, nhập trả và tiêu hủy",
     "description": "Kiểm kê, nhập trả hàng từ đơn hủy và xử lý hàng được phép tiêu hủy.",
     "warehouse": "Kho",
@@ -4869,19 +4868,18 @@
     "countPlan": "Tạo kế hoạch kiểm kê",
     "countAssign": "Giao lại người đếm",
     "countAssignHint": "Chuyển kế hoạch chưa đếm sang nhân viên kho khác. Dữ liệu đã đếm vẫn thuộc người đếm ban đầu.",
-    "countPlanHint": "Chọn bin hoặc bộ lọc SKU, khoảng thời gian kiểm kê và nhân viên sẽ đếm mù. Máy chủ tự tạo snapshot số lượng dự kiến.",
+    "countPlanHint": "Chọn vị trí lưu trữ hoặc bộ lọc mã hàng, khoảng thời gian kiểm kê và nhân viên sẽ đếm mù. Máy chủ tự tạo ảnh chụp số lượng dự kiến.",
     "bins": "Bin",
-    "skuFilter": "Lọc SKU",
-    "skuFilterHint": "Danh sách SKU cách nhau bởi dấu phẩy hoặc khoảng trắng (không bắt buộc)",
+    "skuFilter": "Lọc mã hàng",
+    "skuFilterHint": "Danh sách mã hàng cách nhau bởi dấu phẩy hoặc khoảng trắng (không bắt buộc)",
     "windowStart": "Bắt đầu khung kiểm kê",
     "windowEnd": "Kết thúc khung kiểm kê",
     "round": "Vòng",
-    "snapshotAt": "Thời điểm snapshot",
+    "snapshotAt": "Thời điểm chụp số lượng",
     "window": "Khung kiểm kê"
   },
   "Returns": {
     "returnReference": "Mã yêu cầu hoàn hàng",
-
     "title": "Hàng hoàn",
     "description": "Yêu cầu hoàn, nhận hàng vật lý và kiểm tra chất lượng tại kho xuất gốc.",
     "warehouse": "Kho gốc",
@@ -5053,7 +5051,6 @@
   },
   "Packing": {
     "differentCarrier": "Thuộc kết nối vận chuyển khác. Tạo bảng kê riêng cho nhóm kiện này.",
-
     "nextPage": "Trang tiếp",
     "printManifest": "In biên bản bàn giao",
     "printDraftManifest": "In phiếu bàn giao chờ ký",
@@ -5418,8 +5415,14 @@
     "evidenceSubmitted": "Đã nộp ảnh bằng chứng",
     "evidenceAlreadySubmittedNotice": "Tác vụ này đã được gửi ảnh bằng chứng và ghi nhận thành công trên hệ thống. Hồ sơ đang chờ Bộ phận Vận hành (Ops) kiểm tra và hoàn tất điều tra. Bạn có thể gửi thêm ảnh bổ sung bên dưới nếu cần thêm góc chụp, hoặc đóng biểu mẫu này.",
     "closeTaskForm": "Đóng biểu mẫu",
-    "incidents": { "LOST": "Mất hàng", "DAMAGED": "Hư hỏng" },
-    "statuses": { "OPEN": "Mới mở", "INVESTIGATING": "Đang điều tra" },
+    "incidents": {
+      "LOST": "Mất hàng",
+      "DAMAGED": "Hư hỏng"
+    },
+    "statuses": {
+      "OPEN": "Mới mở",
+      "INVESTIGATING": "Đang điều tra"
+    },
     "uploadErrors": {
       "generic": "Chưa xác nhận được kết quả tải ảnh. Hãy thử lại đúng yêu cầu cũ để xử lý an toàn.",
       "expired": "Lượt tải ảnh đã hết hạn. Bắt đầu lượt tải mới; không dùng lại lượt cũ.",

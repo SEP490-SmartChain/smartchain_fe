@@ -64,7 +64,11 @@
     "stale": "Another operator updated this exception. The latest details have been loaded; review them before submitting again.",
     "rejected": "Current permissions or business state rejected this action. Review the refreshed details before continuing.",
     "uncertain": "The result is not confirmed. Check the request again before taking another action.",
-    "statuses": { "OPEN": "Open", "ASSIGNED": "In progress", "RESOLVED": "Resolved" },
+    "statuses": {
+      "OPEN": "Open",
+      "ASSIGNED": "In progress",
+      "RESOLVED": "Resolved"
+    },
     "types": {
       "ORDER": "Order",
       "DISPATCH": "Shipping label",
@@ -632,7 +636,6 @@
   },
   "Orders": {
     "excel_channel": "Spreadsheet import",
-
     "backorderHint": "There is not enough stock meeting allocation requirements. The order is waiting for eligible stock; allocation will retry when inventory is updated.",
     "allocationQueuedHint": "The order is validated and waiting for allocation. Its status will update automatically when processing completes.",
     "allocationLineValue": "Line declared value",
@@ -2329,7 +2332,6 @@
   "InventoryDetail": {
     "lookupReferences": "View lookup references",
     "statusUnknown": "Status unavailable",
-
     "positions": "Lot & bin",
     "ledger": "Movement ledger",
     "sku": "SKU",
@@ -2442,7 +2444,6 @@
   },
   "Warehouses": {
     "saveError": "Could not save working hours. Please try again.",
-
     "additionalInformation": "Additional information",
     "cutoffExplanation": "How does the cut-off affect orders?",
     "warehouseDetailTitle": "Warehouse details · {code}",
@@ -2709,7 +2710,6 @@
   "Receiving": {
     "discrepancyProductCandidate": "{product} · {type} · {qty} units",
     "discrepancyProductComparison": "{product}: actual {actual}",
-
     "sellerShipment": "Seller shipment",
     "shipmentSku": "Item",
     "declaredQuantity": "Declared",
@@ -3422,7 +3422,6 @@
   "Putaway": {
     "completedReadOnly": "This putaway task is complete.",
     "cancelledReadOnly": "This putaway task was cancelled.",
-
     "title": "Putaway tasks",
     "description": "Claim work, scan codes and confirm putaway.",
     "warehouse": "Warehouse",
@@ -3764,7 +3763,6 @@
   },
   "PutawayBinOverride": {
     "actorReference": "Staff reference",
-
     "title": "Change suggested storage bin",
     "description": "Choose a compatible bin and record the reason. Stock becomes sellable only after Staff physically scans and confirms the task.",
     "search": "Find bin by code or barcode",
@@ -3982,7 +3980,10 @@
     "remainingQty": "Remaining {qty}",
     "nextBacklog": "Next 100 lines",
     "firstBacklog": "First backlog page",
-    "eligibility": { "READY": "Ready", "RESERVATION_REQUIRED": "Reserve stock first" },
+    "eligibility": {
+      "READY": "Ready",
+      "RESERVATION_REQUIRED": "Reserve stock first"
+    },
     "empty": "No waves at this warehouse.",
     "chooseWave": "Choose a wave to view its pick list.",
     "chooseWaveHint": "Choose a wave from the list to view its status and continue picking.",
@@ -4778,14 +4779,12 @@
   },
   "InventoryWorkflows": {
     "unknownStatus": "Status unavailable",
-
     "noWarehouse": "No warehouses are available in your access scope.",
     "reference": "Reference",
     "executedQty": "Actually disposed: {qty}",
     "policyAuthorization": "Under an approved policy",
     "consentAuthorization": "With the goods owner’s consent",
     "policyExpiry": "Policy valid until: {date}",
-
     "title": "Inventory restoration",
     "description": "Review physical counts, restore cancelled picks and execute authorized disposal.",
     "warehouse": "Warehouse",
@@ -4881,7 +4880,6 @@
   },
   "Returns": {
     "returnReference": "Return reference",
-
     "title": "Returns",
     "description": "Return requests, physical receipt and inspection at the original warehouse.",
     "warehouse": "Origin warehouse",
@@ -5053,7 +5051,6 @@
   },
   "Packing": {
     "differentCarrier": "Uses a different carrier connection. Create a separate manifest for this group.",
-
     "nextPage": "Next page",
     "printManifest": "Print manifest",
     "printDraftManifest": "Print handover form for signing",
@@ -5418,8 +5415,14 @@
     "evidenceSubmitted": "Evidence submitted",
     "evidenceAlreadySubmittedNotice": "This task already has confirmed evidence recorded in the system. The case is awaiting review by Operations (Ops). You can submit additional photos below if more angles are needed, or close this form.",
     "closeTaskForm": "Close form",
-    "incidents": { "LOST": "Lost", "DAMAGED": "Damaged" },
-    "statuses": { "OPEN": "Open", "INVESTIGATING": "Investigating" },
+    "incidents": {
+      "LOST": "Lost",
+      "DAMAGED": "Damaged"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "INVESTIGATING": "Investigating"
+    },
     "uploadErrors": {
       "generic": "The upload result could not be confirmed. Retry the same request to resolve it safely.",
       "expired": "The upload intent expired. Start a new upload; the previous intent will not be reused.",
