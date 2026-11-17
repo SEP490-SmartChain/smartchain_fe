@@ -104,6 +104,28 @@ test('login sends the BE contract with cookies and stores the safe profile', asy
   assert.deepEqual(useTenantStore.getState().permissions, user.permissions);
 });
 
+test('login can retry a workspace conflict with a validated workspace code', async () => {
+  const { workspaceSlug, ...input } = getLoginSchema((key) => key).parse({
+    email: user.email,
+    password: 'Test-password-1',
+    rememberSession: true,
+    workspaceSlug: '  test-company  ',
+  });
+  const requests = [];
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, '/api/v1/auth/login');
+    requests.push(JSON.parse(options.body));
+    return requests.length === 1 ? fail(409, 'AUTH.WORKSPACE_REQUIRED') : ok(session());
+  };
+
+  await assert.rejects(apiClient.login(input), { status: 409, code: 'AUTH.WORKSPACE_REQUIRED' });
+  assert.equal(useAuthStore.getState().accessToken, null);
+
+  assert.deepEqual(await apiClient.login({ ...input, workspaceSlug }), user);
+  assert.deepEqual(requests, [input, { ...input, workspaceSlug: 'test-company' }]);
+  assert.equal(useAuthStore.getState().accessToken, 'test-access');
+});
+
 test('SS-985: profile preserves server warehouse assignments and rejects malformed IDs', async () => {
   // PostgreSQL accepts UUIDs without RFC version bits, including the ORCA seed IDs.
   const warehouseIds = ['00000015-0000-0000-0000-000000000001'];
