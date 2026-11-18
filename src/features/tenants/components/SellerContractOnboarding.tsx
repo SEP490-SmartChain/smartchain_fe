@@ -54,6 +54,10 @@ export function SellerContractOnboarding() {
   );
   const contract = canRestartSigning ? undefined : currentContract;
   const request = flow.state?.signingRequests.find((item) => item.contractId === contract?.id);
+  const signingNotice =
+    request?.status === 'IN_PROGRESS' && flow.signingNotice?.requestId === request.id
+      ? flow.signingNotice
+      : null;
   const isCustomDraft = contract?.contractKind === 'CUSTOM' && contract.status === 'DRAFT';
   const isCustomAwaitingPayment =
     contract?.contractKind === 'CUSTOM' &&
@@ -303,17 +307,20 @@ export function SellerContractOnboarding() {
             ))}
           </dl>
           {request?.status === 'PREPARING' && <p className="text-sm">{t('preparingHelp')}</p>}
+          {signingNotice && <Alert variant="info">{signingNotice.message}</Alert>}
           {request?.status === 'IN_PROGRESS' && (
             <div className="flex flex-wrap gap-3 border-t border-[var(--sc-border-default)] pt-4">
-              <Button
-                isLoading={flow.busy}
-                onClick={() => {
-                  void flow.open(request.id);
-                }}
-              >
-                <FileSignature size={16} />
-                {t('sign')}
-              </Button>
+              {!signingNotice && (
+                <Button
+                  isLoading={flow.busy}
+                  onClick={() => {
+                    void flow.open(request.id);
+                  }}
+                >
+                  <FileSignature size={16} />
+                  {t('sign')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => {

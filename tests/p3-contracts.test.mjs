@@ -27,7 +27,7 @@ const fixtures = JSON.parse(
 const wireText = readFileSync(
   new URL('../src/features/inventory/api/p3-wire.generated.ts', import.meta.url),
   'utf8',
-);
+).replace(/\r\n/g, '\n');
 
 let server;
 let workflows;
