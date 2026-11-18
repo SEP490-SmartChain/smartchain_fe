@@ -56,9 +56,17 @@ export function RuleSentence({
       predicate.field === 'deliveryTier' &&
       'value' in predicate &&
       predicate.operator === 'EQ' &&
-      (predicate.value === 'ECONOMY' || predicate.value === 'EXPRESS')
+      (predicate.value === 'ECONOMY' ||
+        predicate.value === 'BALANCED' ||
+        predicate.value === 'EXPRESS')
     ) {
-      return t(predicate.value === 'EXPRESS' ? 'sentence.expressTier' : 'sentence.economyTier');
+      return t(
+        predicate.value === 'EXPRESS'
+          ? 'sentence.expressTier'
+          : predicate.value === 'BALANCED'
+            ? 'sentence.balancedTier'
+            : 'sentence.economyTier',
+      );
     }
     return null;
   };

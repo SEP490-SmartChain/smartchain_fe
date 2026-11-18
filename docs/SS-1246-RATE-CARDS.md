@@ -1,5 +1,9 @@
 # Sprint 4 rate-card UI
 
+> **Đã thay thế từ 18/11/2026.** Cước vận chuyển lấy 100% theo giá API hãng; UI tạo/sửa/công bố/đóng
+> bảng cước thủ công đã bị gỡ. `/admin/tariffs` giờ có ba tab Giá hãng, Chọn hãng tự động và Phí dịch
+> vụ — xem `src/features/catalog/README.md`. Phần dưới chỉ là lịch sử.
+
 Source: Report3 UC-94/118/119, BR-53 và backend `docs/SS-1241-SS-1246-SPRINT4-HANDOFF.md`.
 
 Admin: `/admin/carriers` tabs Catalogue / Accounts / Tariffs. Tariff-only page `/admin/tariffs` cho Admin/Accountant, không grant carrier credentials hoặc generic admin routes cho Accountant. Sidebar, search, guard/action lấy capability `tariffs.manage`.

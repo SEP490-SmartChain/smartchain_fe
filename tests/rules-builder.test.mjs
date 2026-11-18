@@ -181,7 +181,7 @@ test('trims name/reason and converts optional form references to null', () => {
     exceptionTenantId: '',
     priority: 0,
     condition: { kind: 'ALL', conditions: [] },
-    strategy: 'TOTAL_COST',
+    strategy: 'NEAREST_WAREHOUSE',
     carrierServiceId: '',
     fallbackServiceIds: [],
     reason: ' Create tested rule ',

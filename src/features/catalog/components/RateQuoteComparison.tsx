@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -11,20 +11,33 @@ import { Select } from '@/components/Common/Select/Select';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
 
 import { rateQuotesApi, type RateQuoteComparison, type RateQuoteRow } from '../api/rateQuotesApi';
-import { formatDays, formatDelta, formatVnd, formatWeight, zoneKey } from '../utils/rateDisplay';
+import {
+  balancedServiceId,
+  formatDays,
+  formatDelta,
+  formatVnd,
+  formatWeight,
+  tierHighlights,
+  zoneKey,
+  type DeliveryTierFilter,
+} from '../utils/rateDisplay';
 
 interface RateQuoteComparisonProps {
   /** Changes whenever a price update finishes, so the table reloads. */
   refreshToken?: string;
 }
 
-/** A carrier quote this far from the purchase tariff suggests the tariff needs checking. */
-const CARD_DRIFT_WARNING_PCT = 10;
+const TIER_OPTIONS = ['ALL', 'ECONOMY', 'BALANCED', 'EXPRESS'] as const;
 
 /** Only quotes collected around the same time may be called the cheapest. */
 function cheapestServiceId(row: RateQuoteRow, comparable: ReadonlySet<string>): string | null {
   const priced = row.quotes.filter(
-    (cell) => cell.isDeliverable && cell.priceVnd !== null && comparable.has(cell.serviceId),
+    (cell) =>
+      cell.isDeliverable &&
+      cell.priceVnd !== null &&
+      Number.isSafeInteger(cell.priceVnd) &&
+      cell.priceVnd > 0 &&
+      comparable.has(cell.serviceId),
   );
   if (priced.length < 2) {
     return null;
@@ -35,7 +48,13 @@ function cheapestServiceId(row: RateQuoteRow, comparable: ReadonlySet<string>): 
 /** The quickest comparable service; only marked when at least two services have an estimate. */
 function fastestServiceId(row: RateQuoteRow, comparable: ReadonlySet<string>): string | null {
   const timed = row.quotes.filter(
-    (cell) => cell.isDeliverable && cell.deliveryDays !== null && comparable.has(cell.serviceId),
+    (cell) =>
+      cell.isDeliverable &&
+      cell.priceVnd !== null &&
+      Number.isSafeInteger(cell.priceVnd) &&
+      cell.priceVnd > 0 &&
+      cell.deliveryDays !== null &&
+      comparable.has(cell.serviceId),
   );
   if (timed.length < 2) {
     return null;
@@ -45,12 +64,14 @@ function fastestServiceId(row: RateQuoteRow, comparable: ReadonlySet<string>): s
 }
 
 export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteComparisonProps) {
+  const locale = useLocale();
   const t = useTranslations('RateIntelligence');
   const [data, setData] = useState<RateQuoteComparison | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [province, setProvince] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
+  const [tier, setTier] = useState<DeliveryTierFilter>('ALL');
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
@@ -98,6 +119,7 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
     return key ? t(`zone${key}`) : code;
   };
   const columns = useMemo(() => data?.columns ?? [], [data]);
+  const { isCheapestShown, isFastestShown } = tierHighlights(tier);
   const comparable = useMemo(
     () =>
       new Set(columns.filter((column) => column.isComparable).map((column) => column.serviceId)),
@@ -108,18 +130,30 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
     <Card padding="none">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--sc-border-default)] p-5">
         <CardHeader className="mb-0" title={t('quotesTitle')} description={t('quotesGuide')} />
-        {provinces.length > 1 ? (
-          <div className="min-w-48">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-44">
             <Select
-              label={t('quotesProvince')}
-              value={province}
-              placeholder={t('quotesAllProvinces')}
-              isPlaceholderDisabled={false}
-              options={provinces.map((name) => ({ value: name, label: name }))}
-              onChange={(event) => setProvince(event.target.value)}
+              label={t('quotesTier')}
+              value={tier}
+              options={TIER_OPTIONS.map((value) => ({ value, label: t(`quotesTier_${value}`) }))}
+              onChange={(event) =>
+                setTier(TIER_OPTIONS.find((value) => value === event.target.value) ?? 'ALL')
+              }
             />
           </div>
-        ) : null}
+          {provinces.length > 1 ? (
+            <div className="min-w-48">
+              <Select
+                label={t('quotesProvince')}
+                value={province}
+                placeholder={t('quotesAllProvinces')}
+                isPlaceholderDisabled={false}
+                options={provinces.map((name) => ({ value: name, label: name }))}
+                onChange={(event) => setProvince(event.target.value)}
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {warehouses.length > 0 ? (
@@ -170,6 +204,7 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                     <span className="block text-sm text-[var(--sc-text-primary)]">
                       {column.carrierName}
                     </span>
+                    <span className="block font-normal">{column.serviceName}</span>
                     {column.updatedAt ? (
                       <span className="block font-normal">
                         {new Date(column.updatedAt).toLocaleString()}
@@ -189,8 +224,10 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
             </thead>
             <tbody className="divide-y divide-[var(--sc-border-default)]">
               {rows.map((row) => {
-                const cheapest = cheapestServiceId(row, comparable);
-                const fastest = fastestServiceId(row, comparable);
+                const cheapest = isCheapestShown ? cheapestServiceId(row, comparable) : null;
+                const fastest = isFastestShown ? fastestServiceId(row, comparable) : null;
+                const balanced =
+                  tier === 'BALANCED' ? balancedServiceId(row.quotes, comparable) : null;
                 return (
                   <tr key={row.key}>
                     <td className="whitespace-nowrap px-4 py-3">{row.provinceName}</td>
@@ -201,10 +238,11 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                     {columns.map((column) => {
                       const cell = row.quotes.find((quote) => quote.serviceId === column.serviceId);
                       const isCheapest = cell !== undefined && cell.serviceId === cheapest;
+                      const isBalanced = cell !== undefined && cell.serviceId === balanced;
                       return (
                         <td
                           key={column.serviceId}
-                          className={`whitespace-nowrap px-4 py-3 ${isCheapest ? 'bg-[var(--sc-success-bg)]' : ''}`}
+                          className={`whitespace-nowrap px-4 py-3 ${isCheapest || isBalanced ? 'bg-[var(--sc-success-bg)]' : ''}`}
                         >
                           {!cell || cell.priceVnd === null ? (
                             <span className="text-[var(--sc-text-secondary)]">
@@ -222,6 +260,11 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                                   {t('quotesCheapest')}
                                 </span>
                               ) : null}
+                              {isBalanced ? (
+                                <span className="ml-2 text-xs font-medium text-[var(--sc-success-dark)]">
+                                  {t('quotesBalanced')}
+                                </span>
+                              ) : null}
                               {cell.zone ? (
                                 <span className="mt-1 block">
                                   <Badge
@@ -232,38 +275,23 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                                 </span>
                               ) : null}
                               <span className="mt-1 block text-xs text-[var(--sc-text-secondary)]">
-                                {cell.deliveryDays === null
-                                  ? t('quotesNoEta')
-                                  : t('quotesEta', { days: formatDays(cell.deliveryDays) })}
+                                {cell.expectedDeliveryAt
+                                  ? t('quotesArrival', {
+                                      date: new Intl.DateTimeFormat(locale, {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        timeZone: 'Asia/Ho_Chi_Minh',
+                                      }).format(new Date(cell.expectedDeliveryAt)),
+                                    })
+                                  : cell.deliveryDays === null
+                                    ? t('quotesNoEta')
+                                    : t('quotesEta', { days: formatDays(cell.deliveryDays) })}
                                 {cell.serviceId === fastest ? (
                                   <span className="ml-2 font-medium text-[var(--sc-success-dark)]">
                                     {t('quotesFastest')}
                                   </span>
                                 ) : null}
-                              </span>
-                              <span className="mt-1 block text-xs text-[var(--sc-text-secondary)]">
-                                {cell.cardPriceVnd === null ? (
-                                  t('quotesNoCard')
-                                ) : (
-                                  <>
-                                    {t('quotesCard', { price: formatVnd(cell.cardPriceVnd) })}
-                                    {cell.cardDeltaPct !== null && cell.cardDeltaPct !== 0 ? (
-                                      <span
-                                        className={`ml-1 font-medium ${
-                                          Math.abs(cell.cardDeltaPct) >= CARD_DRIFT_WARNING_PCT
-                                            ? 'text-[var(--sc-warning-dark)]'
-                                            : ''
-                                        }`}
-                                      >
-                                        (
-                                        {t('quotesCardDelta', {
-                                          delta: formatDelta(cell.cardDeltaPct),
-                                        })}
-                                        )
-                                      </span>
-                                    ) : null}
-                                  </>
-                                )}
                               </span>
                               {cell.deltaPct !== null && cell.deltaPct !== 0 ? (
                                 <span

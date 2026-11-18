@@ -1129,6 +1129,13 @@ export const WAREHOUSE_INBOUND_TABS = [
   { key: 'warehouse_putaway', href: '/warehouse/putaway' },
 ] as const;
 
+/** One outbound workspace: pick → pack → carrier handover (UC-80…UC-90), like the inbound tabs. */
+export const WAREHOUSE_OUTBOUND_TABS = [
+  { key: 'warehouse_picking', href: '/warehouse/picking' },
+  { key: 'warehouse_packing', href: '/warehouse/packing' },
+  { key: 'warehouse_handover', href: '/warehouse/handover' },
+] as const;
+
 function navMatchLength(item: NavItem, current: string): number {
   return Math.max(
     -1,
@@ -1243,19 +1250,10 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         capability: 'inventory.workflows.view',
       },
       {
-        key: 'warehouse_picking',
+        key: 'warehouse_outbound',
         href: '/warehouse/picking',
         capability: 'warehouse.operations.view',
-      },
-      {
-        key: 'warehouse_packing',
-        href: '/warehouse/packing',
-        capability: 'warehouse.operations.view',
-      },
-      {
-        key: 'warehouse_handover',
-        href: '/warehouse/handover',
-        capability: 'warehouse.operations.view',
+        activePaths: WAREHOUSE_OUTBOUND_TABS.map((tab) => tab.href),
       },
       {
         key: 'warehouse_returns',

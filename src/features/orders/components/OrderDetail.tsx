@@ -172,7 +172,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                     {t(
                       order.deliveryTier === 'EXPRESS'
                         ? 'deliveryTierExpress'
-                        : 'deliveryTierEconomy',
+                        : order.deliveryTier === 'BALANCED'
+                          ? 'deliveryTierBalanced'
+                          : 'deliveryTierEconomy',
                     )}
                   </p>
                 )}

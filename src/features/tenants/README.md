@@ -46,7 +46,7 @@ data, desktop and 390px mobile layouts were checked for SS-1022.
 
 ## SS-999 service tariffs
 
-The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`
+The service fees tab (`Phí dịch vụ`) on `/admin/tariffs` uses the shared `tariffs.manage`
 policy for PLATFORM Admin/Accountant, with no additional seller or warehouse
 access. Requests use `/v1/commercial/service-tariffs`; the backend rechecks live
 roles and RLS. Service tariff authority does not grant plan publication.

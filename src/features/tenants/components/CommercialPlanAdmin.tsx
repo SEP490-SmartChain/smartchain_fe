@@ -14,6 +14,7 @@ import { Select } from '@/components/Common/Select/Select';
 import { useAuthStore } from '@/stores/authStore';
 
 import { commercialApi, type PublishedCommercialTerms } from '../api/commercialApi';
+import { freightTariffLabel } from '../lib/freightTariffLabel';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
 const planSchema = z.object({
@@ -294,7 +295,7 @@ export function CommercialPlanAdmin() {
             options={
               terms?.freightTariffs.map((item) => ({
                 value: item.id,
-                label: `${item.code} · v${item.versionNo}`,
+                label: freightTariffLabel(item, t('freightCarrierApi')),
               })) ?? []
             }
             {...agreement.register('freightTariffVersionId')}

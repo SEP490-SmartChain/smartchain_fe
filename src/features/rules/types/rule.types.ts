@@ -22,7 +22,7 @@ export type RuleCondition =
       operator: 'EQ' | 'NE' | 'GT' | 'GTE' | 'LT' | 'LTE';
       value: RuleValue;
     };
-export type AllocationStrategy = 'NEAREST_WAREHOUSE' | 'EXPIRY_FIRST' | 'TOTAL_COST';
+export type AllocationStrategy = 'NEAREST_WAREHOUSE' | 'EXPIRY_FIRST';
 export type RuleAction =
   | { strategy: AllocationStrategy }
   | { carrierServiceId: string; fallbackServiceIds: string[] };

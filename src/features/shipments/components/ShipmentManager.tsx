@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-
-import { ChevronLeft, ChevronRight, Eye, RotateCw } from 'lucide-react';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Eye,
+  RotateCw,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, PageHeader } from '@/components/Common';
@@ -9,8 +15,10 @@ import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
+import { ShipmentJourneyStepper } from './ShipmentJourneyStepper';
 import { ShipmentTimeline } from './ShipmentTimeline';
 import { shipmentApi } from '../api/shipmentApi';
+import { getCarrierDisplayInfo, getJourneyBadgeProps } from '../lib/carrierTracking';
 import { getDispatchFailureGuidance } from '../lib/dispatchFailureGuidance';
 
 import type { CancelResult, Shipment } from '../schemas/shipmentSchema';
@@ -44,6 +52,7 @@ export function ShipmentManager() {
   const revision = useAuthStore((s) => s.revision);
   return can('shipments.view') && user ? <Manager key={`${user.userId}:${revision}`} /> : null;
 }
+
 function Manager() {
   const t = useTranslations('Shipments');
   const locale = useLocale();
@@ -55,6 +64,7 @@ function Manager() {
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
   useEffect(() => {
     const abort = new AbortController();
     let cancelled = false;
@@ -81,6 +91,7 @@ function Manager() {
       abort.abort();
     };
   }, [cursor, revision]);
+
   const dateFormat = useMemo(
     () => new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric' }),
     [locale],
@@ -89,21 +100,24 @@ function Manager() {
     () => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hour12: false }),
     [locale],
   );
+
   const handlePrevious = () => {
     setCursor(history[history.length - 1]);
     setHistory((h) => h.slice(0, -1));
   };
+
   const handleNext = () => {
     if (!next) return;
     setHistory((h) => [...h, cursor]);
     setCursor(next);
   };
-  // Reload returns to the newest page so freshly booked shipments are visible.
+
   const handleReload = () => {
     setCursor(undefined);
     setHistory([]);
     setRevision((v) => v + 1);
   };
+
   return (
     <section className="space-y-5">
       <PageHeader
@@ -111,7 +125,7 @@ function Manager() {
         description={t('subtitle')}
         actions={
           <Button variant="secondary" disabled={loading} onClick={handleReload}>
-            <RotateCw aria-hidden="true" size={16} />
+            <RotateCw aria-hidden="true" size={16} className={loading ? 'animate-spin' : ''} />
             {t('reload')}
           </Button>
         }
@@ -128,32 +142,48 @@ function Manager() {
             {
               key: 'trackingNumber',
               label: t('tracking'),
-              render: (r) =>
-                r.trackingNumber ? (
-                  <span className="font-mono text-[13px] font-medium">{r.trackingNumber}</span>
-                ) : (
-                  <span className="text-[var(--sc-text-tertiary)]">{t('notBooked')}</span>
-                ),
+              render: (r) => (
+                <div className="flex flex-col gap-0.5">
+                  {r.trackingNumber ? (
+                    <span className="font-mono text-[13px] font-semibold text-[var(--sc-text-primary)]">
+                      {r.trackingNumber}
+                    </span>
+                  ) : (
+                    <span className="text-[var(--sc-text-tertiary)]">{t('notBooked')}</span>
+                  )}
+                  {r.packingRecordId && (
+                    <span className="font-mono text-[11px] text-[var(--sc-text-tertiary)]">
+                      {t('packageRef')}: {r.packingRecordId.slice(0, 8)}…
+                    </span>
+                  )}
+                </div>
+              ),
             },
             {
               key: 'carrierCode',
               label: t('carrier'),
-              render: (r) => (
-                <Badge status="default" label={r.carrierCode ?? t('unknownCarrier')} />
-              ),
+              render: (r) => {
+                const carrierInfo = getCarrierDisplayInfo(r.carrierCode, r.trackingNumber);
+                return (
+                  <span
+                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${carrierInfo.badgeClass}`}
+                  >
+                    {carrierInfo.code}
+                  </span>
+                );
+              },
             },
             {
               key: 'bookingState',
               label: t('state'),
               render: (r) => (
                 <div className="flex flex-col items-start gap-1">
-                  <Status row={r} />
+                  <BookingStatusBadge row={r} />
                   {r.bookingState === 'FAILED' && r.failureCode && (
                     <span className="text-xs text-[var(--sc-text-secondary)]">
                       {t(failureReasonKey(r.failureCode))}
                     </span>
                   )}
-                  {/* Label status only matters while a confirmed booking waits for its PDF. */}
                   {r.bookingState === 'CONFIRMED' && !r.labelAvailable && (
                     <span className="text-xs text-[var(--sc-text-tertiary)]">
                       {t('labelFetching')}
@@ -163,13 +193,18 @@ function Manager() {
               ),
             },
             {
+              key: 'status',
+              label: t('journey'),
+              render: (r) => <JourneyStatusBadge status={r.status} />,
+            },
+            {
               key: 'createdAt',
               label: t('created'),
               render: (r) => {
                 const created = new Date(r.createdAt);
                 return (
                   <time dateTime={r.createdAt} className="flex flex-col whitespace-nowrap">
-                    <span>{dateFormat.format(created)}</span>
+                    <span className="text-sm font-medium">{dateFormat.format(created)}</span>
                     <span className="text-xs text-[var(--sc-text-tertiary)]">
                       {timeFormat.format(created)}
                     </span>
@@ -182,15 +217,17 @@ function Manager() {
               label: <span className="sr-only">{t('actions')}</span>,
               align: 'right',
               render: (r) => (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={t('detailFor', { tracking: r.trackingNumber ?? r.id.slice(0, 8) })}
-                  onClick={() => setSelected(r.id)}
-                >
-                  <Eye aria-hidden="true" size={15} />
-                  {t('view')}
-                </Button>
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={t('detailFor', { tracking: r.trackingNumber ?? r.id.slice(0, 8) })}
+                    onClick={() => setSelected(r.id)}
+                  >
+                    <Eye aria-hidden="true" size={15} />
+                    {t('view')}
+                  </Button>
+                </div>
               ),
             },
           ]}
@@ -227,7 +264,8 @@ function Manager() {
     </section>
   );
 }
-function Status({ row }: { row: Shipment }) {
+
+function BookingStatusBadge({ row }: { row: Shipment }) {
   const t = useTranslations('Shipments');
   return (
     <Badge
@@ -244,6 +282,22 @@ function Status({ row }: { row: Shipment }) {
     />
   );
 }
+
+function JourneyStatusBadge({ status }: { status: string }) {
+  const t = useTranslations('Shipments');
+  const badgeProps = getJourneyBadgeProps(status);
+  const label = t.has(`journeyStatuses.${status}`)
+    ? t(`journeyStatuses.${status}`)
+    : t('journeyUnknown');
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`h-2 w-2 rounded-full ${badgeProps.dotColor}`} />
+      <span className="text-[13px] font-medium text-[var(--sc-text-primary)]">{label}</span>
+    </span>
+  );
+}
+
 function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const t = useTranslations('Shipments');
   const { can } = useAccess();
@@ -253,6 +307,8 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const [revision, setRevision] = useState(0);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelResult, setCancelResult] = useState<CancelResult | null>(null);
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     const abort = new AbortController();
     let cancelled = false;
@@ -271,6 +327,19 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
       abort.abort();
     };
   }, [id, revision]);
+
+  const carrierInfo = useMemo(
+    () => (row ? getCarrierDisplayInfo(row.carrierCode, row.trackingNumber) : null),
+    [row],
+  );
+
+  const copyTracking = () => {
+    if (!row?.trackingNumber) return;
+    void navigator.clipboard.writeText(row.trackingNumber);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   async function cancel() {
     const authRevision = useAuthStore.getState().revision;
     setBusy(true);
@@ -287,6 +356,7 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
       setBusy(false);
     }
   }
+
   async function download() {
     const authRevision = useAuthStore.getState().revision;
     setBusy(true);
@@ -306,17 +376,65 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
       setBusy(false);
     }
   }
+
   return (
-    <Modal isOpen onClose={onClose} title={t('detail')} width="620px">
-      <div className="space-y-4">
+    <Modal isOpen onClose={onClose} title={t('detail')} width="740px">
+      <div className="space-y-5">
         {error && <Alert variant="error">{t('loadError')}</Alert>}
         {row ? (
           <>
-            <Status row={row} />
+            {/* Header info bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-subtle)] p-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-base font-bold text-[var(--sc-text-primary)]">
+                    {row.trackingNumber ?? t('notBooked')}
+                  </span>
+                  {row.trackingNumber && (
+                    <button
+                      type="button"
+                      onClick={copyTracking}
+                      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)]"
+                      title={t('copyTrackingNumber')}
+                    >
+                      {copied ? (
+                        <>
+                          <Check size={12} className="text-emerald-600" />
+                          <span className="text-emerald-600 font-medium">{t('copied')}</span>
+                        </>
+                      ) : (
+                        <Copy size={12} />
+                      )}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {carrierInfo && (
+                    <span
+                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold ${carrierInfo.badgeClass}`}
+                    >
+                      {carrierInfo.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <BookingStatusBadge row={row} />
+                <JourneyStatusBadge status={row.status} />
+              </div>
+            </div>
+
+            {/* Visual Stepper */}
+            <ShipmentJourneyStepper
+              status={row.status}
+              bookingState={row.bookingState}
+            />
+
+            {/* Alerts */}
             {row.bookingState === 'FAILED' && row.failureCode && (
               <Alert variant="error">
                 {t(failureReasonKey(row.failureCode))}
-                {/* Raw code stays here so support can match it against dispatch logs. */}
                 <span className="mt-1 block font-mono text-xs opacity-75">
                   {t('failureCodeLabel', { code: row.failureCode })}
                 </span>
@@ -326,69 +444,101 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
             {row.bookingState === 'CONFIRMED' && !row.labelAvailable && (
               <Alert variant="info">{t('confirmedLabelNotice')}</Alert>
             )}
-            {can('shipments.sla.view') && row.failureCode && (
-              <Alert variant="warning">
-                {t(`dispatchFailures.${getDispatchFailureGuidance(row.failureCode) ?? 'review'}`)}
-              </Alert>
-            )}
-            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            {can('shipments.sla.view') &&
+              row.failureCode &&
+              row.bookingState !== 'CONFIRMED' && (
+                <Alert variant="warning">
+                  {t(`dispatchFailures.${getDispatchFailureGuidance(row.failureCode) ?? 'review'}`)}
+                </Alert>
+              )}
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-[var(--sc-border-default)] p-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-[var(--sc-text-secondary)]">{t('tracking')}</dt>
-                <dd>{row.trackingNumber ?? t('notBooked')}</dd>
+                <dt className="text-xs text-[var(--sc-text-secondary)]">{t('tracking')}</dt>
+                <dd className="font-mono font-medium">{row.trackingNumber ?? t('notBooked')}</dd>
               </div>
               <div>
-                <dt className="text-[var(--sc-text-secondary)]">{t('carrier')}</dt>
-                <dd>{row.carrierCode ?? t('unknownCarrier')}</dd>
+                <dt className="text-xs text-[var(--sc-text-secondary)]">{t('carrier')}</dt>
+                <dd className="font-medium">{carrierInfo?.name ?? row.carrierCode ?? t('unknownCarrier')}</dd>
               </div>
               <div>
-                <dt className="text-[var(--sc-text-secondary)]">{t('shipmentId')}</dt>
-                <dd className="break-all">{row.id}</dd>
+                <dt className="text-xs text-[var(--sc-text-secondary)]">{t('packageId')}</dt>
+                <dd className="break-all font-mono text-xs text-[var(--sc-text-secondary)]">
+                  {row.packingRecordId ?? '—'}
+                </dd>
               </div>
               <div>
-                <dt className="text-[var(--sc-text-secondary)]">{t('packageId')}</dt>
-                <dd className="break-all">{row.packingRecordId ?? '—'}</dd>
+                <dt className="text-xs text-[var(--sc-text-secondary)]">{t('shipmentId')}</dt>
+                <dd className="break-all font-mono text-xs text-[var(--sc-text-secondary)]">
+                  {row.id}
+                </dd>
               </div>
-            </dl>
+            </div>
+
+            {/* Actions: Download Label, Cancel */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {can('shipments.label.download') && (
+                  <Button
+                    variant="primary"
+                    disabled={busy || !row.labelAvailable}
+                    onClick={() => void download()}
+                  >
+                    {busy ? t('downloading') : t('download')}
+                  </Button>
+                )}
+                {can('shipments.cancel') &&
+                  (row.bookingState === 'CONFIRMED' || row.bookingState === 'CANCEL_UNKNOWN') &&
+                  (confirmCancel ? (
+                    <div className="flex items-center gap-2">
+                      <Button variant="danger" disabled={busy} onClick={() => void cancel()}>
+                        {t('cancelSubmit')}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={busy}
+                        onClick={() => setConfirmCancel(false)}
+                      >
+                        {t('cancelDismiss')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="danger" disabled={busy} onClick={() => setConfirmCancel(true)}>
+                      {t('cancelAction')}
+                    </Button>
+                  ))}
+              </div>
+
+              <Button
+                variant="secondary"
+                disabled={busy}
+                onClick={() => setRevision((v) => v + 1)}
+              >
+                <RotateCw size={14} className={busy ? 'animate-spin' : ''} />
+                {t('reload')}
+              </Button>
+            </div>
+
             {cancelResult && <Alert variant="info">{t(`cancelResults.${cancelResult}`)}</Alert>}
             {row.bookingState === 'CANCEL_UNKNOWN' && (
               <Alert variant="warning">{t('cancelUnknownNotice')}</Alert>
             )}
-            {can('shipments.cancel') &&
-              (row.bookingState === 'CONFIRMED' || row.bookingState === 'CANCEL_UNKNOWN') &&
-              (confirmCancel ? (
-                <div className="space-y-2">
-                  <Alert variant="warning">{t('cancelConfirm')}</Alert>
-                  <div className="flex gap-2">
-                    <Button variant="danger" disabled={busy} onClick={() => void cancel()}>
-                      {t('cancelSubmit')}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => setConfirmCancel(false)}
-                    >
-                      {t('cancelDismiss')}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button variant="danger" disabled={busy} onClick={() => setConfirmCancel(true)}>
-                  {t('cancelAction')}
-                </Button>
-              ))}
-            {can('shipments.label.download') && (
-              <Button disabled={busy || !row.labelAvailable} onClick={() => void download()}>
-                {busy ? t('downloading') : t('download')}
-              </Button>
-            )}
-            <ShipmentTimeline key={`${id}:${revision}`} id={id} />
+
+            {/* Timeline */}
+            <ShipmentTimeline
+              key={`${id}:${revision}`}
+              id={id}
+              carrierCode={row.carrierCode}
+              trackingNumber={row.trackingNumber}
+              status={row.status}
+            />
           </>
         ) : !error ? (
-          <p role="status">{t('loading')}</p>
+          <div className="py-12 text-center text-sm text-[var(--sc-text-tertiary)]">
+            {t('loading')}
+          </div>
         ) : null}
-        <Button variant="secondary" disabled={busy} onClick={() => setRevision((v) => v + 1)}>
-          {t('reload')}
-        </Button>
       </div>
     </Modal>
   );

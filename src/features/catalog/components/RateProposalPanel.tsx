@@ -239,7 +239,13 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
     return (
       <div className="mt-3 border-t border-[var(--sc-border-default)] pt-3">
         <p className="text-sm text-[var(--sc-text-secondary)]">
-          {t(selected.objective === 'FASTEST' ? 'proposalTierExpress' : 'proposalTierEconomy')}
+          {t(
+            selected.objective === 'FASTEST'
+              ? 'proposalTierExpress'
+              : selected.objective === 'BALANCED'
+                ? 'proposalTierBalanced'
+                : 'proposalTierEconomy',
+          )}
         </p>
         {selected.summary.notes.length > 0 ? (
           <Alert className="mt-4" variant="warning" title={t('proposalNotes')}>
@@ -429,7 +435,7 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
       ) : null}
 
       <Card>
-        <CardHeader title={t('proposalTitle')} description={t('proposalDescription')} />
+        <CardHeader title={t('proposalTitle')} />
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="w-64">
             <Select
@@ -473,9 +479,6 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
             {isBusy ? t('proposalGenerating') : t('proposalGenerate')}
           </Button>
         </div>
-        <p className="mt-3 text-sm text-[var(--sc-text-secondary)]">
-          {t(`proposalMethod${objective}`)}
-        </p>
         {!isLoading && !canCompare ? (
           <p className="mt-3 text-sm text-[var(--sc-text-secondary)]">
             {t('proposalNeedCarriers')}

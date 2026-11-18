@@ -9,6 +9,17 @@
         "dev"
       ],
       "port": 2324
+    },
+    {
+      "name": "orca-fe-pricing",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--port",
+        "2325",
+        "--strictPort"
+      ],
+      "port": 2325
     }
   ]
 }
