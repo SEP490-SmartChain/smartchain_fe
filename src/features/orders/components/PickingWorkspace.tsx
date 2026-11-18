@@ -282,18 +282,24 @@ function PickingScope() {
   }
   return (
     <div className="space-y-5">
-      <p className="text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
       <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-64 flex-1">
-          <Select
-            label={t('warehouse')}
-            value={warehouse}
-            disabled={!!pending || busy}
-            options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
-            onChange={(e) => setWarehouse(e.target.value)}
-            placeholder={t('chooseWarehouse')}
-          />
-        </div>
+        {warehouses.length === 1 && warehouses[0] ? (
+          <p className="min-w-0 flex-1 text-sm">
+            <span className="text-[var(--sc-text-secondary)]">{t('warehouse')}: </span>
+            <strong>{`${warehouses[0].code} · ${warehouses[0].name}`}</strong>
+          </p>
+        ) : (
+          <div className="min-w-64 flex-1">
+            <Select
+              label={t('warehouse')}
+              value={warehouse}
+              disabled={!!pending || busy}
+              options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
+              onChange={(e) => setWarehouse(e.target.value)}
+              placeholder={t('chooseWarehouse')}
+            />
+          </div>
+        )}
         <Button
           variant="outline"
           disabled={!!pending || busy || !!waveRequest}
@@ -324,30 +330,26 @@ function PickingScope() {
       {loading && <p role="status">{t('loading')}</p>}
       {!loading && !warehouses.length && <Alert>{t('noWarehouse')}</Alert>}
       {warehouse && canClaim && (
-        <Card>
-          <CardContent>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="font-semibold">{t('claimTitle')}</h2>
-                <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('claimHint')}</p>
-              </div>
-              <Button
-                disabled={!!pending || busy || !!waveRequest}
-                isLoading={busy && !waveRequest}
-                onClick={handleClaim}
-              >
-                {t('claimWork')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold">{t('claimTitle')}</h2>
+            <p className="text-sm text-[var(--sc-text-secondary)]">{t('claimHint')}</p>
+          </div>
+          <Button
+            disabled={!!pending || busy || !!waveRequest}
+            isLoading={busy && !waveRequest}
+            onClick={handleClaim}
+          >
+            {t('claimWork')}
+          </Button>
+        </div>
       )}
       {warehouse && manager && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.9fr)]">
           <Card>
             <CardContent>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-semibold">{t('backlog')}</h2>
+                <h2 className="text-base font-semibold">{t('backlog')}</h2>
                 {backlog && (
                   <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
                     {t('backlogPageTotals', backlog.pageTotals)}
@@ -420,21 +422,26 @@ function PickingScope() {
               )}
             </CardContent>
           </Card>
-          <WaveForm
-            warehouseId={warehouse}
-            staff={staff}
-            disabled={!!pending || busy || !!waveRequest}
-            onSubmit={(values) =>
-              void execute({
-                path: 'waves',
-                payload: {
-                  ...values,
-                  cutoffAt: new Date(values.cutoffAt).toISOString(),
-                  clientScanId: createUuid(),
-                },
-              })
-            }
-          />
+          <details className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-4">
+            <summary className="cursor-pointer font-semibold">{t('createWave')}</summary>
+            <div className="mt-4">
+              <WaveForm
+                warehouseId={warehouse}
+                staff={staff}
+                disabled={!!pending || busy || !!waveRequest}
+                onSubmit={(values) =>
+                  void execute({
+                    path: 'waves',
+                    payload: {
+                      ...values,
+                      cutoffAt: new Date(values.cutoffAt).toISOString(),
+                      clientScanId: createUuid(),
+                    },
+                  })
+                }
+              />
+            </div>
+          </details>
         </div>
       )}
       {warehouse && (
@@ -442,7 +449,7 @@ function PickingScope() {
           <Card>
             <CardContent>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="font-semibold">{t('waves')}</h2>
+                <h2 className="text-base font-semibold">{t('waves')}</h2>
                 {!loading && (
                   <span className="text-xs text-[var(--sc-text-secondary)]">
                     {t('waveCount', { count: waves.length })}
@@ -530,7 +537,7 @@ function PickingScope() {
             <CardContent>
               {!waveId ? (
                 <div className="flex min-h-40 flex-col items-center justify-center px-4 text-center">
-                  <h2 className="font-semibold">{t('chooseWave')}</h2>
+                  <h2 className="text-base font-semibold">{t('chooseWave')}</h2>
                   <p className="mt-1 max-w-md text-sm text-[var(--sc-text-secondary)]">
                     {t('chooseWaveHint')}
                   </p>
@@ -540,7 +547,10 @@ function PickingScope() {
               ) : (
                 <>
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                    <h2 className="min-w-0 break-words font-semibold" title={detail.waveCode}>
+                    <h2
+                      className="min-w-0 break-words text-base font-semibold"
+                      title={detail.waveCode}
+                    >
                       {t('pickList')} ·{' '}
                       {t('waveReference', { code: shortWaveReference(detail.waveCode) })}
                     </h2>
@@ -769,12 +779,14 @@ function PickLineCard({
     if (canConfirm && !disabled && line.remainingQty > 0 && !line.shortage) f.setFocus('binScan');
   }, [f, canConfirm, disabled, line.remainingQty, line.shortage]);
   return (
-    <section className="rounded-xl border border-[var(--sc-border-default)] p-4">
-      <div className="mb-3 flex flex-wrap justify-between gap-2">
-        <h3 className="font-semibold">
+    <section className="rounded-xl border border-[var(--sc-border-default)] p-3">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="min-w-0 break-words text-sm font-semibold">
           {line.productName} · {line.sku}
         </h3>
-        <p>{t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}</p>
+        <p className="text-sm text-[var(--sc-text-secondary)]">
+          {t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}
+        </p>
       </div>
       <p className="mb-2 rounded bg-[var(--sc-bg-secondary)] px-3 py-2 text-sm font-semibold">
         {t('pickForOrder', { orderCode: line.orderCode, parcelNo: line.parcelNo })}
