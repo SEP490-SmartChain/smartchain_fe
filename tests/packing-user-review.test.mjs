@@ -73,7 +73,7 @@ function bindings(state) {
     packingFormSchema: {},
     packCommandSchema: {},
     zodResolver: () => ({}),
-    encodeLabelBarcode: () => null,
+    QrCodeImage: 'QrCodeImage',
     styles: {},
   };
 }

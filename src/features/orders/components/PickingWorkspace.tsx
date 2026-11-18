@@ -298,11 +298,11 @@ function PickingScope() {
   }
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/60 p-4">
         {warehouses.length === 1 && warehouses[0] ? (
-          <p className="min-w-0 flex-1 text-sm">
+          <p className="min-w-0 flex-1 text-sm text-[var(--sc-text-primary)]">
             <span className="text-[var(--sc-text-secondary)]">{t('warehouse')}: </span>
-            <strong>{`${warehouses[0].code} · ${warehouses[0].name}`}</strong>
+            <strong className="font-semibold">{`${warehouses[0].code} · ${warehouses[0].name}`}</strong>
           </p>
         ) : (
           <div className="min-w-64 flex-1">
@@ -461,20 +461,26 @@ function PickingScope() {
         </div>
       )}
       {warehouse && (
-        <div className="grid items-start gap-5 lg:grid-cols-[280px_1fr]">
+        <div className="grid items-start gap-5 lg:grid-cols-[300px_1fr]">
           <Card>
             <CardContent>
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-base font-semibold">{t('waves')}</h2>
+              <div className="mb-3 flex items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-2.5">
+                <h2 className="text-base font-semibold text-[var(--sc-text-primary)]">
+                  {t('waves')}
+                </h2>
                 {!loading && (
-                  <span className="text-xs text-[var(--sc-text-secondary)]">
+                  <span className="inline-flex items-center rounded-full bg-[var(--sc-bg-secondary)] px-2.5 py-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
                     {t('waveCount', { count: waves.length })}
                   </span>
                 )}
               </div>
-              {!loading && !waves.length && <p>{t('empty')}</p>}
+              {!loading && !waves.length && (
+                <div className="rounded-xl border border-dashed border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)]/50 px-4 py-6 text-center text-sm text-[var(--sc-text-secondary)]">
+                  {t('empty')}
+                </div>
+              )}
               {waves.length > 0 && (
-                <div className="max-h-[28rem] overflow-y-auto rounded-lg border border-[var(--sc-border-default)]">
+                <div className="max-h-[28rem] overflow-y-auto rounded-xl border border-[var(--sc-border-default)]">
                   <ul className="divide-y divide-[var(--sc-border-default)]">
                     {waves.map((w) => {
                       const cutoff = new Date(w.cutoffAt).toLocaleString(locale, {
@@ -498,7 +504,7 @@ function PickingScope() {
                             aria-pressed={w.id === waveId}
                             aria-label={`${t('waveReference', { code: shortWaveReference(w.waveCode) })}, ${status}, ${t('cutoff')}: ${cutoff}`}
                             title={w.waveCode}
-                            className="h-auto min-h-0 w-full justify-between gap-2 rounded-none px-3 py-2.5 text-left whitespace-normal shadow-none"
+                            className="h-auto min-h-0 w-full justify-between gap-2 rounded-none px-3.5 py-3 text-left whitespace-normal shadow-none"
                             disabled={!!pending || busy}
                             onClick={() => setWaveId(w.id)}
                           >
@@ -507,7 +513,11 @@ function PickingScope() {
                                 {t('waveReference', { code: shortWaveReference(w.waveCode) })}
                               </span>
                               <time
-                                className="mt-0.5 block text-xs font-normal text-[var(--sc-text-secondary)]"
+                                className={`mt-0.5 block text-xs font-normal ${
+                                  w.id === waveId
+                                    ? 'text-white/85'
+                                    : 'text-[var(--sc-text-secondary)]'
+                                }`}
                                 dateTime={w.cutoffAt}
                               >
                                 {cutoff}
@@ -522,7 +532,7 @@ function PickingScope() {
                 </div>
               )}
               {(cursor || next) && (
-                <div className="mt-3 flex items-center justify-between gap-2">
+                <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--sc-border-default)] pt-3">
                   {cursor ? (
                     <Button
                       variant="ghost"
@@ -552,42 +562,61 @@ function PickingScope() {
           <Card>
             <CardContent>
               {!waveId ? (
-                <div className="flex min-h-40 flex-col items-center justify-center px-4 text-center">
-                  <h2 className="text-base font-semibold">{t('chooseWave')}</h2>
-                  <p className="mt-1 max-w-md text-sm text-[var(--sc-text-secondary)]">
+                <div className="flex min-h-44 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)]/50 px-6 py-10 text-center">
+                  <h2 className="text-base font-semibold text-[var(--sc-text-primary)]">
+                    {t('chooseWave')}
+                  </h2>
+                  <p className="mt-1.5 max-w-md text-sm text-[var(--sc-text-secondary)]">
                     {t('chooseWaveHint')}
                   </p>
                 </div>
               ) : !detail ? (
-                <p role="status">{t('loading')}</p>
+                <p
+                  role="status"
+                  className="py-6 text-center text-sm text-[var(--sc-text-secondary)]"
+                >
+                  {t('loading')}
+                </p>
               ) : (
                 <>
-                  <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-3">
                     <h2
-                      className="min-w-0 break-words text-base font-semibold"
+                      className="min-w-0 break-words text-base font-semibold text-[var(--sc-text-primary)]"
                       title={detail.waveCode}
                     >
                       {t('pickList')} ·{' '}
                       {t('waveReference', { code: shortWaveReference(detail.waveCode) })}
                     </h2>
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-[var(--sc-bg-secondary)] px-2.5 py-0.5 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                        {detail.lines.filter((item) => item.remainingQty === 0).length}/
+                        {detail.lines.length}
+                      </span>
                       <PickLineLabels
                         waveCode={shortWaveReference(detail.waveCode)}
                         lines={detail.lines}
                       />
                       <Badge
                         label={t(`statuses.${detail.status}`)}
-                        status={detail.status === 'EXCEPTION' ? 'warning' : 'info'}
+                        status={
+                          detail.status === 'COMPLETED'
+                            ? 'success'
+                            : detail.status === 'EXCEPTION'
+                              ? 'warning'
+                              : 'info'
+                        }
                       />
                     </div>
                   </div>
                   {manager && staff.some((person) => person.id === detail.assigneeId) && (
-                    <p className="mb-2 text-sm">
+                    <p className="mb-2 text-sm text-[var(--sc-text-secondary)]">
                       {t('assignee')}:{' '}
-                      {staff.find((person) => person.id === detail.assigneeId)?.fullName}
+                      <strong className="font-semibold text-[var(--sc-text-primary)]">
+                        {staff.find((person) => person.id === detail.assigneeId)?.fullName}
+                      </strong>
                     </p>
                   )}
-                  <p className="mb-4 text-sm text-[var(--sc-text-secondary)]">
+                  <p className="mb-4 rounded-lg bg-[var(--sc-bg-secondary)]/65 px-3 py-2 text-xs text-[var(--sc-text-secondary)]">
                     {t(manager ? 'reviewHint' : 'scanHint')}
                   </p>
                   <div className="space-y-3">
@@ -607,26 +636,28 @@ function PickingScope() {
                       />
                     ))}
                   </div>
-                  <div className="mt-4 flex gap-3">
-                    {lineCursor && (
-                      <Button
-                        variant="outline"
-                        disabled={busy || !!pending}
-                        onClick={() => setLineCursor(null)}
-                      >
-                        {t('firstLines')}
-                      </Button>
-                    )}
-                    {detail.nextCursor && (
-                      <Button
-                        variant="outline"
-                        disabled={busy || !!pending}
-                        onClick={() => setLineCursor(detail.nextCursor)}
-                      >
-                        {t('nextLines')}
-                      </Button>
-                    )}
-                  </div>
+                  {(lineCursor || detail.nextCursor) && (
+                    <div className="mt-4 flex flex-wrap gap-3 border-t border-[var(--sc-border-default)] pt-3">
+                      {lineCursor && (
+                        <Button
+                          variant="outline"
+                          disabled={busy || !!pending}
+                          onClick={() => setLineCursor(null)}
+                        >
+                          {t('firstLines')}
+                        </Button>
+                      )}
+                      {detail.nextCursor && (
+                        <Button
+                          variant="outline"
+                          disabled={busy || !!pending}
+                          onClick={() => setLineCursor(detail.nextCursor)}
+                        >
+                          {t('nextLines')}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
@@ -858,27 +889,63 @@ function PickLineCard({
     skuScan: normalizeScannedCode(skuValue ?? '') === line.sku,
     lotScan: normalizeScannedCode(lotValue ?? '') === line.lotCode,
   };
+  const isCompleted = line.remainingQty === 0;
+  const isActivePick = line.remainingQty > 0 && canConfirm && !line.shortage;
   return (
-    <section className="rounded-xl border border-[var(--sc-border-default)] p-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h3 className="min-w-0 break-words text-sm font-semibold">
-          {line.productName} · {line.sku}
-        </h3>
+    <section
+      className={`space-y-3 rounded-xl border p-4 transition-colors ${
+        line.shortage
+          ? 'border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)]/20'
+          : isCompleted
+            ? 'border-[var(--sc-success-border)] bg-[var(--sc-success-bg)]/20'
+            : isActivePick
+              ? 'border-[var(--sc-primary)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)]'
+              : 'border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/40'
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 space-y-1">
+          <h3 className="min-w-0 break-words text-sm font-semibold text-[var(--sc-text-primary)]">
+            {line.productName}
+          </h3>
+          <span className="inline-flex items-center rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 font-mono text-xs font-semibold text-[var(--sc-text-primary)]">
+            {line.sku}
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <PickLineLabels waveCode={line.orderCode} lines={[line]} label={t('lineQr')} size="sm" />
-          <p className="text-sm text-[var(--sc-text-secondary)]">
+          <p
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+              isCompleted
+                ? 'border-[var(--sc-success-border)] bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)]'
+                : 'border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]'
+            }`}
+          >
             {t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}
           </p>
         </div>
       </div>
-      <p className="mb-2 rounded bg-[var(--sc-bg-secondary)] px-3 py-2 text-sm font-semibold">
-        {t('pickForOrder', { orderCode: line.orderCode, parcelNo: line.parcelNo })}
-      </p>
-      <p className="mb-3 text-sm">
-        {t('bin')}: <strong>{line.binCode}</strong> · {t('lot')}: <strong>{line.lotCode}</strong>
-      </p>
+      <div className="space-y-2 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/60 p-3 text-sm">
+        <p className="font-semibold text-[var(--sc-text-primary)]">
+          {t('pickForOrder', { orderCode: line.orderCode, parcelNo: line.parcelNo })}
+        </p>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="inline-flex items-center gap-1 rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-2.5 py-1 text-[var(--sc-text-secondary)]">
+            {t('bin')}:{' '}
+            <strong className="font-mono font-semibold text-[var(--sc-text-primary)]">
+              {line.binCode}
+            </strong>
+          </span>
+          <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-2.5 py-1 text-[var(--sc-text-secondary)]">
+            {t('lot')}:{' '}
+            <strong className="break-all font-mono font-semibold text-[var(--sc-text-primary)]">
+              {line.lotCode}
+            </strong>
+          </span>
+        </div>
+      </div>
       {line.shortage ? (
-        <>
+        <div className="space-y-3">
           <Alert variant="warning">
             {t('shortPending')} · {line.shortage.evidenceRefs.reason}
             <p className="mt-1">
@@ -897,7 +964,7 @@ function PickLineCard({
           />
           {manager && (
             <form
-              className="mt-3 flex items-end gap-3"
+              className="flex flex-wrap items-end gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-3"
               onSubmit={approval.handleSubmit(
                 (v) =>
                   void execute({
@@ -906,30 +973,34 @@ function PickLineCard({
                   }),
               )}
             >
-              <Input
-                label={t('approvalReason')}
-                {...approval.register('reason')}
-                required
-                disabled={disabled}
-              />
+              <div className="min-w-52 flex-1">
+                <Input
+                  label={t('approvalReason')}
+                  {...approval.register('reason')}
+                  required
+                  disabled={disabled}
+                />
+              </div>
               <Button type="submit" disabled={disabled}>
                 {t('approveReplacement')}
               </Button>
             </form>
           )}
-        </>
+        </div>
       ) : line.remainingQty > 0 && canConfirm ? (
-        <>
-          <div className="mb-3 flex gap-2">
+        <div className="space-y-3">
+          <div className="inline-flex gap-1 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/70 p-1">
             <Button
-              variant={mode === 'scan' ? 'primary' : 'outline'}
+              size="sm"
+              variant={mode === 'scan' ? 'primary' : 'ghost'}
               disabled={disabled || uploadBusy}
               onClick={() => setMode('scan')}
             >
               {t('scan')}
             </Button>
             <Button
-              variant={mode === 'short' ? 'primary' : 'outline'}
+              size="sm"
+              variant={mode === 'short' ? 'primary' : 'ghost'}
               disabled={disabled}
               onClick={() => setMode('short')}
             >
@@ -938,7 +1009,7 @@ function PickLineCard({
           </div>
           {mode === 'scan' ? (
             <form
-              className="grid gap-3 sm:grid-cols-2"
+              className="grid gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/45 p-3.5 sm:grid-cols-2"
               autoComplete="off"
               onSubmit={f.handleSubmit(async (v) => {
                 const resolvedBin =
@@ -1004,7 +1075,7 @@ function PickLineCard({
                       </p>
                     )}
                     {matchedByField[name] && (
-                      <p className="text-xs font-medium text-[var(--sc-status-success-text,#0f766e)]">
+                      <p className="text-xs font-medium text-[var(--sc-success-dark)]">
                         {t('matchedCode')}
                       </p>
                     )}
@@ -1024,7 +1095,7 @@ function PickLineCard({
               />
               <Button
                 type="submit"
-                className="min-h-12 sm:col-span-2"
+                className="min-h-11 sm:col-span-2"
                 disabled={disabled || resolvingBin}
               >
                 {t('confirmScan')}
@@ -1032,7 +1103,7 @@ function PickLineCard({
             </form>
           ) : (
             <form
-              className="grid gap-3 sm:grid-cols-2"
+              className="grid gap-3 rounded-xl border border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)]/20 p-3.5 sm:grid-cols-2"
               onSubmit={shortage.handleSubmit((v) =>
                 execute({
                   path: `pick-lines/${line.id}/shortages`,
@@ -1059,22 +1130,32 @@ function PickLineCard({
                   shortage.setValue('evidenceKey', key, { shouldValidate: true })
                 }
               />
-              {shortage.formState.errors.evidenceKey && <p role="alert">{t('evidenceRequired')}</p>}
-              <Input
-                label={t('reason')}
-                {...shortage.register('reason')}
-                disabled={disabled}
-                required
-              />
+              {shortage.formState.errors.evidenceKey && (
+                <p
+                  role="alert"
+                  className="text-xs font-medium text-[var(--sc-error-dark)] sm:col-span-2"
+                >
+                  {t('evidenceRequired')}
+                </p>
+              )}
+              <div className="sm:col-span-2">
+                <Input
+                  label={t('reason')}
+                  {...shortage.register('reason')}
+                  disabled={disabled}
+                  required
+                />
+              </div>
               <Button
                 type="submit"
+                className="sm:col-span-2"
                 disabled={disabled || uploadBusy || !shortage.watch('evidenceKey')}
               >
                 {t('reportShort')}
               </Button>
             </form>
           )}
-        </>
+        </div>
       ) : null}
     </section>
   );
