@@ -66,6 +66,27 @@ test('PickingWorkspace integrates shared BarcodeScanButton and single-QR PickLin
   assert.doesNotMatch(labelsSource, /encodeCode128|codAmount|recipientPhone|declaredValue/);
 });
 
+test('All operational warehouse labels and scan controls are unified on QR', () => {
+  const asnLabelsSource = readFileSync(
+    new URL('../src/features/inbound/components/AsnLabels.tsx', import.meta.url),
+    'utf8',
+  );
+  const packingSource = readFileSync(
+    new URL('../src/features/orders/components/PackingWorkspace.tsx', import.meta.url),
+    'utf8',
+  );
+  const scanButtonSource = readFileSync(
+    new URL('../src/components/Common/BarcodeScanButton/BarcodeScanButton.tsx', import.meta.url),
+    'utf8',
+  );
+  assert.match(asnLabelsSource, /QRCode\.toDataURL/);
+  assert.doesNotMatch(asnLabelsSource, /encodeCode128/);
+  assert.match(packingSource, /QrCodeImage/);
+  assert.doesNotMatch(packingSource, /encodeLabelBarcode/);
+  assert.match(scanButtonSource, /QrCode/);
+  assert.doesNotMatch(scanButtonSource, /ScanLine/);
+});
+
 test('Picking barcode i18n keys exist in both vi.json and en.json', () => {
   const vi = JSON.parse(readFileSync(new URL('../messages/vi.json', import.meta.url), 'utf8'));
   const en = JSON.parse(readFileSync(new URL('../messages/en.json', import.meta.url), 'utf8'));

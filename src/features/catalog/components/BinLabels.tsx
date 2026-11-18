@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { createPortal } from 'react-dom';
 
+import { QrCode } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import QRCode from 'qrcode';
 
@@ -90,6 +91,7 @@ export function BinLabels({
   return (
     <>
       <Button variant="outline" onClick={() => setPreview(true)}>
+        <QrCode size={16} aria-hidden="true" />
         {t('printLabels')}
       </Button>
       {preview && (
