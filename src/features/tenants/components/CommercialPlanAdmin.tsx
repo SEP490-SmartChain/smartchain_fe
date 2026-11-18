@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  ChevronRight,
-  Crown,
-  FileSignature,
-  Layers,
-  Package,
-  Plus,
-  RefreshCw,
-  Zap,
-} from 'lucide-react';
+import { Eye, FileSignature, Layers, Plus, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { z } from 'zod';
 
@@ -51,6 +42,27 @@ const agreementSchema = z.object({
   creditLimitVnd: money,
   claimCapVnd: money,
 });
+const agreementDefaults: z.infer<typeof agreementSchema> = {
+  planVersionId: '',
+  serviceTariffVersionId: '',
+  freightTariffVersionId: '',
+  versionRef: '',
+  signerRole: 'Role 1',
+  templateId: '',
+  compositionMode: 'EXISTING_FIELDS',
+  depositRequiredVnd: '3000000',
+  creditLimitVnd: '5000000',
+  claimCapVnd: '20000000',
+};
+type AdminPlan = PublishedCommercialTerms['plans'][number];
+
+function canPublishPlan(plan: AdminPlan, now: number): boolean {
+  return (
+    (plan.code === 'BASIC' || plan.code === 'STANDARD') &&
+    !plan.supersededByPlanVersionNo &&
+    (!plan.effectiveTo || Date.parse(plan.effectiveTo) > now)
+  );
+}
 
 export function CommercialPlanAdmin() {
   const t = useTranslations('CommercialAdmin');
@@ -82,18 +94,11 @@ export function CommercialPlanAdmin() {
   });
   const agreement = useForm<z.infer<typeof agreementSchema>>({
     resolver: zodResolver(agreementSchema),
-    defaultValues: {
-      planVersionId: '',
-      serviceTariffVersionId: '',
-      freightTariffVersionId: '',
-      versionRef: '',
-      signerRole: 'Role 1',
-      templateId: '',
-      compositionMode: 'EXISTING_FIELDS',
-      depositRequiredVnd: '3000000',
-      creditLimitVnd: '5000000',
-      claimCapVnd: '20000000',
-    },
+    defaultValues: agreementDefaults,
+  });
+  const [planVersionId, serviceTariffVersionId, freightTariffVersionId] = useWatch({
+    control: agreement.control,
+    name: ['planVersionId', 'serviceTariffVersionId', 'freightTariffVersionId'],
   });
   const current = () => active.current && revision === useAuthStore.getState().revision;
   const reload = async (signal?: AbortSignal) => {
@@ -160,15 +165,37 @@ export function CommercialPlanAdmin() {
       if (current()) setBusy(false);
     }
   });
+  const replacement = terms?.plans.find(
+    (item) => item.id === replacementPlanId,
+  )?.publishedAgreement;
+  const now = Date.now();
   const eligiblePlans =
     terms?.plans.filter((item) => {
-      if (item.code !== 'BASIC' && item.code !== 'STANDARD') return false;
+      if (!canPublishPlan(item, now)) return false;
       return replacementPlanId
-        ? item.id === replacementPlanId && Boolean(item.publishedAgreementVersionRef)
-        : item.publishedAgreementVersionRef === null;
+        ? item.id === replacementPlanId && Boolean(item.publishedAgreement)
+        : !item.publishedAgreementVersionRef;
     }) ?? [];
   const publish = agreement.handleSubmit(async (value) => {
     if (!eligiblePlans.some((item) => item.id === value.planVersionId)) return;
+    if (terms?.plans.some((item) => item.publishedAgreementVersionRef === value.versionRef)) {
+      agreement.setError('versionRef', { type: 'manual', message: t('agreementRefAlreadyUsed') });
+      return;
+    }
+    if (!terms?.serviceTariffs.some((item) => item.id === value.serviceTariffVersionId)) {
+      agreement.setError('serviceTariffVersionId', {
+        type: 'manual',
+        message: t('chooseCurrentTariff'),
+      });
+      return;
+    }
+    if (!terms.freightTariffs.some((item) => item.id === value.freightTariffVersionId)) {
+      agreement.setError('freightTariffVersionId', {
+        type: 'manual',
+        message: t('chooseCurrentTariff'),
+      });
+      return;
+    }
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -179,7 +206,7 @@ export function CommercialPlanAdmin() {
       );
       if (current()) {
         setNotice(t('agreementSaved'));
-        agreement.reset();
+        agreement.reset(agreementDefaults);
         setReplacementPlanId(null);
         setActiveTab('versions');
         await reload(controller.current?.signal);
@@ -190,10 +217,49 @@ export function CommercialPlanAdmin() {
       if (current()) setBusy(false);
     }
   });
+  const openAgreement = (item: AdminPlan) => {
+    const published = item.publishedAgreement;
+    if (item.publishedAgreementVersionRef && !published) {
+      setError(t('agreementSettingsUnavailable'));
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    agreement.reset({
+      ...agreementDefaults,
+      ...published,
+      planVersionId: item.id,
+      versionRef: '',
+      claimCapVnd:
+        published?.claimCapVnd ??
+        (item.code === 'STANDARD' ? '35000000' : agreementDefaults.claimCapVnd),
+      compositionMode:
+        published?.compositionMode === 'BUSINESS_PROFILE_V1'
+          ? 'BUSINESS_PROFILE_V1'
+          : 'EXISTING_FIELDS',
+    });
+    setReplacementPlanId(published ? item.id : null);
+    setActiveTab('agreement');
+  };
   const fields = (key: keyof z.infer<typeof planSchema>) =>
     plan.formState.errors[key] ? t('invalid') : undefined;
-  const agreementError = (key: keyof z.infer<typeof agreementSchema>) =>
-    agreement.formState.errors[key] ? t('invalid') : undefined;
+  const agreementError = (key: keyof z.infer<typeof agreementSchema>) => {
+    const fieldError = agreement.formState.errors[key];
+    return fieldError?.type === 'manual'
+      ? fieldError.message
+      : fieldError
+        ? t('invalid')
+        : undefined;
+  };
+  const tariffOptions = (
+    tariffs: PublishedCommercialTerms['serviceTariffs'],
+    previousId?: string,
+  ) => [
+    ...tariffs.map((item) => ({ value: item.id, label: `${item.code} · v${item.versionNo}` })),
+    ...(previousId && !tariffs.some((item) => item.id === previousId)
+      ? [{ value: previousId, label: t('previousTariffUnavailable'), disabled: true }]
+      : []),
+  ];
   const section =
     'space-y-5 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-6';
   const tabs = [
@@ -216,6 +282,9 @@ export function CommercialPlanAdmin() {
   const formatDate = (value: string) =>
     new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const selectedVersion = terms?.plans.find((item) => item.id === selectedVersionId);
+  const sortedPlans = [...(terms?.plans ?? [])].sort(
+    (a, b) => a.code.localeCompare(b.code) || b.versionNo - a.versionNo,
+  );
   const openDetails = async (item: PublishedCommercialTerms['plans'][number]) => {
     setSelectedVersionId(item.id);
     if (item.warehouseAllowance !== undefined || loadingDetails) return;
@@ -258,7 +327,7 @@ export function CommercialPlanAdmin() {
         onChange={(tab) => {
           if (tab !== 'agreement' && replacementPlanId) {
             setReplacementPlanId(null);
-            agreement.reset();
+            agreement.reset(agreementDefaults);
           }
           setActiveTab(tab);
         }}
@@ -286,155 +355,119 @@ export function CommercialPlanAdmin() {
           <div className="overflow-x-auto">
             <table
               aria-label={t('agreementStatus')}
-              className="w-full min-w-[880px] border-collapse text-left text-sm"
+              className="w-full min-w-[850px] border-collapse text-left text-sm"
             >
-              <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
+              <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] text-xs font-semibold text-[var(--sc-text-secondary)]">
                 <tr>
-                  <th scope="col" className="px-6 py-3.5">
+                  <th scope="col" className="px-4 py-3">
                     {t('planName')}
                   </th>
-                  <th scope="col" className="px-5 py-3.5">
-                    {t('planCode')}
-                  </th>
-                  <th scope="col" className="px-4 py-3.5">
+                  <th scope="col" className="whitespace-nowrap px-3 py-3">
                     {t('planVersion')}
                   </th>
-                  <th scope="col" className="px-6 py-3.5 text-right">
+                  <th scope="col" className="whitespace-nowrap px-3 py-3 text-right">
                     {t('monthlyFee')}
                   </th>
-                  <th scope="col" className="px-6 py-3.5">
+                  <th scope="col" className="whitespace-nowrap px-3 py-3">
                     {t('agreementStatus')}
                   </th>
-                  <th scope="col" className="px-6 py-3.5">
+                  <th scope="col" className="px-3 py-3">
                     {t('agreementRef')}
                   </th>
-                  <th scope="col" className="px-6 py-3.5 text-right">
+                  <th scope="col" className="px-4 py-3 text-right">
                     {t('actions')}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--sc-border-default)]">
-                {terms.plans.map((item) => (
+                {sortedPlans.map((item) => (
                   <tr
                     key={item.id}
-                    className="group cursor-pointer transition-colors duration-100 hover:bg-[var(--sc-bg-secondary)]/30"
-                    onClick={() => void openDetails(item)}
+                    className="transition-colors hover:bg-[var(--sc-bg-secondary)]/40"
                   >
-                    {/* 1. Tên gói */}
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <button
-                        type="button"
-                        className="text-left text-sm font-medium text-[var(--sc-text-primary)] transition-colors hover:text-[var(--sc-primary)]"
-                        onClick={() => void openDetails(item)}
-                        aria-label={t('planDetailsLabel', {
-                          name: item.name,
-                          version: item.versionNo,
-                        })}
-                      >
-                        {item.name}
-                      </button>
+                    <th scope="row" className="min-w-36 px-4 py-3 text-[var(--sc-text-primary)]">
+                      <div className="space-y-1.5">
+                        <div className="font-semibold leading-snug">{item.name}</div>
+                        <Badge
+                          status={item.code === 'BASIC' ? 'default' : 'info'}
+                          label={item.code}
+                        />
+                      </div>
+                    </th>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <Badge
+                        status="default"
+                        variant="outline"
+                        label={t('planVersionTag', { version: item.versionNo })}
+                      />
                     </td>
-
-                    {/* 2. Phân loại */}
-                    <td className="whitespace-nowrap px-5 py-4">
-                      {item.code === 'ENTERPRISE' ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-                          <Crown size={14} className="text-amber-500" aria-hidden="true" />
-                          Enterprise
-                        </span>
-                      ) : item.code === 'STANDARD' ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-400">
-                          <Zap size={14} className="text-indigo-500" aria-hidden="true" />
-                          Standard
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                          <Package size={14} className="text-slate-500" aria-hidden="true" />
-                          Basic
-                        </span>
-                      )}
-                    </td>
-
-                    {/* 3. Phiên bản */}
-                    <td className="whitespace-nowrap px-4 py-4">
-                      <span className="inline-flex items-center rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 px-2 py-0.5 font-mono text-xs text-[var(--sc-text-secondary)]">
-                        v{item.versionNo}
-                      </span>
-                    </td>
-
-                    {/* 4. Phí tháng */}
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                    <td className="whitespace-nowrap px-3 py-3 text-right">
                       <span className="text-sm font-semibold tabular-nums text-[var(--sc-text-primary)]">
                         {formatVnd(item.monthlyFeeVnd)}
                       </span>
                     </td>
 
-                    {/* 5. Trạng thái ký */}
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="px-3 py-3">
                       {item.code === 'ENTERPRISE' ? (
-                        <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                          {t('customAgreement')}
-                        </span>
+                        <Badge status="info" label={t('customAgreement')} />
+                      ) : item.supersededByPlanVersionNo ? (
+                        <div className="space-y-1">
+                          <Badge status="default" label={t('agreementSuperseded')} />
+                          <div className="text-xs text-[var(--sc-text-secondary)]">
+                            {t('agreementSupersededBy', {
+                              version: item.supersededByPlanVersionNo,
+                            })}
+                          </div>
+                        </div>
                       ) : item.availableAgreementVersionRef ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400">
-                          <span
-                            className="size-1.5 rounded-full bg-emerald-500"
-                            aria-hidden="true"
-                          />
-                          {t('agreementPublished')}
-                        </span>
+                        <Badge status="success" label={t('agreementPublished')} />
                       ) : item.publishedAgreementVersionRef ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400">
-                          <span className="size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-                          {t('agreementUnavailable')}
-                        </span>
+                        <Badge status="warning" label={t('agreementUnavailable')} />
                       ) : (
-                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 dark:bg-slate-800">
-                          {t('agreementUnpublished')}
-                        </span>
+                        <Badge status="default" label={t('agreementUnpublished')} />
                       )}
                     </td>
-
-                    {/* 6. Mã mẫu điều khoản */}
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="min-w-36 max-w-56 px-3 py-3">
                       {item.publishedAgreementVersionRef ? (
-                        <span className="select-all font-mono text-xs font-medium tracking-wide text-slate-700 hover:text-[var(--sc-primary)] dark:text-slate-300">
-                          {item.availableAgreementVersionRef ?? item.publishedAgreementVersionRef}
+                        <span className="select-all break-words font-mono text-xs font-semibold text-[var(--sc-text-primary)]">
+                          {item.publishedAgreementVersionRef}
                         </span>
                       ) : (
                         <span className="text-xs text-[var(--sc-text-tertiary)]">—</span>
                       )}
                     </td>
 
-                    {/* 7. Thao tác */}
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2.5">
-                        {item.code !== 'ENTERPRISE' && (
-                          <button
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canPublishPlan(item, now) && (
+                          <Button
                             type="button"
-                            className="text-xs font-medium text-[var(--sc-primary)] transition-colors hover:underline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              agreement.reset({
-                                ...agreement.formState.defaultValues,
-                                planVersionId: item.id,
-                              });
-                              setReplacementPlanId(
-                                item.publishedAgreementVersionRef ? item.id : null,
-                              );
-                              setActiveTab('agreement');
-                            }}
+                            size="sm"
+                            variant={item.publishedAgreementVersionRef ? 'outline' : 'primary'}
+                            onClick={() => openAgreement(item)}
+                            disabled={busy}
                           >
+                            <FileSignature size={15} aria-hidden="true" />
                             {t(
                               item.publishedAgreementVersionRef
-                                ? 'replaceAgreement'
+                                ? 'replaceAgreementAction'
                                 : 'publishAgreement',
                             )}
-                          </button>
+                          </Button>
                         )}
-                        <span className="inline-flex size-6 items-center justify-center rounded-full text-[var(--sc-text-tertiary)] transition-colors group-hover:bg-[var(--sc-bg-secondary)] group-hover:text-[var(--sc-text-primary)]">
-                          <ChevronRight size={14} aria-hidden="true" />
-                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => void openDetails(item)}
+                          aria-label={t('planDetailsLabel', {
+                            name: item.name,
+                            version: item.versionNo,
+                          })}
+                        >
+                          <Eye size={15} aria-hidden="true" />
+                          <span className="hidden 2xl:inline">{t('viewDetails')}</span>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -561,8 +594,10 @@ export function CommercialPlanAdmin() {
                 value: item.id,
                 label: `${item.name} · v${item.versionNo} · ${formatVnd(item.monthlyFeeVnd)}`,
               }))}
+              value={planVersionId}
               {...agreement.register('planVersionId', {
                 onChange: (event) => {
+                  if (replacementPlanId) return;
                   const selected = terms?.plans.find((item) => item.id === event.target.value);
                   if (selected?.code === 'BASIC') agreement.setValue('claimCapVnd', '20000000');
                   if (selected?.code === 'STANDARD') agreement.setValue('claimCapVnd', '35000000');
@@ -571,6 +606,9 @@ export function CommercialPlanAdmin() {
             />
             <Input
               label={t('agreementVersion')}
+              helperText={
+                replacement ? t('newAgreementRefHint', { ref: replacement.versionRef }) : undefined
+              }
               isRequired
               error={agreementError('versionRef')}
               {...agreement.register('versionRef')}
@@ -580,12 +618,11 @@ export function CommercialPlanAdmin() {
               isRequired
               error={agreementError('serviceTariffVersionId')}
               placeholder={t('choose')}
-              options={
-                terms?.serviceTariffs.map((item) => ({
-                  value: item.id,
-                  label: `${item.code} · v${item.versionNo}`,
-                })) ?? []
-              }
+              options={tariffOptions(
+                terms?.serviceTariffs ?? [],
+                replacement?.serviceTariffVersionId,
+              )}
+              value={serviceTariffVersionId}
               {...agreement.register('serviceTariffVersionId')}
             />
             <Select
@@ -593,12 +630,11 @@ export function CommercialPlanAdmin() {
               isRequired
               error={agreementError('freightTariffVersionId')}
               placeholder={t('choose')}
-              options={
-                terms?.freightTariffs.map((item) => ({
-                  value: item.id,
-                  label: `${item.code} · v${item.versionNo}`,
-                })) ?? []
-              }
+              options={tariffOptions(
+                terms?.freightTariffs ?? [],
+                replacement?.freightTariffVersionId,
+              )}
+              value={freightTariffVersionId}
               {...agreement.register('freightTariffVersionId')}
             />
             <Input
@@ -675,7 +711,7 @@ export function CommercialPlanAdmin() {
                   label={selectedVersion.code}
                 />
                 <span className="font-mono text-xs text-[var(--sc-text-secondary)]">
-                  v{selectedVersion.versionNo}
+                  {t('planVersionTag', { version: selectedVersion.versionNo })}
                 </span>
               </div>
               <div className="text-right">
