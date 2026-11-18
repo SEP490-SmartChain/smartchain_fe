@@ -4,9 +4,9 @@ import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
-import { Alert, Button, Card, Input, PageHeader, Select } from '@/components/Common';
+import { Alert, Button, Card, Input, Select } from '@/components/Common';
 import { encodeLabelBarcode } from '@/features/catalog';
 import { useAccess } from '@/hooks/useAccess';
 import {
@@ -49,6 +49,10 @@ function PackingSession() {
     [pendingRecovery, setPendingRecovery] = useState<PackCommand | null>(null),
     [refresh, setRefresh] = useState(0);
   const abort = useRef(new AbortController());
+  // The server-confirmed parcel ID is unique across sellers; order codes are seller-scoped.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handoffFulfillment = searchParams.get('fulfillment');
+  const handoffWarehouse = searchParams.get('warehouse');
   useEffect(() => {
     const c = new AbortController();
     abort.current = c;
@@ -57,7 +61,9 @@ function PackingSession() {
       .then((w) => {
         if (!c.signal.aborted) {
           setWarehouses(w);
-          if (w.length === 1) setWarehouse(w[0]?.id ?? '');
+          const target = w.find((item) => item.id === handoffWarehouse);
+          if (target) setWarehouse(target.id);
+          else if (w.length === 1) setWarehouse(w[0]?.id ?? '');
         }
       })
       .catch(() => {
@@ -67,7 +73,7 @@ function PackingSession() {
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [t]);
+  }, [handoffWarehouse, t]);
   useEffect(() => {
     const c = new AbortController();
     setDetail(null);
@@ -117,9 +123,42 @@ function PackingSession() {
       if (!c.signal.aborted) setLoading(false);
     }
   }
+  useEffect(() => {
+    if (!handoffFulfillment || !warehouse || warehouse !== handoffWarehouse) return;
+    request.current?.abort();
+    const c = new AbortController();
+    request.current = c;
+    setLoading(true);
+    setError('');
+    setDetail(null);
+    void packingApi
+      .detail(warehouse, handoffFulfillment, c.signal)
+      .then((d) => {
+        if (!c.signal.aborted) {
+          setDetail(d);
+          setLoading(false);
+          setSearchParams(
+            (previous) => {
+              const next = new URLSearchParams(previous);
+              next.delete('fulfillment');
+              next.delete('warehouse');
+              return next;
+            },
+            { replace: true },
+          );
+        }
+      })
+      .catch(() => {
+        if (!c.signal.aborted) {
+          setError(t('loadError'));
+          setLoading(false);
+        }
+      });
+    return () => c.abort();
+  }, [handoffFulfillment, handoffWarehouse, warehouse, refresh, setSearchParams, t]);
   return (
     <div className="space-y-5">
-      <PageHeader title={t('title')} description={t('hint')} />
+      <p className="text-sm text-[var(--sc-text-secondary)]">{t('hint')}</p>
       <Card>
         <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
           <Select
@@ -138,8 +177,8 @@ function PackingSession() {
       </Card>
       {error && <Alert variant="error">{error}</Alert>}
       {loading && <p role="status">{t('loading')}</p>}
-      {warehouse && !loading && !queue.items.length && <Alert>{t('empty')}</Alert>}
-      {queue.items.length > 0 && (
+      {warehouse && !loading && !queue.items.length && !detail && <Alert>{t('empty')}</Alert>}
+      {(queue.items.length > 0 || detail) && (
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(250px,1fr)_3fr]">
           <Card className="space-y-2">
             <h2 className="text-base font-semibold">

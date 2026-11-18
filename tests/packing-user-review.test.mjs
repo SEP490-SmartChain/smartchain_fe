@@ -48,6 +48,7 @@ function bindings(state) {
     useState: () => [state[index++], () => {}],
     useEffect() {},
     useRef: (current) => ({ current }),
+    useSearchParams: () => [new URLSearchParams(), () => {}],
     useAuthStore: (selector) => selector({ user: { userId: 'test-actor' }, revision: 0 }),
     loadFulfillmentPending: () => null,
     persistFulfillmentPending() {},
@@ -100,6 +101,121 @@ test('packing gives an explicit instruction before a parcel is selected', () => 
     bindings([[], 'warehouse', { items: [first] }, null, '', false, 0]),
   )();
   assert.ok(JSON.stringify(ui).includes('chooseParcel'));
+});
+
+test('packing handoff fetches the exact parcel even when another seller shares its order code', async () => {
+  const effects = [],
+    calls = [],
+    updates = [];
+  const state = [
+    [],
+    'warehouse-a',
+    { items: [{ ...first, id: 'other-seller', orderCode: 'SAME' }], nextCursor: 'page2' },
+    null,
+    '',
+    false,
+    null,
+    0,
+  ];
+  const b = bindings(state);
+  let stateIndex = 0;
+  b.useState = () => {
+    const index = stateIndex++;
+    return [state[index], (value) => updates.push({ index, value })];
+  };
+  const params = new URLSearchParams('warehouse=warehouse-a&fulfillment=target-parcel&tab=keep');
+  let nextParams;
+  b.useSearchParams = () => [
+    params,
+    (change) => {
+      nextParams = change(params);
+    },
+  ];
+  b.useEffect = (effect) => effects.push(effect);
+  b.packingApi = {
+    detail: async (...args) => {
+      calls.push(args);
+      return { ...first, id: 'target-parcel' };
+    },
+  };
+  component('PackingSession', b)();
+  const cleanup = effects.at(-1)();
+  await new Promise(setImmediate);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].slice(0, 2), ['warehouse-a', 'target-parcel']);
+  assert.ok(updates.some(({ index, value }) => index === 3 && value?.id === 'target-parcel'));
+  assert.equal(nextParams.toString(), 'tab=keep');
+  cleanup();
+});
+
+test('packing handoff selects only an assigned target warehouse and ignores stale responses after leaving it', async () => {
+  const effects = [],
+    updates = [];
+  let resolve;
+  const b = bindings([
+    [],
+    'warehouse-a',
+    { items: [], nextCursor: null },
+    null,
+    '',
+    false,
+    null,
+    0,
+  ]);
+  let index = 0;
+  b.useState = () => {
+    const slot = index++;
+    return [
+      [[], 'warehouse-a', { items: [], nextCursor: null }, null, '', false, null, 0][slot],
+      (value) => updates.push({ slot, value }),
+    ];
+  };
+  b.useEffect = (effect) => effects.push(effect);
+  b.useSearchParams = () => [
+    new URLSearchParams('warehouse=warehouse-a&fulfillment=parcel-a'),
+    () => {},
+  ];
+  b.pickingApi = { warehouses: async () => [{ id: 'warehouse-b' }, { id: 'warehouse-a' }] };
+  b.packingApi = {
+    detail: () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  };
+  component('PackingSession', b)();
+  const cleanupDirectory = effects[0]();
+  await new Promise(setImmediate);
+  assert.ok(updates.some(({ slot, value }) => slot === 1 && value === 'warehouse-a'));
+  const cleanup = effects.at(-1)();
+  cleanup();
+  resolve({ ...first, id: 'parcel-a' });
+  await new Promise(setImmediate);
+  assert.ok(!updates.some(({ slot, value }) => slot === 3 && value?.id === 'parcel-a'));
+  cleanupDirectory();
+});
+
+test('packing refuses to open a handoff under a different selected warehouse', () => {
+  const effects = [],
+    calls = [];
+  const b = bindings([
+    [],
+    'warehouse-b',
+    { items: [], nextCursor: null },
+    null,
+    '',
+    false,
+    null,
+    0,
+  ]);
+  b.useEffect = (effect) => effects.push(effect);
+  b.useSearchParams = () => [
+    new URLSearchParams('warehouse=warehouse-a&fulfillment=parcel-a'),
+    () => {},
+  ];
+  b.packingApi = { detail: (...args) => calls.push(args) };
+  component('PackingSession', b)();
+  effects.at(-1)();
+  assert.deepEqual(calls, []);
 });
 test('packing count uses exact required quantity and does not show material quantity without material', () => {
   const b = bindings([false, '']);

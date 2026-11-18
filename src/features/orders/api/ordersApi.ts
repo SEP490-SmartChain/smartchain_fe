@@ -79,6 +79,7 @@ const legacyManualOrderSchema = z
   .object({
     paymentBreakdown: paymentBreakdownSchema.optional(),
     deliveryNote: z.string().trim().min(1).max(500).optional(),
+    deliveryTier: z.enum(['ECONOMY', 'BALANCED', 'EXPRESS']).optional(),
     externalOrderCode: boundedText(100),
     sourceChannel: boundedText(100),
     recipientName: boundedText(150),
@@ -125,6 +126,7 @@ export const directOrderSchema = z
     collectionAmount: money,
     declaredValue: money.optional(),
     deliveryNote: z.string().trim().min(1).max(500).optional(),
+    deliveryTier: z.enum(['ECONOMY', 'BALANCED', 'EXPRESS']).optional(),
     items: z
       .array(
         z
@@ -196,6 +198,7 @@ export function completeManualDraft(draft: ManualDraft, automaticCode: string): 
       collectionAmount: draft.collectionAmount,
       ...(draft.declaredValue ? { declaredValue: draft.declaredValue } : {}),
       ...(draft.deliveryNote ? { deliveryNote: draft.deliveryNote } : {}),
+      deliveryTier: draft.deliveryTier ?? 'ECONOMY',
       items: draft.items.map(({ productId, qty }) => ({ productId, qty })),
     });
   }
@@ -250,6 +253,8 @@ const financial = {
   declaredValue: money,
   customerShippingFee: money,
   shippingFeePayer: z.enum(['SENDER', 'RECIPIENT']),
+  // Optional so responses from a backend without the tier column still parse; absent means ECONOMY.
+  deliveryTier: z.enum(['ECONOMY', 'BALANCED', 'EXPRESS']).optional(),
 };
 const ownerOrder = baseOrder.extend(financial).strict();
 const staffOrder = baseOrder.strict();

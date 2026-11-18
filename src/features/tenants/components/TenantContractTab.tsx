@@ -24,6 +24,7 @@ import {
   type PublishedCommercialTerms,
   type SellerCommercialState,
 } from '../api/commercialApi';
+import { freightTariffLabel } from '../lib/freightTariffLabel';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
 const customSchema = z.object({
@@ -375,7 +376,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
                 options={
                   terms?.freightTariffs.map((item) => ({
                     value: item.id,
-                    label: `${item.code} · v${item.versionNo}`,
+                    label: freightTariffLabel(item, t('freightCarrierApi')),
                   })) ?? []
                 }
                 {...custom.register('freightTariffVersionId')}

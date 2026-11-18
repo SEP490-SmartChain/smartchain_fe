@@ -73,3 +73,17 @@ Managed Sheets đã kết nối có mẫu cũ sẽ hiện Cập nhật mẫu nh�
 TOTAL_COST explanation now explicitly allows splitting warehouses to reduce the compared total cost; the default nearest-warehouse explanation remains separate. The Owner comparison is shown once per parent order, even for multiple children, and never appears for Staff. `PREVIEW_TOTAL_COST=1 node tests/fixtures/preview-orders.mjs` serves the isolated two-warehouse fixture at port 2326; add `?role=staff` for the privacy view. This preview uses real UI components and synthetic API responses, not a live full-stack environment.
 
 Verification: TypeScript, lint, format, 1,376 FE tests and production build passed. Chrome UI checked Owner totals once, two warehouses, allocation explanation, consistent item quantities, and Staff without financial values. Actual database migration/role behavior is validated separately by the BE disposable allocation suite (74 cases).
+
+## Outbound workspace — 18/11/2026
+
+`OutboundWorkspace` puts picking, packing and handover in one tabbed screen like inbound. Wave
+creation defaults the cut-off to now and no longer requires a preview first; a cut-off error from
+the server is shown by code. A user with both warehouse roles gets "Nhận việc" (self-assigned
+wave). The lot scan is optional: the server accepts a blank lot only for a non-expiry SKU whose
+bin holds one lot. When a scan completes a parcel, the screen opens that parcel in packing
+(`/warehouse/packing?warehouse=&fulfillment=`). The scan response supplies the unique fulfillment
+ID and whole-parcel `fulfillmentStatus`; a page-local remaining quantity never implies completion.
+Packing selects the assigned warehouse and loads that ID directly, including parcels beyond the
+first queue page. Seller order codes are display labels, not handoff identities. Legacy scan
+replays without these fields remain valid but do not auto-navigate. Tests: `tests/picking-user-review.test.mjs`,
+`tests/access-policy.test.mjs`.

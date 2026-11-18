@@ -140,12 +140,15 @@ export const packingApi = {
     return list.parse(data);
   },
   async detail(warehouseId: string, id: string, signal?: AbortSignal) {
+    z.uuid().parse(id);
     const { data } = await apiClient.get<ApiResponse<unknown>>(`${base}/parcels/${id}`, {
       params: { warehouseId },
       signal,
       silent: true,
     });
-    return detail.parse(data);
+    const parsed = detail.parse(data);
+    if (parsed.id !== id) throw new Error('Parcel identity mismatch');
+    return parsed;
   },
   async pack(warehouseId: string, id: string, input: PackCommand, signal?: AbortSignal) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(

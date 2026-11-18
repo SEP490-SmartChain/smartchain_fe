@@ -151,6 +151,25 @@ const termsSchema = z.object({
       includedServices: z.array(z.string()).optional(),
       publishedAgreementVersionRef: z.string().nullable().optional(),
       availableAgreementVersionRef: z.string().nullable().optional(),
+      supersededByPlanVersionNo: z.number().int().positive().nullable().optional(),
+      publishedAgreement: z
+        .object({
+          versionRef: z.string(),
+          serviceTariffVersionId: z.string().uuid(),
+          freightTariffVersionId: z.string().uuid(),
+          depositRequiredVnd: money,
+          creditLimitVnd: money,
+          claimCapVnd: money,
+          signerRole: z.string(),
+          templateId: z.string(),
+          compositionMode: z.enum([
+            'EXISTING_FIELDS',
+            'BUSINESS_PROFILE_V1',
+            'ORCA_REFERENCE_16_V1',
+          ]),
+        })
+        .nullable()
+        .optional(),
       effectiveFrom: z.string().datetime().optional(),
       effectiveTo: z.string().datetime().nullable().optional(),
     }),

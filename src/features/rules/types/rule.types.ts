@@ -7,6 +7,7 @@ export const RULE_FIELDS = {
   itemCount: 'INTEGER',
   codAmountVnd: 'VND',
   isCod: 'BOOLEAN',
+  deliveryTier: 'TEXT',
 } as const;
 export type RuleField = keyof typeof RULE_FIELDS;
 export type RuleKind = 'ALLOCATION' | 'CARRIER';
@@ -21,7 +22,7 @@ export type RuleCondition =
       operator: 'EQ' | 'NE' | 'GT' | 'GTE' | 'LT' | 'LTE';
       value: RuleValue;
     };
-export type AllocationStrategy = 'NEAREST_WAREHOUSE' | 'EXPIRY_FIRST' | 'TOTAL_COST';
+export type AllocationStrategy = 'NEAREST_WAREHOUSE' | 'EXPIRY_FIRST';
 export type RuleAction =
   | { strategy: AllocationStrategy }
   | { carrierServiceId: string; fallbackServiceIds: string[] };

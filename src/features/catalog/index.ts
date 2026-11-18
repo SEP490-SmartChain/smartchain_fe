@@ -6,8 +6,9 @@
  */
 export { GlobalCarrierCatalog } from './components/GlobalCarrierCatalog';
 export { CarrierAccountManager } from './components/CarrierAccountManager';
-export { FreightTariffManager } from './components/FreightTariffManager';
-export { RateIntelligenceManager } from './components/RateIntelligenceManager';
+export { CarrierWebhookManager } from './components/CarrierWebhookManager';
+export { CarrierPriceBoard } from './components/CarrierPriceBoard';
+export { CarrierAutoSelection } from './components/CarrierAutoSelection';
 export { RateProposalPanel } from './components/RateProposalPanel';
 export { useProvinceNames } from './hooks/useProvinceNames';
 export { useCarrierCatalog } from './hooks/useCarrierCatalog';

@@ -92,12 +92,39 @@ export default function Sidebar() {
             className="flex min-w-0 items-center gap-2.5"
             onClick={handleBrandClick}
           >
-            <span className="grid h-9 w-9 shrink-0 grid-cols-2 gap-[3px] rounded-[10px] bg-[var(--sc-primary)] p-2 shadow-[0_6px_14px_rgb(15_118_110/20%)]">
-              <span className="rounded-[2px] bg-white" />
-              <span className="rounded-[2px] bg-white/70" />
-              <span className="rounded-[2px] bg-white/70" />
-              <span className="rounded-[2px] bg-white" />
-            </span>
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 40 40"
+              fill="none"
+              aria-hidden="true"
+              className="h-9 w-9 shrink-0 rounded-[10px] shadow-[0_6px_14px_rgb(15_118_110/20%)]"
+            >
+              <rect x="1.5" y="1.5" width="37" height="37" rx="10" fill="var(--sc-primary)" />
+              <path
+                d="M10.2 25.5C10.2 17.2 16.1 10.4 25.1 8.8C23.4 12.6 23.7 16.1 26.1 18.5C28.1 20.4 29.6 22.7 29.6 25.5H22.8C22.8 22.7 20.6 20.6 17.8 20.6C15.1 20.6 13.1 22.6 12.6 25.5H10.2Z"
+                fill="#ffffff"
+              />
+              <rect
+                x="24.2"
+                y="12.5"
+                width="4.4"
+                height="2.6"
+                rx="1.3"
+                transform="rotate(-18 24.2 12.5)"
+                fill="#99f6e4"
+              />
+              <rect x="10.2" y="28" width="8.8" height="2.8" rx="1.4" fill="#ffffff" />
+              <rect
+                x="20.8"
+                y="28"
+                width="8.8"
+                height="2.8"
+                rx="1.4"
+                fill="#99f6e4"
+                fillOpacity="0.85"
+              />
+            </svg>
             <span className={cn('truncate text-[17px] font-semibold', !isSidebarOpen && 'hidden')}>
               ORCA
             </span>

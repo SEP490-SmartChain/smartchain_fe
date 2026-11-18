@@ -878,3 +878,32 @@ test('reports have one Dashboard menu/search entry and the legacy Analytics guar
     assert.equal(policy.isRouteAllowed(roles, '/dashboard'), false);
   }
 });
+
+test('one warehouse operator holding Manager and Staff roles sees one outbound workspace and both actions', () => {
+  const operator = effective(['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'], PLATFORM);
+  assert.equal(policy.can(operator, 'warehouse.picking.manage'), true);
+  assert.equal(policy.can(operator, 'warehouse.picking.confirm'), true);
+  assert.equal(policy.can(operator, 'warehouse.packing.confirm'), true);
+
+  const items = policy.getVisibleNavGroups(operator, false).flatMap((group) => group.items);
+  const outbound = items.filter((item) =>
+    ['/warehouse/picking', '/warehouse/packing', '/warehouse/handover'].includes(item.href),
+  );
+  assert.deepEqual(
+    outbound.map((item) => item.key),
+    ['warehouse_outbound'],
+  );
+  for (const pathname of ['/warehouse/picking', '/warehouse/packing', '/warehouse/handover']) {
+    assert.equal(policy.isRouteAllowed(operator, pathname), true, pathname);
+    assert.equal(policy.isNavItemActive(outbound[0], pathname), true, pathname);
+  }
+
+  for (const [roles, manage, confirm] of [
+    [['WAREHOUSE_MANAGER'], true, false],
+    [['WAREHOUSE_STAFF'], false, true],
+  ]) {
+    const single = effective(roles, PLATFORM);
+    assert.equal(policy.can(single, 'warehouse.picking.manage'), manage, roles[0]);
+    assert.equal(policy.can(single, 'warehouse.picking.confirm'), confirm, roles[0]);
+  }
+});

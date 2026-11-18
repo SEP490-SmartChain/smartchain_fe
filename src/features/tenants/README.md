@@ -46,7 +46,7 @@ data, desktop and 390px mobile layouts were checked for SS-1022.
 
 ## SS-999 service tariffs
 
-The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`
+The service fees tab (`Phí dịch vụ`) on `/admin/tariffs` uses the shared `tariffs.manage`
 policy for PLATFORM Admin/Accountant, with no additional seller or warehouse
 access. Requests use `/v1/commercial/service-tariffs`; the backend rechecks live
 roles and RLS. Service tariff authority does not grant plan publication.
@@ -63,7 +63,7 @@ The UI configures rates; it cannot post seller fees or calculate ledger balances
 
 ## SS-990 ORCA commercial onboarding
 
-Admin plan rows display the published bilateral agreement reference. Initial publication lists only Basic or Standard versions with no published bilateral agreement. Replacement starts from the published row and stays scoped to that plan version.
+Admin rows show the plan version, published bilateral agreement reference and signing availability. Initial publication lists available Basic or Standard versions without published terms. Replacement loads the published tariffs, commercial amounts, layout and SignNow configuration for that plan version, with a new agreement reference required. Superseded plan versions remain visible in the table for review.
 
 Baseline: UC-08–UC-13 and BR-59; existing identity UC-01–UC-05 is reused.
 Historical FE identifiers below are not the SS-990 requirement mapping.

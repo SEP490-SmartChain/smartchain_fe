@@ -181,7 +181,7 @@ test('trims name/reason and converts optional form references to null', () => {
     exceptionTenantId: '',
     priority: 0,
     condition: { kind: 'ALL', conditions: [] },
-    strategy: 'TOTAL_COST',
+    strategy: 'NEAREST_WAREHOUSE',
     carrierServiceId: '',
     fallbackServiceIds: [],
     reason: ' Create tested rule ',
@@ -229,6 +229,21 @@ test('list uses rule-kind pagination and the cancellation signal without identit
     return ok([rule()], page);
   };
   assert.deepEqual((await api.list('ALLOCATION', second, signal)).items, [rule()]);
+});
+test('list parses published carrier rules scoped to a delivery tier', async () => {
+  const carrierRule = rule({
+    kind: 'CARRIER',
+    condition: {
+      kind: 'ALL',
+      conditions: [
+        { kind: 'PREDICATE', field: 'deliveryTier', operator: 'EQ', value: 'EXPRESS' },
+        { kind: 'PREDICATE', field: 'provinceCode', operator: 'IN', values: ['01'] },
+      ],
+    },
+    action: { carrierServiceId: second, fallbackServiceIds: [third] },
+  });
+  globalThis.fetch = async () => ok([carrierRule], page);
+  assert.deepEqual((await api.list('CARRIER')).items, [carrierRule]);
 });
 test('metadata chooser reads only ID/name and strips extra response fields', async () => {
   globalThis.fetch = async (url) => {

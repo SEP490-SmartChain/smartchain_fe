@@ -52,6 +52,22 @@ export function RuleSentence({
     if (predicate.field === 'isCod' && 'value' in predicate && predicate.operator === 'EQ') {
       return t(predicate.value ? 'sentence.cod' : 'sentence.noCod');
     }
+    if (
+      predicate.field === 'deliveryTier' &&
+      'value' in predicate &&
+      predicate.operator === 'EQ' &&
+      (predicate.value === 'ECONOMY' ||
+        predicate.value === 'BALANCED' ||
+        predicate.value === 'EXPRESS')
+    ) {
+      return t(
+        predicate.value === 'EXPRESS'
+          ? 'sentence.expressTier'
+          : predicate.value === 'BALANCED'
+            ? 'sentence.balancedTier'
+            : 'sentence.economyTier',
+      );
+    }
     return null;
   };
   const summary = summarizeCondition(condition, {

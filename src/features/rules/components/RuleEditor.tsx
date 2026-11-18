@@ -23,7 +23,7 @@ import { ruleFormSchema, toDefinition, type RuleFormValues } from '../schemas/ru
 
 import type { RuleKind, RuleRecord, RuleTarget, TargetKind } from '../types/rule.types';
 
-const ALLOCATION_STRATEGIES = ['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST'] as const;
+const ALLOCATION_STRATEGIES = ['NEAREST_WAREHOUSE', 'EXPIRY_FIRST'] as const;
 
 interface StepTitleProps {
   number: number;
@@ -86,7 +86,10 @@ export function RuleEditor({ rule, kind, nextPriority, onClose, onSaved }: RuleE
       exceptionTenantId: rule?.exceptionTenantId ?? '',
       priority: rule?.priority ?? nextPriority,
       condition: rule?.condition ?? { kind: 'ALL', conditions: [] },
-      strategy: rule && 'strategy' in rule.action ? rule.action.strategy : 'NEAREST_WAREHOUSE',
+      strategy:
+        rule && 'strategy' in rule.action && rule.action.strategy === 'EXPIRY_FIRST'
+          ? 'EXPIRY_FIRST'
+          : 'NEAREST_WAREHOUSE',
       carrierServiceId:
         rule && 'carrierServiceId' in rule.action ? rule.action.carrierServiceId : '',
       fallbackServiceIds:

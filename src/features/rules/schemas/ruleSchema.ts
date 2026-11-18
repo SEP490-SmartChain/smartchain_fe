@@ -11,6 +11,7 @@ const fields = z.enum([
   'itemCount',
   'codAmountVnd',
   'isCod',
+  'deliveryTier',
 ]);
 const value = z.union([z.string(), z.number(), z.boolean()]);
 const node: z.ZodType<RuleCondition, RuleCondition> = z.lazy(() =>
@@ -94,7 +95,14 @@ export const conditionSchema = z
     visit(condition);
   });
 const actionSchema = z.union([
-  z.object({ strategy: z.enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST']) }).strict(),
+  z
+    .object({
+      // Stored rules from before the retirement read as nearest-warehouse, matching the backend.
+      strategy: z
+        .enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST'])
+        .transform((value) => (value === 'TOTAL_COST' ? 'NEAREST_WAREHOUSE' : value)),
+    })
+    .strict(),
   z
     .object({ carrierServiceId: uuid, fallbackServiceIds: z.array(uuid).max(10) })
     .strict()
@@ -169,7 +177,7 @@ export const ruleFormSchema = (message: string, isReasonRequired = true) =>
       exceptionTenantId: z.string(),
       priority: z.number(),
       condition: node,
-      strategy: z.enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST']),
+      strategy: z.enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST']),
       carrierServiceId: z.string(),
       fallbackServiceIds: z.array(z.string()),
       reason: z.string(),

@@ -13,6 +13,8 @@ SS-999: tab dịch vụ fulfillment tại `/admin/tariffs` dùng `tariffs.manage
 `/v1/commercial/service-tariffs`. Quyền này chỉ quản trị service tariff,
 không grant plan/agreement publication, finance posting hoặc carrier secrets.
 
+API-only freight (18/11/2026): `/admin/tariffs` shows Admin three tabs: carrier API prices, automatic carrier selection and service fees. Accountant keeps only service fees; direct `?tab=prices` or `?tab=selection` does not mount carrier-account or proposal views. No new role capability or backend grant is introduced. Manual freight tariff editors are removed; historical contracts and service tariff management remain.
+
 Ngày 02/10/2026. Baseline làm việc: `Report3_Software Requirement Specification.docx` §2.1, §3.1.3, các UC và BR. Tài liệu thay mô tả orca bốn role. Đây là đặc tả UI theo yêu cầu mới, **không phải tuyên bố các grant/API/screen đã triển khai hoặc được duyệt đầy đủ**.
 
 Policy hiện có ở `src/lib/accessPolicy.ts`; backend có core-auth action catalog riêng. Mọi gap được giữ rõ ở mục 8. Không viết policy code trong đợt tài liệu này. Ma trận screen không được dùng thay action-level API authorization.
@@ -271,3 +273,14 @@ the Ops actor. Search uses an order code; the UI sends no seller or warehouse gr
 POST `/v1/orders/:id/cancel` and GET `/v1/orders/:id/cancellation` recheck that same
 scope. An assignment revocation removes the parent and denies a stale command.
 No seller intake, financial fields or cross-scope role fallback are granted.
+
+## Single-operator outbound (18/11/2026)
+
+`/warehouse/picking`, `/warehouse/packing` and `/warehouse/handover` are tabs of one "Xuất kho"
+workspace with one sidebar entry (`warehouse_outbound`). Route guards and capabilities are
+unchanged. A PLATFORM user holding both `WAREHOUSE_MANAGER` and `WAREHOUSE_STAFF` (same-scope
+multi-role union) sees "Nhận việc": it creates a wave with cut-off = now and assigns it to the
+same user (UC-80/81), who then confirms picks (UC-82) and packs. The server still checks the
+Manager role for wave creation and the Staff role for scans. Self-approval of a lot replacement
+(UC-84) by that operator is accepted and recorded as `isSelfApproved` in the shortage evidence.
+Users with a single warehouse role keep the separated flow.

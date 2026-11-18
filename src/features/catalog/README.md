@@ -1,5 +1,12 @@
 # features/catalog
 
+The Admin carrier page includes a **Carrier webhooks** tab for inbound GHN,
+GHTK and Viettel Post setup (UC-92/102). It uses the existing
+`carriers.credentials.manage` capability and `/v1/platform/carrier-webhooks` API.
+Saves use version checks; secrets are never loaded back. A newly saved secret and
+the GHTK URL can be copied before leaving. Provider registration remains manual;
+configured status does not verify live delivery. J&T is explicitly unsupported.
+
 ## Manual testing feedback (5 November 2026)
 
 Optional shelf-life input preserves `null` on form reset and clearing. Expiry thresholds
@@ -12,9 +19,30 @@ Carrier catalogue management UI (UC-91): create/edit carrier metadata and create
 
 Carrier details include a paginated route/zone panel for Admin. It uses province directory options and existing carrier-zone POST/PATCH endpoints; edits send `expectedUpdatedAt` and preserve drafts on failure. Routes are directional and province-level, not ward-level. No automatic coverage, tariff publication or live carrier booking is implied.
 
-Purchase tariffs select configured zone codes by carrier through `GET /v1/platform/tariffs/carriers/:carrierId/zone-codes`, available to existing Admin/Accountant tariff roles. Empty or failed zone reads block saving and explain how an Admin can add routes. Carrier changes clear the zone; obsolete reads are aborted. The declared-value policy input is labelled ppm to match the API calculation, without implying a fee exemption threshold.
+## Carrier API pricing (`/admin/tariffs`, 18 November 2026)
 
-Seller SKU, platform warehouse/carrier catalogue, ORCA-owned carrier accounts/ping và purchase/sell tariff UI. Report3 UC-91–95/118/119; không BYOA. Tariff contract và role/state mapping ở `docs/SS-1246-RATE-CARDS.md`.
+Freight pricing uses carrier API quotes only (GHN/GHTK negotiated prices). Nobody creates
+purchase rate cards or seller freight tariffs in the UI any more: the manual editor, close
+window, contract file import and setup guide were removed. The backend keeps the old tariff
+tables read-only and publishes a system seller freight tariff with code `CARRIER_API`;
+contract and plan forms label it "Cước vận chuyển: theo giá hãng tại thời điểm tạo vận đơn".
+
+The page has three tabs, one job each:
+
+1. **Giá hãng** (`CarrierPriceBoard`, default, read-only): last update time, the
+   "Cập nhật giá ngay" collection job, the warehouse × province × weight comparison with a
+   delivery tier filter, prices by weight band (`RateSnapshot`) and update history.
+2. **Chọn hãng tự động** (`CarrierAutoSelection`, `?tab=selection`): tier-scoped proposals
+   and applied rules (`RateProposalPanel`) plus the routes sampled for quotes
+   (`RateWatchedRoutes`).
+3. **Phí dịch vụ** (`ServiceTariffManager`, `?tab=service`): unchanged.
+
+`useRateCollection` shares services, connected sandbox accounts and collection jobs between
+the first two tabs and polls while a job runs. Access stays on `tariffs.manage`.
+
+Seller SKU, platform warehouse/carrier catalogue, ORCA-owned carrier accounts/ping and carrier
+price monitoring. Report3 UC-91–95/118/119; không BYOA. The earlier rate-card contract history
+is in `docs/SS-1246-RATE-CARDS.md`.
 
 ## Warehouse directory interaction
 

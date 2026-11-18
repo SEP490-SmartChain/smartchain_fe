@@ -1,21 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
 import { type z } from 'zod';
 
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Input,
-  PageHeader,
-  Select,
-} from '@/components/Common';
+import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import {
   clearFulfillmentPending,
@@ -43,6 +35,18 @@ import {
   pickApprovalSchema,
 } from '../schemas/pickingSchema';
 import { isRejectedOperation } from '../lib/fulfillmentRetry';
+
+const CLAIM_WAVE_MAX_PARCELS = 20;
+
+/**
+ * Local `datetime-local` value one minute in the past: the server rejects a cut-off in the future
+ * (PICK.INVALID_CUTOFF), and "now" is what an operator taking work means.
+ */
+function currentCutoffInput(): string {
+  const at = new Date(Date.now() - 60_000);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`;
+}
 
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
@@ -75,6 +79,20 @@ function PickingScope() {
   const mounted = useRef(true),
     abort = useRef(new AbortController());
   const manager = can('warehouse.picking.manage');
+  const navigate = useNavigate();
+  // One operator holding both warehouse roles assigns the wave to themself (UC-80/81 then UC-82).
+  const canClaim =
+    manager && can('warehouse.picking.confirm') && staff.some((person) => person.id === actorId);
+  const handleClaim = () =>
+    void execute({
+      path: 'waves',
+      payload: {
+        assigneeId: actorId,
+        cutoffAt: new Date(currentCutoffInput()).toISOString(),
+        maxParcels: CLAIM_WAVE_MAX_PARCELS,
+        clientScanId: createUuid(),
+      },
+    });
   useEffect(() => {
     mounted.current = true;
     abort.current = new AbortController();
@@ -234,6 +252,16 @@ function PickingScope() {
       setLineCursor(null);
       setRefresh((x) => x + 1);
       if (result.waveId) setWaveId(result.waveId);
+      if (result.fulfillmentStatus === 'PICKED' && result.fulfillmentOrderId) {
+        setNotice(t('packNext'));
+        void navigate({
+          pathname: '/warehouse/packing',
+          search: new URLSearchParams({
+            warehouse,
+            fulfillment: result.fulfillmentOrderId,
+          }).toString(),
+        });
+      }
     } catch (cause) {
       if (!mounted.current) return;
       if (isRejectedOperation(cause)) {
@@ -254,7 +282,7 @@ function PickingScope() {
   }
   return (
     <div className="space-y-5">
-      <PageHeader title={t('title')} description={t('description')} />
+      <p className="text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-64 flex-1">
           <Select
@@ -295,6 +323,25 @@ function PickingScope() {
       )}
       {loading && <p role="status">{t('loading')}</p>}
       {!loading && !warehouses.length && <Alert>{t('noWarehouse')}</Alert>}
+      {warehouse && canClaim && (
+        <Card>
+          <CardContent>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="font-semibold">{t('claimTitle')}</h2>
+                <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('claimHint')}</p>
+              </div>
+              <Button
+                disabled={!!pending || busy || !!waveRequest}
+                isLoading={busy && !waveRequest}
+                onClick={handleClaim}
+              >
+                {t('claimWork')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {warehouse && manager && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.9fr)]">
           <Card>
@@ -571,24 +618,24 @@ function WaveForm({
   const t = useTranslations('Picking');
   const f = useForm<z.infer<typeof pickWaveFormSchema>>({
     resolver: zodResolver(pickWaveFormSchema),
-    defaultValues: { assigneeId: '', cutoffAt: '', maxParcels: 20 },
+    defaultValues: { assigneeId: '', cutoffAt: currentCutoffInput(), maxParcels: 20 },
   });
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof pickingApi.previewWave>> | null>(
     null,
   );
   const [previewBusy, setPreviewBusy] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const cutoffAt = f.watch('cutoffAt');
   const maxParcels = f.watch('maxParcels');
   useEffect(() => {
     setPreview(null);
-    setPreviewError(false);
+    setPreviewError(null);
   }, [cutoffAt, maxParcels, warehouseId]);
   const requestPreview = async () => {
     if (!(await f.trigger(['cutoffAt', 'maxParcels']))) return;
     const values = f.getValues();
     setPreviewBusy(true);
-    setPreviewError(false);
+    setPreviewError(null);
     try {
       setPreview(
         await pickingApi.previewWave(
@@ -597,8 +644,9 @@ function WaveForm({
           values.maxParcels,
         ),
       );
-    } catch {
-      setPreviewError(true);
+    } catch (cause) {
+      const code = cause instanceof ApiError ? (cause.code.split('.').at(-1) ?? '') : '';
+      setPreviewError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('previewError'));
     } finally {
       setPreviewBusy(false);
     }
@@ -648,7 +696,7 @@ function WaveForm({
               {preview.candidateScanLimitReached && <p className="mt-1">{t('previewScanLimit')}</p>}
             </div>
           )}
-          {previewError && <Alert variant="warning">{t('previewError')}</Alert>}
+          {previewError && <Alert variant="warning">{previewError}</Alert>}
           <div className="grid gap-2">
             <Button
               className="w-full"
@@ -666,9 +714,9 @@ function WaveForm({
               disabled={
                 disabled ||
                 previewBusy ||
-                !preview ||
-                (preview.proposedParcels === 0 && !preview.candidateScanLimitReached) ||
-                preview.firstParcelTooLarge
+                (!!preview &&
+                  ((preview.proposedParcels === 0 && !preview.candidateScanLimitReached) ||
+                    preview.firstParcelTooLarge))
               }
             >
               {t('createWave')}
@@ -804,7 +852,7 @@ function PickLineCard({
                 }),
               )}
             >
-              {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => (
+              {(['binScan', 'skuScan'] as const).map((name) => (
                 <Input
                   key={name}
                   label={t(name)}
@@ -815,9 +863,16 @@ function PickLineCard({
                 />
               ))}
               <Input
+                label={t('lotOptional')}
+                {...f.register('lotScan')}
+                disabled={disabled}
+                error={f.formState.errors.lotScan ? t('required') : undefined}
+              />
+              <Input
                 type="number"
                 label={t('qty')}
                 {...f.register('qty', { valueAsNumber: true })}
+                onFocus={(event) => event.currentTarget.select()}
                 disabled={disabled}
                 required
                 min={1}

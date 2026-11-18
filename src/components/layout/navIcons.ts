@@ -58,6 +58,7 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   warehouse_intake: ArrowDownToLine,
   warehouse_receiving: PackageCheck,
   warehouse_putaway: Archive,
+  warehouse_outbound: Truck,
   warehouse_picking: PackageSearch,
   warehouse_packing: Package,
   warehouse_handover: Truck,

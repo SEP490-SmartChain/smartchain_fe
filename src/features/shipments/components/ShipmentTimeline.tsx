@@ -1,18 +1,27 @@
-import { useEffect, useState } from 'react';
-
+import { useEffect, useMemo, useState } from 'react';
+import { RotateCw, Truck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button } from '@/components/Common';
 
 import { shipmentApi } from '../api/shipmentApi';
+import { getCarrierDisplayInfo } from '../lib/carrierTracking';
 
 import type { TrackingEvent } from '../schemas/shipmentSchema';
 
 interface ShipmentTimelineProps {
   id: string;
+  carrierCode?: string | null;
+  trackingNumber?: string | null;
+  status?: string;
 }
 
-export function ShipmentTimeline({ id }: ShipmentTimelineProps) {
+export function ShipmentTimeline({
+  id,
+  carrierCode,
+  trackingNumber,
+  status,
+}: ShipmentTimelineProps) {
   const t = useTranslations('Shipments');
   const locale = useLocale();
   const [events, setEvents] = useState<TrackingEvent[]>([]);
@@ -22,6 +31,11 @@ export function ShipmentTimeline({ id }: ShipmentTimelineProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [revision, setRevision] = useState(0);
+
+  const carrierInfo = useMemo(
+    () => getCarrierDisplayInfo(carrierCode, trackingNumber),
+    [carrierCode, trackingNumber],
+  );
 
   useEffect(() => {
     const abort = new AbortController();
@@ -56,72 +70,117 @@ export function ShipmentTimeline({ id }: ShipmentTimelineProps) {
       className="space-y-3 border-t border-[var(--sc-border-default)] pt-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">{t('timelineTitle')}</h3>
+        <div>
+          <h3 className="m-0 text-sm font-semibold">{t('timelineTitle')}</h3>
+          <p className="m-0 text-xs text-[var(--sc-text-tertiary)]">{t('timelineSubtitle')}</p>
+        </div>
         <Button
           variant="ghost"
+          size="sm"
           disabled={loading}
           onClick={() => setRevision((value) => value + 1)}
         >
+          <RotateCw size={14} className={loading ? 'animate-spin' : ''} />
           {t('reload')}
         </Button>
       </div>
+
       {loading ? (
-        <p role="status" className="text-sm">
+        <div className="py-6 text-center text-sm text-[var(--sc-text-tertiary)]">
           {t('loading')}
-        </p>
+        </div>
       ) : error ? (
         <Alert variant="error">{t('loadError')}</Alert>
       ) : events.length === 0 ? (
-        <p className="text-sm text-[var(--sc-text-secondary)]">{t('timelineEmpty')}</p>
+        <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-subtle)] p-5 text-center">
+          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+            <Truck size={22} />
+          </div>
+          <h4 className="m-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+            {status === 'LABEL_CREATED' || !status ? t('waitingCarrier') : t('timelineEmpty')}
+          </h4>
+          <p className="mx-auto mt-1 max-w-md text-xs text-[var(--sc-text-secondary)]">
+            {t('waitingCarrierDesc', {
+              carrier: carrierInfo.name || carrierCode || t('unknownCarrier'),
+            })}
+          </p>
+        </div>
       ) : (
-        <ol className="space-y-3">
-          {events.map((event) => (
-            <li
-              key={event.id}
-              className="flex flex-wrap items-center justify-between gap-2 border-l-2 border-[var(--sc-border-default)] pl-3 text-sm"
-            >
-              <div className="space-y-1">
-                <p className="font-medium">
-                  {t.has(`journeyStatuses.${event.standardStatus}`)
-                    ? t(`journeyStatuses.${event.standardStatus}`)
-                    : t('journeyUnknown')}
-                </p>
-                <time dateTime={event.eventTime} className="text-[var(--sc-text-secondary)]">
-                  {new Date(event.eventTime).toLocaleString(locale)}
-                </time>
-              </div>
-              <Badge
-                status={event.isApplied ? 'info' : 'default'}
-                label={event.isApplied ? t('timelineApplied') : t('timelineRecorded')}
-              />
-            </li>
-          ))}
-        </ol>
+        <div className="relative pl-6 before:absolute before:top-2 before:bottom-2 before:left-[11px] before:w-0.5 before:bg-[var(--sc-border-default)]">
+          <ol className="m-0 list-none space-y-4 p-0">
+            {events.map((event, index) => {
+              const isFirst = index === 0;
+              return (
+                <li key={event.id} className="relative">
+                  {/* Timeline bullet */}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute -left-6 top-1.5 h-3 w-3 rounded-full border-2 ${
+                      isFirst
+                        ? 'border-emerald-600 bg-emerald-600 ring-4 ring-emerald-100 dark:ring-emerald-950'
+                        : 'border-[var(--sc-border-strong)] bg-[var(--sc-bg-primary)]'
+                    }`}
+                  />
+                  <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-subtle)] p-3 text-sm">
+                    <div className="space-y-0.5">
+                      <p className="m-0 font-medium text-[var(--sc-text-primary)]">
+                        {t.has(`journeyStatuses.${event.standardStatus}`)
+                          ? t(`journeyStatuses.${event.standardStatus}`)
+                          : t('journeyUnknown')}
+                      </p>
+                      <time
+                        dateTime={event.eventTime}
+                        className="text-xs text-[var(--sc-text-tertiary)]"
+                      >
+                        {new Date(event.eventTime).toLocaleString(locale)}
+                      </time>
+                      {event.eventCode && (
+                        <p className="m-0 font-mono text-[11px] text-[var(--sc-text-tertiary)]">
+                          {event.eventCode}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      status={event.isApplied ? 'success' : 'default'}
+                      label={event.isApplied ? t('timelineApplied') : t('timelineRecorded')}
+                      size="sm"
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       )}
-      <div className="flex justify-end gap-2">
-        <Button
-          variant="secondary"
-          disabled={loading || history.length === 0}
-          onClick={() => {
-            setCursor(history[history.length - 1]);
-            setHistory((values) => values.slice(0, -1));
-          }}
-        >
-          {t('previous')}
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={loading || !next}
-          onClick={() => {
-            if (next) {
-              setHistory((values) => [...values, cursor]);
-              setCursor(next);
-            }
-          }}
-        >
-          {t('next')}
-        </Button>
-      </div>
+
+      {(history.length > 0 || next) && (
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={loading || history.length === 0}
+            onClick={() => {
+              setCursor(history[history.length - 1]);
+              setHistory((values) => values.slice(0, -1));
+            }}
+          >
+            {t('previous')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={loading || !next}
+            onClick={() => {
+              if (next) {
+                setHistory((values) => [...values, cursor]);
+                setCursor(next);
+              }
+            }}
+          >
+            {t('next')}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

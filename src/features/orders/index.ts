@@ -7,6 +7,7 @@
 export {};
 export { SellerOrders } from './components/SellerOrders';
 export { PickingWorkspace } from './components/PickingWorkspace';
+export { OutboundWorkspace } from './components/OutboundWorkspace';
 
 export { SellerWithdrawalForm } from './components/SellerWithdrawalForm';
 export { orderScope } from './lib/orderScope';
