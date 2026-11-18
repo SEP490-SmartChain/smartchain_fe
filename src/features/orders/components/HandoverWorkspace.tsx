@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Alert, Button, Card, Input, PageHeader, Select, Tabs } from '@/components/Common';
+import { Alert, Button, Card, Input, Select, Tabs } from '@/components/Common';
 import {
   clearFulfillmentPending,
   loadFulfillmentPending,
@@ -71,7 +71,7 @@ function HandoverSession() {
   );
   return (
     <div className="space-y-5">
-      <PageHeader title={t('handoverTitle')} description={t('handoverHint')} />
+      <p className="text-sm text-[var(--sc-text-secondary)]">{t('handoverHint')}</p>
       {!warehouse && <Card>{warehouseSelector}</Card>}
       {error && <Alert variant="error">{error}</Alert>}
       {warehouse && (

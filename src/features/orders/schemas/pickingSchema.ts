@@ -2,7 +2,8 @@ import { z } from 'zod';
 export const pickScanSchema = z.object({
   binScan: z.string().min(1).max(128),
   skuScan: z.string().min(1).max(128),
-  lotScan: z.string().min(1).max(128),
+  // Optional: the server accepts a blank lot only when the bin holds a single non-expiry lot.
+  lotScan: z.string().trim().max(128),
   qty: z.number().int().min(1).max(1000000),
 });
 export const pickWaveFormSchema = z.object({

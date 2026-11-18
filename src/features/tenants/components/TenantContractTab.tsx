@@ -24,6 +24,7 @@ import {
   type PublishedCommercialTerms,
   type SellerCommercialState,
 } from '../api/commercialApi';
+import { freightTariffLabel } from '../lib/freightTariffLabel';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
 const customSchema = z.object({
@@ -315,7 +316,10 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
             {inquiryHistory}
           </section>
         )}
-        {state?.serviceStatus === 'PENDING_ACTIVATION' && !contract && (
+        {state && !contract && inquiries.length === 0 && (
+          <p className="text-sm text-[var(--sc-text-secondary)]">{t('noContract')}</p>
+        )}
+        {state?.serviceStatus === 'PENDING_ACTIVATION' && !contract && inquiries.length > 0 && (
           <form
             className="space-y-4 rounded-xl border border-[var(--sc-border-default)] p-4 sm:p-5"
             onSubmit={create}
@@ -372,7 +376,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
                 options={
                   terms?.freightTariffs.map((item) => ({
                     value: item.id,
-                    label: `${item.code} · v${item.versionNo}`,
+                    label: freightTariffLabel(item, t('freightCarrierApi')),
                   })) ?? []
                 }
                 {...custom.register('freightTariffVersionId')}

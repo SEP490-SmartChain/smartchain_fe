@@ -166,6 +166,18 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                     .filter(Boolean)
                     .join(', ')}
                 </p>
+                {order.kind !== 'WITHDRAWAL' && (
+                  <p className="mt-3 text-sm">
+                    <span className="font-medium">{t('deliveryTier')}: </span>
+                    {t(
+                      order.deliveryTier === 'EXPRESS'
+                        ? 'deliveryTierExpress'
+                        : order.deliveryTier === 'BALANCED'
+                          ? 'deliveryTierBalanced'
+                          : 'deliveryTierEconomy',
+                    )}
+                  </p>
+                )}
                 {order.deliveryNote && (
                   <p className="mt-3 break-words text-sm">
                     <span className="font-medium">{t('deliveryNote')}: </span>

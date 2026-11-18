@@ -18,6 +18,8 @@ export interface RateUpdateAccount {
 interface RatePriceUpdateCardProps {
   accounts: RateUpdateAccount[];
   jobs: RateCollectionJob[];
+  /** When carrier API prices last finished updating; null before the first update. */
+  lastUpdatedAt: string | null;
   busyAccountId: string | null;
   notice: string;
   error: string;
@@ -35,6 +37,7 @@ const STATUS_TONE = {
 export function RatePriceUpdateCard({
   accounts,
   jobs,
+  lastUpdatedAt,
   busyAccountId,
   notice,
   error,
@@ -42,13 +45,18 @@ export function RatePriceUpdateCard({
 }: RatePriceUpdateCardProps) {
   const t = useTranslations('RateIntelligence');
   const isBusy = busyAccountId !== null;
-  const latestFor = (carrierCode: string) =>
-    jobs.find((job) => job.source === 'SANDBOX_API' && job.carrier.code === carrierCode);
+  const latestFor = (accountId: string) =>
+    jobs.find((job) => job.source === 'SANDBOX_API' && job.carrierAccountId === accountId);
 
   return (
     <Card>
       <CardHeader
         title={t('updateTitle')}
+        description={
+          lastUpdatedAt
+            ? t('updateLast', { time: new Date(lastUpdatedAt).toLocaleString() })
+            : t('updateNeverAll')
+        }
         action={
           <Button
             type="button"
@@ -66,7 +74,7 @@ export function RatePriceUpdateCard({
       ) : (
         <ul className="divide-y divide-[var(--sc-border-default)]">
           {accounts.map((account) => {
-            const job = latestFor(account.carrierCode);
+            const job = latestFor(account.id);
             const running = job?.status === 'PENDING' || job?.status === 'RUNNING';
             return (
               <li

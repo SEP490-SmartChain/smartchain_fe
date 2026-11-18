@@ -105,6 +105,8 @@ const result = z
     errorCode: z.string().nullable().optional(),
     lineId: z.uuid().optional(),
     confirmationId: z.uuid().optional(),
+    fulfillmentOrderId: z.uuid().optional(),
+    fulfillmentStatus: z.enum(['PICKING', 'PICKED']).optional(),
     status: z.string().optional(),
     version: z.number().int().optional(),
     pickedQty: z.number().int().optional(),

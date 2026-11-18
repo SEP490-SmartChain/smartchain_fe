@@ -98,6 +98,38 @@ export type SigningRequest = z.infer<typeof signingSchema>;
 export type SellerCommercialState = z.infer<typeof contractsSchema>;
 export type OnboardingInvoice = z.infer<typeof invoicesSchema>['invoices'][number];
 
+const agreementRatesSchema = z.object({
+  service: z.object({
+    code: z.string(),
+    versionNo: z.number(),
+    lines: z.array(
+      z.object({
+        feeType: z.string(),
+        unit: z.string(),
+        lowerBound: z.string(),
+        upperBound: z.string().nullable(),
+        unitPriceVnd: money,
+      }),
+    ),
+  }),
+  freight: z.object({
+    code: z.string(),
+    versionNo: z.number(),
+    lines: z.array(
+      z.object({
+        direction: z.string(),
+        laneCode: z.string(),
+        minWeightG: z.number(),
+        maxWeightG: z.number().nullable(),
+        basePriceVnd: money,
+        stepWeightG: z.number(),
+        stepPriceVnd: money,
+      }),
+    ),
+  }),
+});
+export type AgreementRates = z.infer<typeof agreementRatesSchema>;
+
 const tariffSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
@@ -117,6 +149,27 @@ const termsSchema = z.object({
       salesOrderAllowance: z.number().int().nonnegative().optional(),
       storageAllowanceM3: z.string().optional(),
       includedServices: z.array(z.string()).optional(),
+      publishedAgreementVersionRef: z.string().nullable().optional(),
+      availableAgreementVersionRef: z.string().nullable().optional(),
+      supersededByPlanVersionNo: z.number().int().positive().nullable().optional(),
+      publishedAgreement: z
+        .object({
+          versionRef: z.string(),
+          serviceTariffVersionId: z.string().uuid(),
+          freightTariffVersionId: z.string().uuid(),
+          depositRequiredVnd: money,
+          creditLimitVnd: money,
+          claimCapVnd: money,
+          signerRole: z.string(),
+          templateId: z.string(),
+          compositionMode: z.enum([
+            'EXISTING_FIELDS',
+            'BUSINESS_PROFILE_V1',
+            'ORCA_REFERENCE_16_V1',
+          ]),
+        })
+        .nullable()
+        .optional(),
       effectiveFrom: z.string().datetime().optional(),
       effectiveTo: z.string().datetime().nullable().optional(),
     }),
@@ -298,6 +351,13 @@ export const commercialApi = {
       { signal, silent: true },
     );
     return z.object({ queued: z.boolean() }).parse(data);
+  },
+  async agreementRates(agreementId: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      '/v1/commercial/agreements/' + encodeURIComponent(agreementId) + '/rates',
+      { signal, silent: true },
+    );
+    return agreementRatesSchema.parse(data);
   },
   async preview(agreementId: string, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(

@@ -37,6 +37,12 @@ const quoteResponseSchema = z.object({
           previousPriceVnd: z.number().nullable(),
           deltaPct: z.number().nullable(),
           deliveryDays: z.number().nullable(),
+          expectedDeliveryAt: z
+            .string()
+            .datetime({ offset: true })
+            .nullable()
+            .optional()
+            .default(null),
           isDeliverable: z.boolean(),
           cardPriceVnd: z.number().nullable().default(null),
           cardDeltaPct: z.number().nullable().default(null),

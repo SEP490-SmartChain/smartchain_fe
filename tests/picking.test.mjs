@@ -111,11 +111,15 @@ test('pick actions separate Manager approval from Staff physical execution for s
     false,
   );
 });
-test('physical scan requires positive bounded quantity and all three identities', () => {
+// 18/11/2026: the lot may be left blank; the server accepts it only for a non-expiry SKU whose bin
+// holds one lot (PICK.LOT_SCAN_REQUIRED otherwise). Bin and SKU stay mandatory.
+test('physical scan requires positive bounded quantity, bin and SKU; the lot is server-checked', () => {
   const valid = { binScan: 'BIN-1', skuScan: 'RICE', lotScan: 'LOT-1', qty: 1 };
   assert.equal(schemas.pickScanSchema.safeParse(valid).success, true);
   assert.equal(schemas.pickScanSchema.safeParse({ ...valid, qty: 0 }).success, false);
-  assert.equal(schemas.pickScanSchema.safeParse({ ...valid, lotScan: '' }).success, false);
+  assert.equal(schemas.pickScanSchema.safeParse({ ...valid, binScan: '' }).success, false);
+  assert.equal(schemas.pickScanSchema.safeParse({ ...valid, skuScan: '' }).success, false);
+  assert.equal(schemas.pickScanSchema.safeParse({ ...valid, lotScan: '' }).success, true);
 });
 test('strict operational line refuses financial and blind expected fields', () => {
   const line = {
@@ -194,6 +198,30 @@ test('retry sends the exact same scan reference, payload and warehouse', async (
     await api.pickingApi.execute('warehouse-1', command);
     assert.deepEqual(calls[0], calls[1]);
     assert.equal(calls[0].options.params.warehouseId, 'warehouse-1');
+  } finally {
+    client.post = original;
+  }
+});
+
+test('scan results retain the server parcel identity and whole-parcel status without financial fields', async () => {
+  const original = client.post;
+  const parcelId = '00000000-0000-4000-8000-000000000002';
+  const response = {
+    lineId: parcelId,
+    remainingQty: 0,
+    fulfillmentOrderId: parcelId,
+    fulfillmentStatus: 'PICKING',
+  };
+  try {
+    client.post = async () => ({ data: response });
+    assert.deepEqual(
+      await api.pickingApi.execute('warehouse', { path: 'pick-lines/line/confirm', payload: {} }),
+      response,
+    );
+    client.post = async () => ({ data: { ...response, codAmount: '10000' } });
+    await assert.rejects(
+      api.pickingApi.execute('warehouse', { path: 'pick-lines/line/confirm', payload: {} }),
+    );
   } finally {
     client.post = original;
   }

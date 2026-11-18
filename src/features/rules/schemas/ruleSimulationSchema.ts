@@ -57,7 +57,7 @@ export const simulationRequestSchema = z
   });
 export type SimulationRequest = z.infer<typeof simulationRequestSchema>;
 const action = z.union([
-  z.object({ strategy: z.enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST', 'TOTAL_COST']) }).strict(),
+  z.object({ strategy: z.enum(['NEAREST_WAREHOUSE', 'EXPIRY_FIRST']) }).strict(),
   z
     .object({ carrierServiceId: uuid, fallbackServiceIds: z.array(uuid).max(10) })
     .strict()

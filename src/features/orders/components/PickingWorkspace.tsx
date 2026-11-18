@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
@@ -14,7 +15,6 @@ import {
   Card,
   CardContent,
   Input,
-  PageHeader,
   Select,
 } from '@/components/Common';
 import {
@@ -52,6 +52,18 @@ import {
   pickApprovalSchema,
 } from '../schemas/pickingSchema';
 
+const CLAIM_WAVE_MAX_PARCELS = 20;
+
+/**
+ * Local `datetime-local` value one minute in the past: the server rejects a cut-off in the future
+ * (PICK.INVALID_CUTOFF), and "now" is what an operator taking work means.
+ */
+function currentCutoffInput(): string {
+  const at = new Date(Date.now() - 60_000);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`;
+}
+
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
     revision = useAuthStore((s) => s.revision);
@@ -83,6 +95,20 @@ function PickingScope() {
   const mounted = useRef(true),
     abort = useRef(new AbortController());
   const manager = can('warehouse.picking.manage');
+  const navigate = useNavigate();
+  // One operator holding both warehouse roles assigns the wave to themself (UC-80/81 then UC-82).
+  const canClaim =
+    manager && can('warehouse.picking.confirm') && staff.some((person) => person.id === actorId);
+  const handleClaim = () =>
+    void execute({
+      path: 'waves',
+      payload: {
+        assigneeId: actorId,
+        cutoffAt: new Date(currentCutoffInput()).toISOString(),
+        maxParcels: CLAIM_WAVE_MAX_PARCELS,
+        clientScanId: createUuid(),
+      },
+    });
   useEffect(() => {
     mounted.current = true;
     abort.current = new AbortController();
@@ -242,6 +268,16 @@ function PickingScope() {
       setLineCursor(null);
       setRefresh((x) => x + 1);
       if (result.waveId) setWaveId(result.waveId);
+      if (result.fulfillmentStatus === 'PICKED' && result.fulfillmentOrderId) {
+        setNotice(t('packNext'));
+        void navigate({
+          pathname: '/warehouse/packing',
+          search: new URLSearchParams({
+            warehouse,
+            fulfillment: result.fulfillmentOrderId,
+          }).toString(),
+        });
+      }
     } catch (cause) {
       if (!mounted.current) return;
       if (isRejectedOperation(cause)) {
@@ -262,18 +298,24 @@ function PickingScope() {
   }
   return (
     <div className="space-y-5">
-      <PageHeader title={t('title')} description={t('description')} />
       <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-64 flex-1">
-          <Select
-            label={t('warehouse')}
-            value={warehouse}
-            disabled={!!pending || busy}
-            options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
-            onChange={(e) => setWarehouse(e.target.value)}
-            placeholder={t('chooseWarehouse')}
-          />
-        </div>
+        {warehouses.length === 1 && warehouses[0] ? (
+          <p className="min-w-0 flex-1 text-sm">
+            <span className="text-[var(--sc-text-secondary)]">{t('warehouse')}: </span>
+            <strong>{`${warehouses[0].code} · ${warehouses[0].name}`}</strong>
+          </p>
+        ) : (
+          <div className="min-w-64 flex-1">
+            <Select
+              label={t('warehouse')}
+              value={warehouse}
+              disabled={!!pending || busy}
+              options={warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))}
+              onChange={(e) => setWarehouse(e.target.value)}
+              placeholder={t('chooseWarehouse')}
+            />
+          </div>
+        )}
         <Button
           variant="outline"
           disabled={!!pending || busy || !!waveRequest}
@@ -303,12 +345,27 @@ function PickingScope() {
       )}
       {loading && <p role="status">{t('loading')}</p>}
       {!loading && !warehouses.length && <Alert>{t('noWarehouse')}</Alert>}
+      {warehouse && canClaim && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold">{t('claimTitle')}</h2>
+            <p className="text-sm text-[var(--sc-text-secondary)]">{t('claimHint')}</p>
+          </div>
+          <Button
+            disabled={!!pending || busy || !!waveRequest}
+            isLoading={busy && !waveRequest}
+            onClick={handleClaim}
+          >
+            {t('claimWork')}
+          </Button>
+        </div>
+      )}
       {warehouse && manager && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.9fr)]">
           <Card>
             <CardContent>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-semibold">{t('backlog')}</h2>
+                <h2 className="text-base font-semibold">{t('backlog')}</h2>
                 {backlog && (
                   <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
                     {t('backlogPageTotals', backlog.pageTotals)}
@@ -381,21 +438,26 @@ function PickingScope() {
               )}
             </CardContent>
           </Card>
-          <WaveForm
-            warehouseId={warehouse}
-            staff={staff}
-            disabled={!!pending || busy || !!waveRequest}
-            onSubmit={(values) =>
-              void execute({
-                path: 'waves',
-                payload: {
-                  ...values,
-                  cutoffAt: new Date(values.cutoffAt).toISOString(),
-                  clientScanId: createUuid(),
-                },
-              })
-            }
-          />
+          <details className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-4">
+            <summary className="cursor-pointer font-semibold">{t('createWave')}</summary>
+            <div className="mt-4">
+              <WaveForm
+                warehouseId={warehouse}
+                staff={staff}
+                disabled={!!pending || busy || !!waveRequest}
+                onSubmit={(values) =>
+                  void execute({
+                    path: 'waves',
+                    payload: {
+                      ...values,
+                      cutoffAt: new Date(values.cutoffAt).toISOString(),
+                      clientScanId: createUuid(),
+                    },
+                  })
+                }
+              />
+            </div>
+          </details>
         </div>
       )}
       {warehouse && (
@@ -403,7 +465,7 @@ function PickingScope() {
           <Card>
             <CardContent>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="font-semibold">{t('waves')}</h2>
+                <h2 className="text-base font-semibold">{t('waves')}</h2>
                 {!loading && (
                   <span className="text-xs text-[var(--sc-text-secondary)]">
                     {t('waveCount', { count: waves.length })}
@@ -491,7 +553,7 @@ function PickingScope() {
             <CardContent>
               {!waveId ? (
                 <div className="flex min-h-40 flex-col items-center justify-center px-4 text-center">
-                  <h2 className="font-semibold">{t('chooseWave')}</h2>
+                  <h2 className="text-base font-semibold">{t('chooseWave')}</h2>
                   <p className="mt-1 max-w-md text-sm text-[var(--sc-text-secondary)]">
                     {t('chooseWaveHint')}
                   </p>
@@ -501,7 +563,10 @@ function PickingScope() {
               ) : (
                 <>
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                    <h2 className="min-w-0 break-words font-semibold" title={detail.waveCode}>
+                    <h2
+                      className="min-w-0 break-words text-base font-semibold"
+                      title={detail.waveCode}
+                    >
                       {t('pickList')} ·{' '}
                       {t('waveReference', { code: shortWaveReference(detail.waveCode) })}
                     </h2>
@@ -585,24 +650,24 @@ function WaveForm({
   const t = useTranslations('Picking');
   const f = useForm<z.infer<typeof pickWaveFormSchema>>({
     resolver: zodResolver(pickWaveFormSchema),
-    defaultValues: { assigneeId: '', cutoffAt: '', maxParcels: 20 },
+    defaultValues: { assigneeId: '', cutoffAt: currentCutoffInput(), maxParcels: 20 },
   });
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof pickingApi.previewWave>> | null>(
     null,
   );
   const [previewBusy, setPreviewBusy] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const cutoffAt = f.watch('cutoffAt');
   const maxParcels = f.watch('maxParcels');
   useEffect(() => {
     setPreview(null);
-    setPreviewError(false);
+    setPreviewError(null);
   }, [cutoffAt, maxParcels, warehouseId]);
   const requestPreview = async () => {
     if (!(await f.trigger(['cutoffAt', 'maxParcels']))) return;
     const values = f.getValues();
     setPreviewBusy(true);
-    setPreviewError(false);
+    setPreviewError(null);
     try {
       setPreview(
         await pickingApi.previewWave(
@@ -611,8 +676,9 @@ function WaveForm({
           values.maxParcels,
         ),
       );
-    } catch {
-      setPreviewError(true);
+    } catch (cause) {
+      const code = cause instanceof ApiError ? (cause.code.split('.').at(-1) ?? '') : '';
+      setPreviewError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('previewError'));
     } finally {
       setPreviewBusy(false);
     }
@@ -662,7 +728,7 @@ function WaveForm({
               {preview.candidateScanLimitReached && <p className="mt-1">{t('previewScanLimit')}</p>}
             </div>
           )}
-          {previewError && <Alert variant="warning">{t('previewError')}</Alert>}
+          {previewError && <Alert variant="warning">{previewError}</Alert>}
           <div className="grid gap-2">
             <Button
               className="w-full"
@@ -680,9 +746,9 @@ function WaveForm({
               disabled={
                 disabled ||
                 previewBusy ||
-                !preview ||
-                (preview.proposedParcels === 0 && !preview.candidateScanLimitReached) ||
-                preview.firstParcelTooLarge
+                (!!preview &&
+                  ((preview.proposedParcels === 0 && !preview.candidateScanLimitReached) ||
+                    preview.firstParcelTooLarge))
               }
             >
               {t('createWave')}
@@ -793,14 +859,16 @@ function PickLineCard({
     lotScan: normalizeScannedCode(lotValue ?? '') === line.lotCode,
   };
   return (
-    <section className="rounded-xl border border-[var(--sc-border-default)] p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold">
+    <section className="rounded-xl border border-[var(--sc-border-default)] p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h3 className="min-w-0 break-words text-sm font-semibold">
           {line.productName} · {line.sku}
         </h3>
         <div className="flex flex-wrap items-center gap-2">
           <PickLineLabels waveCode={line.orderCode} lines={[line]} label={t('lineQr')} size="sm" />
-          <p>{t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}</p>
+          <p className="text-sm text-[var(--sc-text-secondary)]">
+            {t('progress', { picked: line.pickedQty, remaining: line.remainingQty })}
+          </p>
         </div>
       </div>
       <p className="mb-2 rounded bg-[var(--sc-bg-secondary)] px-3 py-2 text-sm font-semibold">
@@ -877,69 +945,77 @@ function PickLineCard({
                   v.binScan !== line.binCode
                     ? await resolveScannedBinIfNeeded(v.binScan)
                     : v.binScan;
+                const lotScan = v.lotScan ? normalizeScannedCode(v.lotScan) : '';
                 await execute({
                   path: `pick-lines/${line.id}/confirm`,
                   payload: {
-                    ...v,
                     binScan: resolvedBin,
+                    skuScan: v.skuScan,
+                    ...(lotScan ? { lotScan } : {}),
+                    qty: v.qty,
                     expectedVersion: line.version,
                     clientScanId: createUuid(),
                   },
                 });
               })}
             >
-              {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => (
-                <div key={name} className="space-y-1">
-                  <div className="flex items-end gap-2">
-                    <div className="min-w-0 flex-1">
-                      <Input
-                        label={t(name)}
-                        {...f.register(name, {
-                          setValueAs: (value: string) => normalizeScannedCode(String(value ?? '')),
-                          onChange: () => {
+              {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => {
+                const isLot = name === 'lotScan';
+                return (
+                  <div key={name} className="space-y-1">
+                    <div className="flex items-end gap-2">
+                      <div className="min-w-0 flex-1">
+                        <Input
+                          label={isLot ? t('lotOptional') : t(name)}
+                          {...f.register(name, {
+                            setValueAs: (value: string) =>
+                              normalizeScannedCode(String(value ?? '')),
+                            onChange: () => {
+                              if (name === 'binScan') {
+                                binLookupSeq.current += 1;
+                                binLookupAbort.current?.abort();
+                                setResolvingBin(false);
+                              }
+                            },
+                          })}
+                          disabled={disabled}
+                          required={!isLot}
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Enter') return;
+                            event.preventDefault();
                             if (name === 'binScan') {
-                              binLookupSeq.current += 1;
-                              binLookupAbort.current?.abort();
-                              setResolvingBin(false);
+                              void resolveScannedBinIfNeeded(f.getValues('binScan') ?? '');
                             }
-                          },
-                        })}
+                            f.setFocus(getNextPickScanField(name));
+                          }}
+                          error={f.formState.errors[name] ? t('required') : undefined}
+                        />
+                      </div>
+                      <BarcodeScanButton
+                        label={t(`scanCamera.${name}`)}
                         disabled={disabled}
-                        required
-                        onKeyDown={(event) => {
-                          if (event.key !== 'Enter') return;
-                          event.preventDefault();
-                          if (name === 'binScan') {
-                            void resolveScannedBinIfNeeded(f.getValues('binScan') ?? '');
-                          }
-                          f.setFocus(getNextPickScanField(name));
-                        }}
-                        error={f.formState.errors[name] ? t('required') : undefined}
+                        iconOnly
+                        onScan={(code) => applyCameraScan(name, code)}
                       />
                     </div>
-                    <BarcodeScanButton
-                      label={t(`scanCamera.${name}`)}
-                      disabled={disabled}
-                      iconOnly
-                      onScan={(code) => applyCameraScan(name, code)}
-                    />
+                    {name === 'binScan' && resolvingBin && (
+                      <p className="text-xs text-[var(--sc-text-secondary)]" role="status">
+                        {t('resolvingBin')}
+                      </p>
+                    )}
+                    {matchedByField[name] && (
+                      <p className="text-xs font-medium text-[var(--sc-status-success-text,#0f766e)]">
+                        {t('matchedCode')}
+                      </p>
+                    )}
                   </div>
-                  {name === 'binScan' && resolvingBin && (
-                    <p className="text-xs text-[var(--sc-text-secondary)]" role="status">
-                      {t('resolvingBin')}
-                    </p>
-                  )}
-                  {matchedByField[name] && (
-                    <p className="text-xs font-medium text-[var(--sc-status-success-text,#0f766e)]">
-                      {t('matchedCode')}
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
               <Input
                 type="number"
                 label={t('qty')}
                 {...f.register('qty', { valueAsNumber: true })}
+                onFocus={(event) => event.currentTarget.select()}
                 disabled={disabled}
                 required
                 min={1}

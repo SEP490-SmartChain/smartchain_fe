@@ -73,3 +73,66 @@ export function jobErrorKey(code: string | null): JobErrorKey {
   }
   return 'UNKNOWN';
 }
+
+/** Seller delivery preferences, including the combined price/time objective. */
+export type DeliveryTierFilter = 'ALL' | 'ECONOMY' | 'BALANCED' | 'EXPRESS';
+
+/** Which recommendation marks a price cell shows for the chosen delivery tier. */
+export function tierHighlights(tier: DeliveryTierFilter): {
+  isCheapestShown: boolean;
+  isFastestShown: boolean;
+} {
+  return {
+    isCheapestShown: tier === 'ALL' || tier === 'ECONOMY',
+    isFastestShown: tier === 'ALL' || tier === 'EXPRESS',
+  };
+}
+
+/** When carrier API prices last finished updating, or null if no update has finished yet. */
+export function latestPriceUpdate(
+  jobs: readonly { status: string; finishedAt: string | null; source: string }[],
+): string | null {
+  let latest: string | null = null;
+  for (const job of jobs) {
+    if (job.source === 'CONTRACT_IMPORT' || !job.finishedAt) continue;
+    if (job.status !== 'SUCCEEDED' && job.status !== 'PARTIAL') continue;
+    if (latest === null || Date.parse(job.finishedAt) > Date.parse(latest)) latest = job.finishedAt;
+  }
+  return latest;
+}
+
+/** Same normalized 70% price / 30% ETA score used for packed-parcel carrier selection. */
+export function balancedServiceId(
+  quotes: readonly {
+    serviceId: string;
+    priceVnd: number | null;
+    deliveryDays: number | null;
+    isDeliverable: boolean;
+  }[],
+  comparable: ReadonlySet<string>,
+): string | null {
+  const eligible = quotes.filter(
+    (quote) =>
+      quote.isDeliverable &&
+      comparable.has(quote.serviceId) &&
+      quote.priceVnd !== null &&
+      Number.isSafeInteger(quote.priceVnd) &&
+      quote.priceVnd > 0 &&
+      quote.deliveryDays !== null &&
+      Number.isFinite(quote.deliveryDays) &&
+      quote.deliveryDays >= 0,
+  );
+  if (eligible.length < 2) return null;
+  const prices = eligible.map((quote) => quote.priceVnd!);
+  const days = eligible.map((quote) => quote.deliveryDays!);
+  const normalize = (value: number, values: readonly number[]) => {
+    const min = Math.min(...values),
+      max = Math.max(...values);
+    return max === min ? 0 : (value - min) / (max - min);
+  };
+  const score = (quote: (typeof eligible)[number]) =>
+    0.7 * normalize(quote.priceVnd!, prices) + 0.3 * normalize(quote.deliveryDays!, days);
+  return [...eligible].sort(
+    (a, b) => score(a) - score(b) || a.priceVnd! - b.priceVnd! || a.deliveryDays! - b.deliveryDays!,
+  )[0].serviceId;
+}

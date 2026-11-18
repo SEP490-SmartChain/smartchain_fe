@@ -83,6 +83,7 @@ export function ManualOrderForm({
       entryMode: 'DIRECT',
       collectionAmount: '',
       deliveryNote: '',
+      deliveryTier: 'ECONOMY',
       goodsPaymentMode: 'COD',
       paymentBreakdown: {
         discountAmount: '0',
@@ -545,6 +546,15 @@ export function ManualOrderForm({
           </section>
           {direct && (
             <section className="space-y-4">
+              <Select
+                label={t('deliveryTier')}
+                {...form.register('deliveryTier')}
+                options={[
+                  { value: 'ECONOMY', label: t('deliveryTierEconomy') },
+                  { value: 'BALANCED', label: t('deliveryTierBalanced') },
+                  { value: 'EXPRESS', label: t('deliveryTierExpress') },
+                ]}
+              />
               <Input
                 label={t('collectionAmount')}
                 inputMode="numeric"
@@ -559,12 +569,20 @@ export function ManualOrderForm({
                 maxLength={500}
                 error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
               />
-              <Alert>{t('freightSeparateHint')}</Alert>
             </section>
           )}
           {!direct && (
             <section className="space-y-4">
               <h3 className="text-lg font-semibold">{t('payment_section')}</h3>
+              <Select
+                label={t('deliveryTier')}
+                {...form.register('deliveryTier')}
+                options={[
+                  { value: 'ECONOMY', label: t('deliveryTierEconomy') },
+                  { value: 'BALANCED', label: t('deliveryTierBalanced') },
+                  { value: 'EXPRESS', label: t('deliveryTierExpress') },
+                ]}
+              />
               <Input
                 label={t('deliveryNote')}
                 {...form.register('deliveryNote')}

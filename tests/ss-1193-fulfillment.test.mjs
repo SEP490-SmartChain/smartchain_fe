@@ -60,6 +60,15 @@ test('operational packing payload rejects backend financial-field leakage', asyn
   try {
     client.get = async () => ({ data: detail });
     assert.equal((await api.packingApi.detail(id, id)).orderCode, 'SYNTHETIC');
+    client.get = async () => ({ data: { ...detail, id: '00000000-0000-4000-8000-000000000099' } });
+    await assert.rejects(api.packingApi.detail(id, id), /Parcel identity mismatch/);
+    client.get = async () => {
+      throw new Error('Invalid IDs must not reach the network');
+    };
+    await assert.rejects(
+      api.packingApi.detail(id, '../another-parcel'),
+      (error) => error.name === 'ZodError',
+    );
     for (const field of ['codAmount', 'unitPrice', 'invoice', 'encryptedCredentials']) {
       client.get = async () => ({ data: { ...detail, [field]: 'secret' } });
       await assert.rejects(api.packingApi.detail(id, id));

@@ -46,7 +46,7 @@ data, desktop and 390px mobile layouts were checked for SS-1022.
 
 ## SS-999 service tariffs
 
-The fulfillment-services tab on `/admin/tariffs` uses the shared `tariffs.manage`
+The service fees tab (`Phí dịch vụ`) on `/admin/tariffs` uses the shared `tariffs.manage`
 policy for PLATFORM Admin/Accountant, with no additional seller or warehouse
 access. Requests use `/v1/commercial/service-tariffs`; the backend rechecks live
 roles and RLS. Service tariff authority does not grant plan publication.
@@ -62,6 +62,8 @@ Test contracts: `service-tariff-schema.test.mjs`, `service-tariff-api.test.mjs`.
 The UI configures rates; it cannot post seller fees or calculate ledger balances.
 
 ## SS-990 ORCA commercial onboarding
+
+Admin rows show the plan version, published bilateral agreement reference and signing availability. Initial publication lists available Basic or Standard versions without published terms. Replacement loads the published tariffs, commercial amounts, layout and SignNow configuration for that plan version, with a new agreement reference required. Superseded plan versions remain visible in the table for review.
 
 Baseline: UC-08–UC-13 and BR-59; existing identity UC-01–UC-05 is reused.
 Historical FE identifiers below are not the SS-990 requirement mapping.
@@ -94,11 +96,13 @@ and ASN create/submit controls require ACTIVE service; read, profile, contract,
 payment and eligible cancellation remain available. Backend gates are authoritative.
 Navigation, browser focus and the status refresh action recheck the profile.
 
-Custom inquiries load their persisted own-seller history from
-`GET /v1/commercial/custom-inquiries`, including after a page reload and after a
-contract is created. A pending inquiry replaces the new-request form with its
-history. Dates use Asia/Ho_Chi_Minh; failed loads show a retry without enabling an
-unverified duplicate request. The API serializes concurrent fresh references.
+While the seller is pending activation and has no current contract, custom
+inquiries load their persisted own-seller history from
+`GET /v1/commercial/custom-inquiries`, including after a page reload. A pending
+inquiry replaces the new-request form with its history. The entire inquiry panel
+is hidden once the seller has a current contract. Dates use Asia/Ho_Chi_Minh;
+failed loads show a retry without enabling an unverified duplicate request. The
+API serializes concurrent fresh references.
 Regression coverage: `tests/seller-subscription.test.mjs`, plus backend PostgreSQL
 custom-inquiry concurrency and ASN service-state integration suites.
 

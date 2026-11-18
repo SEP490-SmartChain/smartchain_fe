@@ -1,9 +1,14 @@
+import { useEffect, useRef } from 'react';
+
 import { LoaderCircle } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/Common/Button/Button';
 
-import { requestGooglePrompt, setGoogleCredentialHandler } from '../lib/googleIdentityServices';
+import {
+  renderGoogleSignInButton,
+  setGoogleCredentialHandler,
+} from '../lib/googleIdentityServices';
 
 export interface GoogleSignInButtonProps {
   onCredential: (idToken: string) => void;
@@ -22,33 +27,52 @@ export function GoogleSignInButton({
   loading = false,
 }: GoogleSignInButtonProps) {
   const t = useTranslations('Auth');
+  const locale = useLocale();
+  const container = useRef<HTMLDivElement>(null);
+  const onCredentialRef = useRef(onCredential);
   const isDisabled = disabled || loading;
   const label = t(loading ? 'google_sign_in_loading' : 'google_sign_in');
 
-  const handleClick = () => {
-    if (isDisabled) return;
-    setGoogleCredentialHandler(onCredential);
-    requestGooglePrompt();
-  };
+  useEffect(() => {
+    onCredentialRef.current = onCredential;
+  }, [onCredential]);
+
+  useEffect(() => {
+    const parent = container.current;
+    if (isDisabled || !parent) return;
+    setGoogleCredentialHandler((token) => onCredentialRef.current(token));
+    renderGoogleSignInButton(parent, locale);
+    return () => {
+      parent.replaceChildren();
+    };
+  }, [isDisabled, locale]);
 
   return (
     <div className="w-full">
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={handleClick}
-        disabled={isDisabled}
-        aria-label={label}
-        aria-busy={loading ? true : undefined}
-        className="h-[42px] w-full gap-2.5 font-medium focus-visible:border-[var(--sc-primary)] focus-visible:shadow-[var(--sc-shadow-focus)] focus-visible:outline-none"
-      >
-        {loading ? (
-          <LoaderCircle aria-hidden="true" className="animate-spin" size={18} />
-        ) : (
-          <GoogleLogo />
-        )}
-        <span>{label}</span>
-      </Button>
+      {!isDisabled && (
+        <div
+          ref={container}
+          aria-label={label}
+          className="flex min-h-[42px] w-full justify-center"
+        />
+      )}
+      {isDisabled && (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isDisabled}
+          aria-label={label}
+          aria-busy={loading ? true : undefined}
+          className="h-[42px] w-full gap-2.5 font-medium focus-visible:border-[var(--sc-primary)] focus-visible:shadow-[var(--sc-shadow-focus)] focus-visible:outline-none"
+        >
+          {loading ? (
+            <LoaderCircle aria-hidden="true" className="animate-spin" size={18} />
+          ) : (
+            <GoogleLogo />
+          )}
+          <span>{label}</span>
+        </Button>
+      )}
 
       <div className="my-4 flex items-center gap-3">
         <span aria-hidden="true" className="h-px flex-1 bg-[var(--sc-border-default)]" />

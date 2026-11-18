@@ -55,6 +55,9 @@ const ExceptionsPage = React.lazy(() => import('@/pages/workspace/ExceptionsPage
 const AdminWarehousesPage = React.lazy(() => import('@/pages/admin/AdminWarehousesPage'));
 const WarehouseInboundPage = React.lazy(() => import('@/pages/warehouse/InboundPage'));
 const WarehouseInboundLayoutPage = React.lazy(() => import('@/pages/warehouse/InboundLayoutPage'));
+const WarehouseOutboundLayoutPage = React.lazy(
+  () => import('@/pages/warehouse/OutboundLayoutPage'),
+);
 const WarehouseReceivingPage = React.lazy(() => import('@/pages/warehouse/ReceivingPage'));
 const WarehousePutawayPage = React.lazy(() => import('@/pages/warehouse/PutawayPage'));
 const InventoryWorkflowsPage = React.lazy(() => import('@/pages/warehouse/InventoryWorkflowsPage'));
@@ -162,9 +165,11 @@ function App() {
                     element={<InventoryWorkflowsPage />}
                   />
                   <Route path="/inventory/workflows" element={<InventoryWorkflowsPage />} />
-                  <Route path="/warehouse/picking" element={<WarehousePickingPage />} />
-                  <Route path="/warehouse/packing" element={<WarehousePackingPage />} />
-                  <Route path="/warehouse/handover" element={<WarehouseHandoverPage />} />
+                  <Route element={<WarehouseOutboundLayoutPage />}>
+                    <Route path="/warehouse/picking" element={<WarehousePickingPage />} />
+                    <Route path="/warehouse/packing" element={<WarehousePackingPage />} />
+                    <Route path="/warehouse/handover" element={<WarehouseHandoverPage />} />
+                  </Route>
                   <Route path="/warehouse/returns" element={<WarehouseReturnsPage />} />
                   <Route path="/warehouse/counts" element={<WarehouseCountsPage />} />
                   <Route

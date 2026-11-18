@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
   ArrowDown,
@@ -43,11 +43,28 @@ import type { RuleKind, RuleRecord } from '../types/rule.types';
 function ScopedRules() {
   const t = useTranslations('Rules');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { can } = useAccess();
   const canOperate = can('routing.rule.set');
-  const [kind, setKind] = useState<RuleKind>('ALLOCATION');
+  const [kind, setKind] = useState<RuleKind>(
+    searchParams.get('kind') === 'CARRIER' ? 'CARRIER' : 'ALLOCATION',
+  );
   const { items, isLoading, error, reload } = useRuleList(kind, t('loadError'));
   const [order, setOrder] = useState<RuleRecord[]>([]);
+  const scrolledFor = useRef<string | null>(null);
+  const linkedIdsParam = searchParams.get('ruleIds') ?? '';
+  const linkedRuleIds = useMemo(
+    () =>
+      new Set(
+        linkedIdsParam
+          .split(',')
+          .slice(0, 100)
+          .filter((id) =>
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id),
+          ),
+      ),
+    [linkedIdsParam],
+  );
   const [editor, setEditor] = useState<{ rule: RuleRecord | null } | null>(null);
   const [history, setHistory] = useState<RuleRecord | null>(null);
   const [command, setCommand] = useState<Command | null>(null);
@@ -56,6 +73,23 @@ function ScopedRules() {
   useEffect(() => {
     setOrder(items);
   }, [items]);
+  useEffect(() => {
+    setKind(searchParams.get('kind') === 'CARRIER' ? 'CARRIER' : 'ALLOCATION');
+  }, [searchParams]);
+  useEffect(() => {
+    if (
+      kind !== 'CARRIER' ||
+      isLoading ||
+      !linkedIdsParam ||
+      scrolledFor.current === linkedIdsParam
+    ) {
+      return;
+    }
+    const first = order.find((rule) => linkedRuleIds.has(rule.id));
+    if (!first) return;
+    scrolledFor.current = linkedIdsParam;
+    document.getElementById(`routing-rule-${first.id}`)?.scrollIntoView({ block: 'center' });
+  }, [kind, isLoading, order, linkedIdsParam, linkedRuleIds]);
   useEffect(() => {
     if (kind !== 'CARRIER') return;
     const controller = new AbortController();
@@ -80,6 +114,7 @@ function ScopedRules() {
     setCommand(null);
     setOrder([]);
     setKind(value);
+    setSearchParams(value === 'CARRIER' ? { kind: 'CARRIER' } : {});
   };
   const moved = (from: string, to: string) => {
     if (canOperate && !modalOpen && !isLoading) setOrder((prev) => moveRule(prev, from, to));
@@ -100,10 +135,7 @@ function ScopedRules() {
           actions={
             <div className="flex gap-2">
               {canOperate && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/admin/tariffs?tab=intelligence')}
-                >
+                <Button variant="outline" onClick={() => navigate('/admin/tariffs?tab=selection')}>
                   {t('suggestFromPrices')}
                 </Button>
               )}
@@ -185,8 +217,10 @@ function ScopedRules() {
             {order.map((rule, index) => (
               <li
                 key={rule.id}
+                id={`routing-rule-${rule.id}`}
                 className={cn(
                   'rounded-2xl border border-l-4 border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-4 transition-shadow duration-150 hover:shadow-[var(--sc-shadow-button)]',
+                  linkedRuleIds.has(rule.id) && 'ring-2 ring-[var(--sc-primary)]',
                   rule.isEnabled
                     ? 'border-l-[var(--sc-primary)]'
                     : 'border-l-[var(--sc-border-strong)]',
@@ -256,6 +290,9 @@ function ScopedRules() {
                       />
                       {rule.id === defaultRule?.id && (
                         <Badge status="info" label={t('defaultRule')} />
+                      )}
+                      {linkedRuleIds.has(rule.id) && (
+                        <Badge status="info" label={t('fromProposal')} />
                       )}
                       {rule.publishedVersion !== null && rule.version > rule.publishedVersion && (
                         <Badge status="warning" label={t('draftChanges')} />

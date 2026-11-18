@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronRight, FileSignature, Layers, Plus, RefreshCw } from 'lucide-react';
+import { Eye, FileSignature, Layers, Plus, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { z } from 'zod';
 
@@ -18,6 +18,7 @@ import { Tabs } from '@/components/Common/Tabs/Tabs';
 import { useAuthStore } from '@/stores/authStore';
 
 import { commercialApi, type PublishedCommercialTerms } from '../api/commercialApi';
+import { freightTariffLabel } from '../lib/freightTariffLabel';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
 const planSchema = z.object({
@@ -42,11 +43,33 @@ const agreementSchema = z.object({
   creditLimitVnd: money,
   claimCapVnd: money,
 });
+const agreementDefaults: z.infer<typeof agreementSchema> = {
+  planVersionId: '',
+  serviceTariffVersionId: '',
+  freightTariffVersionId: '',
+  versionRef: '',
+  signerRole: 'Role 1',
+  templateId: '',
+  compositionMode: 'EXISTING_FIELDS',
+  depositRequiredVnd: '3000000',
+  creditLimitVnd: '5000000',
+  claimCapVnd: '20000000',
+};
+type AdminPlan = PublishedCommercialTerms['plans'][number];
+
+function canPublishPlan(plan: AdminPlan, now: number): boolean {
+  return (
+    (plan.code === 'BASIC' || plan.code === 'STANDARD') &&
+    !plan.supersededByPlanVersionNo &&
+    (!plan.effectiveTo || Date.parse(plan.effectiveTo) > now)
+  );
+}
 
 export function CommercialPlanAdmin() {
   const t = useTranslations('CommercialAdmin');
   const locale = useLocale();
   const [activeTab, setActiveTab] = useState('versions');
+  const [replacementPlanId, setReplacementPlanId] = useState<string | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [terms, setTerms] = useState<PublishedCommercialTerms | null>(null);
@@ -72,18 +95,11 @@ export function CommercialPlanAdmin() {
   });
   const agreement = useForm<z.infer<typeof agreementSchema>>({
     resolver: zodResolver(agreementSchema),
-    defaultValues: {
-      planVersionId: '',
-      serviceTariffVersionId: '',
-      freightTariffVersionId: '',
-      versionRef: '',
-      signerRole: 'Role 1',
-      templateId: '',
-      compositionMode: 'EXISTING_FIELDS',
-      depositRequiredVnd: '3000000',
-      creditLimitVnd: '5000000',
-      claimCapVnd: '20000000',
-    },
+    defaultValues: agreementDefaults,
+  });
+  const [planVersionId, serviceTariffVersionId, freightTariffVersionId] = useWatch({
+    control: agreement.control,
+    name: ['planVersionId', 'serviceTariffVersionId', 'freightTariffVersionId'],
   });
   const current = () => active.current && revision === useAuthStore.getState().revision;
   const reload = async (signal?: AbortSignal) => {
@@ -150,7 +166,37 @@ export function CommercialPlanAdmin() {
       if (current()) setBusy(false);
     }
   });
+  const replacement = terms?.plans.find(
+    (item) => item.id === replacementPlanId,
+  )?.publishedAgreement;
+  const now = Date.now();
+  const eligiblePlans =
+    terms?.plans.filter((item) => {
+      if (!canPublishPlan(item, now)) return false;
+      return replacementPlanId
+        ? item.id === replacementPlanId && Boolean(item.publishedAgreement)
+        : !item.publishedAgreementVersionRef;
+    }) ?? [];
   const publish = agreement.handleSubmit(async (value) => {
+    if (!eligiblePlans.some((item) => item.id === value.planVersionId)) return;
+    if (terms?.plans.some((item) => item.publishedAgreementVersionRef === value.versionRef)) {
+      agreement.setError('versionRef', { type: 'manual', message: t('agreementRefAlreadyUsed') });
+      return;
+    }
+    if (!terms?.serviceTariffs.some((item) => item.id === value.serviceTariffVersionId)) {
+      agreement.setError('serviceTariffVersionId', {
+        type: 'manual',
+        message: t('chooseCurrentTariff'),
+      });
+      return;
+    }
+    if (!terms.freightTariffs.some((item) => item.id === value.freightTariffVersionId)) {
+      agreement.setError('freightTariffVersionId', {
+        type: 'manual',
+        message: t('chooseCurrentTariff'),
+      });
+      return;
+    }
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -161,6 +207,9 @@ export function CommercialPlanAdmin() {
       );
       if (current()) {
         setNotice(t('agreementSaved'));
+        agreement.reset(agreementDefaults);
+        setReplacementPlanId(null);
+        setActiveTab('versions');
         await reload(controller.current?.signal);
       }
     } catch (failure) {
@@ -169,10 +218,51 @@ export function CommercialPlanAdmin() {
       if (current()) setBusy(false);
     }
   });
+  const openAgreement = (item: AdminPlan) => {
+    const published = item.publishedAgreement;
+    if (item.publishedAgreementVersionRef && !published) {
+      setError(t('agreementSettingsUnavailable'));
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    agreement.reset({
+      ...agreementDefaults,
+      ...published,
+      planVersionId: item.id,
+      versionRef: '',
+      claimCapVnd:
+        published?.claimCapVnd ??
+        (item.code === 'STANDARD' ? '35000000' : agreementDefaults.claimCapVnd),
+      compositionMode:
+        published?.compositionMode === 'BUSINESS_PROFILE_V1'
+          ? 'BUSINESS_PROFILE_V1'
+          : 'EXISTING_FIELDS',
+    });
+    setReplacementPlanId(published ? item.id : null);
+    setActiveTab('agreement');
+  };
   const fields = (key: keyof z.infer<typeof planSchema>) =>
     plan.formState.errors[key] ? t('invalid') : undefined;
-  const agreementError = (key: keyof z.infer<typeof agreementSchema>) =>
-    agreement.formState.errors[key] ? t('invalid') : undefined;
+  const agreementError = (key: keyof z.infer<typeof agreementSchema>) => {
+    const fieldError = agreement.formState.errors[key];
+    return fieldError?.type === 'manual'
+      ? fieldError.message
+      : fieldError
+        ? t('invalid')
+        : undefined;
+  };
+  const tariffOptions = (
+    tariffs: PublishedCommercialTerms['serviceTariffs'],
+    previousId?: string,
+    labelOf: (item: PublishedCommercialTerms['serviceTariffs'][number]) => string = (item) =>
+      `${item.code} · v${item.versionNo}`,
+  ) => [
+    ...tariffs.map((item) => ({ value: item.id, label: labelOf(item) })),
+    ...(previousId && !tariffs.some((item) => item.id === previousId)
+      ? [{ value: previousId, label: t('previousTariffUnavailable'), disabled: true }]
+      : []),
+  ];
   const section =
     'space-y-5 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-6';
   const tabs = [
@@ -184,10 +274,20 @@ export function CommercialPlanAdmin() {
       icon: <FileSignature size={16} aria-hidden="true" />,
     },
   ];
-  const formatVnd = (amount: string) => `${BigInt(amount).toLocaleString(locale)} VND`;
+  const formatVnd = (amount?: string) => {
+    if (!amount) return '—';
+    try {
+      return `${BigInt(amount).toLocaleString(locale)} VND`;
+    } catch {
+      return `${amount} VND`;
+    }
+  };
   const formatDate = (value: string) =>
     new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const selectedVersion = terms?.plans.find((item) => item.id === selectedVersionId);
+  const sortedPlans = [...(terms?.plans ?? [])].sort(
+    (a, b) => a.code.localeCompare(b.code) || b.versionNo - a.versionNo,
+  );
   const openDetails = async (item: PublishedCommercialTerms['plans'][number]) => {
     setSelectedVersionId(item.id);
     if (item.warehouseAllowance !== undefined || loadingDetails) return;
@@ -198,6 +298,7 @@ export function CommercialPlanAdmin() {
       if (current()) setLoadingDetails(false);
     }
   };
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -212,21 +313,30 @@ export function CommercialPlanAdmin() {
               void reload(controller.current?.signal);
             }}
           >
-            <RefreshCw size={16} aria-hidden="true" />
+            <RefreshCw size={15} aria-hidden="true" className={busy ? 'animate-spin' : ''} />
             {t('refresh')}
           </Button>
         }
       />
+
       {error && <Alert variant="error">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
+
       <Tabs
         id="commercial-plan"
         label={t('title')}
         tabs={tabs}
         activeId={activeTab}
-        onChange={setActiveTab}
+        onChange={(tab) => {
+          if (tab !== 'agreement' && replacementPlanId) {
+            setReplacementPlanId(null);
+            agreement.reset(agreementDefaults);
+          }
+          setActiveTab(tab);
+        }}
         disabled={busy}
       />
+
       <section
         role="tabpanel"
         id="commercial-plan-panel-versions"
@@ -235,76 +345,133 @@ export function CommercialPlanAdmin() {
         className="overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]"
       >
         {!terms && !error && (
-          <p className="m-0 px-5 py-6 text-sm" role="status">
+          <p className="m-0 px-5 py-6 text-sm text-[var(--sc-text-secondary)]" role="status">
             {t('loading')}
           </p>
         )}
         {terms?.plans.length === 0 && (
-          <p className="m-0 px-5 py-6 text-sm">{t('noPlanVersions')}</p>
+          <p className="m-0 px-5 py-6 text-sm text-[var(--sc-text-secondary)]">
+            {t('noPlanVersions')}
+          </p>
         )}
         {!!terms?.plans.length && (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[510px] border-collapse text-left text-sm">
-              <thead className="bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]">
+            <table
+              aria-label={t('agreementStatus')}
+              className="w-full min-w-[850px] border-collapse text-left text-sm"
+            >
+              <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] text-xs font-semibold text-[var(--sc-text-secondary)]">
                 <tr>
-                  <th scope="col" className="px-4 py-3 font-medium sm:px-6">
+                  <th scope="col" className="px-4 py-3">
                     {t('planName')}
                   </th>
-                  <th scope="col" className="px-4 py-3 font-medium">
+                  <th scope="col" className="whitespace-nowrap px-3 py-3">
                     {t('planVersion')}
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium sm:px-6">
+                  <th scope="col" className="whitespace-nowrap px-3 py-3 text-right">
                     {t('monthlyFee')}
                   </th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">
-                    <span className="sr-only">{t('planDetailsAction')}</span>
+                  <th scope="col" className="whitespace-nowrap px-3 py-3">
+                    {t('agreementStatus')}
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    {t('agreementRef')}
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right">
+                    {t('actions')}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--sc-border-default)]">
-                {terms.plans.map((item) => (
+                {sortedPlans.map((item) => (
                   <tr
                     key={item.id}
-                    className="group transition-colors hover:bg-[var(--sc-bg-secondary)]"
+                    className="transition-colors hover:bg-[var(--sc-bg-secondary)]/40"
                   >
-                    <th scope="row" className="px-4 py-3 font-medium sm:px-6">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <button
+                    <th scope="row" className="min-w-36 px-4 py-3 text-[var(--sc-text-primary)]">
+                      <div className="space-y-1.5">
+                        <div className="font-semibold leading-snug">{item.name}</div>
+                        <Badge
+                          status={item.code === 'BASIC' ? 'default' : 'info'}
+                          label={item.code}
+                        />
+                      </div>
+                    </th>
+                    <td className="whitespace-nowrap px-3 py-3">
+                      <Badge
+                        status="default"
+                        variant="outline"
+                        label={t('planVersionTag', { version: item.versionNo })}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right">
+                      <span className="text-sm font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                        {formatVnd(item.monthlyFeeVnd)}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-3">
+                      {item.code === 'ENTERPRISE' ? (
+                        <Badge status="info" label={t('customAgreement')} />
+                      ) : item.supersededByPlanVersionNo ? (
+                        <div className="space-y-1">
+                          <Badge status="default" label={t('agreementSuperseded')} />
+                          <div className="text-xs text-[var(--sc-text-secondary)]">
+                            {t('agreementSupersededBy', {
+                              version: item.supersededByPlanVersionNo,
+                            })}
+                          </div>
+                        </div>
+                      ) : item.availableAgreementVersionRef ? (
+                        <Badge status="success" label={t('agreementPublished')} />
+                      ) : item.publishedAgreementVersionRef ? (
+                        <Badge status="warning" label={t('agreementUnavailable')} />
+                      ) : (
+                        <Badge status="default" label={t('agreementUnpublished')} />
+                      )}
+                    </td>
+                    <td className="min-w-36 max-w-56 px-3 py-3">
+                      {item.publishedAgreementVersionRef ? (
+                        <span className="select-all break-words font-mono text-xs font-semibold text-[var(--sc-text-primary)]">
+                          {item.publishedAgreementVersionRef}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[var(--sc-text-tertiary)]">—</span>
+                      )}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canPublishPlan(item, now) && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={item.publishedAgreementVersionRef ? 'outline' : 'primary'}
+                            onClick={() => openAgreement(item)}
+                            disabled={busy}
+                          >
+                            <FileSignature size={15} aria-hidden="true" />
+                            {t(
+                              item.publishedAgreementVersionRef
+                                ? 'replaceAgreementAction'
+                                : 'publishAgreement',
+                            )}
+                          </Button>
+                        )}
+                        <Button
                           type="button"
-                          className="rounded text-left font-semibold text-[var(--sc-text-primary)] hover:text-[var(--sc-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => void openDetails(item)}
                           aria-label={t('planDetailsLabel', {
                             name: item.name,
                             version: item.versionNo,
                           })}
                         >
-                          {item.name}
-                        </button>
-                        <Badge
-                          status={item.code === 'ENTERPRISE' ? 'info' : 'default'}
-                          label={item.code}
-                        />
+                          <Eye size={15} aria-hidden="true" />
+                          <span className="hidden 2xl:inline">{t('viewDetails')}</span>
+                        </Button>
                       </div>
-                    </th>
-                    <td className="px-4 py-3 text-[var(--sc-text-secondary)]">v{item.versionNo}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums sm:px-6">
-                      {formatVnd(item.monthlyFeeVnd)}
-                    </td>
-                    <td className="w-px px-4 py-2 text-right">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        aria-label={t('planDetailsLabel', {
-                          name: item.name,
-                          version: item.versionNo,
-                        })}
-                        tabIndex={-1}
-                        className="!size-8 !rounded-full !px-0 text-[var(--sc-text-secondary)] group-hover:bg-[var(--sc-primary-alpha-08)] group-hover:text-[var(--sc-primary)]"
-                        onClick={() => void openDetails(item)}
-                      >
-                        <ChevronRight size={17} aria-hidden />
-                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -413,6 +580,10 @@ export function CommercialPlanAdmin() {
         hidden={activeTab !== 'agreement'}
       >
         <form onSubmit={publish} className={section}>
+          {replacementPlanId && <Alert variant="info">{t('replaceAgreementHelp')}</Alert>}
+          {terms && eligiblePlans.length === 0 && (
+            <Alert variant="info">{t('noEligibleAgreementPlans')}</Alert>
+          )}
           {terms && (!terms.serviceTariffs.length || !terms.freightTariffs.length) && (
             <Alert variant="warning">{t('tariffsMissing')}</Alert>
           )}
@@ -422,16 +593,14 @@ export function CommercialPlanAdmin() {
               isRequired
               error={agreementError('planVersionId')}
               placeholder={t('choose')}
-              options={
-                terms?.plans
-                  .filter((item) => item.code === 'BASIC' || item.code === 'STANDARD')
-                  .map((item) => ({
-                    value: item.id,
-                    label: `${item.name} · v${item.versionNo} · ${formatVnd(item.monthlyFeeVnd)}`,
-                  })) ?? []
-              }
+              options={eligiblePlans.map((item) => ({
+                value: item.id,
+                label: `${item.name} · v${item.versionNo} · ${formatVnd(item.monthlyFeeVnd)}`,
+              }))}
+              value={planVersionId}
               {...agreement.register('planVersionId', {
                 onChange: (event) => {
+                  if (replacementPlanId) return;
                   const selected = terms?.plans.find((item) => item.id === event.target.value);
                   if (selected?.code === 'BASIC') agreement.setValue('claimCapVnd', '20000000');
                   if (selected?.code === 'STANDARD') agreement.setValue('claimCapVnd', '35000000');
@@ -440,6 +609,9 @@ export function CommercialPlanAdmin() {
             />
             <Input
               label={t('agreementVersion')}
+              helperText={
+                replacement ? t('newAgreementRefHint', { ref: replacement.versionRef }) : undefined
+              }
               isRequired
               error={agreementError('versionRef')}
               {...agreement.register('versionRef')}
@@ -449,12 +621,11 @@ export function CommercialPlanAdmin() {
               isRequired
               error={agreementError('serviceTariffVersionId')}
               placeholder={t('choose')}
-              options={
-                terms?.serviceTariffs.map((item) => ({
-                  value: item.id,
-                  label: `${item.code} · v${item.versionNo}`,
-                })) ?? []
-              }
+              options={tariffOptions(
+                terms?.serviceTariffs ?? [],
+                replacement?.serviceTariffVersionId,
+              )}
+              value={serviceTariffVersionId}
               {...agreement.register('serviceTariffVersionId')}
             />
             <Select
@@ -462,12 +633,12 @@ export function CommercialPlanAdmin() {
               isRequired
               error={agreementError('freightTariffVersionId')}
               placeholder={t('choose')}
-              options={
-                terms?.freightTariffs.map((item) => ({
-                  value: item.id,
-                  label: `${item.code} · v${item.versionNo}`,
-                })) ?? []
-              }
+              options={tariffOptions(
+                terms?.freightTariffs ?? [],
+                replacement?.freightTariffVersionId,
+                (item) => freightTariffLabel(item, t('freightCarrierApi')),
+              )}
+              value={freightTariffVersionId}
               {...agreement.register('freightTariffVersionId')}
             />
             <Input
@@ -518,9 +689,13 @@ export function CommercialPlanAdmin() {
             <Button
               type="submit"
               isLoading={busy}
-              disabled={!terms?.serviceTariffs.length || !terms.freightTariffs.length}
+              disabled={
+                !eligiblePlans.length ||
+                !terms?.serviceTariffs.length ||
+                !terms.freightTariffs.length
+              }
             >
-              {t('publishAgreement')}
+              {t(replacementPlanId ? 'replaceAgreement' : 'publishAgreement')}
             </Button>
           </div>
         </form>
@@ -530,28 +705,29 @@ export function CommercialPlanAdmin() {
           isOpen
           title={selectedVersion.name}
           onClose={() => setSelectedVersionId(null)}
-          width="560px"
+          width="520px"
         >
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <Badge
                   status={selectedVersion.code === 'ENTERPRISE' ? 'info' : 'default'}
                   label={selectedVersion.code}
                 />
-                <span className="text-sm text-[var(--sc-text-secondary)]">
-                  v{selectedVersion.versionNo}
+                <span className="font-mono text-xs text-[var(--sc-text-secondary)]">
+                  {t('planVersionTag', { version: selectedVersion.versionNo })}
                 </span>
               </div>
               <div className="text-right">
-                <p className="text-xs text-[var(--sc-text-secondary)]">{t('monthlyFee')}</p>
-                <p className="text-xl font-semibold tracking-tight tabular-nums text-[var(--sc-primary-dark)]">
+                <span className="text-xs text-[var(--sc-text-secondary)]">{t('monthlyFee')}: </span>
+                <span className="text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
                   {formatVnd(selectedVersion.monthlyFeeVnd)}
-                </p>
+                </span>
               </div>
             </div>
+
             {loadingDetails ? (
-              <p className="text-sm text-[var(--sc-text-secondary)]" role="status">
+              <p className="py-4 text-center text-sm text-[var(--sc-text-secondary)]" role="status">
                 {t('loading')}
               </p>
             ) : selectedVersion.warehouseAllowance === undefined ? (
@@ -567,59 +743,81 @@ export function CommercialPlanAdmin() {
                 </Button>
               </Alert>
             ) : (
-              <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {[
-                  [
-                    t('warehouseAllowance'),
-                    selectedVersion.warehouseAllowance?.toLocaleString(locale) ?? '—',
-                  ],
-                  [
-                    t('ordersAllowance'),
-                    selectedVersion.salesOrderAllowance?.toLocaleString(locale) ?? '—',
-                  ],
-                  [
-                    t('storageAllowance'),
-                    selectedVersion.storageAllowanceM3 !== undefined
-                      ? `${selectedVersion.storageAllowanceM3} m³`
-                      : '—',
-                  ],
-                  ...(selectedVersion.effectiveFrom
-                    ? [[t('effectiveFrom'), formatDate(selectedVersion.effectiveFrom)]]
-                    : []),
-                  ...(selectedVersion.effectiveTo
-                    ? [[t('planEffectiveTo'), formatDate(selectedVersion.effectiveTo)]]
-                    : []),
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="min-w-0 rounded-lg border border-[var(--sc-border-default)] px-3 py-2.5"
-                  >
-                    <dt className="text-xs text-[var(--sc-text-secondary)]">{label}</dt>
-                    <dd className="mt-1 break-words text-sm font-semibold tabular-nums">{value}</dd>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="rounded-lg border border-[var(--sc-border-default)] p-3">
+                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('warehouseAllowance')}
+                    </p>
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                      {selectedVersion.warehouseAllowance?.toLocaleString(locale) ?? '—'}
+                    </p>
                   </div>
-                ))}
-              </dl>
+                  <div className="rounded-lg border border-[var(--sc-border-default)] p-3">
+                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('ordersAllowance')}
+                    </p>
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                      {selectedVersion.salesOrderAllowance?.toLocaleString(locale) ?? '—'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--sc-border-default)] p-3">
+                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('storageAllowance')}
+                    </p>
+                    <p className="mt-1 text-base font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                      {selectedVersion.storageAllowanceM3 !== undefined
+                        ? `${selectedVersion.storageAllowanceM3} m³`
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
+
+                {(selectedVersion.effectiveFrom || selectedVersion.effectiveTo) && (
+                  <div className="flex flex-wrap gap-4 text-xs text-[var(--sc-text-secondary)]">
+                    {selectedVersion.effectiveFrom && (
+                      <span>
+                        {t('effectiveFrom')}:{' '}
+                        <strong className="font-medium text-[var(--sc-text-primary)]">
+                          {formatDate(selectedVersion.effectiveFrom)}
+                        </strong>
+                      </span>
+                    )}
+                    {selectedVersion.effectiveTo && (
+                      <span>
+                        {t('planEffectiveTo')}:{' '}
+                        <strong className="font-medium text-[var(--sc-text-primary)]">
+                          {formatDate(selectedVersion.effectiveTo)}
+                        </strong>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
+
             {selectedVersion.includedServices && (
-              <section className="rounded-xl border border-[var(--sc-border-default)] p-4">
-                <h4 className="text-sm font-semibold">{t('includedServices')}</h4>
+              <div className="rounded-lg border border-[var(--sc-border-default)] p-3.5">
+                <h4 className="text-xs font-medium text-[var(--sc-text-secondary)]">
+                  {t('includedServices')}
+                </h4>
                 {selectedVersion.includedServices.length ? (
-                  <ul className="mt-2 flex flex-wrap gap-2">
+                  <ul className="mt-2 flex flex-wrap gap-1.5">
                     {[...new Set(selectedVersion.includedServices)].map((service) => (
                       <li
                         key={service}
-                        className="rounded-md bg-[var(--sc-bg-secondary)] px-2.5 py-1 text-xs [overflow-wrap:anywhere]"
+                        className="rounded bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs text-[var(--sc-text-primary)]"
                       >
                         {service}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+                  <p className="mt-1 text-xs text-[var(--sc-text-tertiary)]">
                     {t('noIncludedServices')}
                   </p>
                 )}
-              </section>
+              </div>
             )}
           </div>
         </Modal>
