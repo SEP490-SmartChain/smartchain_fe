@@ -13,6 +13,7 @@ import {
   useGoogleIdentityServices,
 } from '@/features/google-oauth/features/google-sign-in-button';
 import viMessages from '../../messages/vi.json';
+import { renderGoogleSignInButton } from '@/features/google-oauth/features/google-sign-in-button/lib/googleIdentityServices';
 
 const messages = {
   ...viMessages,
@@ -57,15 +58,13 @@ describe('google-sign-in-button exports', () => {
 });
 
 describe('GoogleSignInButton', () => {
-  test('renders the Google label, inline logo and the "Hoặc" divider', () => {
+  test('renders an accessible SDK button host and the "Hoặc" divider', () => {
     const html = renderButton({ onCredential: () => {} });
 
     assert.match(html, /Tiếp tục với Google/);
-    assert.match(html, /<svg/);
     assert.match(html, /Hoặc/);
     assert.match(html, /aria-label="Tiếp tục với Google"/);
-    assert.match(html, /type="button"/);
-    assert.match(html, /--sc-shadow-focus/);
+    assert.doesNotMatch(html, /<button/);
   });
 
   test('reflects the disabled and loading states', () => {
@@ -77,6 +76,50 @@ describe('GoogleSignInButton', () => {
     assert.match(loading, /aria-busy="true"/);
     assert.match(loading, /disabled=""/);
   });
+});
+
+test('renders the official account chooser button without invoking One Tap', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  let cleared = false;
+  let rendered = false;
+  const parent = {
+    replaceChildren: () => {
+      cleared = true;
+    },
+    getBoundingClientRect: () => ({ width: 520 }),
+  } as unknown as HTMLElement;
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: {
+      google: {
+        accounts: {
+          id: {
+            prompt: () => {
+              throw new Error('One Tap must not be used for the sign-in button');
+            },
+            renderButton: (
+              host: HTMLElement,
+              options: { width: number; text: string; locale: string },
+            ) => {
+              assert.equal(host, parent);
+              assert.equal(cleared, true);
+              assert.equal(options.width, 400);
+              assert.equal(options.text, 'continue_with');
+              assert.equal(options.locale, 'vi');
+              rendered = true;
+            },
+          },
+        },
+      },
+    },
+  });
+  try {
+    renderGoogleSignInButton(parent, 'vi');
+    assert.equal(rendered, true);
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'window', original);
+    else Reflect.deleteProperty(globalThis, 'window');
+  }
 });
 
 describe('useGoogleIdentityServices SSR safety', () => {
