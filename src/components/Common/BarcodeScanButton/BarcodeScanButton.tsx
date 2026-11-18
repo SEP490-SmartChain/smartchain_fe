@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { ScanLine } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert } from '@/components/Common/Alert/Alert';
@@ -39,7 +39,7 @@ export function BarcodeScanButton({
         className={className}
         onClick={() => setOpen(true)}
       >
-        <ScanLine size={18} aria-hidden="true" />
+        <QrCode size={18} aria-hidden="true" />
         {!iconOnly && label}
       </Button>
       {open && (
@@ -122,14 +122,27 @@ function BarcodeScanCamera({ onScan }: { onScan: (code: string) => void }) {
         <Alert variant="warning">{t('scanCameraUnavailable')}</Alert>
       ) : (
         <>
-          <p>{t('scanCameraHelp')}</p>
-          <video
-            ref={preview}
-            className="max-h-[55vh] w-full rounded-lg bg-black object-cover"
-            autoPlay
-            muted
-            playsInline
-          />
+          <p className="text-sm text-[var(--sc-text-secondary)]">{t('scanCameraHelp')}</p>
+          <div className="relative overflow-hidden rounded-xl bg-black">
+            <video
+              ref={preview}
+              className="aspect-square max-h-[55vh] w-full object-cover"
+              autoPlay
+              muted
+              playsInline
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            >
+              <div className="relative aspect-square w-3/5 max-w-[240px] rounded-2xl border border-white/25 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]">
+                <span className="absolute -left-0.5 -top-0.5 h-7 w-7 rounded-tl-2xl border-l-4 border-t-4 border-[var(--sc-primary-light)]" />
+                <span className="absolute -right-0.5 -top-0.5 h-7 w-7 rounded-tr-2xl border-r-4 border-t-4 border-[var(--sc-primary-light)]" />
+                <span className="absolute -bottom-0.5 -left-0.5 h-7 w-7 rounded-bl-2xl border-b-4 border-l-4 border-[var(--sc-primary-light)]" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-br-2xl border-b-4 border-r-4 border-[var(--sc-primary-light)]" />
+              </div>
+            </div>
+          </div>
         </>
       )}
     </div>
