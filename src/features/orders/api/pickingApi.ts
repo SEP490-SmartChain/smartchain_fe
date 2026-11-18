@@ -208,4 +208,17 @@ export const pickingApi = {
     );
     return result.parse(data);
   },
+  async resolveBinCode(warehouseId: string, scannedCode: string, signal?: AbortSignal) {
+    const code = scannedCode.trim();
+    if (!code) return null;
+    try {
+      const { data } = await apiClient.get<ApiResponse<unknown>>(
+        `/v1/warehouses/${encodeURIComponent(warehouseId)}/mobile-inbound/bins/lookup`,
+        { params: { code }, signal, silent: true },
+      );
+      return z.object({ binCode: z.string().min(1) }).parse(data).binCode;
+    } catch {
+      return null;
+    }
+  },
 };

@@ -4189,12 +4189,36 @@
       "WRONG_BIN": "Vị trí không khớp công việc.",
       "WRONG_SKU": "Mã sản phẩm không khớp công việc.",
       "WRONG_LOT": "Mã lô không khớp công việc.",
+      "LOT_SCAN_REQUIRED": "Cần quét mã lô vì sản phẩm theo dõi hạn dùng hoặc vị trí có nhiều lô.",
       "OVER_PICK": "Số lượng vượt phần hàng còn giữ.",
       "STALE_VERSION": "Dòng soạn đã thay đổi. Vui lòng tải lại.",
       "PICK_SHORT": "Quản lý phải duyệt xử lý thiếu trước khi lấy tiếp nguồn này.",
       "INSUFFICIENT_STOCK": "Chưa có hàng hợp lệ để thay lô. Báo thiếu vẫn chờ xử lý.",
       "IDEMPOTENCY_CONFLICT": "Mã thao tác đã được dùng với dữ liệu khác."
     },
+    "scanCamera": {
+      "binScan": "Quét mã vạch hoặc QR vị trí",
+      "skuScan": "Quét mã vạch hoặc QR sản phẩm",
+      "lotScan": "Quét mã vạch hoặc QR lô hàng"
+    },
+    "matchedCode": "Khớp mã trên dòng soạn.",
+    "resolvingBin": "Đang tra cứu mã vị trí…",
+    "viewQrLabels": "Xem nhãn QR",
+    "lineQr": "Mã QR",
+    "pickLabelsTitle": "Nhãn QR soạn hàng",
+    "pickLabelsHint": "Mỗi nhãn hiển thị một mã QR để nhân viên quét bằng camera Web hoặc ứng dụng Mobile.",
+    "labelBin": "Vị trí",
+    "labelSku": "Sản phẩm",
+    "labelLot": "Lô hàng",
+    "labelFilter": {
+      "all": "Tất cả",
+      "bin": "Vị trí",
+      "sku": "Sản phẩm",
+      "lot": "Lô hàng"
+    },
+    "printLabels": "In nhãn",
+    "closeLabels": "Đóng",
+    "printError": "Không thể tạo hoặc in nhãn QR. Vui lòng thử lại.",
     "waveProcessing": "Đang tạo đợt soạn hàng. Chờ danh sách phân công trước khi bắt đầu.",
     "waveFailed": "Chưa tạo được đợt. Tải lại các kiện đủ điều kiện và phân công nhân viên.",
     "firstWaves": "Trang đầu các đợt lấy hàng"
