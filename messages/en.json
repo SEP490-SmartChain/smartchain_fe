@@ -191,6 +191,7 @@
     "fee_STORAGE_M3_DAY": "Storage m³/day",
     "fee_COMBO": "Combo assembly",
     "fee_PACKING_MATERIAL": "Packing material",
+    "fee_DISPOSAL": "Goods disposal",
     "pricesTab": "Carrier prices",
     "selectionTab": "Automatic carrier choice"
   },
