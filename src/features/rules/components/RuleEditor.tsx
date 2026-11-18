@@ -19,6 +19,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { ConditionEditor } from './ConditionEditor';
 import { RuleSentence } from './RuleSentence';
 import { ruleApi } from '../api/ruleApi';
+import { carrierServiceLabel } from '../lib/carrierLabels';
 import { ruleFormSchema, toDefinition, type RuleFormValues } from '../schemas/ruleSchema';
 
 import type { RuleKind, RuleRecord, RuleTarget, TargetKind } from '../types/rule.types';
@@ -209,7 +210,7 @@ export function RuleEditor({ rule, kind, nextPriority, onClose, onSaved }: RuleE
       label: t('unavailableReference', { id: rule.warehouseId }),
     });
   }
-  const serviceOptions = services.map((s) => ({ value: s.id, label: s.name }));
+  const serviceOptions = services.map((s) => ({ value: s.id, label: carrierServiceLabel(s.name) }));
   for (const id of [primary, ...fallbackIds]) {
     if (id && !serviceOptions.some((s) => s.value === id)) {
       serviceOptions.push({ value: id, label: t('unavailableReference', { id }) });
