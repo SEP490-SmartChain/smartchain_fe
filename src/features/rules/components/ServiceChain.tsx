@@ -3,6 +3,8 @@ import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
 
+import { carrierServiceLabel } from '../lib/carrierLabels';
+
 interface ServiceChainProps {
   /** Primary service first, then fallbacks in order. */
   ids: readonly string[];
@@ -22,7 +24,8 @@ export function ServiceChain({ ids, serviceNames, isReady }: ServiceChainProps) 
   return (
     <ol className="flex flex-wrap items-center gap-y-1.5">
       {ids.map((id, index) => {
-        const name = serviceNames[id];
+        const serviceName = serviceNames[id];
+        const name = serviceName === undefined ? undefined : carrierServiceLabel(serviceName);
         const isUnavailable = name === undefined && isReady;
         const isPrimary = index === 0;
         return (
