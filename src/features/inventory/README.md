@@ -59,3 +59,35 @@ seller webhook; the UI reports queued work and the webhook report shows ACKs.
 The seller channel contacts the customer, as selected for this workflow.
 Backend contract and migration limits:
 `smartchain_be/docs/SPRINT6-P3-RETURNS-RECALL.md` in the sibling repository.
+
+## Sprint 7 cycle count (P3 C07)
+
+`/warehouse/counts` opens `InventoryWorkflowWorkspace` on the count tab. The
+screen capability is `inventory.counts.view`; mutations are narrower:
+`inventory.counts.plan` covers Manager create/assign/review/resnapshot/post and
+`inventory.counts.observe` covers Staff blind observation. The generic
+`inventory.workflows.view` screen grant never substitutes for either action, and
+a direct URL outside the route policy is denied by the shared guard.
+
+Request bodies are typed from the P3 C02 artifact
+`api/p3-wire.generated.ts` (`P3WireRequests` → `CountPlanRequest`,
+`InventoryWorkflowCommandInput`, `EvidenceDigest`). Types are compile-time only;
+count/options/result/page responses still pass the existing strict Zod schemas,
+so a server payload with extra financial/contact/expected-qty fields on a Staff
+blind projection fails parsing instead of reaching the UI.
+
+Each modal keeps one `operationId` UUID for its lifetime and retries the exact
+same command body (including `expectedVersion`) after an unknown outcome; the
+response `version` is never reused as the operation key. Count review/post do not
+optimistically write stock: the list only reloads after server confirmation.
+`observedQty: 0` is a real counted result, while `null` means not counted yet.
+Evidence upload signs the bytes first and re-checks the auth-store revision before
+and after the signed PUT and after the download URL read, so a session/scope
+change cannot show a previous seller/warehouse's evidence. The workspace wrapper
+is keyed by `revision` and its reads also verify the revision before rendering,
+so an in-flight response from a previous scope is discarded.
+
+Regressions: `node --test tests/sprint7-cycle-count.test.mjs` (typed payload
+against the frozen wire catalog, Staff/Manager authority and route denial, zero
+observed quantity, durable operation/version retry, scope-change rejection).
+The connected browser proof belongs to C08/C12 and is not asserted here.

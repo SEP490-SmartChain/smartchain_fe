@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Mail, ShieldCheck, CheckCircle2, Search } from 'lucide-react';
@@ -11,12 +11,22 @@ import { toast } from 'sonner';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+import { GoogleLoginFlow } from '@/features/google-oauth/features/google-login-flow';
+import { GoogleOnboardingStep } from '@/features/google-oauth/features/google-onboarding-step';
+import { HttpGoogleOAuthApiClient } from '@/features/google-oauth/runtime';
+import type {
+  GoogleOAuthLocationState,
+  GooglePublicConfigDto,
+} from '@/features/google-oauth/shared';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/services/apiClient';
 
 import { useEmailVerification } from '../hooks/useEmailVerification';
 import { useRegisterBusiness } from '../hooks/useRegisterBusiness';
 import { getRegisterSchema, type RegisterFormData } from '../schemas/register.schema';
+
+/** Single Google OAuth transport for the onboarding step (cookie-based session). */
+const googleOAuthApi = new HttpGoogleOAuthApiClient();
 
 // ─── OTP Input (6 individual digit boxes) ────────────────────────────────────
 
@@ -604,18 +614,61 @@ type Step = 1 | 2 | 3;
 export function RegisterBusinessForm() {
   const [step, setStep] = useState<Step>(1);
   const [verifiedEmail, setVerifiedEmail] = useState('');
+  const location = useLocation();
+  const tAuth = useTranslations('Auth');
+  const [googleConfig, setGoogleConfig] = useState<GooglePublicConfigDto | null>(null);
+  const googleOnboarding = (location.state as GoogleOAuthLocationState | null)?.googleOnboarding;
+
+  useEffect(() => {
+    let cancelled = false;
+    googleOAuthApi
+      .getConfig()
+      .then((config) => {
+        if (!cancelled) setGoogleConfig(config);
+      })
+      .catch(() => {
+        if (!cancelled) setGoogleConfig({ enabled: false, clientId: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (googleOnboarding) {
+    return (
+      <div>
+        <StepIndicator current={3} />
+        <GoogleOnboardingStep
+          api={googleOAuthApi}
+          onboardingToken={googleOnboarding.onboardingToken}
+          googleProfile={googleOnboarding.googleProfile}
+          onError={(message) => toast.error(message ?? tAuth('google_error_generic'))}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
       <StepIndicator current={step} />
 
       {step === 1 && (
-        <StepEmail
-          onNext={(email) => {
-            setVerifiedEmail(email);
-            setStep(2);
-          }}
-        />
+        <>
+          {googleConfig && (
+            <GoogleLoginFlow
+              api={googleOAuthApi}
+              config={googleConfig}
+              onWorkspaceRequired={() => toast.error(tAuth('google_workspace_required'))}
+              onError={(message) => toast.error(message ?? tAuth('google_error_generic'))}
+            />
+          )}
+          <StepEmail
+            onNext={(email) => {
+              setVerifiedEmail(email);
+              setStep(2);
+            }}
+          />
+        </>
       )}
 
       {step === 2 && (

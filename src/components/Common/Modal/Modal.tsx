@@ -11,9 +11,19 @@ interface ModalProps {
   title: string;
   children: React.ReactNode;
   width?: string;
+  height?: string;
+  bodyClassName?: string;
 }
 
-export default function Modal({ isOpen, onClose, title, children, width = '400px' }: ModalProps) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  width = '400px',
+  height,
+  bodyClassName = 'p-5 sm:p-6',
+}: ModalProps) {
   const t = useTranslations('Common');
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -32,7 +42,9 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
     dialogRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current();
+      if (event.key !== 'Escape') return;
+      const dialogs = document.querySelectorAll('[data-sc-modal]');
+      if (dialogRef.current === dialogs[dialogs.length - 1]) onCloseRef.current();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -53,14 +65,15 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
     >
       <div
         ref={dialogRef}
+        data-sc-modal=""
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         className="sc-modal-enter flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-[var(--sc-shadow-popover)]"
-        style={{ maxWidth: width }}
+        style={{ maxWidth: width, height }}
       >
-        <div className="flex items-center justify-between border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
           <h3 id={titleId} className="m-0 text-lg font-medium text-[var(--sc-text-primary)]">
             {title}
           </h3>
@@ -73,7 +86,9 @@ export default function Modal({ isOpen, onClose, title, children, width = '400px
             <X size={19} />
           </button>
         </div>
-        <div className="overflow-y-auto p-5 sm:p-6">{children}</div>
+        <div className={`${height ? 'min-h-0 flex-1' : 'overflow-y-auto'} ${bodyClassName}`}>
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

@@ -34,12 +34,7 @@ export function getCarrierDisplayInfo(
     };
   }
 
-  if (
-    code === 'VTP' ||
-    code === 'VIETTEL' ||
-    code === 'VIETTELPOST' ||
-    code === 'VIETTEL_POST'
-  ) {
+  if (code === 'VTP' || code === 'VIETTEL' || code === 'VIETTELPOST' || code === 'VIETTEL_POST') {
     return {
       code: 'Viettel Post',
       name: 'Viettel Post',

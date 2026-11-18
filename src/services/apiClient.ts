@@ -65,6 +65,8 @@ const profileSchema = z.object({
   warehouseIds: z
     .array(z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i))
     .optional(),
+  googleSubLinked: z.boolean().optional(),
+  version: z.number().int().positive().optional(),
 });
 const sessionSchema = z.object({
   accessToken: z.string().min(1),

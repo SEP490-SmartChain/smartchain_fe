@@ -72,9 +72,7 @@ export function ShipmentTimeline({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="m-0 text-sm font-semibold">{t('timelineTitle')}</h3>
-          <p className="m-0 text-xs text-[var(--sc-text-tertiary)]">
-            {t('timelineSubtitle')}
-          </p>
+          <p className="m-0 text-xs text-[var(--sc-text-tertiary)]">{t('timelineSubtitle')}</p>
         </div>
         <Button
           variant="ghost"
@@ -99,9 +97,7 @@ export function ShipmentTimeline({
             <Truck size={22} />
           </div>
           <h4 className="m-0 text-sm font-semibold text-[var(--sc-text-primary)]">
-            {status === 'LABEL_CREATED' || !status
-              ? t('waitingCarrier')
-              : t('timelineEmpty')}
+            {status === 'LABEL_CREATED' || !status ? t('waitingCarrier') : t('timelineEmpty')}
           </h4>
           <p className="mx-auto mt-1 max-w-md text-xs text-[var(--sc-text-secondary)]">
             {t('waitingCarrierDesc', {
@@ -146,9 +142,7 @@ export function ShipmentTimeline({
                     </div>
                     <Badge
                       status={event.isApplied ? 'success' : 'default'}
-                      label={
-                        event.isApplied ? t('timelineApplied') : t('timelineRecorded')
-                      }
+                      label={event.isApplied ? t('timelineApplied') : t('timelineRecorded')}
                       size="sm"
                     />
                   </div>

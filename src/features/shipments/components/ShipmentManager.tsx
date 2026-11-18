@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  Eye,
-  RotateCw,
-} from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Copy, Eye, RotateCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, PageHeader } from '@/components/Common';
@@ -426,10 +419,7 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
             </div>
 
             {/* Visual Stepper */}
-            <ShipmentJourneyStepper
-              status={row.status}
-              bookingState={row.bookingState}
-            />
+            <ShipmentJourneyStepper status={row.status} bookingState={row.bookingState} />
 
             {/* Alerts */}
             {row.bookingState === 'FAILED' && row.failureCode && (
@@ -444,13 +434,11 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
             {row.bookingState === 'CONFIRMED' && !row.labelAvailable && (
               <Alert variant="info">{t('confirmedLabelNotice')}</Alert>
             )}
-            {can('shipments.sla.view') &&
-              row.failureCode &&
-              row.bookingState !== 'CONFIRMED' && (
-                <Alert variant="warning">
-                  {t(`dispatchFailures.${getDispatchFailureGuidance(row.failureCode) ?? 'review'}`)}
-                </Alert>
-              )}
+            {can('shipments.sla.view') && row.failureCode && row.bookingState !== 'CONFIRMED' && (
+              <Alert variant="warning">
+                {t(`dispatchFailures.${getDispatchFailureGuidance(row.failureCode) ?? 'review'}`)}
+              </Alert>
+            )}
 
             {/* Details Grid */}
             <div className="grid grid-cols-1 gap-3 rounded-lg border border-[var(--sc-border-default)] p-3 text-sm sm:grid-cols-2">
@@ -460,7 +448,9 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
               </div>
               <div>
                 <dt className="text-xs text-[var(--sc-text-secondary)]">{t('carrier')}</dt>
-                <dd className="font-medium">{carrierInfo?.name ?? row.carrierCode ?? t('unknownCarrier')}</dd>
+                <dd className="font-medium">
+                  {carrierInfo?.name ?? row.carrierCode ?? t('unknownCarrier')}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs text-[var(--sc-text-secondary)]">{t('packageId')}</dt>
@@ -510,11 +500,7 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
                   ))}
               </div>
 
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() => setRevision((v) => v + 1)}
-              >
+              <Button variant="secondary" disabled={busy} onClick={() => setRevision((v) => v + 1)}>
                 <RotateCw size={14} className={busy ? 'animate-spin' : ''} />
                 {t('reload')}
               </Button>

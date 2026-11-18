@@ -106,9 +106,7 @@ export function ShipmentJourneyStepper({
                   aria-hidden="true"
                   className={cn(
                     'absolute top-4 -left-1/2 right-1/2 h-0.5 -translate-y-1/2 transition-colors duration-200',
-                    isCompleted || isCurrent
-                      ? 'bg-emerald-600'
-                      : 'bg-[var(--sc-border-default)]',
+                    isCompleted || isCurrent ? 'bg-emerald-600' : 'bg-[var(--sc-border-default)]',
                   )}
                 />
               )}
@@ -158,7 +156,8 @@ export function ShipmentJourneyStepper({
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
           <AlertTriangle size={15} className="shrink-0 text-red-600" />
           <span>
-            {t('steps.failed')}: Giao hàng chưa thành công. Bưu tá sẽ thử liên hệ lại người nhận hoặc cập nhật lý do mới.
+            {t('steps.failed')}: Giao hàng chưa thành công. Bưu tá sẽ thử liên hệ lại người nhận
+            hoặc cập nhật lý do mới.
           </span>
         </div>
       )}
@@ -184,9 +183,7 @@ export function ShipmentJourneyStepper({
       {isCancelled && (
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300">
           <XCircle size={15} className="shrink-0 text-rose-600" />
-          <span>
-            {t('steps.cancelled')}: Vận đơn này đã được hủy trên hệ thống.
-          </span>
+          <span>{t('steps.cancelled')}: Vận đơn này đã được hủy trên hệ thống.</span>
         </div>
       )}
     </div>

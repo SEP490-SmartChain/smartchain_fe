@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
@@ -11,7 +12,10 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { useAuthStore } from '@/stores/authStore';
 
+import { CommercialDisclosure } from './CommercialDisclosure';
+import { CommercialPdfPreview } from './CommercialPdfPreview';
 import { commercialApi, type SellerCommercialState } from '../api/commercialApi';
+import { launchSigningSession } from '../lib/signingPresentation';
 
 const serviceSchema = z.object({ reason: z.string().trim().min(3).max(500) });
 const reconcileSchema = z.object({ documentId: z.string().regex(/^[a-f0-9]{40}$/i) });
@@ -25,8 +29,20 @@ export function CommercialAdminControls({
   onChanged: () => Promise<void>;
 }) {
   const t = useTranslations('CommercialAdmin');
+  const tCommercial = useTranslations('Commercial');
   const revision = useAuthStore((value) => value.revision);
   const contract = state.contracts.find((item) => item.id === state.currentContractId);
+  const canManageService =
+    state.serviceStatus === 'ACTIVE' ||
+    state.serviceStatus === 'SUSPENDED' ||
+    (state.serviceStatus === 'PENDING_ACTIVATION' &&
+      (contract?.status === 'ACCEPTED' || contract?.status === 'CONFIRMED'));
+  const serviceAction =
+    state.serviceStatus === 'ACTIVE'
+      ? 'suspendService'
+      : state.serviceStatus === 'SUSPENDED'
+        ? 'reactivateService'
+        : 'activateService';
   const closure = useForm<z.infer<typeof serviceSchema>>({
     resolver: zodResolver(serviceSchema),
     defaultValues: { reason: '' },
@@ -43,8 +59,19 @@ export function CommercialAdminControls({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [preview, setPreview] = useState<{
+    requestId: string;
+    revision: number;
+    url: string;
+  } | null>(null);
+  const signingRequest = state.signingRequests.find(
+    (item) => item.contractId === state.currentContractId && item.canSignAsOrcaAdmin,
+  );
   const request = state.signingRequests.find(
-    (item) => item.contractId === state.currentContractId && item.status === 'UNKNOWN',
+    (item) =>
+      item.contractId === state.currentContractId &&
+      ['UNKNOWN', 'FAILED', 'CANCELLED', 'COMPLETED'].includes(item.status),
   );
   useEffect(() => {
     const abort = new AbortController();
@@ -55,6 +82,40 @@ export function CommercialAdminControls({
   }, []);
   const current = () =>
     !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
+  const countersign = async () => {
+    if (!signingRequest) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const session = await launchSigningSession(
+        () => window.open('about:blank', '_blank'),
+        () => commercialApi.session(signingRequest.id, controller.current?.signal),
+        current,
+      );
+      if (session?.popupBlocked) setError(t('signingPopupBlocked'));
+    } catch (failure) {
+      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+    } finally {
+      if (current()) setBusy(false);
+    }
+  };
+  const handlePreview = async () => {
+    if (!signingRequest) return;
+    setIsPreviewLoading(true);
+    setError(null);
+    try {
+      const { downloadUrl } = await commercialApi.originalPdf(
+        signingRequest.id,
+        controller.current?.signal,
+      );
+      if (current()) setPreview({ requestId: signingRequest.id, revision, url: downloadUrl });
+    } catch (failure) {
+      if (current()) setError(failure instanceof Error ? failure.message : tCommercial('pdfError'));
+    } finally {
+      if (current()) setIsPreviewLoading(false);
+    }
+  };
   const setStatus = service.handleSubmit(async (input) => {
     setBusy(true);
     setError(null);
@@ -125,25 +186,28 @@ export function CommercialAdminControls({
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
-      {['ACTIVE', 'SUSPENDED', 'PENDING_ACTIVATION'].includes(state.serviceStatus) && (
-        <form onSubmit={setStatus} className="space-y-3">
-          <h3 className="text-base font-semibold">{t('serviceControl')}</h3>
-          <Input
-            label={t('reason')}
-            error={service.formState.errors.reason ? t('invalid') : undefined}
-            {...service.register('reason')}
-          />
-          <Button type="submit" variant="outline" isLoading={busy}>
-            {t(state.serviceStatus === 'ACTIVE' ? 'suspendService' : 'reactivateService')}
-          </Button>
-        </form>
+      {canManageService && (
+        <CommercialDisclosure title={t(serviceAction)}>
+          <form onSubmit={setStatus} className="space-y-3">
+            <Input
+              label={t('serviceChangeReason')}
+              isRequired
+              error={service.formState.errors.reason ? t('invalid') : undefined}
+              {...service.register('reason')}
+            />
+            <Button type="submit" variant="outline" isLoading={busy}>
+              {t(serviceAction)}
+            </Button>
+          </form>
+        </CommercialDisclosure>
       )}
       {contract?.status === 'TERMINATING' && (
         <form onSubmit={close} className="space-y-3">
           <h3 className="text-base font-semibold">{t('finalizeClosure')}</h3>
           <p className="text-sm">{t('closureGuardHint')}</p>
           <Input
-            label={t('reason')}
+            label={t('closureReason')}
+            isRequired
             error={closure.formState.errors.reason ? t('invalid') : undefined}
             {...closure.register('reason')}
           />
@@ -152,20 +216,55 @@ export function CommercialAdminControls({
           </Button>
         </form>
       )}
-      {request && (
-        <form onSubmit={verify} className="space-y-3">
-          <h3 className="text-base font-semibold">{t('reconcileSigning')}</h3>
-          <p className="text-sm">{t('reconcileHint')}</p>
-          <p className="break-all text-xs">ORCA-{request.id}</p>
-          <Input
-            label={t('providerDocument')}
-            error={reconcile.formState.errors.documentId ? t('invalid') : undefined}
-            {...reconcile.register('documentId')}
-          />
-          <Button type="submit" isLoading={busy}>
-            {t('reconcile')}
+      {signingRequest && (
+        <div className="flex flex-wrap gap-3">
+          <Button
+            type="button"
+            onClick={() => void countersign()}
+            isLoading={busy}
+            disabled={isPreviewLoading}
+          >
+            {t('signAsOrca')}
           </Button>
-        </form>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void handlePreview()}
+            isLoading={isPreviewLoading}
+            disabled={busy}
+          >
+            <FileText size={16} />
+            {tCommercial('preparedPdf')}
+          </Button>
+        </div>
+      )}
+      {preview?.revision === revision && preview.requestId === signingRequest?.id && (
+        <CommercialPdfPreview
+          url={preview.url}
+          onClose={() => setPreview(null)}
+          title={tCommercial('preparedPdfTitle')}
+          hint={tCommercial('preparedPdfHelp')}
+        />
+      )}
+      {request && (
+        <CommercialDisclosure
+          title={t(request.status === 'COMPLETED' ? 'retryInitialInvoice' : 'reconcileSigning')}
+        >
+          <form onSubmit={verify} className="space-y-3">
+            <p className="text-sm">
+              {t(request.status === 'COMPLETED' ? 'retryInitialInvoiceHint' : 'reconcileHint')}
+            </p>
+            <p className="break-all text-xs">ORCA-{request.id}</p>
+            <Input
+              label={t('providerDocument')}
+              error={reconcile.formState.errors.documentId ? t('invalid') : undefined}
+              {...reconcile.register('documentId')}
+            />
+            <Button type="submit" isLoading={busy}>
+              {t('reconcile')}
+            </Button>
+          </form>
+        </CommercialDisclosure>
       )}
     </div>
   );
