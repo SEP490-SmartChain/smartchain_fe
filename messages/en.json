@@ -4220,6 +4220,29 @@
       "NOT_ASSIGNED": "This wave is not assigned to you.",
       "FORBIDDEN": "You are not assigned to this warehouse."
     },
+    "scanCamera": {
+      "binScan": "Scan bin barcode or QR",
+      "skuScan": "Scan product barcode or QR",
+      "lotScan": "Scan lot barcode or QR"
+    },
+    "matchedCode": "Matches assigned pick line.",
+    "resolvingBin": "Resolving bin code…",
+    "viewQrLabels": "View QR labels",
+    "lineQr": "QR code",
+    "pickLabelsTitle": "Picking QR labels",
+    "pickLabelsHint": "Each label renders a single QR code for camera scanning on Web or Mobile.",
+    "labelBin": "Bin",
+    "labelSku": "Product",
+    "labelLot": "Lot",
+    "labelFilter": {
+      "all": "All",
+      "bin": "Bin",
+      "sku": "Product",
+      "lot": "Lot"
+    },
+    "printLabels": "Print labels",
+    "closeLabels": "Close",
+    "printError": "Unable to generate or print QR labels. Please retry.",
     "waveProcessing": "Preparing the picking batch. Wait for the assignment list before starting.",
     "waveFailed": "Wave creation could not complete. Refresh the eligible parcels and current Staff assignment.",
     "firstWaves": "First wave page",

@@ -230,6 +230,7 @@ function pickingSession(result) {
     Alert: 'Alert',
     Badge: 'Badge',
     PickLineCard: 'PickLineCard',
+    PickLineLabels: 'PickLineLabels',
     WaveForm: 'WaveForm',
   };
   const code = ts.transpileModule(declaration.getText(tree), {

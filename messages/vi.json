@@ -4217,6 +4217,29 @@
       "NOT_ASSIGNED": "Đợt soạn chưa được giao cho bạn.",
       "FORBIDDEN": "Bạn chưa được phân công kho này."
     },
+    "scanCamera": {
+      "binScan": "Quét mã vạch hoặc QR vị trí",
+      "skuScan": "Quét mã vạch hoặc QR sản phẩm",
+      "lotScan": "Quét mã vạch hoặc QR lô hàng"
+    },
+    "matchedCode": "Khớp mã trên dòng soạn.",
+    "resolvingBin": "Đang tra cứu mã vị trí…",
+    "viewQrLabels": "Xem nhãn QR",
+    "lineQr": "Mã QR",
+    "pickLabelsTitle": "Nhãn QR soạn hàng",
+    "pickLabelsHint": "Mỗi nhãn hiển thị một mã QR để nhân viên quét bằng camera Web hoặc ứng dụng Mobile.",
+    "labelBin": "Vị trí",
+    "labelSku": "Sản phẩm",
+    "labelLot": "Lô hàng",
+    "labelFilter": {
+      "all": "Tất cả",
+      "bin": "Vị trí",
+      "sku": "Sản phẩm",
+      "lot": "Lô hàng"
+    },
+    "printLabels": "In nhãn",
+    "closeLabels": "Đóng",
+    "printError": "Không thể tạo hoặc in nhãn QR. Vui lòng thử lại.",
     "waveProcessing": "Đang tạo đợt soạn hàng. Chờ danh sách phân công trước khi bắt đầu.",
     "waveFailed": "Chưa tạo được đợt. Tải lại các kiện đủ điều kiện và phân công nhân viên.",
     "firstWaves": "Trang đầu các đợt lấy hàng",

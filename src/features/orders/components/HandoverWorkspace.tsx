@@ -261,176 +261,338 @@ function WarehouseHandover({
             id="handover-work-panel-ready"
             aria-labelledby="handover-work-ready"
           >
-            <Card className="space-y-3">
-              <h2 className="text-lg font-semibold">{t('readyForHandover')}</h2>
-              {data.shipments.length > 0 && (
-                <p className="text-sm text-[var(--sc-text-secondary)]">
-                  {t('manifestSelectionHint')}
-                </p>
-              )}
-              {data.shipments.length > 0 && (
-                <p role="status" className="text-sm">
-                  {t('selectedForManifest', { qty: selected.length })}
-                </p>
-              )}
-              {!data.shipments.length && <p>{t('noWaybills')}</p>}
-              {data.shipments.map((s) => (
-                <div key={s.id} className="rounded-lg border border-[var(--sc-border-default)] p-3">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(s.id)}
-                      disabled={
-                        !create ||
-                        busy ||
-                        !!pending.current ||
-                        !!(account && s.carrierAccountId !== account)
-                      }
-                      onChange={(e) =>
-                        setSelected((old) =>
-                          e.target.checked ? [...old, s.id] : old.filter((id) => id !== s.id),
-                        )
-                      }
-                    />
-                    <span className="min-w-0 break-all">{s.trackingNumber}</span>
-                  </label>
-                  {account && s.carrierAccountId !== account && (
-                    <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">
-                      {t('differentCarrier')}
+            <Card className="space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--sc-border-default)] pb-3">
+                <div className="min-w-0 space-y-1">
+                  <h2 className="text-base font-semibold text-[var(--sc-text-primary)]">
+                    {t('readyForHandover')}
+                  </h2>
+                  {data.shipments.length > 0 && (
+                    <p className="text-sm text-[var(--sc-text-secondary)]">
+                      {t('manifestSelectionHint')}
                     </p>
                   )}
-                  <details className="mt-2 text-xs text-[var(--sc-text-secondary)]">
-                    <summary className="cursor-pointer rounded focus-visible:outline-2">
-                      {t('carrierConnection')}
-                    </summary>
-                    <p className="mt-1 break-all">{s.carrierAccountId}</p>
-                  </details>
                 </div>
-              ))}
-              {create && (selected.length > 0 || !!pending.current) && (
-                <Button
-                  disabled={busy || (!selected.length && !pending.current)}
-                  onClick={() => void manifest()}
-                >
-                  {pending.current ? t('retryOperation') : t('createManifest')}
-                </Button>
+                {data.shipments.length > 0 && (
+                  <p
+                    role="status"
+                    className="inline-flex items-center rounded-full border border-[var(--sc-primary-alpha-20)] bg-[var(--sc-primary-alpha-08)] px-3 py-1 text-xs font-semibold text-[var(--sc-primary-dark)]"
+                  >
+                    {t('selectedForManifest', { qty: selected.length })}
+                  </p>
+                )}
+              </div>
+              {!data.shipments.length ? (
+                <div className="rounded-xl border border-dashed border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)]/50 px-6 py-8 text-center text-sm text-[var(--sc-text-secondary)]">
+                  {t('noWaybills')}
+                </div>
+              ) : (
+                <div className="divide-y divide-[var(--sc-border-default)] overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]">
+                  {data.shipments.map((s) => {
+                    const isChecked = selected.includes(s.id);
+                    const isOtherCarrier = !!(account && s.carrierAccountId !== account);
+                    return (
+                      <div
+                        key={s.id}
+                        className={`px-4 py-3 transition-colors ${
+                          isChecked
+                            ? 'bg-[var(--sc-primary-alpha-08)]'
+                            : isOtherCarrier
+                              ? 'bg-[var(--sc-bg-secondary)]/40 opacity-70'
+                              : 'hover:bg-[var(--sc-bg-secondary)]/40'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 accent-[var(--sc-primary)]"
+                              checked={isChecked}
+                              disabled={!create || busy || !!pending.current || isOtherCarrier}
+                              onChange={(e) =>
+                                setSelected((old) =>
+                                  e.target.checked
+                                    ? [...old, s.id]
+                                    : old.filter((id) => id !== s.id),
+                                )
+                              }
+                            />
+                            <span className="min-w-0 break-all font-mono text-sm font-semibold text-[var(--sc-text-primary)]">
+                              {s.trackingNumber}
+                            </span>
+                          </label>
+                          <details className="text-xs text-[var(--sc-text-secondary)]">
+                            <summary className="cursor-pointer rounded font-medium hover:text-[var(--sc-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+                              {t('carrierConnection')}
+                            </summary>
+                            <p className="mt-1 break-all rounded bg-[var(--sc-bg-secondary)] px-2 py-1 font-mono">
+                              {s.carrierAccountId}
+                            </p>
+                          </details>
+                        </div>
+                        {isOtherCarrier && (
+                          <p className="mt-1.5 pl-7 text-xs text-[var(--sc-warning-dark)]">
+                            {t('differentCarrier')}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-              {data.nextShipmentCursor && (
-                <Button
-                  variant="outline"
-                  disabled={busy || !!pending.current}
-                  onClick={() =>
-                    setCursors((c) => ({ ...c, shipments: data.nextShipmentCursor ?? undefined }))
-                  }
-                >
-                  {t('nextPage')}
-                </Button>
-              )}
+              {(create && (selected.length > 0 || !!pending.current)) || data.nextShipmentCursor ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] pt-3">
+                  <div>
+                    {create && (selected.length > 0 || !!pending.current) && (
+                      <Button
+                        disabled={busy || (!selected.length && !pending.current)}
+                        onClick={() => void manifest()}
+                      >
+                        {pending.current ? t('retryOperation') : t('createManifest')}
+                      </Button>
+                    )}
+                  </div>
+                  {data.nextShipmentCursor && (
+                    <Button
+                      variant="outline"
+                      disabled={busy || !!pending.current}
+                      onClick={() =>
+                        setCursors((c) => ({
+                          ...c,
+                          shipments: data.nextShipmentCursor ?? undefined,
+                        }))
+                      }
+                    >
+                      {t('nextPage')}
+                    </Button>
+                  )}
+                </div>
+              ) : null}
             </Card>
           </div>
-          {(['drafts', 'signed'] as const).map((view) => (
-            <div
-              key={view}
-              hidden={activeTab !== view}
-              role="tabpanel"
-              id={`handover-work-panel-${view}`}
-              aria-labelledby={`handover-work-${view}`}
-            >
-              <Card className="space-y-4">
-                <h2 className="text-lg font-semibold">
-                  {t(view === 'drafts' ? 'draftTab' : 'signedTab')}
-                </h2>
-                {!data.manifests.some(
-                  (m) => m.status === (view === 'drafts' ? 'DRAFT' : 'SIGNED'),
-                ) && <p>{t('noManifestsOnPage')}</p>}
-                {data.manifests
-                  .filter((m) => m.status === (view === 'drafts' ? 'DRAFT' : 'SIGNED'))
-                  .map((m) => (
-                    <details
-                      open={expandedManifest === m.id}
-                      onToggle={(event) => {
-                        const opened = event.currentTarget.open;
-                        setExpandedManifest((current) =>
-                          opened ? m.id : current === m.id ? null : current,
+          {(['drafts', 'signed'] as const).map((view) => {
+            const viewManifests = data.manifests.filter(
+              (m) => m.status === (view === 'drafts' ? 'DRAFT' : 'SIGNED'),
+            );
+            return (
+              <div
+                key={view}
+                hidden={activeTab !== view}
+                role="tabpanel"
+                id={`handover-work-panel-${view}`}
+                aria-labelledby={`handover-work-${view}`}
+              >
+                <Card className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-3">
+                    <h2 className="text-base font-semibold text-[var(--sc-text-primary)]">
+                      {t(view === 'drafts' ? 'draftTab' : 'signedTab')}
+                    </h2>
+                    <span className="inline-flex items-center rounded-full bg-[var(--sc-bg-secondary)] px-2.5 py-0.5 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                      {viewManifests.length}
+                    </span>
+                  </div>
+                  {!viewManifests.length ? (
+                    <div className="rounded-xl border border-dashed border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)]/50 px-6 py-8 text-center text-sm text-[var(--sc-text-secondary)]">
+                      {t('noManifestsOnPage')}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {viewManifests.map((m) => {
+                        const isSigned = m.status === 'SIGNED';
+                        const isExpanded = expandedManifest === m.id;
+                        const signedTime =
+                          isSigned && m.signedAt
+                            ? new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                timeZone: 'Asia/Ho_Chi_Minh',
+                              }).format(new Date(m.signedAt))
+                            : null;
+                        return (
+                          <details
+                            open={isExpanded}
+                            onToggle={(event) => {
+                              const opened = event.currentTarget.open;
+                              setExpandedManifest((current) =>
+                                opened ? m.id : current === m.id ? null : current,
+                              );
+                            }}
+                            key={m.id}
+                            className={`overflow-hidden rounded-xl border bg-[var(--sc-bg-surface)] transition-colors ${
+                              isExpanded
+                                ? 'border-[var(--sc-primary)] shadow-[var(--sc-shadow-section)]'
+                                : 'border-[var(--sc-border-default)] hover:border-[var(--sc-border-strong)]'
+                            }`}
+                          >
+                            <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3.5 focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)] [&::-webkit-details-marker]:hidden">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="break-all font-mono text-sm font-semibold text-[var(--sc-text-primary)]">
+                                    {m.manifestCode}
+                                  </span>
+                                  <span
+                                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                                      isSigned
+                                        ? 'border-[var(--sc-success-border)] bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)]'
+                                        : 'border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)] text-[var(--sc-warning-dark)]'
+                                    }`}
+                                  >
+                                    {isSigned ? t('warehouseConfirmed') : t('draft')}
+                                  </span>
+                                  <span className="inline-flex items-center rounded-full bg-[var(--sc-bg-secondary)] px-2.5 py-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                                    {t('parcelCount', { qty: m.parcelCount })}
+                                  </span>
+                                </div>
+                                {isSigned && (m.carrierSignerName || signedTime) && (
+                                  <p className="text-xs text-[var(--sc-text-secondary)]">
+                                    {[m.carrierSignerName, signedTime].filter(Boolean).join(' · ')}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--sc-primary-alpha-20)] bg-[var(--sc-primary-alpha-08)] px-3 py-1.5 text-xs font-semibold text-[var(--sc-primary-dark)]">
+                                {t(m.status === 'DRAFT' ? 'continueHandover' : 'viewManifest')}
+                                <span aria-hidden="true">{isExpanded ? '▴' : '▾'}</span>
+                              </span>
+                            </summary>
+                            <div className="space-y-4 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/50 px-4 py-4">
+                              {isSigned &&
+                                (m.carrierSignerName || signedTime || m.carrierAckRef) && (
+                                  <dl className="grid gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3.5 py-3 text-xs sm:grid-cols-3">
+                                    <div>
+                                      <dt className="text-[var(--sc-text-secondary)]">
+                                        {t('carrierSignerName')}
+                                      </dt>
+                                      <dd className="mt-0.5 font-semibold text-[var(--sc-text-primary)]">
+                                        {m.carrierSignerName || t('recordNotAvailable')}
+                                      </dd>
+                                    </div>
+                                    <div>
+                                      <dt className="text-[var(--sc-text-secondary)]">
+                                        {t('warehouseConfirmedAt')}
+                                      </dt>
+                                      <dd className="mt-0.5 font-semibold text-[var(--sc-text-primary)]">
+                                        {signedTime || t('recordNotAvailable')}
+                                      </dd>
+                                    </div>
+                                    <div>
+                                      <dt className="text-[var(--sc-text-secondary)]">
+                                        {t('carrierAckRef')}
+                                      </dt>
+                                      <dd className="mt-0.5 break-all font-mono font-semibold text-[var(--sc-text-primary)]">
+                                        {m.carrierAckRef || t('notProvided')}
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                )}
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--sc-text-secondary)]">
+                                  {t('printShipmentList')} ({m.shipments.length})
+                                </p>
+                                <ul className="divide-y divide-[var(--sc-border-default)] overflow-hidden rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] text-sm">
+                                  {m.shipments.map((s, idx) => {
+                                    const pickupRecorded = isSigned && carrierPickupRecorded(s);
+                                    return (
+                                      <li
+                                        key={s.id}
+                                        className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5"
+                                      >
+                                        <div className="flex min-w-0 items-center gap-2.5">
+                                          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--sc-bg-secondary)] text-xs font-semibold text-[var(--sc-text-secondary)]">
+                                            {idx + 1}
+                                          </span>
+                                          <span className="min-w-0 break-all font-mono text-sm font-medium text-[var(--sc-text-primary)]">
+                                            {s.trackingNumber}
+                                          </span>
+                                        </div>
+                                        {isSigned && (
+                                          <span
+                                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                                              pickupRecorded
+                                                ? 'border-[var(--sc-success-border)] bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)]'
+                                                : 'border-[var(--sc-info-border)] bg-[var(--sc-info-bg)] text-[var(--sc-info-dark)]'
+                                            }`}
+                                          >
+                                            {pickupRecorded
+                                              ? t('carrierPickupConfirmed')
+                                              : t('carrierPickupPending')}
+                                          </span>
+                                        )}
+                                        {m.status === 'DRAFT' && create && (
+                                          <RemoveDraftParcel
+                                            warehouse={warehouse}
+                                            manifestId={m.id}
+                                            shipmentId={s.id}
+                                            onDone={() => setReload((n) => n + 1)}
+                                          />
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                              <div className="flex flex-wrap items-start gap-2.5">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPrintManifest(m)}
+                                >
+                                  {t(isSigned ? 'printSignedManifest' : 'printDraftManifest')}
+                                </Button>
+                                {isSigned && m.hasHandoverPhoto && (
+                                  <HandoverPhoto warehouse={warehouse} id={m.id} />
+                                )}
+                              </div>
+                              {isSigned && !m.hasHandoverPhoto && (
+                                <Alert variant="warning">{t('legacyEvidenceHint')}</Alert>
+                              )}
+                              {isSigned && (
+                                <p className="rounded-lg border border-[var(--sc-info-border)] bg-[var(--sc-info-bg)]/45 px-3.5 py-2.5 text-xs leading-relaxed text-[var(--sc-text-secondary)]">
+                                  {t('warehouseConfirmationHint')}
+                                </p>
+                              )}
+                              {m.status === 'DRAFT' && sign && (
+                                <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4">
+                                  <SignManifest
+                                    key={`${m.id}:${m.shipments
+                                      .map((s) => s.id)
+                                      .sort()
+                                      .join(',')}`}
+                                    warehouse={warehouse}
+                                    id={m.id}
+                                    parcelCount={m.parcelCount}
+                                    onSigned={() => setReload((n) => n + 1)}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </details>
                         );
-                      }}
-                      key={m.id}
-                      className="space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
-                    >
-                      <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
-                        <span className="inline-flex max-w-full flex-col gap-1 align-top">
-                          <span className="break-all text-sm font-semibold">{m.manifestCode}</span>
-                          <span className="text-sm text-[var(--sc-text-secondary)]">
-                            {t('parcelCount', { qty: m.parcelCount })} ·{' '}
-                            {m.status === 'SIGNED' ? t('warehouseConfirmed') : t('draft')}
-                          </span>
-                          <span className="text-sm font-medium text-[var(--sc-primary)]">
-                            {t(m.status === 'DRAFT' ? 'continueHandover' : 'viewManifest')}
-                          </span>
-                        </span>
-                      </summary>
-                      <ul className="space-y-1 text-sm">
-                        {m.shipments.map((s) => (
-                          <li key={s.id} className="space-y-2">
-                            <span>{s.trackingNumber}</span>
-                            {m.status === 'SIGNED' && (
-                              <p className="text-sm text-[var(--sc-text-secondary)]">
-                                {carrierPickupRecorded(s)
-                                  ? t('carrierPickupConfirmed')
-                                  : t('carrierPickupPending')}
-                              </p>
-                            )}
-                            {m.status === 'DRAFT' && create && (
-                              <RemoveDraftParcel
-                                warehouse={warehouse}
-                                manifestId={m.id}
-                                shipmentId={s.id}
-                                onDone={() => setReload((n) => n + 1)}
-                              />
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                      <Button variant="outline" onClick={() => setPrintManifest(m)}>
-                        {t(m.status === 'SIGNED' ? 'printSignedManifest' : 'printDraftManifest')}
+                      })}
+                    </div>
+                  )}
+                  {data.nextManifestCursor && (
+                    <div className="flex justify-end border-t border-[var(--sc-border-default)] pt-3">
+                      <Button
+                        variant="outline"
+                        disabled={busy || !!pending.current}
+                        onClick={() =>
+                          setCursors((c) => ({
+                            ...c,
+                            manifests: data.nextManifestCursor ?? undefined,
+                          }))
+                        }
+                      >
+                        {t('nextPage')}
                       </Button>
-                      {m.status === 'SIGNED' &&
-                        (m.hasHandoverPhoto ? (
-                          <HandoverPhoto warehouse={warehouse} id={m.id} />
-                        ) : (
-                          <Alert variant="warning">{t('legacyEvidenceHint')}</Alert>
-                        ))}
-                      {m.status === 'SIGNED' && (
-                        <p className="text-sm">{t('warehouseConfirmationHint')}</p>
-                      )}
-                      {m.status === 'DRAFT' && sign && (
-                        <SignManifest
-                          key={`${m.id}:${m.shipments
-                            .map((s) => s.id)
-                            .sort()
-                            .join(',')}`}
-                          warehouse={warehouse}
-                          id={m.id}
-                          parcelCount={m.parcelCount}
-                          onSigned={() => setReload((n) => n + 1)}
-                        />
-                      )}
-                    </details>
-                  ))}
-                {data.nextManifestCursor && (
-                  <Button
-                    variant="outline"
-                    disabled={busy || !!pending.current}
-                    onClick={() =>
-                      setCursors((c) => ({ ...c, manifests: data.nextManifestCursor ?? undefined }))
-                    }
-                  >
-                    {t('nextPage')}
-                  </Button>
-                )}
-              </Card>
-            </div>
-          ))}
+                    </div>
+                  )}
+                </Card>
+              </div>
+            );
+          })}
         </div>
       )}
       {completedPutback && (
@@ -442,12 +604,21 @@ function WarehouseHandover({
         open={tasks.length > 0}
         className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4"
       >
-        <summary className="cursor-pointer rounded text-base font-semibold focus-visible:outline-2">
-          {t('putbackTitle')} ({tasks.length})
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded text-sm font-semibold text-[var(--sc-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)] [&::-webkit-details-marker]:hidden">
+          <span>
+            {t('putbackTitle')} ({tasks.length})
+          </span>
+          <span className="inline-flex items-center rounded-full bg-[var(--sc-bg-secondary)] px-2.5 py-0.5 text-xs font-semibold text-[var(--sc-text-secondary)]">
+            {tasks.length}
+          </span>
         </summary>
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4 border-t border-[var(--sc-border-default)] pt-4">
           {tasks.length > 0 && <Alert>{t('putbackHint')}</Alert>}
-          {!tasks.length && <p>{t('noPutbacks')}</p>}
+          {!tasks.length && (
+            <p className="rounded-lg border border-dashed border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)]/50 px-4 py-6 text-center text-sm text-[var(--sc-text-secondary)]">
+              {t('noPutbacks')}
+            </p>
+          )}
           {tasks.map((task) => (
             <section
               key={task.id}
@@ -679,74 +850,92 @@ function SignManifest({
     }
   }
   return (
-    <form className="space-y-3" onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
       {error && <Alert variant="error">{error}</Alert>}
-      <p className="text-sm text-[var(--sc-text-secondary)]">{t('signChecklist')}</p>
-      <Input
-        label={t('confirmedParcelCount')}
-        type="number"
-        required
-        helperText={t('expectedParcelCount', { qty: parcelCount })}
-        min={1}
-        max={100}
-        {...form.register('confirmedParcelCount', { valueAsNumber: true })}
-        error={form.formState.errors.confirmedParcelCount ? t('invalidInput') : undefined}
-        disabled={busy || !!pending.current}
-      />
-      <Input
-        label={t('carrierAckRef')}
-        helperText={t('carrierAckRefHint')}
-        {...form.register('carrierAckRef')}
-        error={form.formState.errors.carrierAckRef ? t('invalidInput') : undefined}
-        disabled={busy || !!pending.current}
-      />
-      <Input
-        label={t('handoverPhoto')}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        helperText={t('handoverPhotoHint')}
-        error={form.formState.errors.evidenceKey ? t('handoverPhotoRequired') : undefined}
-        disabled={busy || uploading || !!pending.current}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (!file || uploading) return;
-          setUploading(true);
-          setError('');
-          setPhotoName('');
-          form.setValue('evidenceKey', '');
-          void uploadHandoverEvidence(warehouse, id, file, abort.current.signal)
-            .then((key) => {
-              if (!abort.current.signal.aborted) {
-                form.setValue('evidenceKey', key, { shouldValidate: true });
-                setPhotoName(file.name);
-              }
-            })
-            .catch(() => {
-              if (!abort.current.signal.aborted) setError(t('handoverPhotoError'));
-            })
-            .finally(() => {
-              if (!abort.current.signal.aborted) setUploading(false);
-            });
-          event.target.value = '';
-        }}
-      />
-      {uploading && <p role="status">{t('uploadingPhoto')}</p>}
-      {photoName && <p role="status">{t('handoverPhotoReady', { name: photoName })}</p>}
-      <Input
-        label={t('carrierSignerName')}
-        required
-        {...form.register('carrierSignerName')}
-        error={form.formState.errors.carrierSignerName ? t('invalidInput') : undefined}
-        disabled={busy || !!pending.current}
-      />
-      <p className="text-sm">{t('signAttestation')}</p>
-      <Button
-        type="submit"
-        className="h-auto min-h-[42px] whitespace-normal"
-        disabled={busy || uploading}
-      >
-        {pending.current ? t('retryOperation') : t('signHandover')}
-      </Button>
+      <p className="rounded-lg bg-[var(--sc-bg-secondary)]/70 px-3 py-2 text-sm text-[var(--sc-text-secondary)]">
+        {t('signChecklist')}
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Input
+          label={t('confirmedParcelCount')}
+          type="number"
+          required
+          helperText={t('expectedParcelCount', { qty: parcelCount })}
+          min={1}
+          max={100}
+          {...form.register('confirmedParcelCount', { valueAsNumber: true })}
+          error={form.formState.errors.confirmedParcelCount ? t('invalidInput') : undefined}
+          disabled={busy || !!pending.current}
+        />
+        <Input
+          label={t('carrierSignerName')}
+          required
+          {...form.register('carrierSignerName')}
+          error={form.formState.errors.carrierSignerName ? t('invalidInput') : undefined}
+          disabled={busy || !!pending.current}
+        />
+        <Input
+          label={t('carrierAckRef')}
+          helperText={t('carrierAckRefHint')}
+          {...form.register('carrierAckRef')}
+          error={form.formState.errors.carrierAckRef ? t('invalidInput') : undefined}
+          disabled={busy || !!pending.current}
+        />
+        <div className="space-y-1.5">
+          <Input
+            label={t('handoverPhoto')}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            helperText={t('handoverPhotoHint')}
+            error={form.formState.errors.evidenceKey ? t('handoverPhotoRequired') : undefined}
+            disabled={busy || uploading || !!pending.current}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file || uploading) return;
+              setUploading(true);
+              setError('');
+              setPhotoName('');
+              form.setValue('evidenceKey', '');
+              void uploadHandoverEvidence(warehouse, id, file, abort.current.signal)
+                .then((key) => {
+                  if (!abort.current.signal.aborted) {
+                    form.setValue('evidenceKey', key, { shouldValidate: true });
+                    setPhotoName(file.name);
+                  }
+                })
+                .catch(() => {
+                  if (!abort.current.signal.aborted) setError(t('handoverPhotoError'));
+                })
+                .finally(() => {
+                  if (!abort.current.signal.aborted) setUploading(false);
+                });
+              event.target.value = '';
+            }}
+          />
+          {uploading && (
+            <p role="status" className="text-xs text-[var(--sc-text-secondary)]">
+              {t('uploadingPhoto')}
+            </p>
+          )}
+          {photoName && (
+            <p role="status" className="text-xs font-medium text-[var(--sc-success-dark)]">
+              {t('handoverPhotoReady', { name: photoName })}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] pt-3">
+        <p className="min-w-0 flex-1 text-xs text-[var(--sc-text-secondary)]">
+          {t('signAttestation')}
+        </p>
+        <Button
+          type="submit"
+          className="h-auto min-h-[42px] whitespace-normal"
+          disabled={busy || uploading}
+        >
+          {pending.current ? t('retryOperation') : t('signHandover')}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -761,9 +950,10 @@ function HandoverPhoto({ warehouse, id }: { warehouse: string; id: string }) {
     return () => controller.abort();
   }, []);
   return (
-    <div>
+    <div className="inline-flex flex-col gap-2">
       <Button
         variant="outline"
+        size="sm"
         disabled={busy}
         onClick={() => {
           setBusy(true);
@@ -809,9 +999,10 @@ function RemoveDraftParcel({
     return () => controller.abort();
   }, []);
   return (
-    <div>
+    <div className="inline-flex flex-col items-end gap-1.5">
       <Button
         variant="outline"
+        size="sm"
         disabled={busy}
         onClick={() => {
           if (running.current) return;
