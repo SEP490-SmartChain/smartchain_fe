@@ -18,6 +18,7 @@ import { Tabs } from '@/components/Common/Tabs/Tabs';
 import { useAuthStore } from '@/stores/authStore';
 
 import { commercialApi, type PublishedCommercialTerms } from '../api/commercialApi';
+import { freightTariffLabel } from '../lib/freightTariffLabel';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
 const planSchema = z.object({
@@ -254,8 +255,10 @@ export function CommercialPlanAdmin() {
   const tariffOptions = (
     tariffs: PublishedCommercialTerms['serviceTariffs'],
     previousId?: string,
+    labelOf: (item: PublishedCommercialTerms['serviceTariffs'][number]) => string = (item) =>
+      `${item.code} · v${item.versionNo}`,
   ) => [
-    ...tariffs.map((item) => ({ value: item.id, label: `${item.code} · v${item.versionNo}` })),
+    ...tariffs.map((item) => ({ value: item.id, label: labelOf(item) })),
     ...(previousId && !tariffs.some((item) => item.id === previousId)
       ? [{ value: previousId, label: t('previousTariffUnavailable'), disabled: true }]
       : []),
@@ -633,6 +636,7 @@ export function CommercialPlanAdmin() {
               options={tariffOptions(
                 terms?.freightTariffs ?? [],
                 replacement?.freightTariffVersionId,
+                (item) => freightTariffLabel(item, t('freightCarrierApi')),
               )}
               value={freightTariffVersionId}
               {...agreement.register('freightTariffVersionId')}

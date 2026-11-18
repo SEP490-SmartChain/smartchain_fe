@@ -135,10 +135,7 @@ function ScopedRules() {
           actions={
             <div className="flex gap-2">
               {canOperate && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/admin/tariffs?tab=intelligence')}
-                >
+                <Button variant="outline" onClick={() => navigate('/admin/tariffs?tab=selection')}>
                   {t('suggestFromPrices')}
                 </Button>
               )}

@@ -2,141 +2,20 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
-import {
-  purchaseTariffSchema,
-  sellerTariffSchema,
-  tariffServiceSchema,
-  type purchaseInput,
-  type sellerInput,
-} from '../schemas/freightTariffSchema';
+import { tariffServiceSchema } from '../schemas/freightTariffSchema';
 
-const pagination = z.object({
-  limit: z.number().int().positive(),
-  hasNext: z.boolean(),
-  nextCursor: z.string().uuid().nullable(),
-});
-const money = z.string().regex(/^\d{1,12}$/);
-const purchaseSuggestionSchema = z.object({
-  bands: z
-    .array(
-      z.object({
-        minWeightG: z.number().int().nonnegative(),
-        maxWeightG: z.number().int().positive().nullable(),
-        includedWeightG: z.number().int().positive(),
-        stepWeightG: z.number().int().positive(),
-        basePriceVnd: money,
-        stepPriceVnd: money,
-      }),
-    )
-    .min(1),
-  routeCount: z.number().int().nonnegative(),
-  observedAt: z.string().datetime({ offset: true }),
-  isSample: z.boolean(),
-});
-export type PurchaseSuggestion = z.infer<typeof purchaseSuggestionSchema>;
 const root = '/v1/platform/tariffs';
+
+/**
+ * Freight prices come from carrier API quotes; manual purchase and seller rate cards are
+ * read-only history on the backend, so the UI only reads the carrier service list.
+ */
 export const freightTariffApi = {
-  async zoneCodes(carrierId: string, signal?: AbortSignal) {
-    const result = await apiClient.get<ApiResponse<unknown>>(
-      `${root}/carriers/${encodeURIComponent(carrierId)}/zone-codes`,
-      { signal, silent: true },
-    );
-    return z.array(z.string().regex(/^[A-Z0-9_-]{1,40}$/)).parse(result.data);
-  },
-  /** Card bands built from the newest carrier API prices for one service and zone. */
-  async purchaseSuggestion(serviceId: string, zone: string) {
-    const r = await apiClient.get<ApiResponse<unknown>>(`${root}/purchase/api-suggestion`, {
-      params: { serviceId, zone },
-      silent: true,
-    });
-    return purchaseSuggestionSchema.parse(r.data);
-  },
-  async read(kind: 'purchase' | 'sell', id: string) {
-    const r = await apiClient.get<ApiResponse<unknown>>(
-      `${root}/${kind}/${encodeURIComponent(id)}`,
-      { silent: true },
-    );
-    return kind === 'purchase'
-      ? purchaseTariffSchema.parse(r.data)
-      : sellerTariffSchema.parse(r.data);
-  },
-  async close(
-    kind: 'purchase' | 'sell',
-    row: { id: string; version: number; effectiveTo: string | null },
-    end: string,
-  ) {
-    const r = await apiClient.post<ApiResponse<unknown>>(
-      `${root}/${kind}/${encodeURIComponent(row.id)}/close`,
-      { expectedVersion: row.version, expectedEffectiveTo: row.effectiveTo, effectiveTo: end },
-      { silent: true },
-    );
-    return kind === 'purchase'
-      ? purchaseTariffSchema.parse(r.data)
-      : sellerTariffSchema.parse(r.data);
-  },
   async services(signal?: AbortSignal) {
     const result = await apiClient.get<ApiResponse<unknown>>(`${root}/services`, {
       signal,
       silent: true,
     });
     return z.array(tariffServiceSchema).parse(result.data);
-  },
-  async purchase(cursor?: string, signal?: AbortSignal) {
-    const r = await apiClient.get<ApiResponse<unknown>>(`${root}/purchase`, {
-      params: { limit: '20', ...(cursor ? { cursor } : {}) },
-      signal,
-      silent: true,
-    });
-    return {
-      items: z.array(purchaseTariffSchema).parse(r.data),
-      pagination: pagination.parse(r.meta.pagination),
-    };
-  },
-  async sell(cursor?: string, signal?: AbortSignal) {
-    const r = await apiClient.get<ApiResponse<unknown>>(`${root}/sell`, {
-      params: { limit: '20', ...(cursor ? { cursor } : {}) },
-      signal,
-      silent: true,
-    });
-    return {
-      items: z.array(sellerTariffSchema).parse(r.data),
-      pagination: pagination.parse(r.meta.pagination),
-    };
-  },
-  async savePurchase(
-    input: ReturnType<typeof purchaseInput>,
-    existing?: { id: string; version: number },
-  ) {
-    const r = existing
-      ? await apiClient.put<ApiResponse<unknown>>(
-          `${root}/purchase/${encodeURIComponent(existing.id)}`,
-          { ...input, expectedVersion: existing.version },
-          { silent: true },
-        )
-      : await apiClient.post<ApiResponse<unknown>>(`${root}/purchase`, input, { silent: true });
-    return purchaseTariffSchema.parse(r.data);
-  },
-  async saveSell(
-    input: ReturnType<typeof sellerInput>,
-    existing?: { id: string; version: number },
-  ) {
-    const r = existing
-      ? await apiClient.put<ApiResponse<unknown>>(
-          `${root}/sell/${encodeURIComponent(existing.id)}`,
-          { ...input, expectedVersion: existing.version },
-          { silent: true },
-        )
-      : await apiClient.post<ApiResponse<unknown>>(`${root}/sell`, input, { silent: true });
-    return sellerTariffSchema.parse(r.data);
-  },
-  async publish(kind: 'purchase' | 'sell', row: { id: string; version: number }) {
-    const r = await apiClient.post<ApiResponse<unknown>>(
-      `${root}/${kind}/${encodeURIComponent(row.id)}/publish`,
-      { expectedVersion: row.version },
-      { silent: true },
-    );
-    return kind === 'purchase'
-      ? purchaseTariffSchema.parse(r.data)
-      : sellerTariffSchema.parse(r.data);
   },
 };

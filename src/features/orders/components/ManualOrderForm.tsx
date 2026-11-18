@@ -551,6 +551,7 @@ export function ManualOrderForm({
                 {...form.register('deliveryTier')}
                 options={[
                   { value: 'ECONOMY', label: t('deliveryTierEconomy') },
+                  { value: 'BALANCED', label: t('deliveryTierBalanced') },
                   { value: 'EXPRESS', label: t('deliveryTierExpress') },
                 ]}
               />
@@ -568,7 +569,6 @@ export function ManualOrderForm({
                 maxLength={500}
                 error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
               />
-              <Alert>{t('freightSeparateHint')}</Alert>
             </section>
           )}
           {!direct && (
@@ -579,6 +579,7 @@ export function ManualOrderForm({
                 {...form.register('deliveryTier')}
                 options={[
                   { value: 'ECONOMY', label: t('deliveryTierEconomy') },
+                  { value: 'BALANCED', label: t('deliveryTierBalanced') },
                   { value: 'EXPRESS', label: t('deliveryTierExpress') },
                 ]}
               />

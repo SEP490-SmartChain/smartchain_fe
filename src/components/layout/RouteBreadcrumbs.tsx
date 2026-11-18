@@ -6,7 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { useAccess } from '@/hooks/useAccess';
-import { WAREHOUSE_INBOUND_TABS } from '@/lib/accessPolicy';
+import { WAREHOUSE_INBOUND_TABS, WAREHOUSE_OUTBOUND_TABS } from '@/lib/accessPolicy';
 
 interface BreadcrumbItem {
   label: string;
@@ -77,6 +77,9 @@ export default function RouteBreadcrumbs() {
     items.push({ label: sidebar('warehouse_ops_heading') });
     if (WAREHOUSE_INBOUND_TABS.some((tab) => tab.href === pathname)) {
       items.push({ label: sidebar('warehouse_intake'), href: '/warehouse/inbound' });
+    }
+    if (WAREHOUSE_OUTBOUND_TABS.some((tab) => tab.href === pathname)) {
+      items.push({ label: sidebar('warehouse_outbound'), href: '/warehouse/picking' });
     }
     items.push({
       label: sidebar(
