@@ -6,6 +6,7 @@
  */
 export { GlobalCarrierCatalog } from './components/GlobalCarrierCatalog';
 export { CarrierAccountManager } from './components/CarrierAccountManager';
+export { CarrierWebhookManager } from './components/CarrierWebhookManager';
 export { FreightTariffManager } from './components/FreightTariffManager';
 export { RateIntelligenceManager } from './components/RateIntelligenceManager';
 export { RateProposalPanel } from './components/RateProposalPanel';

@@ -64,8 +64,15 @@ const proposedRuleSchema = z.object({
     .optional(),
 });
 const proposalDetailSchema = proposalListItemSchema.extend({
-  proposedRules: z.array(proposedRuleSchema),
+  proposedRules: z.array(
+    proposedRuleSchema.extend({
+      warehouseId: z.string().uuid().nullable().optional(),
+    }),
+  ),
   publishedRuleIds: z.array(z.string()),
+  serviceIdentities: z
+    .record(z.string(), z.object({ carrierName: z.string(), serviceName: z.string() }))
+    .default({}),
 });
 
 export type RatePriceAlert = z.infer<typeof alertSchema>;

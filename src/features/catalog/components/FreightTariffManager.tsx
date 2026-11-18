@@ -134,6 +134,7 @@ function Manager({ onOpenRateData }: FreightTariffManagerProps) {
             </div>
           }
         />
+        <Alert>{t('apiPricingNotice')}</Alert>
         <Tabs
           tabs={[
             { id: 'purchase', label: t('purchase') },

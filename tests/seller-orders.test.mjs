@@ -429,6 +429,19 @@ test('list passes server filters and strict pagination through authenticated API
   );
   assert.equal(result.items.length, 1);
 });
+test('owner list accepts an EXPRESS tier and rejects an unknown tier', async () => {
+  const listWith = async (deliveryTier) => {
+    globalThis.fetch = async () =>
+      ok([{ ...summary, ...financial, deliveryTier }], {
+        limit: 50,
+        hasNext: false,
+        nextCursor: null,
+      });
+    return orders.ordersApi.list({ status: '', channel: '', q: '', from: '', to: '' }, true);
+  };
+  assert.equal((await listWith('EXPRESS')).items[0].deliveryTier, 'EXPRESS');
+  await assert.rejects(listWith('OVERNIGHT'));
+});
 test('seller draft generates a readable code and exact total, preserves explicit zero and rejects oversized totals', () => {
   const input = {
     ...draft,

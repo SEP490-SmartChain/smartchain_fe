@@ -32,6 +32,42 @@ import { formatDelta, formatVnd, formatWeight } from '../utils/rateDisplay';
 const STATUS_TONE = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'error' } as const;
 const ALERT_TONE = { OPEN: 'warning', PROPOSED: 'info', DISMISSED: 'default' } as const;
 
+type ProposedRule = RateProposalDetail['proposedRules'][number];
+
+interface ProposalRouteGroup {
+  key: string;
+  rules: ProposedRule[];
+  warehouseLabel: string | null;
+}
+
+function groupProposedRulesByRoute(rules: readonly ProposedRule[]): ProposalRouteGroup[] {
+  const groups = new Map<string, ProposalRouteGroup>();
+  for (const rule of rules) {
+    const provinceKey = rule.coverage
+      ? [...rule.coverage.provinceCodes].sort().join(',')
+      : `legacy:${rule.name}`;
+    const key = `${rule.warehouseId ?? ''}|${provinceKey}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.rules.push(rule);
+      continue;
+    }
+    const separator = rule.warehouseId ? rule.name.indexOf(': ') : -1;
+    groups.set(key, {
+      key,
+      rules: [rule],
+      warehouseLabel: separator > -1 ? rule.name.slice(0, separator) : null,
+    });
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    rules: [...group.rules].sort(
+      (left, right) =>
+        (left.coverage?.weightMinExclusiveG ?? -1) - (right.coverage?.weightMinExclusiveG ?? -1),
+    ),
+  }));
+}
+
 interface RateProposalPanelProps {
   /** Changes whenever a price update finishes, so alerts and proposals reload. */
   refreshToken?: string;
@@ -187,8 +223,24 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
     });
 
   const renderDetail = (selected: RateProposalDetail) => {
+    const routeGroups = groupProposedRulesByRoute(selected.proposedRules);
+    const renderServiceIdentity = (id: string) => {
+      const identity = selected.serviceIdentities[id];
+      return identity ? (
+        <span className="inline-flex flex-wrap items-baseline gap-x-1">
+          <span className="font-medium">{identity.carrierName}</span>
+          <span className="text-xs text-[var(--sc-text-secondary)]">{identity.serviceName}</span>
+        </span>
+      ) : (
+        <span className="font-medium">{serviceName(id)}</span>
+      );
+    };
+
     return (
       <div className="mt-3 border-t border-[var(--sc-border-default)] pt-3">
+        <p className="text-sm text-[var(--sc-text-secondary)]">
+          {t(selected.objective === 'FASTEST' ? 'proposalTierExpress' : 'proposalTierEconomy')}
+        </p>
         {selected.summary.notes.length > 0 ? (
           <Alert className="mt-4" variant="warning" title={t('proposalNotes')}>
             <ul className="list-disc pl-5">
@@ -209,28 +261,63 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
               </tr>
             </thead>
             <tbody>
-              {selected.proposedRules.map((rule) => (
-                <tr key={rule.name} className="border-t border-[var(--sc-border-default)]">
-                  <td className="py-3 pr-4">
-                    {rule.coverage
-                      ? rule.coverage.provinceCodes
-                          .map((code) => provinceNames.get(code) ?? code)
-                          .join(', ')
-                      : rule.scenarioIds.length}
-                  </td>
-                  <td className="whitespace-nowrap py-3 pr-4">
-                    {rule.coverage
-                      ? `${rule.coverage.weightMinExclusiveG > 0 ? `${formatWeight(rule.coverage.weightMinExclusiveG)} – ` : `${t('proposalUpTo')} `}${formatWeight(rule.coverage.weightMaxG)}${rule.coverage.isCod ? ` · ${t('routeCod')}` : ''}`
-                      : '—'}
-                  </td>
-                  <td className="py-3 pr-4 font-medium">
-                    {serviceName(rule.action.carrierServiceId)}
-                  </td>
-                  <td className="py-3">
-                    {rule.action.fallbackServiceIds.map(serviceName).join(', ') || '—'}
-                  </td>
-                </tr>
-              ))}
+              {routeGroups.map((group) => {
+                const firstRule = group.rules[0];
+                return (
+                  <tr key={group.key} className="border-t border-[var(--sc-border-default)]">
+                    <td className="py-3 pr-4">
+                      {firstRule?.coverage
+                        ? firstRule.coverage.provinceCodes
+                            .map((code) => provinceNames.get(code) ?? code)
+                            .join(', ')
+                        : firstRule?.scenarioIds.length}
+                      {group.warehouseLabel ? (
+                        <span className="mt-1 block text-xs text-[var(--sc-text-secondary)]">
+                          {group.warehouseLabel}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <div className="space-y-1">
+                        {group.rules.map((rule) => (
+                          <div key={rule.name} className="whitespace-nowrap text-sm">
+                            {rule.coverage
+                              ? `${rule.coverage.weightMinExclusiveG > 0 ? `${formatWeight(rule.coverage.weightMinExclusiveG)} – ` : `${t('proposalUpTo')} `}${formatWeight(rule.coverage.weightMaxG)}`
+                              : '—'}
+                            {rule.coverage?.isCod ? (
+                              <span className="ml-2 text-xs text-[var(--sc-text-secondary)]">
+                                {t('routeCod')}
+                              </span>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <div className="space-y-1">
+                        {group.rules.map((rule) => (
+                          <div key={rule.name}>
+                            {renderServiceIdentity(rule.action.carrierServiceId)}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-2">
+                      <div className="space-y-1">
+                        {group.rules.map((rule) => (
+                          <div key={rule.name} className="space-x-2">
+                            {rule.action.fallbackServiceIds.length
+                              ? rule.action.fallbackServiceIds.map((id) => (
+                                  <span key={id}>{renderServiceIdentity(id)}</span>
+                                ))
+                              : '—'}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -282,7 +369,13 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
             className="mt-3"
             type="button"
             variant="outline"
-            onClick={() => navigate('/rules')}
+            onClick={() => {
+              const params = new URLSearchParams({ kind: 'CARRIER' });
+              if (selected.publishedRuleIds.length) {
+                params.set('ruleIds', selected.publishedRuleIds.join(','));
+              }
+              navigate(`/rules?${params.toString()}`);
+            }}
           >
             {t('proposalViewRules')}
           </Button>

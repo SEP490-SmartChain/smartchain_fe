@@ -7,6 +7,7 @@ export const RULE_FIELDS = {
   itemCount: 'INTEGER',
   codAmountVnd: 'VND',
   isCod: 'BOOLEAN',
+  deliveryTier: 'TEXT',
 } as const;
 export type RuleField = keyof typeof RULE_FIELDS;
 export type RuleKind = 'ALLOCATION' | 'CARRIER';
