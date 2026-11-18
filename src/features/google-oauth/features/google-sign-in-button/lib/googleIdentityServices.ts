@@ -29,22 +29,6 @@ export function requestGooglePrompt(): void {
   getGoogleIdentityServices()?.accounts?.id?.prompt();
 }
 
-/** The official button starts the account chooser independently of One Tap eligibility. */
-export function renderGoogleSignInButton(parent: HTMLElement, locale: string): void {
-  const id = getGoogleIdentityServices()?.accounts?.id;
-  if (!id) return;
-  parent.replaceChildren();
-  id.renderButton(parent, {
-    type: 'standard',
-    theme: 'outline',
-    size: 'large',
-    text: 'continue_with',
-    shape: 'rectangular',
-    width: Math.min(400, Math.max(200, Math.floor(parent.getBoundingClientRect().width))),
-    locale,
-  });
-}
-
 /**
  * Loads `https://accounts.google.com/gsi/client` at most once per page. The
  * returned promise resolves when the SDK global is available.
