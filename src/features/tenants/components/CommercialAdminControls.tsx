@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { CommercialDisclosure } from './CommercialDisclosure';
@@ -59,6 +60,12 @@ export function CommercialAdminControls({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [signingProgress, setSigningProgress] = useState<{
+    requestId: string;
+    tenantId: string;
+    revision: number;
+    message: string;
+  } | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [preview, setPreview] = useState<{
     requestId: string;
@@ -68,6 +75,12 @@ export function CommercialAdminControls({
   const signingRequest = state.signingRequests.find(
     (item) => item.contractId === state.currentContractId && item.canSignAsOrcaAdmin,
   );
+  const currentSigningProgress =
+    signingProgress?.requestId === signingRequest?.id &&
+    signingProgress?.tenantId === tenantId &&
+    signingProgress?.revision === revision
+      ? signingProgress
+      : null;
   const request = state.signingRequests.find(
     (item) =>
       item.contractId === state.currentContractId &&
@@ -95,7 +108,24 @@ export function CommercialAdminControls({
       );
       if (session?.popupBlocked) setError(t('signingPopupBlocked'));
     } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      if (current()) {
+        if (
+          failure instanceof ApiError &&
+          [
+            'COMMERCIAL.SIGNING_WAITING_FOR_OWNER',
+            'COMMERCIAL.SIGNING_WAITING_FOR_VERIFICATION',
+          ].includes(failure.code)
+        ) {
+          setSigningProgress({
+            requestId: signingRequest.id,
+            tenantId,
+            revision,
+            message: failure.message,
+          });
+        } else {
+          setError(failure instanceof Error ? failure.message : t('saveError'));
+        }
+      }
     } finally {
       if (current()) setBusy(false);
     }
@@ -186,6 +216,7 @@ export function CommercialAdminControls({
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
+      {currentSigningProgress && <Alert variant="info">{currentSigningProgress.message}</Alert>}
       {canManageService && (
         <CommercialDisclosure title={t(serviceAction)}>
           <form onSubmit={setStatus} className="space-y-3">
@@ -218,14 +249,16 @@ export function CommercialAdminControls({
       )}
       {signingRequest && (
         <div className="flex flex-wrap gap-3">
-          <Button
-            type="button"
-            onClick={() => void countersign()}
-            isLoading={busy}
-            disabled={isPreviewLoading}
-          >
-            {t('signAsOrca')}
-          </Button>
+          {!currentSigningProgress && (
+            <Button
+              type="button"
+              onClick={() => void countersign()}
+              isLoading={busy}
+              disabled={isPreviewLoading}
+            >
+              {t('signAsOrca')}
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
