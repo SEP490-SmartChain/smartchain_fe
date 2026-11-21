@@ -74,6 +74,7 @@ async function render(
       },
       useSyncExternalStore: (_subscribe, snapshot) => snapshot(),
     },
+    '@/lib/errorNotifications': { notifyInvalidForm: () => assert.fail('Unexpected invalid form') },
     'react-hook-form': {
       useForm: () => ({
         register: () => ({}),

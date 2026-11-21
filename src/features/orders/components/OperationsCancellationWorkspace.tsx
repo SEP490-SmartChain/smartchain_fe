@@ -10,6 +10,7 @@ import { Alert, Button, Card, Input, PageHeader } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { OrderCancellationActions } from './OrderCancellationActions';
@@ -65,8 +66,9 @@ function CancellationSession() {
       <Card className="space-y-4">
         <form
           className="flex flex-wrap items-end gap-3"
-          onSubmit={form.handleSubmit((values) =>
-            setQuery({ search: values.search, cursor: undefined }),
+          onSubmit={form.handleSubmit(
+            (values) => setQuery({ search: values.search, cursor: undefined }),
+            () => notifyInvalidForm(),
           )}
         >
           <div className="min-w-0 flex-1 sm:max-w-md">

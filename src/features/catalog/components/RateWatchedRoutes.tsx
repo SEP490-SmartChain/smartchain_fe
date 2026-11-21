@@ -5,7 +5,10 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card, CardHeader } from '@/components/Common/Card/Card';
+import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import { adminDivisionApi, type AdminDivision } from '../api/adminDivisionApi';
 import { formatWeight, zoneKey } from '../utils/rateDisplay';
@@ -123,6 +126,11 @@ export function RateWatchedRoutes({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!form.serviceId || !form.fromWard || !form.toWard) {
+      notifyInvalidForm();
+      return;
+    }
+
     const fromName = fromWards.find((row) => row.code === form.fromWard)?.name ?? form.fromWard;
     const toName = toWards.find((row) => row.code === form.toWard)?.name ?? form.toWard;
     const saved = await onCreate({
@@ -151,18 +159,15 @@ export function RateWatchedRoutes({
     label: string,
     max: number,
   ) => (
-    <label className="block text-sm font-medium text-[var(--sc-text-primary)]">
-      {label}
-      <input
-        required
-        type="number"
-        min={1}
-        max={max}
-        className="mt-2 block min-h-[42px] w-full rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 py-2 text-sm"
-        value={form[field]}
-        onChange={(event) => setForm({ ...form, [field]: event.target.value })}
-      />
-    </label>
+    <Input
+      label={label}
+      required
+      type="number"
+      min={1}
+      max={max}
+      value={form[field]}
+      onChange={(event) => setForm({ ...form, [field]: event.target.value })}
+    />
   );
 
   return (

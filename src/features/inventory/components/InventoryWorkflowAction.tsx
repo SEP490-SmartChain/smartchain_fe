@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -331,7 +332,13 @@ export function InventoryWorkflowAction({
       }}
       title={t(action.kind)}
     >
-      <form className="space-y-4" onSubmit={handleSubmit((v) => void submit(v))}>
+      <form
+        className="space-y-4"
+        onSubmit={handleSubmit(
+          (v) => void submit(v),
+          () => notifyInvalidForm(),
+        )}
+      >
         {error && (
           <Alert
             variant="error"
@@ -350,11 +357,19 @@ export function InventoryWorkflowAction({
               error={errors.qty ? t('invalid') : undefined}
             />
           )}
-          {reason && <Input label={t('reason')} maxLength={1000} {...register('reason')} />}
+          {reason && (
+            <Input
+              label={t('reason')}
+              maxLength={1000}
+              {...register('reason')}
+              error={errors?.reason?.message}
+            />
+          )}
           {review && action.kind !== 'resnapshot' && (
             <Select
               label={t('decision')}
               {...register('decision')}
+              error={errors?.decision?.message}
               options={[
                 { value: 'APPROVE', label: t('approve') },
                 { value: 'REJECT', label: t('reject') },
@@ -363,9 +378,21 @@ export function InventoryWorkflowAction({
           )}
           {scans && (
             <>
-              <Input label={t('binScan')} {...register('binScan')} />
-              <Input label={t('skuScan')} {...register('skuScan')} />
-              <Input label={t('lotScan')} {...register('lotScan')} />
+              <Input
+                label={t('binScan')}
+                {...register('binScan')}
+                error={errors?.binScan?.message}
+              />
+              <Input
+                label={t('skuScan')}
+                {...register('skuScan')}
+                error={errors?.skuScan?.message}
+              />
+              <Input
+                label={t('lotScan')}
+                {...register('lotScan')}
+                error={errors?.lotScan?.message}
+              />
             </>
           )}
           {countPlan && (
@@ -394,9 +421,20 @@ export function InventoryWorkflowAction({
                 label={t('skuFilter')}
                 placeholder={t('skuFilterHint')}
                 {...register('skuCodes')}
+                error={errors?.skuCodes?.message}
               />
-              <Input type="datetime-local" label={t('windowStart')} {...register('windowStart')} />
-              <Input type="datetime-local" label={t('windowEnd')} {...register('windowEnd')} />
+              <Input
+                type="datetime-local"
+                label={t('windowStart')}
+                {...register('windowStart')}
+                error={errors?.windowStart?.message}
+              />
+              <Input
+                type="datetime-local"
+                label={t('windowEnd')}
+                {...register('windowEnd')}
+                error={errors?.windowEnd?.message}
+              />
               <Select
                 label={t('assigneeId')}
                 required
@@ -405,6 +443,7 @@ export function InventoryWorkflowAction({
                   label: s.fullName,
                 }))}
                 {...register('assigneeId')}
+                error={errors?.assigneeId?.message}
               />
             </>
           )}
@@ -414,6 +453,7 @@ export function InventoryWorkflowAction({
               required
               options={(planOptions?.staff ?? []).map((s) => ({ value: s.id, label: s.fullName }))}
               {...register('assigneeId')}
+              error={errors?.assigneeId?.message}
             />
           )}
           {putbackPlan && (
@@ -426,6 +466,7 @@ export function InventoryWorkflowAction({
                     .filter((s) => s.qty > 0)
                     .map((s) => ({ value: s.id, label: `${s.sku} · ${s.lotCode} (${s.qty})` }))}
                   {...register('pickConfirmationId')}
+                  error={errors?.pickConfirmationId?.message}
                 />
               )}
               <Select
@@ -436,12 +477,14 @@ export function InventoryWorkflowAction({
                   label: `${b.code} · ${t(b.zoneType === 'QUARANTINE' ? 'quarantine' : 'storage')}`,
                 }))}
                 {...register('toBinId')}
+                error={errors?.toBinId?.message}
               />
               <Select
                 label={t('assigneeId')}
                 required
                 options={(options?.staff ?? []).map((s) => ({ value: s.id, label: s.fullName }))}
                 {...register('assigneeId')}
+                error={errors?.assigneeId?.message}
               />
             </>
           )}

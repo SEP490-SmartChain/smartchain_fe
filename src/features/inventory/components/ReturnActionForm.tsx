@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -157,7 +158,7 @@ export function ReturnActionForm({
         if (!busy) onClose();
       }}
     >
-      <form className="space-y-4" onSubmit={handleSubmit(submit)}>
+      <form className="space-y-4" onSubmit={handleSubmit(submit, () => notifyInvalidForm())}>
         <p className="break-all text-sm">
           {action.id}
           {action.line ? ` · ${action.line.sku} · ${action.line.lotCode}` : ''}
@@ -177,12 +178,17 @@ export function ReturnActionForm({
                   min={1}
                   max={key === 'weightG' ? 50000 : 200}
                   {...register(key, { valueAsNumber: true })}
+                  error={errors[key]?.message}
                 />
               ))}
             </>
           )}
           {action.kind === 'arrival' && (
-            <Input label={t('parcelScan')} {...register('parcelScan')} />
+            <Input
+              label={t('parcelScan')}
+              {...register('parcelScan')}
+              error={errors?.parcelScan?.message}
+            />
           )}
           {action.kind === 'inspection' && (
             <>
@@ -190,10 +196,12 @@ export function ReturnActionForm({
                 label={t('receivedQty')}
                 type="number"
                 {...register('qty', { valueAsNumber: true })}
+                error={errors?.qty?.message}
               />
               <Select
                 label={t('classification')}
                 {...register('classification')}
+                error={errors?.classification?.message}
                 options={['ACCEPTED', 'DAMAGED', 'UNKNOWN'].map((value) => ({
                   value,
                   label: t(`classification_${value}`),
@@ -212,9 +220,10 @@ export function ReturnActionForm({
               <Select
                 label={t('decision')}
                 {...register('decision')}
+                error={errors?.decision?.message}
                 options={['APPROVE', 'CORRECT'].map((value) => ({ value, label: t(value) }))}
               />
-              <Input label={t('reason')} {...register('reason')} />
+              <Input label={t('reason')} {...register('reason')} error={errors?.reason?.message} />
             </>
           )}
           {action.kind === 'stock' && (
@@ -223,11 +232,13 @@ export function ReturnActionForm({
               <Select
                 label={t('destination')}
                 {...register('destination')}
+                error={errors?.destination?.message}
                 options={['SELLABLE', 'QUARANTINE'].map((value) => ({ value, label: t(value) }))}
               />
               <Select
                 label={t('bin')}
                 {...register('toBinId')}
+                error={errors?.toBinId?.message}
                 options={[
                   { value: '', label: t('chooseBin') },
                   ...bins.map((b) => ({
@@ -237,7 +248,7 @@ export function ReturnActionForm({
                 ]}
               />
               {(['binScan', 'skuScan', 'lotScan'] as const).map((key) => (
-                <Input key={key} label={t(key)} {...register(key)} />
+                <Input key={key} label={t(key)} {...register(key)} error={errors[key]?.message} />
               ))}
             </>
           )}

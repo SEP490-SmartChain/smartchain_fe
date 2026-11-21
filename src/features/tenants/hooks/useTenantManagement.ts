@@ -61,13 +61,15 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
     fetchTenants(query);
   }, [query, fetchTenants]);
 
+  const [detailErrorRef, setDetailErrorRef] = useState<string>();
   const selectTenant = useCallback(async (idOrSlug: string) => {
+    setDetailErrorRef(undefined);
     setIsLoadingDetail(true);
     try {
       const detail = await tenantManagementApi.getDetail(idOrSlug);
       setSelectedTenant(detail);
     } catch {
-      toast.error('Không tìm thấy thông tin workspace');
+      setDetailErrorRef(idOrSlug);
       setSelectedTenant(null);
     } finally {
       setIsLoadingDetail(false);
@@ -92,9 +94,6 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
         }
         await fetchOverview();
         return updated;
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Không thể thay đổi trạng thái workspace');
-        throw err;
       } finally {
         setIsUpdatingStatus(false);
       }
@@ -110,6 +109,7 @@ export function useTenantManagement(initialQuery: TenantListQuery = {}) {
     selectedTenant,
     setSelectedTenant,
     selectTenant,
+    detailErrorRef,
     updateStatus,
     isLoading,
     isLoadingDetail,

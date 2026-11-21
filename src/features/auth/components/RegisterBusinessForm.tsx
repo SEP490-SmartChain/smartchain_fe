@@ -8,6 +8,7 @@ import { Eye, EyeOff, Mail, ShieldCheck, CheckCircle2, Search } from 'lucide-rea
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
@@ -18,8 +19,9 @@ import type {
   GoogleOAuthLocationState,
   GooglePublicConfigDto,
 } from '@/features/google-oauth/shared';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { cn } from '@/lib/utils';
-import { apiClient } from '@/services/apiClient';
+import { ApiError, apiClient } from '@/services/apiClient';
 
 import { useEmailVerification } from '../hooks/useEmailVerification';
 import { useRegisterBusiness } from '../hooks/useRegisterBusiness';
@@ -162,7 +164,7 @@ function useCooldown(sentAt: number | null, cooldownSecs = 60) {
 function StepEmail({ onNext }: { onNext: (email: string) => void }) {
   const tAuth = useTranslations('Auth');
   const t = useTranslations();
-  const { sendOtp, otpStatus } = useEmailVerification();
+  const { sendOtp, otpStatus, error, clearError } = useEmailVerification();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const isSending = otpStatus === 'sending';
@@ -198,6 +200,7 @@ function StepEmail({ onNext }: { onNext: (email: string) => void }) {
         onChange={(e) => {
           setEmail(e.target.value);
           setEmailError('');
+          clearError();
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
@@ -205,7 +208,7 @@ function StepEmail({ onNext }: { onNext: (email: string) => void }) {
             handleSend();
           }
         }}
-        error={emailError}
+        error={emailError || (error && (error.message ?? tAuth('otp_send_failed')))}
         required
         autoComplete="email"
       />
@@ -241,7 +244,7 @@ function StepOtp({
   onBack: () => void;
 }) {
   const tAuth = useTranslations('Auth');
-  const { sendOtp, verifyOtp, otpStatus, sentAt } = useEmailVerification();
+  const { sendOtp, verifyOtp, otpStatus, sentAt, error, clearError } = useEmailVerification();
   const [otp, setOtp] = useState('');
   const remaining = useCooldown(sentAt);
   const isVerifying = otpStatus === 'verifying';
@@ -271,7 +274,20 @@ function StepOtp({
         <p className="text-sm text-[var(--sc-text-secondary)]">{tAuth('otp_hint', { email })}</p>
       </div>
 
-      <OtpInput value={otp} onChange={setOtp} disabled={isVerifying} />
+      <OtpInput
+        value={otp}
+        onChange={(value) => {
+          setOtp(value);
+          clearError();
+        }}
+        disabled={isVerifying}
+      />
+      {error && (
+        <Alert variant="error" compact>
+          {error.message ??
+            tAuth(error.action === 'verify' ? 'otp_verify_failed' : 'otp_send_failed')}
+        </Alert>
+      )}
 
       <Button
         onClick={handleVerify}
@@ -310,6 +326,7 @@ function StepOtp({
 // ─── Step 3: Registration form ────────────────────────────────────────────────
 
 function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
+  const [submitError, setSubmitError] = useState('');
   const tAuth = useTranslations('Auth');
   const t = useTranslations();
   const { register: registerBusiness } = useRegisterBusiness();
@@ -333,17 +350,25 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    const response = await registerBusiness(data);
-    if (response.success) {
-      toast.success(tAuth('register_success'));
+    setSubmitError('');
+    try {
+      const response = await registerBusiness(data);
+      if (response.success) toast.success(tAuth('register_success'));
+    } catch (failure) {
+      setSubmitError(failure instanceof ApiError ? failure.message : tAuth('register_failed'));
     }
   };
 
   const taxId = watch('taxId');
+  const [taxLookupError, setTaxLookupError] = useState('');
 
   const handleTaxIdLookup = async () => {
+    setTaxLookupError('');
     const requestedTaxId = getValues('taxId')?.trim();
-    if (!requestedTaxId || !(await trigger('taxId'))) return;
+    if (!requestedTaxId || !(await trigger('taxId'))) {
+      notifyInvalidForm();
+      return;
+    }
 
     setIsLookingUpTaxId(true);
     setLookupAddress(null);
@@ -351,7 +376,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
       const business = await apiClient.lookupBusinessTaxId(requestedTaxId);
       if (getValues('taxId')?.trim() !== requestedTaxId) return;
       if (!business) {
-        toast.error(tAuth('tax_lookup_not_found'));
+        setTaxLookupError(tAuth('tax_lookup_not_found'));
         return;
       }
       setValue('companyName', business.name, { shouldValidate: true, shouldDirty: true });
@@ -359,7 +384,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
       toast.success(tAuth('tax_lookup_found'));
     } catch {
       if (getValues('taxId')?.trim() === requestedTaxId) {
-        toast.error(tAuth('tax_lookup_error'));
+        setTaxLookupError(tAuth('tax_lookup_error'));
       }
     } finally {
       setIsLookingUpTaxId(false);
@@ -369,7 +394,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
   return (
     <form
       noValidate
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onSubmit, () => notifyInvalidForm())}
       className="flex flex-col gap-4"
       autoComplete="off"
     >
@@ -383,6 +408,7 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
       </div>
 
       {/* Email (hidden, pre-filled from verified step) */}
+      {submitError && <Alert variant="error">{submitError}</Alert>}
       <input type="hidden" {...register('email')} value={verifiedEmail} />
 
       {/* Full Name */}
@@ -413,8 +439,13 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
             label={tAuth('tax_id_label')}
             placeholder={tAuth('tax_id_placeholder')}
             helperText={tAuth('tax_id_helper')}
-            {...register('taxId', { onChange: () => setLookupAddress(null) })}
-            error={errors.taxId?.message}
+            {...register('taxId', {
+              onChange: () => {
+                setLookupAddress(null);
+                setTaxLookupError('');
+              },
+            })}
+            error={errors.taxId?.message || taxLookupError}
             inputMode="numeric"
             autoComplete="off"
           />
@@ -479,7 +510,9 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1.5 text-xs text-[#EF4444] font-medium">{errors.password.message}</p>
+          <Alert variant="error" compact className="mt-1.5">
+            {errors.password.message}
+          </Alert>
         )}
       </div>
 
@@ -517,9 +550,9 @@ function StepRegisterForm({ verifiedEmail }: { verifiedEmail: string }) {
           </button>
         </div>
         {errors.confirmPassword && (
-          <p className="mt-1.5 text-xs text-[#EF4444] font-medium">
+          <Alert variant="error" compact className="mt-1.5">
             {errors.confirmPassword.message}
-          </p>
+          </Alert>
         )}
       </div>
 
@@ -617,6 +650,7 @@ export function RegisterBusinessForm() {
   const location = useLocation();
   const tAuth = useTranslations('Auth');
   const [googleConfig, setGoogleConfig] = useState<GooglePublicConfigDto | null>(null);
+  const [googleError, setGoogleError] = useState('');
   const googleOnboarding = (location.state as GoogleOAuthLocationState | null)?.googleOnboarding;
 
   useEffect(() => {
@@ -642,8 +676,9 @@ export function RegisterBusinessForm() {
           api={googleOAuthApi}
           onboardingToken={googleOnboarding.onboardingToken}
           googleProfile={googleOnboarding.googleProfile}
-          onError={(message) => toast.error(message ?? tAuth('google_error_generic'))}
+          onError={(message) => setGoogleError(message ?? tAuth('google_error_generic'))}
         />
+        {googleError && <Alert variant="error">{googleError}</Alert>}
       </div>
     );
   }
@@ -658,10 +693,11 @@ export function RegisterBusinessForm() {
             <GoogleLoginFlow
               api={googleOAuthApi}
               config={googleConfig}
-              onWorkspaceRequired={() => toast.error(tAuth('google_workspace_required'))}
-              onError={(message) => toast.error(message ?? tAuth('google_error_generic'))}
+              onWorkspaceRequired={() => setGoogleError(tAuth('google_workspace_required'))}
+              onError={(message) => setGoogleError(message ?? tAuth('google_error_generic'))}
             />
           )}
+          {googleError && <Alert variant="error">{googleError}</Alert>}
           <StepEmail
             onNext={(email) => {
               setVerifiedEmail(email);

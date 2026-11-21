@@ -3,6 +3,8 @@ import { useId, useState } from 'react';
 import { FileText, UploadCloud, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
 import { cn } from '@/lib/utils';
 
 export interface DropzoneProps {
@@ -108,9 +110,9 @@ export function Dropzone({
       </label>
 
       {rejectedCount > 0 && (
-        <p role="alert" className="mb-0 mt-2 text-xs text-[var(--sc-error-dark)]">
+        <Alert variant="error" compact className="mt-2">
           {t('dropzone_rejected', { count: rejectedCount, size: maxSizeMb })}
-        </p>
+        </Alert>
       )}
 
       {files.length > 0 && (

@@ -4,7 +4,7 @@ import { Building2, Camera, CheckCircle2, Copy, Save, Trash2, Undo2 } from 'luci
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Button, Input } from '@/components/Common';
+import { Alert, Button, Input } from '@/components/Common';
 import { uploadApi, UploadStorageConnectionError } from '@/services/uploadApi';
 
 import { SettingsMatrixCard } from './SettingsMatrixCard';
@@ -29,6 +29,9 @@ export default function WorkspaceGeneralSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [logoError, setLogoError] = useState('');
+  const [workspaceError, setWorkspaceError] = useState('');
+  const [copyError, setCopyError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -52,7 +55,7 @@ export default function WorkspaceGeneralSettings() {
         }
       })
       .catch(() => {
-        if (active) toast.error(t('workspaceLoadFailed'));
+        if (active) setWorkspaceError(t('workspaceLoadFailed'));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -70,9 +73,10 @@ export default function WorkspaceGeneralSettings() {
   );
 
   const selectLogo = (file: File | undefined) => {
+    setLogoError('');
     if (!file) return;
     if (!ACCEPTED_LOGO_TYPES.includes(file.type) || file.size > MAX_LOGO_BYTES) {
-      toast.error(t('workspaceLogoInvalid'));
+      setLogoError(t('workspaceLogoInvalid'));
       return;
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -103,6 +107,7 @@ export default function WorkspaceGeneralSettings() {
   };
 
   const save = async () => {
+    setWorkspaceError('');
     const trimmedName = name.trim();
     if (trimmedName.length < 3 || trimmedName.length > 150) {
       setNameError(t('workspaceNameInvalid'));
@@ -137,7 +142,7 @@ export default function WorkspaceGeneralSettings() {
       setImageError(false);
       toast.success(t('workspaceSaved'));
     } catch (error) {
-      toast.error(
+      setWorkspaceError(
         error instanceof UploadStorageConnectionError
           ? t('uploadStorageFailed')
           : t('workspaceSaveFailed'),
@@ -153,12 +158,13 @@ export default function WorkspaceGeneralSettings() {
     (name.trim() !== saved.name || logoFile !== null || logoKey !== (saved.logoKey ?? null));
 
   const copyTenantId = async () => {
+    setCopyError('');
     if (!saved?.tenantId) return;
     try {
       await navigator.clipboard.writeText(saved.tenantId);
       toast.success(t('workspaceIdCopied'));
     } catch {
-      toast.error(t('workspaceIdCopyFailed'));
+      setCopyError(t('workspaceIdCopyFailed'));
     }
   };
 
@@ -225,6 +231,11 @@ export default function WorkspaceGeneralSettings() {
               <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
                 {t('workspaceLogoHint')}
               </p>
+              {logoError && (
+                <Alert variant="error" compact>
+                  {logoError}
+                </Alert>
+              )}
               <input
                 ref={fileInput}
                 type="file"
@@ -270,10 +281,20 @@ export default function WorkspaceGeneralSettings() {
                 <Copy size={13} />
                 {t('copyWorkspaceId')}
               </button>
+              {copyError && (
+                <Alert variant="error" compact className="w-full">
+                  {copyError}
+                </Alert>
+              )}
             </div>
           )}
         </div>
 
+        {workspaceError && (
+          <Alert variant="error" className="mx-4 mb-3">
+            {workspaceError}
+          </Alert>
+        )}
         {/* Action Footer */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-4 sm:px-7">
           <div>

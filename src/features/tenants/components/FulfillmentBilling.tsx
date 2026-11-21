@@ -14,6 +14,7 @@ import { MonthPicker } from '@/components/Common/DatePicker/MonthPicker';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
@@ -105,23 +106,26 @@ function InvoiceList({
       if (!current.signal.aborted) setLoading(false);
     }
   };
-  const close = closeForm.handleSubmit(async (input) => {
-    const current = request.current;
-    if (!tenantId || !current) return;
-    setError(null);
-    setNotice(null);
-    try {
-      const result = await invoiceApi.close(tenantId, input.month, current.signal);
-      if (!current.signal.aborted) {
-        setNotice(t('closed', { count: result.invoiceIds.length }));
-        setRevision((value) => value + 1);
+  const close = closeForm.handleSubmit(
+    async (input) => {
+      const current = request.current;
+      if (!tenantId || !current) return;
+      setError(null);
+      setNotice(null);
+      try {
+        const result = await invoiceApi.close(tenantId, input.month, current.signal);
+        if (!current.signal.aborted) {
+          setNotice(t('closed', { count: result.invoiceIds.length }));
+          setRevision((value) => value + 1);
+        }
+      } catch (failure) {
+        if (!current.signal.aborted) {
+          setError(failure instanceof Error ? failure.message : t('loadError'));
+        }
       }
-    } catch (failure) {
-      if (!current.signal.aborted) {
-        setError(failure instanceof Error ? failure.message : t('loadError'));
-      }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <div className="space-y-5">
       {!compact && (
@@ -506,7 +510,7 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
           </div>
         )}
         <form
-          onSubmit={form.handleSubmit(setFilters)}
+          onSubmit={form.handleSubmit(setFilters, () => notifyInvalidForm())}
           className={`grid items-end gap-3 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] ${fixedTenant ? 'p-3 sm:grid-cols-2' : 'mt-6 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]'}`}
         >
           <Controller
@@ -530,6 +534,7 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
               label: value ? t(`kinds.${value}`) : t('allKinds'),
             }))}
             {...form.register('documentType')}
+            error={form.formState.errors?.documentType?.message}
           />
           <Button type="submit" variant="outline">
             <Filter size={16} aria-hidden />

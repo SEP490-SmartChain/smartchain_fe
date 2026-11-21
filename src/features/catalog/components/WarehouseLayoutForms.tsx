@@ -1,13 +1,18 @@
+import { useState } from 'react';
+
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/Common/Button/Button';
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import {
   zoneFormSchema,
@@ -27,9 +32,10 @@ export function ZoneForm({
   readonly zone: Zone | null;
   readonly fixedType?: Zone['zoneType'];
   readonly onClose: () => void;
-  readonly onSave: (values: ZoneFormValues) => Promise<void>;
+  readonly onSave: (values: ZoneFormValues) => Promise<string | undefined>;
 }) {
   const t = useTranslations('WarehouseLayout');
+  const [saveError, setSaveError] = useState('');
   const {
     register,
     handleSubmit,
@@ -50,7 +56,18 @@ export function ZoneForm({
       }}
       title={t(zone ? 'editZone' : 'createZone')}
     >
-      <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(onSave)(event)}>
+      <form
+        className="space-y-4"
+        noValidate
+        onSubmit={handleSubmit(
+          async (values) => {
+            setSaveError('');
+            setSaveError((await onSave(values)) ?? '');
+          },
+          () => notifyInvalidForm(),
+        )}
+      >
+        {saveError && <Alert variant="error">{saveError}</Alert>}
         <Input
           label={t('code')}
           readOnly={zone !== null}
@@ -60,6 +77,7 @@ export function ZoneForm({
         <Select
           label={t('zoneType')}
           {...register('zoneType')}
+          error={errors?.zoneType?.message}
           options={(fixedType
             ? [fixedType]
             : (['RECEIVING', 'STORAGE', 'PACKING', 'QUARANTINE'] as const)
@@ -68,7 +86,7 @@ export function ZoneForm({
             label: t(`types.${value}`),
           }))}
         />
-        <Checkbox label={t('active')} {...register('isActive')} />
+        <Checkbox label={t('active')} {...register('isActive')} error={errors?.isActive?.message} />
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" disabled={isSubmitting} onClick={onClose}>
             {t('cancel')}
@@ -90,9 +108,10 @@ export function BinForm({
   readonly bin: Bin | null;
   readonly storage: boolean;
   readonly onClose: () => void;
-  readonly onSave: (values: BinFormValues) => Promise<void>;
+  readonly onSave: (values: BinFormValues) => Promise<string | undefined>;
 }) {
   const t = useTranslations('WarehouseLayout');
+  const [saveError, setSaveError] = useState('');
   const {
     register,
     watch,
@@ -124,11 +143,23 @@ export function BinForm({
       title={t(bin ? 'editBin' : 'createBin')}
       width="560px"
     >
-      <form className="space-y-4" noValidate onSubmit={(event) => void handleSubmit(onSave)(event)}>
+      <form
+        className="space-y-4"
+        noValidate
+        onSubmit={handleSubmit(
+          async (values) => {
+            setSaveError('');
+            setSaveError((await onSave(values)) ?? '');
+          },
+          () => notifyInvalidForm(),
+        )}
+      >
+        {saveError && <Alert variant="error">{saveError}</Alert>}
         {!bin && storage && (
           <Select
             label={t('mode')}
             {...register('mode')}
+            error={errors?.mode?.message}
             options={[
               { value: 'single', label: t('single') },
               { value: 'bulk', label: t('bulk') },
@@ -181,7 +212,13 @@ export function BinForm({
           {...register('maxVolumeM3')}
           error={errors.maxVolumeM3 ? t('invalid') : undefined}
         />
-        {bin && <Checkbox label={t('active')} {...register('isActive')} />}
+        {bin && (
+          <Checkbox
+            label={t('active')}
+            {...register('isActive')}
+            error={errors?.isActive?.message}
+          />
+        )}
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('deactivationHint')}</p>
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>

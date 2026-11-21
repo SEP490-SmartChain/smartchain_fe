@@ -25,7 +25,7 @@ const schemaDeclaration = schemaTree.statements.find(
 const schemaExpression = schemaDeclaration.declarationList.declarations[0].initializer;
 const schema = new Function('z', `return (${schemaExpression.getText(schemaTree)});`)(z);
 
-function renderWaveForm(values, previewCalls, submissions) {
+function renderWaveForm(values, previewCalls, submissions, validationAlerts = []) {
   const tree = sourceTree('../src/features/orders/components/PickingWorkspace.tsx');
   const declaration = tree.statements.find(
     (node) => ts.isFunctionDeclaration(node) && node.name?.text === 'WaveForm',
@@ -41,6 +41,7 @@ function renderWaveForm(values, previewCalls, submissions) {
     useTranslations: () => Object.assign((key) => key, { has: () => false }),
     useState: (initial) => [initial, () => {}],
     useEffect() {},
+    notifyInvalidForm: () => validationAlerts.push(true),
     useForm: () => ({
       register: (name) => ({ name }),
       watch: (name) => values[name],
@@ -48,9 +49,10 @@ function renderWaveForm(values, previewCalls, submissions) {
       trigger: async (names) =>
         schema.pick(Object.fromEntries(names.map((name) => [name, true]))).safeParse(values)
           .success,
-      handleSubmit: (submit) => async () => {
+      handleSubmit: (submit, onInvalid) => async () => {
         const result = schema.safeParse(values);
         if (result.success) await submit(result.data);
+        else onInvalid?.();
       },
       formState: { errors: {} },
     }),
@@ -94,7 +96,8 @@ test('wave preview accepts cutoff and capacity before assignment, while creation
   const values = { cutoffAt: '2026-11-05T08:00:00Z', maxParcels: 20, assigneeId: '' };
   const previewCalls = [];
   const submissions = [];
-  const ui = renderWaveForm(values, previewCalls, submissions);
+  const validationAlerts = [];
+  const ui = renderWaveForm(values, previewCalls, submissions, validationAlerts);
   const previewButton = nodes(ui).find(
     (node) => node.type === 'Button' && node.children.includes('previewWave'),
   );
@@ -105,23 +108,28 @@ test('wave preview accepts cutoff and capacity before assignment, while creation
   const form = nodes(ui).find((node) => node.type === 'form');
   await form.props.onSubmit();
   assert.equal(submissions.length, 0, 'creation must reject the missing assignee');
+  assert.equal(validationAlerts.length, 1);
   values.assigneeId = '00000000-0000-4000-8000-000000000001';
   await form.props.onSubmit();
   assert.deepEqual(submissions, [values]);
+  assert.equal(validationAlerts.length, 1);
 });
 
 test('wave preview still validates capacity before requesting an estimate', async () => {
   const previewCalls = [];
+  const validationAlerts = [];
   const ui = renderWaveForm(
     { cutoffAt: '2026-11-05T08:00:00Z', maxParcels: 51, assigneeId: '' },
     previewCalls,
     [],
+    validationAlerts,
   );
   nodes(ui)
     .find((node) => node.type === 'Button' && node.children.includes('previewWave'))
     .props.onClick();
   await new Promise(setImmediate);
   assert.equal(previewCalls.length, 0);
+  assert.equal(validationAlerts.length, 1);
 });
 
 test('wave creation does not require a preview first and defaults the cut-off to now', async () => {

@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import { acceptStaffInvitation, readInvitationToken } from '../api/staffInvitationApi';
@@ -39,27 +40,30 @@ export function AcceptStaffInvitationForm() {
     window.history.replaceState(window.history.state, '', window.location.pathname);
     return () => controller.current?.abort();
   }, []);
-  const submit = handleSubmit(async (values) => {
-    if (!token || running.current) return;
-    running.current = true;
-    setError(null);
-    const abort = new AbortController();
-    controller.current = abort;
-    try {
-      await acceptStaffInvitation(token, values.newPassword, abort.signal);
-      if (!abort.signal.aborted) {
-        reset();
-        setConfirmed(true);
+  const submit = handleSubmit(
+    async (values) => {
+      if (!token || running.current) return;
+      running.current = true;
+      setError(null);
+      const abort = new AbortController();
+      controller.current = abort;
+      try {
+        await acceptStaffInvitation(token, values.newPassword, abort.signal);
+        if (!abort.signal.aborted) {
+          reset();
+          setConfirmed(true);
+        }
+      } catch (failure) {
+        if (abort.signal.aborted) return;
+        if (failure instanceof ApiError && failure.code === 'IAM.INVITATION_INVALID') {
+          setInvalid(true);
+        } else setError(failure instanceof Error ? failure.message : t('Auth.inviteFailed'));
+      } finally {
+        running.current = false;
       }
-    } catch (failure) {
-      if (abort.signal.aborted) return;
-      if (failure instanceof ApiError && failure.code === 'IAM.INVITATION_INVALID') {
-        setInvalid(true);
-      } else setError(failure instanceof Error ? failure.message : t('Auth.inviteFailed'));
-    } finally {
-      running.current = false;
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   if (invalid || confirmed) {
     return (
       <div className="space-y-5">

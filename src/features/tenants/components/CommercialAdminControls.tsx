@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -146,72 +147,81 @@ export function CommercialAdminControls({
       if (current()) setIsPreviewLoading(false);
     }
   };
-  const setStatus = service.handleSubmit(async (input) => {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.serviceStatus(
-        tenantId,
-        state.serviceStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE',
-        state.serviceVersion,
-        input.reason,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('serviceChanged'));
-        await onChanged();
+  const setStatus = service.handleSubmit(
+    async (input) => {
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.serviceStatus(
+          tenantId,
+          state.serviceStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE',
+          state.serviceVersion,
+          input.reason,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('serviceChanged'));
+          await onChanged();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
-  const verify = reconcile.handleSubmit(async (input) => {
-    if (!request) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.reconcile(
-        tenantId,
-        request.id,
-        input.documentId,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('reconcileQueued'));
-        await onChanged();
+    },
+    () => notifyInvalidForm(),
+  );
+  const verify = reconcile.handleSubmit(
+    async (input) => {
+      if (!request) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.reconcile(
+          tenantId,
+          request.id,
+          input.documentId,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('reconcileQueued'));
+          await onChanged();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
-  const close = closure.handleSubmit(async (input) => {
-    if (!contract) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.finalizeClosure(
-        tenantId,
-        contract.version,
-        input.reason,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('closureFinalized'));
-        await onChanged();
+    },
+    () => notifyInvalidForm(),
+  );
+  const close = closure.handleSubmit(
+    async (input) => {
+      if (!contract) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.finalizeClosure(
+          tenantId,
+          contract.version,
+          input.reason,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('closureFinalized'));
+          await onChanged();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}

@@ -466,7 +466,7 @@ export default function ComponentShowcasePage() {
                   This action cannot be undone. Please review before proceeding.
                 </Alert>
 
-                <Alert variant="error" title="Error">
+                <Alert variant="error" title="Error" notify={false}>
                   Unable to process your request. Please try again later.
                 </Alert>
 

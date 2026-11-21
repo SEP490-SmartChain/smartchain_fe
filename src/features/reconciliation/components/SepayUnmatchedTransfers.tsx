@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -46,22 +47,25 @@ function MatchTransferForm({ transfer, formatMoney, onCancel, onMatched }: Match
     return () => abort.abort();
   }, []);
 
-  const handleMatch = handleSubmit(async ({ invoiceNo }) => {
-    setError(null);
-    const isCurrent = () =>
-      !controller.current?.signal.aborted && authRevision === useAuthStore.getState().revision;
-    try {
-      // Success is shown only after the server confirms the single posting.
-      const result = await sepayReconciliationApi.match(
-        transfer.id,
-        invoiceNo,
-        controller.current?.signal,
-      );
-      if (isCurrent()) await onMatched(result.unallocatedVnd);
-    } catch (failure) {
-      if (isCurrent()) setError(failure instanceof Error ? failure.message : t('matchError'));
-    }
-  });
+  const handleMatch = handleSubmit(
+    async ({ invoiceNo }) => {
+      setError(null);
+      const isCurrent = () =>
+        !controller.current?.signal.aborted && authRevision === useAuthStore.getState().revision;
+      try {
+        // Success is shown only after the server confirms the single posting.
+        const result = await sepayReconciliationApi.match(
+          transfer.id,
+          invoiceNo,
+          controller.current?.signal,
+        );
+        if (isCurrent()) await onMatched(result.unallocatedVnd);
+      } catch (failure) {
+        if (isCurrent()) setError(failure instanceof Error ? failure.message : t('matchError'));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   return (
     <form onSubmit={handleMatch} className="space-y-4" noValidate>

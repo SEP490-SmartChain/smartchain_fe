@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 import { Input } from '@/components/Common/Input/Input';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { payoutApi } from '../api/payoutApi';
@@ -207,8 +208,14 @@ export function CloseoutSettlement({
                 className="grid gap-4 sm:grid-cols-2"
                 onSubmit={
                   action === 'offsets'
-                    ? offset.handleSubmit((v) => perform(v))
-                    : refund.handleSubmit((v) => perform(v))
+                    ? offset.handleSubmit(
+                        (v) => perform(v),
+                        () => notifyInvalidForm(),
+                      )
+                    : refund.handleSubmit(
+                        (v) => perform(v),
+                        () => notifyInvalidForm(),
+                      )
                 }
               >
                 <Input

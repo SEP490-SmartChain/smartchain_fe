@@ -12,6 +12,7 @@ import { Card } from '@/components/Common/Card/Card';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { payoutApi } from '../api/payoutApi';
@@ -469,11 +470,13 @@ export function PayoutStatementDetail({
                       className="space-y-3"
                       onSubmit={
                         reasonTarget.disputeId
-                          ? resolution.handleSubmit((values) =>
-                              perform('resolve', values, reasonTarget.disputeId),
+                          ? resolution.handleSubmit(
+                              (values) => perform('resolve', values, reasonTarget.disputeId),
+                              () => notifyInvalidForm(),
                             )
-                          : reason.handleSubmit((values) =>
-                              perform('dispute', values, reasonTarget.lineId),
+                          : reason.handleSubmit(
+                              (values) => perform('dispute', values, reasonTarget.lineId),
+                              () => notifyInvalidForm(),
                             )
                       }
                     >
@@ -520,8 +523,10 @@ export function PayoutStatementDetail({
                   </p>
                   <form
                     className="grid gap-4 sm:grid-cols-2"
-                    onSubmit={transfer.handleSubmit((values) =>
-                      perform('transfers', { ...values, amountVnd: row.approvedAmountVnd }),
+                    onSubmit={transfer.handleSubmit(
+                      (values) =>
+                        perform('transfers', { ...values, amountVnd: row.approvedAmountVnd }),
+                      () => notifyInvalidForm(),
                     )}
                   >
                     <Input

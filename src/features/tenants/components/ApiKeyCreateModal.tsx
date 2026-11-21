@@ -1,16 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Controller, useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import { apiKeyApi } from '../api/apiKeyApi';
 import {
@@ -34,6 +36,7 @@ const DEFAULT_VALUES: CreateApiKeySchemaValues = {
 };
 
 export function ApiKeyCreateModal({ isOpen, onClose, onCreated }: ApiKeyCreateModalProps) {
+  const [submitError, setSubmitError] = useState('');
   const t = useTranslations('ApiKeys');
   const tValidation = useTranslations('ApiKeys.validation');
 
@@ -59,17 +62,23 @@ export function ApiKeyCreateModal({ isOpen, onClose, onCreated }: ApiKeyCreateMo
       const created = await apiKeyApi.create(values);
       onCreated(created);
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : t('createError'));
+      setSubmitError(failure instanceof Error ? failure.message : t('createError'));
     }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('createTitle')} width="520px">
       <form
+        onSubmitCapture={() => setSubmitError('')}
         noValidate
-        onSubmit={(event) => void handleSubmit(handleCreate)(event)}
+        onSubmit={(event) => void handleSubmit(handleCreate, () => notifyInvalidForm())(event)}
         className="space-y-5 p-5 sm:p-6"
       >
+        {submitError && (
+          <Alert variant="error" onClose={() => setSubmitError('')}>
+            {submitError}
+          </Alert>
+        )}
         <Input
           label={t('fieldName')}
           placeholder={t('fieldNamePlaceholder')}
@@ -107,9 +116,9 @@ export function ApiKeyCreateModal({ isOpen, onClose, onCreated }: ApiKeyCreateMo
             )}
           />
           {errors.scopes?.message && (
-            <p role="alert" className="text-xs text-[var(--sc-error)]">
+            <Alert variant="error" compact>
               {fieldError(errors.scopes.message)}
-            </p>
+            </Alert>
           )}
         </fieldset>
 
@@ -120,6 +129,7 @@ export function ApiKeyCreateModal({ isOpen, onClose, onCreated }: ApiKeyCreateMo
             label: t(`expiry.${option}`),
           }))}
           {...register('expiry')}
+          error={errors?.expiry?.message}
         />
 
         <div className="flex justify-end gap-2 pt-2">

@@ -18,6 +18,7 @@ function render(status, holdReason, allowed = true, fulfillmentOrders = []) {
       useRef: (current) => ({ current }),
       useState: (initial) => [initial, () => {}],
     },
+    '@/lib/errorNotifications': { notifyInvalidForm: () => assert.fail('Unexpected invalid form') },
     'react-hook-form': { useForm: () => ({ formState: { isDirty: false } }) },
     '@hookform/resolvers/zod': { zodResolver: () => ({}) },
     'next-intl': { useTranslations: () => (key) => key },

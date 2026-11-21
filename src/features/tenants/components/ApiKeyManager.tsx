@@ -66,9 +66,11 @@ export function ApiKeyManager() {
     setCurrentPage(page);
   };
 
+  const [copyFailed, setCopyFailed] = useState(false);
   const handleCopyEndpoint = async (endpoint: string) => {
-    if (await copy(endpoint)) toast.success(t('endpointCopied'));
-    else toast.error(t('copyFailed'));
+    const success = await copy(endpoint);
+    setCopyFailed(!success);
+    if (success) toast.success(t('endpointCopied'));
   };
 
   const handleListChanged = () => {
@@ -224,6 +226,11 @@ export function ApiKeyManager() {
                   {isEndpointCopied ? t('copied') : t('copy')}
                 </Button>
               </div>
+              {copyFailed && (
+                <Alert variant="error" compact className="mt-2">
+                  {t('copyFailed')}
+                </Alert>
+              )}
             </div>
           ) : (
             <Alert variant="info" className="mt-3">

@@ -6,10 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import {
   googleOnboardingRegisterSchema,
@@ -80,7 +83,10 @@ export function GoogleOnboardingStep({
 
   const handleTaxLookup = async () => {
     const value = (getValues('taxId') ?? '').trim();
-    if (!value || !(await trigger('taxId'))) return;
+    if (!value || !(await trigger('taxId'))) {
+      notifyInvalidForm();
+      return;
+    }
 
     setLookup({ status: 'searching' });
     try {
@@ -107,7 +113,7 @@ export function GoogleOnboardingStep({
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onSubmit, () => notifyInvalidForm())}
       noValidate
       aria-label={t('google_onboarding_heading')}
       className="flex w-full flex-col gap-5"
@@ -130,14 +136,7 @@ export function GoogleOnboardingStep({
         {t('google_onboarding_no_password')}
       </p>
 
-      {hasError && (
-        <p
-          role="alert"
-          className="m-0 rounded-lg border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] px-4 py-3 text-sm text-[var(--sc-error-dark)]"
-        >
-          {t('google_error_generic')}
-        </p>
-      )}
+      {hasError && <Alert variant="error">{t('google_error_generic')}</Alert>}
 
       <input type="hidden" {...register('onboardingToken')} />
       <input type="hidden" {...register('email')} />
@@ -196,9 +195,9 @@ export function GoogleOnboardingStep({
           </p>
         )}
         {lookup.status === 'error' && (
-          <p role="alert" className="mb-0 mt-1.5 text-xs text-[var(--sc-error-dark)]">
+          <Alert variant="error" compact className="mt-1.5">
             {t('tax_lookup_error')}
-          </p>
+          </Alert>
         )}
       </div>
 

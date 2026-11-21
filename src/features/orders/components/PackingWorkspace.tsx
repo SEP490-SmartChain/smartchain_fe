@@ -14,6 +14,7 @@ import {
   loadFulfillmentPending,
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -350,7 +351,7 @@ function PackingForm({
       <h2 className="break-all text-lg font-semibold">{detail.orderCode}</h2>
       {error && <Alert variant="error">{error}</Alert>}
       {(detail.status === 'PICKED' || recoveryOnly) && writable ? (
-        <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
+        <form className="space-y-4" onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}>
           {recoveryOnly ? <Alert>{t('writeError')}</Alert> : <Alert>{t('verifyHint')}</Alert>}
           {!recoveryOnly &&
             detail.items.map((item, index) => (

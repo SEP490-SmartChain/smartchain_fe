@@ -326,9 +326,18 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
     [row],
   );
 
-  const copyTracking = () => {
+  const notifications = useTranslations('Notifications');
+  const [copyErrorId, setCopyErrorId] = useState('');
+  const copyTracking = async () => {
     if (!row?.trackingNumber) return;
-    void navigator.clipboard.writeText(row.trackingNumber);
+    setCopyErrorId('');
+    try {
+      await navigator.clipboard.writeText(row.trackingNumber);
+    } catch {
+      setCopied(false);
+      setCopyErrorId(id);
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -386,7 +395,7 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
                   {row.trackingNumber && (
                     <button
                       type="button"
-                      onClick={copyTracking}
+                      onClick={() => void copyTracking()}
                       className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--sc-text-secondary)] hover:bg-[var(--sc-bg-secondary)]"
                       title={t('copyTrackingNumber')}
                     >
@@ -401,6 +410,11 @@ function ShipmentDetail({ id, onClose }: { id: string; onClose: () => void }) {
                     </button>
                   )}
                 </div>
+                {copyErrorId === id && (
+                  <Alert variant="error" compact>
+                    {notifications('copyFailed')}
+                  </Alert>
+                )}
                 <div className="flex items-center gap-2">
                   {carrierInfo && (
                     <span

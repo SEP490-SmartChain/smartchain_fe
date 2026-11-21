@@ -9,6 +9,8 @@ import { z } from 'zod';
 import { Alert, Button, Input, RequiredNote, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 
+import { notifyInvalidForm } from '@/lib/errorNotifications';
+
 import { carrierAccountApi, type CarrierAccount } from '../api/carrierAccountApi';
 
 import type { CarrierSummary } from '../types/carrierCatalog.types';
@@ -93,38 +95,41 @@ export function CarrierAccountModal({
   const code =
     account?.orcaCarrier.code ??
     carriers.find((carrier) => carrier.id === watch('carrierId'))?.code;
-  const submit = handleSubmit(async (values) => {
-    setError(false);
-    const credentials = values.apiToken
-      ? {
-          apiToken: values.apiToken.trim(),
-          ...(code === 'GHN' ? { shopId: values.shopId } : {}),
-          ...(code === 'GHTK' && values.partnerCode.trim()
-            ? { partnerCode: values.partnerCode.trim() }
-            : {}),
+  const submit = handleSubmit(
+    async (values) => {
+      setError(false);
+      const credentials = values.apiToken
+        ? {
+            apiToken: values.apiToken.trim(),
+            ...(code === 'GHN' ? { shopId: values.shopId } : {}),
+            ...(code === 'GHTK' && values.partnerCode.trim()
+              ? { partnerCode: values.partnerCode.trim() }
+              : {}),
+          }
+        : undefined;
+      const pickupMapping: Record<string, string> =
+        code === 'GHN'
+          ? { shop_id: values.shopId }
+          : code === 'GHTK'
+            ? { pick_address_id: values.pick_address_id.trim() }
+            : {};
+      try {
+        if (account) await carrierAccountApi.update(account.id, { credentials, pickupMapping });
+        else if (credentials) {
+          await carrierAccountApi.create({
+            warehouseId: values.warehouseId,
+            carrierId: values.carrierId,
+            credentials,
+            pickupMapping,
+          });
         }
-      : undefined;
-    const pickupMapping: Record<string, string> =
-      code === 'GHN'
-        ? { shop_id: values.shopId }
-        : code === 'GHTK'
-          ? { pick_address_id: values.pick_address_id.trim() }
-          : {};
-    try {
-      if (account) await carrierAccountApi.update(account.id, { credentials, pickupMapping });
-      else if (credentials) {
-        await carrierAccountApi.create({
-          warehouseId: values.warehouseId,
-          carrierId: values.carrierId,
-          credentials,
-          pickupMapping,
-        });
+        onSaved();
+      } catch {
+        setError(true);
       }
-      onSaved();
-    } catch {
-      setError(true);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <Modal
       isOpen

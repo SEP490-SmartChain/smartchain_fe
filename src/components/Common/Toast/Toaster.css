@@ -1,0 +1,86 @@
+.sc-toaster[data-sonner-toaster] {
+  font-family: var(--sc-font-sans);
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 48px 12px 12px;
+  border-color: var(--sc-border-default);
+  border-radius: var(--sc-radius-lg);
+  background: var(--sc-bg-elevated);
+  color: var(--sc-text-primary);
+  box-shadow: var(--sc-shadow-popover);
+  font-size: var(--sc-font-size-sm);
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] [data-content] {
+  min-width: 0;
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] [data-title] {
+  font-weight: var(--sc-font-weight-semibold);
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] [data-description] {
+  color: var(--sc-text-secondary);
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] [data-icon] {
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  border: 1px solid var(--toast-icon-border, var(--sc-border-default));
+  border-radius: var(--sc-radius-md);
+  background: var(--toast-icon-bg, var(--sc-bg-secondary));
+  color: var(--toast-icon-color, var(--sc-text-secondary));
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] [data-icon] > svg {
+  margin: 0;
+}
+
+.sc-toaster [data-type='error'] {
+  --toast-icon-border: var(--sc-error-border);
+  --toast-icon-bg: var(--sc-error-bg);
+  --toast-icon-color: var(--sc-error-dark);
+}
+
+.sc-toaster [data-type='warning'] {
+  --toast-icon-border: var(--sc-warning-border);
+  --toast-icon-bg: var(--sc-warning-bg);
+  --toast-icon-color: var(--sc-warning-dark);
+}
+
+.sc-toaster [data-type='success'] {
+  --toast-icon-border: var(--sc-success-border);
+  --toast-icon-bg: var(--sc-success-bg);
+  --toast-icon-color: var(--sc-success-dark);
+}
+
+.sc-toaster [data-type='info'] {
+  --toast-icon-border: var(--sc-info-border);
+  --toast-icon-bg: var(--sc-info-bg);
+  --toast-icon-color: var(--sc-info-dark);
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true'] [data-close-button] {
+  top: 12px;
+  right: 12px;
+  left: auto;
+  width: 32px;
+  height: 32px;
+  transform: none;
+  border: 0;
+  border-radius: var(--sc-radius-md);
+  background: transparent;
+  color: var(--sc-text-secondary);
+  transition: background-color var(--sc-transition-fast);
+}
+
+.sc-toaster [data-sonner-toast][data-styled='true']:hover [data-close-button]:hover {
+  background: var(--sc-bg-secondary);
+}

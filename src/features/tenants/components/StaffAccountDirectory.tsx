@@ -96,6 +96,8 @@ function relativeTime(timestamp: string | null, locale: string, fallback: string
 
 export function StaffAccountDirectory() {
   const t = useTranslations('StaffAccounts');
+  const notifications = useTranslations('Notifications');
+  const [copyErrorId, setCopyErrorId] = useState('');
   const locale = useLocale();
   const authRevision = useAuthStore((state) => state.revision);
   const currentUserId = useAuthStore((state) => state.user?.userId);
@@ -245,8 +247,15 @@ export function StaffAccountDirectory() {
 
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = async (id: string, text: string) => {
+    setCopyErrorId('');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      setCopiedText(null);
+      setCopyErrorId(id);
+      return;
+    }
     setCopiedText(text);
     toast.success(t('emailCopied', { email: text }));
     setTimeout(() => setCopiedText(null), 2000);
@@ -853,7 +862,9 @@ export function StaffAccountDirectory() {
                                           type="button"
                                           aria-label={t('copyEmail')}
                                           title={t('copyEmail')}
-                                          onClick={() => handleCopy(account.email)}
+                                          onClick={() =>
+                                            void handleCopy(account.userId, account.email)
+                                          }
                                           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[var(--sc-text-tertiary)] transition-colors hover:bg-[var(--sc-bg-secondary)] hover:text-[var(--sc-text-primary)] active:scale-95"
                                         >
                                           {copiedText === account.email ? (
@@ -863,6 +874,11 @@ export function StaffAccountDirectory() {
                                           )}
                                         </button>
                                       </div>
+                                      {copyErrorId === account.userId && (
+                                        <Alert variant="error" compact>
+                                          {notifications('copyFailed')}
+                                        </Alert>
+                                      )}
                                       <div className="flex items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
                                         <Phone
                                           size={13}

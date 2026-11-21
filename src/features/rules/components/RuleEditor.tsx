@@ -12,6 +12,7 @@ import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Radio } from '@/components/Common/Radio/Radio';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -162,26 +163,29 @@ export function RuleEditor({ rule, kind, nextPriority, onClose, onSaved }: RuleE
       if (identity === useAuthStore.getState().user) setOptionsLoading(false);
     }
   };
-  const save = handleSubmit(async (values) => {
-    const identity = useAuthStore.getState().user;
-    setError(null);
-    try {
-      if (current) await ruleApi.edit(current, toDefinition(values), values.reason);
-      else {
-        operationKey.current ??= createUuid();
-        await ruleApi.create(
-          operationKey.current,
-          toDefinition(values),
-          values.reason.trim() || t('createReasonDefault'),
-        );
+  const save = handleSubmit(
+    async (values) => {
+      const identity = useAuthStore.getState().user;
+      setError(null);
+      try {
+        if (current) await ruleApi.edit(current, toDefinition(values), values.reason);
+        else {
+          operationKey.current ??= createUuid();
+          await ruleApi.create(
+            operationKey.current,
+            toDefinition(values),
+            values.reason.trim() || t('createReasonDefault'),
+          );
+        }
+        if (identity === useAuthStore.getState().user) onSaved();
+      } catch (failure) {
+        if (identity !== useAuthStore.getState().user) return;
+        setError(failure instanceof ApiError ? failure.message : t('saveError'));
+        setStale(failure instanceof ApiError && failure.code === 'RULES.STALE_VERSION');
       }
-      if (identity === useAuthStore.getState().user) onSaved();
-    } catch (failure) {
-      if (identity !== useAuthStore.getState().user) return;
-      setError(failure instanceof ApiError ? failure.message : t('saveError'));
-      setStale(failure instanceof ApiError && failure.code === 'RULES.STALE_VERSION');
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const reloadLatest = async () => {
     if (!current) return;
     const identity = useAuthStore.getState().user;
@@ -376,9 +380,9 @@ export function RuleEditor({ rule, kind, nextPriority, onClose, onSaved }: RuleE
             )}
           />
           {errors.condition && (
-            <p role="alert" className="text-sm text-[var(--sc-error)]">
+            <Alert variant="error" compact>
               {t('conditionInvalid')}
-            </p>
+            </Alert>
           )}
         </section>
         <section className="space-y-3">

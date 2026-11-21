@@ -9,6 +9,7 @@ import { Alert, Button, Card, Input, PageHeader, Select } from '@/components/Com
 import DataTable from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -95,7 +96,10 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
       <Card className="space-y-4">
         <form
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
-          onSubmit={form.handleSubmit((filters) => setQuery({ filters }))}
+          onSubmit={form.handleSubmit(
+            (filters) => setQuery({ filters }),
+            () => notifyInvalidForm(),
+          )}
         >
           <Select
             label={t('status')}
@@ -106,6 +110,7 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
               label: value ? t(`statuses.${value}`) : t('all'),
             }))}
             {...form.register('status')}
+            error={form.formState.errors?.status?.message}
           />
           <Select
             label={t('type')}
@@ -116,6 +121,7 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
               label: value ? t(`types.${value}`) : t('all'),
             }))}
             {...form.register('type')}
+            error={form.formState.errors?.type?.message}
           />
           <Select
             label={t('warehouse')}
@@ -125,6 +131,7 @@ function ExceptionSession({ mutable }: { mutable: boolean }) {
               ...(page?.warehouses.map((row) => ({ value: row.id, label: row.name })) ?? []),
             ]}
             {...form.register('warehouseId')}
+            error={form.formState.errors?.warehouseId?.message}
           />
           <Button type="submit" disabled={loading}>
             {t('filter')}
@@ -386,7 +393,10 @@ function ExceptionInvestigation({
             />
           )}
           {mutable && !correcting && !pending?.correction && (
-            <form className="space-y-3" onSubmit={form.handleSubmit(submit)}>
+            <form
+              className="space-y-3"
+              onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}
+            >
               <Select
                 label={t('action')}
                 disabled={busy || !!pending}
@@ -401,6 +411,7 @@ function ExceptionInvestigation({
                         : detail.status === 'RESOLVED' && value === 'ASSIGN',
                 }))}
                 {...form.register('kind')}
+                error={form.formState.errors?.kind?.message}
               />
               {kind === 'ASSIGN' && (
                 <Select
@@ -410,6 +421,7 @@ function ExceptionInvestigation({
                   disabled={busy || !!pending}
                   options={[...detail.assignees.map((row) => ({ value: row.id, label: row.name }))]}
                   {...form.register('assignedToPlatformUserId')}
+                  error={form.formState.errors?.assignedToPlatformUserId?.message}
                 />
               )}
               <Input
