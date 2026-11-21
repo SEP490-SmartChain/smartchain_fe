@@ -35,6 +35,7 @@ import { RuleSentence } from './RuleSentence';
 import { RuleSimulator } from './RuleSimulator';
 import { ruleApi } from '../api/ruleApi';
 import { useRuleList } from '../hooks/useRuleList';
+import { ruleDisplayName } from '../lib/carrierLabels';
 import { moveRule } from '../lib/rulePriority';
 import { findDefaultCarrierRule } from '../lib/ruleSummary';
 
@@ -256,7 +257,7 @@ function ScopedRules() {
                           size="sm"
                           variant="ghost"
                           className="h-6 px-1.5"
-                          aria-label={t('moveRuleUp', { name: rule.name })}
+                          aria-label={t('moveRuleUp', { name: ruleDisplayName(rule) })}
                           disabled={index === 0 || modalOpen}
                           onClick={() => {
                             const previous = order[index - 1];
@@ -269,7 +270,7 @@ function ScopedRules() {
                           size="sm"
                           variant="ghost"
                           className="h-6 px-1.5"
-                          aria-label={t('moveRuleDown', { name: rule.name })}
+                          aria-label={t('moveRuleDown', { name: ruleDisplayName(rule) })}
                           disabled={index === order.length - 1 || modalOpen}
                           onClick={() => {
                             const next = order[index + 1];
@@ -283,7 +284,7 @@ function ScopedRules() {
                   </div>
                   <div className="min-w-64 flex-1 space-y-3">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <strong className="text-[15px]">{rule.name}</strong>
+                      <strong className="text-[15px]">{ruleDisplayName(rule)}</strong>
                       <Badge
                         status={rule.isEnabled ? 'success' : 'default'}
                         label={t(rule.isEnabled ? 'statusOn' : 'statusOff')}
@@ -338,7 +339,7 @@ function ScopedRules() {
                       size="sm"
                       variant="ghost"
                       title={t('history')}
-                      aria-label={`${t('history')}: ${rule.name}`}
+                      aria-label={`${t('history')}: ${ruleDisplayName(rule)}`}
                       disabled={modalOpen || dirty}
                       onClick={() => setHistory(rule)}
                     >
@@ -349,7 +350,7 @@ function ScopedRules() {
                         size="sm"
                         variant="ghost"
                         title={t('disable')}
-                        aria-label={`${t('disable')}: ${rule.name}`}
+                        aria-label={`${t('disable')}: ${ruleDisplayName(rule)}`}
                         disabled={modalOpen || dirty}
                         onClick={() => setCommand({ operation: 'disable', rule })}
                       >
@@ -361,7 +362,7 @@ function ScopedRules() {
                         size="sm"
                         variant="softDanger"
                         title={t('delete')}
-                        aria-label={`${t('delete')}: ${rule.name}`}
+                        aria-label={`${t('delete')}: ${ruleDisplayName(rule)}`}
                         disabled={modalOpen || dirty}
                         onClick={() => setCommand({ operation: 'delete', rule })}
                       >

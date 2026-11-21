@@ -53,5 +53,9 @@ export { Can } from './Can/Can';
 export type { CanProps } from './Can/Can';
 
 // Utility
+export { BarcodeScanButton } from './BarcodeScanButton/BarcodeScanButton';
+export type { BarcodeScanButtonProps } from './BarcodeScanButton/BarcodeScanButton';
+export { QrCodeImage } from './QrCodeImage/QrCodeImage';
+export type { QrCodeImageProps } from './QrCodeImage/QrCodeImage';
 export { UnderConstruction } from './UnderConstruction';
 export { ErrorBoundaryWithIntl as ErrorBoundary } from './ErrorBoundary';
