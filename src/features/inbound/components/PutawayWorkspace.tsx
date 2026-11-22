@@ -19,6 +19,7 @@ import { PutawayPreparationPanel } from './PutawayPreparationPanel';
 import { PutawayTaskCard, PutawayWaitingActions } from './PutawayWorkCards';
 import { RelocationWorkspace } from './RelocationWorkspace';
 import {
+  PUTAWAY_OVERRIDE_REASONS,
   putawayApi,
   putawayPlacementSchema,
   type PutawayTask,
@@ -427,6 +428,8 @@ function PutawayTaskForm({
     register,
     handleSubmit,
     setValue,
+    setError: setFieldError,
+    watch,
     formState: { errors },
   } = useForm<PutawayPlacement>({
     resolver: zodResolver(putawayPlacementSchema),
@@ -434,8 +437,31 @@ function PutawayTaskForm({
       operationKey: createUuid(),
       expectedVersion: task.version,
       toBinScan: '',
+      qty: task.qty,
     },
   });
+  const [scannedBin, overrideReason] = watch(['toBinScan', 'overrideReason']);
+  // Scanning another bin than suggested records a reasoned bin decision before putaway.
+  const binChanged = scannedBin !== '' && scannedBin !== task.toBinCode;
+  const handlePlacement = (values: PutawayPlacement) => {
+    if (values.qty !== undefined && values.qty > task.qty) {
+      setFieldError('qty', { type: 'max' });
+      return;
+    }
+    const input: PutawayPlacement = {
+      operationKey: values.operationKey,
+      expectedVersion: values.expectedVersion,
+      toBinScan: values.toBinScan,
+      ...(values.qty !== undefined && values.qty !== task.qty ? { qty: values.qty } : {}),
+      ...(binChanged && values.overrideReason
+        ? {
+            overrideReason: values.overrideReason,
+            ...(values.overrideNote ? { overrideNote: values.overrideNote } : {}),
+          }
+        : {}),
+    };
+    void send({ kind: 'CONFIRM', input });
+  };
   useEffect(() => {
     titleRef.current?.focus();
     const c = new AbortController();
@@ -453,10 +479,10 @@ function PutawayTaskForm({
     onLock(busy || attempt !== null);
     return () => onLock(false);
   }, [busy, attempt, onLock]);
+  // An OPEN task is confirmed directly; the API records the confirming Staff as the assignee.
   const confirmAllowed =
     can('warehouse.putaway.confirm') &&
-    task.status === 'ASSIGNED' &&
-    task.assigneeId === user?.userId;
+    (task.status === 'OPEN' || (task.status === 'ASSIGNED' && task.assigneeId === user?.userId));
   async function send(command: NonNullable<typeof attempt>) {
     if (disabled || busy || user !== useAuthStore.getState().user) return;
     const g = generation.current;
@@ -511,7 +537,7 @@ function PutawayTaskForm({
           <>
             {can('warehouse.putaway.assign') &&
               ['OPEN', 'ASSIGNED'].includes(task.status) &&
-              (manager || task.status === 'OPEN') && (
+              (manager || (task.status === 'OPEN' && !confirmAllowed)) && (
                 <div className="flex flex-wrap items-end gap-3">
                   {manager && (
                     <div className="min-w-0 flex-1">
@@ -541,10 +567,7 @@ function PutawayTaskForm({
                 </div>
               )}
             {confirmAllowed ? (
-              <form
-                className="space-y-4"
-                onSubmit={handleSubmit((input) => void send({ kind: 'CONFIRM', input }))}
-              >
+              <form className="space-y-4" onSubmit={handleSubmit(handlePlacement)}>
                 <fieldset className="max-w-lg space-y-2" disabled={busy || disabled}>
                   <Input
                     label={t('placementBin')}
@@ -563,8 +586,65 @@ function PutawayTaskForm({
                       })
                     }
                   />
+                  {binChanged && (
+                    <>
+                      <Alert variant="info">
+                        {t('binChangedHint', { suggested: task.toBinCode })}
+                      </Alert>
+                      <Select
+                        label={t('overrideReason')}
+                        required
+                        value={overrideReason ?? ''}
+                        onChange={(e) => {
+                          const reason = PUTAWAY_OVERRIDE_REASONS.find(
+                            (value) => value === e.target.value,
+                          );
+                          setValue('overrideReason', reason, { shouldValidate: true });
+                          if (reason !== 'OTHER') setValue('overrideNote', undefined);
+                        }}
+                        options={[
+                          { value: '', label: t('overrideReasonPlaceholder') },
+                          ...PUTAWAY_OVERRIDE_REASONS.map((value) => ({
+                            value,
+                            label: t(`overrideReasons.${value}`),
+                          })),
+                        ]}
+                      />
+                      {overrideReason === 'OTHER' && (
+                        <Input
+                          label={t('overrideNote')}
+                          required
+                          minLength={3}
+                          maxLength={300}
+                          {...register('overrideNote', {
+                            setValueAs: (value: string) => value.trim() || undefined,
+                          })}
+                          error={errors.overrideNote ? t('overrideNoteRequired') : undefined}
+                        />
+                      )}
+                    </>
+                  )}
+                  <Input
+                    label={t('placedQty')}
+                    type="number"
+                    required
+                    min={1}
+                    max={task.qty}
+                    {...register('qty', { valueAsNumber: true })}
+                    error={errors.qty ? t('placedQtyInvalid', { max: task.qty }) : undefined}
+                  />
+                  {(watch('qty') ?? task.qty) < task.qty && (
+                    <p className="text-sm text-[var(--sc-text-secondary)]">
+                      {t('partialPutawayHint', {
+                        remaining: task.qty - (watch('qty') ?? task.qty),
+                      })}
+                    </p>
+                  )}
                 </fieldset>
-                <Button type="submit" disabled={busy || disabled}>
+                <Button
+                  type="submit"
+                  disabled={busy || disabled || (binChanged && !overrideReason)}
+                >
                   {t('confirm')}
                 </Button>
               </form>

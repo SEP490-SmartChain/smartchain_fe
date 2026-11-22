@@ -25,11 +25,23 @@ export const putawayConfirmationSchema = z
     qty: version,
   })
   .strict();
-export const putawayPlacementSchema = putawayConfirmationSchema.pick({
-  operationKey: true,
-  expectedVersion: true,
-  toBinScan: true,
-});
+export const PUTAWAY_OVERRIDE_REASONS = ['BIN_FULL', 'BIN_DAMAGED', 'OTHER'] as const;
+const overrideNote = z
+  .string()
+  .min(3)
+  .max(300)
+  .refine((v) => v.trim() === v);
+/** Destination-only confirmation; qty below the task closes it partially. */
+export const putawayPlacementSchema = putawayConfirmationSchema
+  .pick({ operationKey: true, expectedVersion: true, toBinScan: true })
+  .extend({
+    qty: version.optional(),
+    overrideReason: z.enum(PUTAWAY_OVERRIDE_REASONS).optional(),
+    overrideNote: overrideNote.optional(),
+  })
+  .strict()
+  .refine((v) => v.overrideReason !== 'OTHER' || v.overrideNote !== undefined)
+  .refine((v) => v.overrideNote === undefined || v.overrideReason !== undefined);
 export type PutawayAssignment = z.infer<typeof putawayAssignmentSchema>;
 export type PutawayConfirmation = z.infer<typeof putawayConfirmationSchema>;
 export type PutawayPlacement = z.infer<typeof putawayPlacementSchema>;
@@ -168,8 +180,9 @@ export const putawayApi = {
     signal?: AbortSignal,
   ) {
     const command = putawayConfirmationSchema.or(putawayPlacementSchema).parse(input);
-    if ('qty' in command && command.qty !== task.qty) {
-      throw new Error('Confirm the full assigned task quantity');
+    const placedQty = command.qty ?? task.qty;
+    if (placedQty > task.qty) {
+      throw new Error('Confirm at most the task quantity');
     }
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `${path(w)}/${encodeURIComponent(task.id)}/confirmation`,
@@ -177,11 +190,17 @@ export const putawayApi = {
       { signal, silent: true },
     );
     const result = resultSchema.parse(data);
+    // An OPEN task also records the Staff self-claim. A reason may add a bin decision, unless
+    // the scanned code is another label of the suggested bin; each advances the task once.
+    const minSteps = task.status === 'OPEN' ? 2 : 1;
+    const maxSteps =
+      minSteps + ('overrideReason' in command && command.overrideReason !== undefined ? 1 : 0);
     if (
       result.taskId !== task.id ||
-      result.version !== command.expectedVersion + 1 ||
+      result.version < command.expectedVersion + minSteps ||
+      result.version > command.expectedVersion + maxSteps ||
       result.status !== 'COMPLETED' ||
-      result.confirmedQty !== task.qty ||
+      result.confirmedQty !== placedQty ||
       result.assigneeId !== actorId
     ) {
       throw new Error('Physical result differs from the attempted task');

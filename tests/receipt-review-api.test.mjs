@@ -27,6 +27,13 @@ const review = {
   reviewedAt: '2026-10-12T09:00:00.000Z',
   notificationState: 'PENDING',
 };
+const finalized = {
+  ...review,
+  stock: {
+    received: [{ receivingRecordId: line, recognizedQty: 7 }],
+    pending: [{ receivingRecordId: id, reason: 'NO_QUARANTINE_BIN' }],
+  },
+};
 const state = {
   receiptId: id,
   receiptVersion: 4,
@@ -130,9 +137,19 @@ test('staff finalization posts the same scoped evidence to its dedicated endpoin
     );
     assert.equal(options.method, 'POST');
     assert.deepEqual(JSON.parse(options.body), input);
-    return ok(review);
+    return ok(finalized);
   };
-  assert.deepEqual(await api.finalize(warehouse, id, id, input), review);
+  assert.deepEqual(await api.finalize(warehouse, id, id, input), finalized);
+});
+test('staff finalization rejects a response without the automatic stock result', async () => {
+  globalThis.fetch = async () => ok(review);
+  await assert.rejects(api.finalize(warehouse, id, id, input));
+  globalThis.fetch = async () =>
+    ok({
+      ...finalized,
+      stock: { received: [], pending: [{ receivingRecordId: id, reason: 'UNKNOWN' }] },
+    });
+  await assert.rejects(api.finalize(warehouse, id, id, input));
 });
 test('retries the exact decision after a lost response instead of inventing another operation', async () => {
   const commands = [];

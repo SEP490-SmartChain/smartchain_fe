@@ -45,6 +45,31 @@ export const reviewSchema = reviewValuesSchema
     notificationState: z.literal('PENDING'),
   })
   .strict();
+const autoStockSchema = z
+  .object({
+    received: z
+      .array(
+        z
+          .object({
+            receivingRecordId: z.string().uuid(),
+            recognizedQty: z.number().int().positive(),
+          })
+          .strict(),
+      )
+      .max(5000),
+    pending: z
+      .array(
+        z
+          .object({
+            receivingRecordId: z.string().uuid(),
+            reason: z.enum(['NO_RECEIVING_BIN', 'NO_QUARANTINE_BIN', 'STOCK_REJECTED']),
+          })
+          .strict(),
+      )
+      .max(5000),
+  })
+  .strict();
+export const finalizationSchema = reviewSchema.extend({ stock: autoStockSchema }).strict();
 const recordSchema = z
   .object({
     receivingRecordId: z.string().uuid(),
@@ -151,7 +176,7 @@ export const reviewApi = {
     input: ReviewInput,
     signal?: AbortSignal,
   ) {
-    return sendReview(path(warehouse, asn), receipt, input, signal);
+    return sendReview(path(warehouse, asn), receipt, input, reviewSchema, signal);
   },
   finalize(
     warehouse: string,
@@ -160,22 +185,29 @@ export const reviewApi = {
     input: ReviewInput,
     signal?: AbortSignal,
   ) {
-    return sendReview(`${path(warehouse, asn)}/finalize`, receipt, input, signal);
+    return sendReview(
+      `${path(warehouse, asn)}/finalize`,
+      receipt,
+      input,
+      finalizationSchema,
+      signal,
+    );
   },
 };
 
-async function sendReview(
+async function sendReview<T extends z.infer<typeof reviewSchema>>(
   endpoint: string,
   receipt: string,
   input: ReviewInput,
+  schema: z.ZodType<T>,
   signal?: AbortSignal,
-) {
+): Promise<T> {
   const command = reviewInputSchema.parse(input);
   const { data } = await apiClient.post<ApiResponse<unknown>>(endpoint, command, {
     silent: true,
     signal,
   });
-  const result = reviewSchema.parse(data);
+  const result = schema.parse(data);
   if (
     result.receiptId !== receipt ||
     result.decision !== command.decision ||

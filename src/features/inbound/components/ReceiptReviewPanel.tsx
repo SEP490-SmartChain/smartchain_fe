@@ -135,11 +135,21 @@ export function ReceiptReviewPanel({
     setSuccess('');
     setDecisionError('');
     try {
-      await reviewApi.finalize(warehouseId, asnId, receiptId, input, active.current?.signal);
+      const result = await reviewApi.finalize(
+        warehouseId,
+        asnId,
+        receiptId,
+        input,
+        active.current?.signal,
+      );
       if (!current(version)) return;
       setAttempt(null);
       operation.current = createUuid();
-      setSuccess(t('receiptFinalized'));
+      setSuccess(
+        result.stock.pending.length > 0
+          ? t('receiptFinalizedStockPending', { count: result.stock.pending.length })
+          : t('receiptFinalizedStockRecorded'),
+      );
       setRefresh((v) => v + 1);
       onSaved();
     } catch (reason: unknown) {
@@ -345,7 +355,7 @@ export function ReceiptReviewPanel({
               >
                 {t(
                   totals && totals.accepted + totals.quarantine > 0
-                    ? 'finalizeAndChooseLocations'
+                    ? 'finalizeAndRecordStock'
                     : 'finalizeAction',
                 )}
               </Button>

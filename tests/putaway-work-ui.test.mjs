@@ -135,8 +135,10 @@ test('Manager can assign or reassign with a worker name and cannot physically co
   assert.doesNotMatch(assigned, />Put away<\/button>/);
 });
 
-test('Staff can claim open work or put away own assignment, never another worker assignment', () => {
-  assert.match(work(['WAREHOUSE_STAFF']), />Claim this task<\/button>/);
+test('Staff puts away open work directly or own assignment, never another worker assignment', () => {
+  const open = work(['WAREHOUSE_STAFF']);
+  assert.match(open, />Put away<\/button>/);
+  assert.doesNotMatch(open, />Claim this task<\/button>/);
   const own = work(['WAREHOUSE_STAFF'], { status: 'ASSIGNED', assigneeId: worker });
   assert.match(own, /Worker: You/);
   assert.match(own, />Put away<\/button>/);

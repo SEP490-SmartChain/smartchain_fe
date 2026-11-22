@@ -140,8 +140,40 @@ test('confirms the assigned quantity with the actual storage bin code only', asy
   };
   assert.deepEqual(await api.confirm(warehouse, task, id, placement), result);
   assert.deepEqual(commands, [placement]);
-  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, qty: 7 }));
+  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, qty: 8 }));
+  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, overrideNote: 'Note' }));
+  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, overrideReason: 'OTHER' }));
   assert.deepEqual(commands, [placement]);
+});
+test('confirms a partial quantity and expects that quantity back', async () => {
+  const placement = { operationKey: id, expectedVersion: 2, toBinScan: 'ST-01', qty: 4 };
+  globalThis.fetch = async () => ok({ ...result, confirmedQty: 4 });
+  assert.deepEqual(await api.confirm(warehouse, task, id, placement), {
+    ...result,
+    confirmedQty: 4,
+  });
+  globalThis.fetch = async () => ok(result);
+  await assert.rejects(api.confirm(warehouse, task, id, placement));
+});
+test('accepts the bin decision version step when another bin is scanned with a reason', async () => {
+  const placement = {
+    operationKey: id,
+    expectedVersion: 2,
+    toBinScan: 'ST-09',
+    overrideReason: 'BIN_FULL',
+  };
+  globalThis.fetch = async () => ok({ ...result, version: 4 });
+  assert.equal((await api.confirm(warehouse, task, id, placement)).version, 4);
+  globalThis.fetch = async () => ok({ ...result, version: 5 });
+  await assert.rejects(api.confirm(warehouse, task, id, placement));
+});
+test('accepts the self-claim plus confirmation version step for an OPEN task', async () => {
+  const open = { ...task, status: 'OPEN', assigneeId: null };
+  const placement = { operationKey: id, expectedVersion: 2, toBinScan: 'ST-01' };
+  globalThis.fetch = async () => ok({ ...result, version: 4 });
+  assert.deepEqual(await api.confirm(warehouse, open, id, placement), { ...result, version: 4 });
+  globalThis.fetch = async () => ok(result);
+  await assert.rejects(api.confirm(warehouse, open, id, placement));
 });
 test('preserves exact scans and operation after unknown transport failure', async () => {
   const commands = [];
@@ -205,13 +237,13 @@ test('rejects forged input, empty scans and unsafe quantities', () => {
       false,
     );
 });
-test('partial task quantity does not reach the physical API', async () => {
+test('a quantity above the task does not reach the physical API', async () => {
   let calls = 0;
   globalThis.fetch = async () => {
     calls++;
     return ok(result);
   };
-  await assert.rejects(api.confirm(warehouse, task, id, { ...input, qty: 6 }));
+  await assert.rejects(api.confirm(warehouse, task, id, { ...input, qty: 8 }));
   assert.equal(calls, 0);
 });
 test('assignment result binds the exact task and chosen Staff', async () => {

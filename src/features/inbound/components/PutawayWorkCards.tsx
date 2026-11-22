@@ -69,16 +69,18 @@ export function PutawayTaskCard({
       can('warehouse.putaway.assign') &&
       (task.status === 'OPEN' || (manager && task.status === 'ASSIGNED')),
     canConfirm =
-      can('warehouse.putaway.confirm') && task.status === 'ASSIGNED' && task.assigneeId === userId;
-  const action = canAssign
-    ? manager
-      ? task.status === 'ASSIGNED'
-        ? 'reassign'
-        : 'assign'
-      : 'claim'
-    : canConfirm
-      ? 'startPutaway'
-      : 'openTask';
+      can('warehouse.putaway.confirm') &&
+      (task.status === 'OPEN' || (task.status === 'ASSIGNED' && task.assigneeId === userId));
+  const action =
+    canAssign && (manager || !canConfirm)
+      ? manager
+        ? task.status === 'ASSIGNED'
+          ? 'reassign'
+          : 'assign'
+        : 'claim'
+      : canConfirm
+        ? 'startPutaway'
+        : 'openTask';
   const assigneeName =
     task.assigneeId === userId
       ? t('you')
