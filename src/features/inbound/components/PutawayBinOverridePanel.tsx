@@ -44,7 +44,7 @@ export function PutawayBinOverridePanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [attempt, setAttempt] = useState<PutawayBinOverrideInput | null>(null);
-  const eligible = ['OPEN', 'ASSIGNED'].includes(task.status) && task.confirmedQty === 0;
+  const eligible = ['OPEN', 'ASSIGNED'].includes(task.status) && task.confirmedQty < task.qty;
   const controller = useRef<AbortController | null>(null),
     generation = useRef(0);
   const {

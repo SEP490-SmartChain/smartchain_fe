@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 const version = z.number().int().positive().max(2147483646);
+const placementReason = z.string().trim().min(3).max(500).optional();
 const scan = z
   .string()
   .min(1)
@@ -23,13 +24,12 @@ export const putawayConfirmationSchema = z
     skuScan: scan,
     lotScan: scan,
     qty: version,
+    reason: placementReason,
   })
   .strict();
-export const putawayPlacementSchema = putawayConfirmationSchema.pick({
-  operationKey: true,
-  expectedVersion: true,
-  toBinScan: true,
-});
+export const putawayPlacementSchema = putawayConfirmationSchema
+  .pick({ operationKey: true, expectedVersion: true, toBinScan: true, reason: true })
+  .extend({ qty: version.optional() });
 export type PutawayAssignment = z.infer<typeof putawayAssignmentSchema>;
 export type PutawayConfirmation = z.infer<typeof putawayConfirmationSchema>;
 export type PutawayPlacement = z.infer<typeof putawayPlacementSchema>;
@@ -114,6 +114,33 @@ const resultSchema = z
     assigneeId: z.string().uuid(),
   })
   .strict();
+export type PutawayResult = z.infer<typeof resultSchema>;
+const placementOptionSchema = z
+  .object({ code: scan, barcode: scan.nullable().optional(), maxQty: version })
+  .strict();
+const placementOptionsSchema = z
+  .object({
+    taskId: z.string().uuid(),
+    version,
+    suggestedBinBarcode: scan.nullable().optional(),
+    items: z.array(placementOptionSchema).max(100),
+  })
+  .strict();
+const placementHistorySchema = z
+  .array(
+    z
+      .object({
+        id: z.string().uuid(),
+        binCode: scan,
+        qty: version,
+        actorId: z.string().uuid(),
+        reason: z.string().nullable(),
+        createdAt: z.string().datetime(),
+      })
+      .strict(),
+  )
+  .max(100);
+export type PutawayPlacementHistory = z.infer<typeof placementHistorySchema>;
 const staffSchema = z
   .array(z.object({ id: z.string().uuid(), fullName: z.string().min(1) }).strict())
   .max(500)
@@ -153,12 +180,34 @@ export const putawayApi = {
       result.taskId !== task.id ||
       result.version !== command.expectedVersion + 1 ||
       result.status !== 'ASSIGNED' ||
-      result.confirmedQty !== 0 ||
+      result.confirmedQty !== task.confirmedQty ||
       result.assigneeId !== command.assigneeId
     ) {
       throw new Error('Assignment result differs from the attempted task');
     }
     return result;
+  },
+  async placementOptions(w: string, task: PutawayTask, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `${path(w)}/${encodeURIComponent(task.id)}/placement-options`,
+      { signal, silent: true },
+    );
+    const result = placementOptionsSchema.parse(data);
+    if (
+      result.taskId !== task.id ||
+      result.version !== task.version ||
+      result.items.some((item) => item.maxQty > task.qty - task.confirmedQty)
+    ) {
+      throw new Error('Bin options differ from the current task');
+    }
+    return result;
+  },
+  async placementHistory(w: string, task: PutawayTask, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `${path(w)}/${encodeURIComponent(task.id)}/placements`,
+      { signal, silent: true },
+    );
+    return placementHistorySchema.parse(data);
   },
   async confirm(
     w: string,
@@ -168,8 +217,10 @@ export const putawayApi = {
     signal?: AbortSignal,
   ) {
     const command = putawayConfirmationSchema.or(putawayPlacementSchema).parse(input);
-    if ('qty' in command && command.qty !== task.qty) {
-      throw new Error('Confirm the full assigned task quantity');
+    const qty = command.qty ?? task.qty - task.confirmedQty;
+    const confirmedQty = task.confirmedQty + qty;
+    if (qty <= 0 || confirmedQty > task.qty) {
+      throw new Error('Placement quantity exceeds the remaining task balance');
     }
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `${path(w)}/${encodeURIComponent(task.id)}/confirmation`,
@@ -180,8 +231,8 @@ export const putawayApi = {
     if (
       result.taskId !== task.id ||
       result.version !== command.expectedVersion + 1 ||
-      result.status !== 'COMPLETED' ||
-      result.confirmedQty !== task.qty ||
+      result.status !== (confirmedQty === task.qty ? 'COMPLETED' : 'ASSIGNED') ||
+      result.confirmedQty !== confirmedQty ||
       result.assigneeId !== actorId
     ) {
       throw new Error('Physical result differs from the attempted task');

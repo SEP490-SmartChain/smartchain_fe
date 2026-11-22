@@ -91,7 +91,7 @@ export function PutawayTaskCard({
           {task.sku} · {task.lotCode}
         </p>
         <p className="break-words text-sm">
-          {task.fromBinCode} → {task.toBinCode}
+          {t('suggestedRoute', { from: task.fromBinCode, to: task.toBinCode })}
         </p>
         <p className="text-sm">
           {t('taskSummary', {
