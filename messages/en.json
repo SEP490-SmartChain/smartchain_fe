@@ -513,7 +513,9 @@
     },
     "purpose": {
       "PLAN_FEE": "First month fee",
-      "DEPOSIT": "Deposit"
+      "DEPOSIT": "Deposit",
+      "DEBT": "Service debt",
+      "CLOSEOUT": "Contract closeout settlement"
     },
     "samplePdfTitle": "ORCA service agreement template",
     "preparedPdfTitle": "ORCA service agreement — Ready for signature",

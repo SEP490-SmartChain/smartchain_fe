@@ -513,7 +513,9 @@
     },
     "purpose": {
       "PLAN_FEE": "Phí tháng đầu",
-      "DEPOSIT": "Tiền cọc"
+      "DEPOSIT": "Tiền cọc",
+      "DEBT": "Công nợ dịch vụ",
+      "CLOSEOUT": "Quyết toán thanh lý hợp đồng"
     },
     "samplePdfTitle": "Mẫu hợp đồng dịch vụ ORCA",
     "preparedPdfTitle": "Hợp đồng dịch vụ ORCA — Bản chờ ký",
