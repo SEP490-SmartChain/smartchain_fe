@@ -4521,7 +4521,9 @@
       "ADJUST": "Điều chỉnh",
       "COMBO": "Bộ",
       "UNIT": "Đơn vị",
-      "CLAIM": "khiếu nại"
+      "CLAIM": "khiếu nại",
+      "CONTRACT": "Hợp đồng",
+      "BATCH": "Lô đối soát"
     }
   },
   "ReceiptCartons": {
@@ -4638,7 +4640,7 @@
     "approve": "Duyệt khoản đủ điều kiện",
     "dispute": "Tranh chấp dòng",
     "resolve": "Giải quyết tranh chấp",
-    "reason": "Lý do và giải thích bằng chứng",
+    "reason": "Nội dung / Lý do ghi nhận",
     "adjustment": "Số tiền điều chỉnh có dấu (VND; 0 để bác bỏ)",
     "invalidReason": "Nhập lý do từ 5 đến 1.000 ký tự.",
     "invalidAmount": "Nhập số tiền VND nguyên chính xác.",
@@ -4646,13 +4648,13 @@
     "wednesday": "Duyệt theo lịch thứ Tư giờ Việt Nam. Chỉ ghi nhận chuyển khoản thực tế vào thứ Tư, sau khi đã duyệt.",
     "recordTransfer": "Ghi nhận đã chuyển khoản",
     "transferHelp": "Thực hiện chuyển tiền bên ngoài ORCA trước. Sau đó tải PDF bằng chứng riêng tư và ghi nhận đúng số tiền đã duyệt. ORCA không tự chuyển tiền.",
-    "bankReference": "Mã giao dịch ngân hàng thực tế",
-    "transferredAt": "Thời điểm chuyển thực tế (ISO 8601 có múi giờ)",
-    "evidence": "PDF bằng chứng ngân hàng riêng tư (tối đa 20 MB)",
-    "evidenceReady": "Đã tải bằng chứng riêng tư",
-    "pdfRequired": "Tải PDF bằng chứng ngân hàng tối đa 20 MB.",
-    "invalidReference": "Nhập mã giao dịch thực tế (3–200 ký tự).",
-    "invalidTime": "Nhập thời gian có giây và múi giờ, ví dụ 2026-11-04T02:00:00Z.",
+    "bankReference": "Mã giao dịch ngân hàng (UNC)",
+    "transferredAt": "Thời điểm chuyển khoản",
+    "evidence": "Chứng từ ngân hàng (PDF, tối đa 20 MB)",
+    "evidenceReady": "Đã đính kèm PDF chứng từ",
+    "pdfRequired": "Đính kèm biên lai ngân hàng (PDF, tối đa 20 MB)",
+    "invalidReference": "Nhập mã giao dịch ngân hàng (3–200 ký tự).",
+    "invalidTime": "Chọn ngày giờ chuyển khoản hợp lệ.",
     "uncertain": "Chưa rõ thao tác đã hoàn tất hay chưa. Làm mới để kiểm tra; nếu cần, thử lại đúng yêu cầu cũ.",
     "retrySame": "Thử lại cùng lệnh",
     "forbidden": "Bạn không có quyền xem dữ liệu tài chính.",
@@ -4711,6 +4713,23 @@
       "material": "Phí vật tư đóng gói",
       "returnHandling": "Phí xử lý hàng hoàn",
       "combo": "Phí đóng gói bộ sản phẩm"
+    },
+    "sourceType": {
+      "BILLABLE_EVENT": "Sự kiện tính phí",
+      "BANK_RECEIPT": "Biên lai ngân hàng",
+      "ONLINE_RECEIPT": "Thanh toán trực tuyến",
+      "PAYMENT_TRANSACTION": "Giao dịch thanh toán",
+      "ONBOARDING_PLAN_FEE": "Phí kích hoạt gói",
+      "SUBSCRIPTION": "Phí thuê bao kỳ",
+      "RECONCILIATION_POSTING": "Đối soát cước & COD",
+      "RECONCILED_COD_BATCH": "Lô đối soát COD",
+      "APPROVED_CLAIM": "Khiếu nại bồi thường",
+      "APPROVED_FEE_CORRECTION": "Điều chỉnh phí đã duyệt",
+      "PAYOUT_DISPUTE": "Xử lý tranh chấp sao kê",
+      "PAYOUT_TRANSFER": "Chuyển khoản sao kê tuần",
+      "CLOSEOUT_OFFSET": "Bù trừ cọc tất toán",
+      "CLOSEOUT_TRANSFER": "Chuyển khoản hoàn tất toán",
+      "MOCK_ONBOARDING": "Thanh toán thử nghiệm"
     }
   },
   "Reports": {

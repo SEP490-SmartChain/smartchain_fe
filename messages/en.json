@@ -3322,7 +3322,7 @@
     },
     "label": "Label",
     "labelReady": "Ready",
-    "labelPending": "Pending",
+    "labelPending": "Not ready",
     "created": "Created",
     "actions": "Actions",
     "detail": "Shipment details",
@@ -3369,10 +3369,7 @@
       "ALREADY_REQUESTED": "A cancellation request was already recorded.",
       "ALREADY_CANCELLED": "The waybill is already cancelled.",
       "RETRY_SCHEDULED": "A new check of the cancellation outcome with the carrier is scheduled."
-    },
-    "label": "Label",
-    "labelReady": "Ready",
-    "labelPending": "Not ready"
+    }
   },
   "CarrierBreakers": {
     "title": "Carrier circuit breakers",
@@ -4524,7 +4521,9 @@
       "ADJUST": "Adjustment",
       "COMBO": "Bundle",
       "UNIT": "Unit",
-      "CLAIM": "claim"
+      "CLAIM": "claim",
+      "CONTRACT": "Contract",
+      "BATCH": "Reconciled batch"
     }
   },
   "ReceiptCartons": {
@@ -4641,7 +4640,7 @@
     "approve": "Approve eligible payout",
     "dispute": "Dispute line",
     "resolve": "Resolve dispute",
-    "reason": "Reason and supporting explanation",
+    "reason": "Settlement note / reason",
     "adjustment": "Signed correction amount (VND; 0 to reject)",
     "invalidReason": "Enter a reason between 5 and 1,000 characters.",
     "invalidAmount": "Enter an exact whole VND amount.",
@@ -4649,13 +4648,13 @@
     "wednesday": "Approval follows the Wednesday schedule in Vietnam. Record only an actual Wednesday manual transfer after approval.",
     "recordTransfer": "Record completed manual transfer",
     "transferHelp": "Transfer funds outside ORCA first. Then upload private PDF evidence and record the exact approved amount. ORCA does not send money.",
-    "bankReference": "Actual bank transaction reference",
-    "transferredAt": "Actual transfer time (ISO 8601 with timezone)",
-    "evidence": "Private bank evidence PDF (maximum 20 MB)",
-    "evidenceReady": "Private evidence uploaded",
-    "pdfRequired": "Upload a bank evidence PDF up to 20 MB.",
-    "invalidReference": "Enter the actual bank reference (3–200 characters).",
-    "invalidTime": "Enter a timestamp including seconds and timezone, for example 2026-11-04T02:00:00Z.",
+    "bankReference": "Bank transaction reference",
+    "transferredAt": "Transfer date & time",
+    "evidence": "Bank receipt PDF (max 20 MB)",
+    "evidenceReady": "Receipt PDF attached",
+    "pdfRequired": "Attach bank receipt PDF (up to 20 MB)",
+    "invalidReference": "Enter a bank transaction reference (3–200 characters).",
+    "invalidTime": "Select a valid transfer date and time.",
     "uncertain": "The result is not confirmed yet. Refresh to check; if needed, retry the same request.",
     "retrySame": "Retry same command",
     "forbidden": "You do not have access to financial records.",
@@ -4714,6 +4713,23 @@
       "material": "Packing materials fee",
       "returnHandling": "Return handling fee",
       "combo": "Product bundling fee"
+    },
+    "sourceType": {
+      "BILLABLE_EVENT": "Billable event",
+      "BANK_RECEIPT": "Bank receipt",
+      "ONLINE_RECEIPT": "Online receipt",
+      "PAYMENT_TRANSACTION": "Payment transaction",
+      "ONBOARDING_PLAN_FEE": "Onboarding plan fee",
+      "SUBSCRIPTION": "Subscription cycle",
+      "RECONCILIATION_POSTING": "Reconciliation posting",
+      "RECONCILED_COD_BATCH": "Reconciled COD batch",
+      "APPROVED_CLAIM": "Approved claim",
+      "APPROVED_FEE_CORRECTION": "Approved fee correction",
+      "PAYOUT_DISPUTE": "Statement dispute resolution",
+      "PAYOUT_TRANSFER": "Weekly payout transfer",
+      "CLOSEOUT_OFFSET": "Closeout deposit offset",
+      "CLOSEOUT_TRANSFER": "Closeout refund transfer",
+      "MOCK_ONBOARDING": "Demo onboarding payment"
     }
   },
   "Reports": {
