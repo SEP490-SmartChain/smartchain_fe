@@ -33,6 +33,7 @@ export function GlobalCarrierCatalog() {
     selectedCarrier,
     setSelectedCarrier,
     selectCarrier,
+    detailErrorId,
     isLoading,
     error,
     refetch,
@@ -96,10 +97,17 @@ export function GlobalCarrierCatalog() {
       key: 'actions',
       label: t('col_actions'),
       render: (carrier) => (
-        <Button size="sm" variant="outline" onClick={() => selectCarrier(carrier.id)}>
-          <Eye size={13} className="mr-1.5 text-[var(--sc-primary)]" />
-          {t('view_detail')}
-        </Button>
+        <div className="space-y-2">
+          <Button size="sm" variant="outline" onClick={() => selectCarrier(carrier.id)}>
+            <Eye size={13} className="mr-1.5 text-[var(--sc-primary)]" />
+            {t('view_detail')}
+          </Button>
+          {detailErrorId === carrier.id && (
+            <Alert variant="error" compact>
+              {t('loadError')}
+            </Alert>
+          )}
+        </div>
       ),
     },
   ];
@@ -267,6 +275,11 @@ export function GlobalCarrierCatalog() {
                       <Eye size={14} className="mr-1.5 text-[var(--sc-primary)]" />
                       {t('manageServices')}
                     </Button>
+                    {detailErrorId === carrier.id && (
+                      <Alert variant="error" compact className="mt-2">
+                        {t('loadError')}
+                      </Alert>
+                    )}
                   </div>
                 </Card>
               );

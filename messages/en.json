@@ -1101,6 +1101,7 @@
     "title_staff_accounts": "Staff Accounts",
     "title_admin": "Platform Admin",
     "logout": "Log out",
+    "logoutFailed": "Could not log out. Try again.",
     "default_title": "ORCA",
     "workspace_label": "Workspace",
     "home": "Home",
@@ -1155,6 +1156,10 @@
     "noNotifications": "No warehouse assignment notifications."
   },
   "Auth": {
+    "otp_send_failed": "Could not send a verification code. Try again.",
+    "otp_verify_failed": "Could not verify the code. Check it and try again.",
+    "register_failed": "Could not complete registration. Try again.",
+    "reset_action_failed": "Could not complete the password reset request. Try again.",
     "inviteHeading": "Join your store",
     "inviteSubheading": "Set a password to accept your staff invitation.",
     "inviteSuccess": "Your staff account is active. Sign in with the invitation email and your new password.",
@@ -1390,6 +1395,9 @@
     "removePhoto": "Remove profile photo",
     "photoRemoved": "Profile photo removed.",
     "photoRemoveFailed": "Could not remove the profile photo. Please try again.",
+    "photoTooLarge": "The profile photo must be 5 MB or smaller.",
+    "fullNameInvalid": "Enter at least 2 characters for the full name.",
+    "phoneInvalid": "Enter a 10-digit phone number starting with 0.",
     "firstName": "First name",
     "lastName": "Last name",
     "nameHint": "Use your first and last name as they appear on your official documents.",
@@ -1671,11 +1679,20 @@
     "centralHub": "Central distribution hub",
     "southHub": "Southern distribution hub"
   },
+  "Notifications": {
+    "copyFailed": "Could not copy. Select the text and copy it manually.",
+    "label": "Notifications",
+    "dismiss": "Dismiss notification",
+    "validationTitle": "Check the information entered",
+    "validationHint": "Correct the highlighted fields and try again.",
+    "errorHint": "An error occurred. Check the details on this page."
+  },
   "Error": {
     "not_found_heading": "Page Not Found",
     "not_found_message": "Sorry, the page you are looking for does not exist, has been removed, or is temporarily unavailable.",
     "back_to_home": "Back to Home",
     "error_heading": "An error occurred",
+    "reload_hint": "Reload the page to try again.",
     "reload_page": "Reload Page",
     "forbidden_heading": "Access denied",
     "forbidden_message": "Your account does not have permission to access this page. Please return to an area you are allowed to access.",
@@ -1694,6 +1711,7 @@
     "only_letters_spaces": "Only letters and spaces are allowed"
   },
   "AdminTenants": {
+    "detailLoadFailed": "Could not load workspace details. Try again.",
     "customInbox": "Custom plan requests awaiting review",
     "inboxRequested": "Awaiting consultation",
     "inboxDraft": "Awaiting contract completion",
@@ -2005,6 +2023,8 @@
     }
   },
   "Webhooks": {
+    "saveFailed": "Could not save the webhook. Try again.",
+    "actionFailed": "Could not update this webhook. Try again.",
     "categoryOrders": "Order Management",
     "categoryShipping": "Shipping & Logistics",
     "categoryInventoryFinance": "Inventory & Finance",
@@ -2281,6 +2301,7 @@
     "releaseItemsLabel": "SKUs to release",
     "releaseItemQty": "{qty, number} units",
     "releaseItemsLoadError": "Could not load the SKUs held by this order.",
+    "releaseFailed": "Could not release the reservation. Try again.",
     "releaseConfirm": "Confirm release",
     "cancel": "Cancel",
     "releaseSuccess": "Released {count, number} reservations of {order}.",
@@ -3248,6 +3269,7 @@
     "timelineTitle": "Shipment journey",
     "timelineSubtitle": "Detailed scan events and checkpoint updates",
     "journeyUnknown": "Status requires review",
+    "deliveryFailedHint": "The courier may contact the recipient again or update the reason for the failed delivery.",
     "timelineEmpty": "No tracking updates yet.",
     "journey": "Delivery Journey",
     "trackOnCarrier": "Track on {carrier}",

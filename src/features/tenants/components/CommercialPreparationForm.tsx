@@ -5,9 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import {
   commercialApi,
@@ -83,6 +86,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
           : undefined,
       );
     },
+    () => notifyInvalidForm(),
   );
 
   return (
@@ -108,9 +112,10 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
         </dl>
         {!rates && !ratesError && <p role="status">{t('ratesLoading')}</p>}
         {ratesError && (
-          <div role="alert" className="space-y-2">
-            <p>{t('ratesError')}</p>
+          <Alert variant="error">
+            <p className="m-0">{t('ratesError')}</p>
             <Button
+              className="mt-2"
               type="button"
               variant="outline"
               size="sm"
@@ -121,7 +126,7 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
             >
               {t('ratesRetry')}
             </Button>
-          </div>
+          </Alert>
         )}
         {rates && (
           <>

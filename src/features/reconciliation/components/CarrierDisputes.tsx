@@ -12,6 +12,7 @@ import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTab
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -90,27 +91,30 @@ function DisputeDetailModal({
     return () => controller.current?.abort();
   }, [load]);
 
-  const handleSave = handleSubmit(async (values) => {
-    if (!detail) return;
-    setSaveError(null);
-    const revision = useAuthStore.getState().revision;
-    try {
-      // The expected version guards against a concurrent edit; a stale write returns 409.
-      const result = await carrierSettlementApi.updateDispute(detail.id, {
-        expectedVersion: detail.version,
-        ...(values.status ? { status: values.status } : {}),
-        ...(values.externalTicketRef ? { externalTicketRef: values.externalTicketRef } : {}),
-        ...(values.status === 'RESOLVED' ? { resolvedAmountVnd: values.resolvedAmountVnd } : {}),
-        ...(values.note ? { note: values.note } : {}),
-      });
-      if (revision !== useAuthStore.getState().revision) return;
-      reset();
-      onChanged(t('saved', { code: detail.code, status: t(`status.${result.status}`) }));
-      await load();
-    } catch (failure) {
-      setSaveError(errorMessage(failure, t('saveError')));
-    }
-  });
+  const handleSave = handleSubmit(
+    async (values) => {
+      if (!detail) return;
+      setSaveError(null);
+      const revision = useAuthStore.getState().revision;
+      try {
+        // The expected version guards against a concurrent edit; a stale write returns 409.
+        const result = await carrierSettlementApi.updateDispute(detail.id, {
+          expectedVersion: detail.version,
+          ...(values.status ? { status: values.status } : {}),
+          ...(values.externalTicketRef ? { externalTicketRef: values.externalTicketRef } : {}),
+          ...(values.status === 'RESOLVED' ? { resolvedAmountVnd: values.resolvedAmountVnd } : {}),
+          ...(values.note ? { note: values.note } : {}),
+        });
+        if (revision !== useAuthStore.getState().revision) return;
+        reset();
+        onChanged(t('saved', { code: detail.code, status: t(`status.${result.status}`) }));
+        await load();
+      } catch (failure) {
+        setSaveError(errorMessage(failure, t('saveError')));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   const nextStatuses = detail ? nextDisputeStatuses(detail.status) : [];
   const itemColumns: ColumnDef<CarrierDisputeDetail['items'][number]>[] = [
@@ -180,6 +184,7 @@ function DisputeDetailModal({
                 ...nextStatuses.map((status) => ({ value: status, label: t(`status.${status}`) })),
               ]}
               {...register('status')}
+              error={errors?.status?.message}
             />
             <Input
               label={t('ticket')}

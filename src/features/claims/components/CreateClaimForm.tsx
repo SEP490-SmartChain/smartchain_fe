@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import { getPendingClaim, retryClaimCommand, sendClaimCommand } from '../api/claimCommands';
@@ -111,47 +112,50 @@ export function CreateClaimForm({
     // scope changes remount this form; search requests independently cancel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, scope.warehouseId, signal, searchVersion]);
-  const submit = form.handleSubmit(async (values) => {
-    if (!selected || values.affectedQty > selected.remainingQty) {
-      setError(t('errors.QUANTITY_EXCEEDED'));
-      return;
-    }
-    if (selected.declaredCostVnd === null && !values.declaredCostVnd) {
-      form.setError('declaredCostVnd', { message: t('errors.DECLARED_COST_REQUIRED') });
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      const result = await sendClaimCommand(
-        {
-          kind: 'create',
-          id: 'new',
-          scope,
-          input: {
-            fulfillmentItemId: values.fulfillmentItemId,
-            affectedQty: values.affectedQty,
-            incidentType: values.incidentType,
-            note: values.note,
-            ...(selected.declaredCostVnd !== null
-              ? { declaredCostVnd: selected.declaredCostVnd }
-              : values.declaredCostVnd
-                ? { declaredCostVnd: values.declaredCostVnd }
-                : {}),
-          },
-        },
-        signal,
-      );
-      if (!signal.aborted) onCreated(result.id);
-    } catch (e) {
-      if (!signal.aborted) {
-        fail(e);
-        setPending(getPendingClaim('create', 'new', scope));
+  const submit = form.handleSubmit(
+    async (values) => {
+      if (!selected || values.affectedQty > selected.remainingQty) {
+        setError(t('errors.QUANTITY_EXCEEDED'));
+        return;
       }
-    } finally {
-      if (!signal.aborted) setBusy(false);
-    }
-  });
+      if (selected.declaredCostVnd === null && !values.declaredCostVnd) {
+        form.setError('declaredCostVnd', { message: t('errors.DECLARED_COST_REQUIRED') });
+        return;
+      }
+      setBusy(true);
+      setError('');
+      try {
+        const result = await sendClaimCommand(
+          {
+            kind: 'create',
+            id: 'new',
+            scope,
+            input: {
+              fulfillmentItemId: values.fulfillmentItemId,
+              affectedQty: values.affectedQty,
+              incidentType: values.incidentType,
+              note: values.note,
+              ...(selected.declaredCostVnd !== null
+                ? { declaredCostVnd: selected.declaredCostVnd }
+                : values.declaredCostVnd
+                  ? { declaredCostVnd: values.declaredCostVnd }
+                  : {}),
+            },
+          },
+          signal,
+        );
+        if (!signal.aborted) onCreated(result.id);
+      } catch (e) {
+        if (!signal.aborted) {
+          fail(e);
+          setPending(getPendingClaim('create', 'new', scope));
+        }
+      } finally {
+        if (!signal.aborted) setBusy(false);
+      }
+    },
+    () => notifyInvalidForm(),
+  );
   const retry = async () => {
     if (!pending) return;
     setBusy(true);
@@ -279,6 +283,7 @@ export function CreateClaimForm({
                 { value: 'LOST', label: t('incidents.LOST') },
               ]}
               {...form.register('incidentType')}
+              error={form.formState.errors?.incidentType?.message}
             />
           </div>
           {selected?.declaredCostVnd !== null && selected ? (
@@ -309,9 +314,9 @@ export function CreateClaimForm({
             />
           </label>
           {form.formState.errors.note && (
-            <p role="alert" className="text-sm text-[var(--sc-error)]">
+            <Alert variant="error" compact>
               {t('noteLength')}
-            </p>
+            </Alert>
           )}
           <p className="text-sm text-[var(--sc-text-secondary)]">{t('createHint')}</p>
           <Button

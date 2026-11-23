@@ -13,6 +13,7 @@ import {
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -850,7 +851,7 @@ function SignManifest({
     }
   }
   return (
-    <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-4" onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}>
       {error && <Alert variant="error">{error}</Alert>}
       <p className="rounded-lg bg-[var(--sc-bg-secondary)]/70 px-3 py-2 text-sm text-[var(--sc-text-secondary)]">
         {t('signChecklist')}
@@ -1080,7 +1081,10 @@ function PutbackForm({
     }
   }
   return (
-    <form className="grid gap-3 sm:grid-cols-2" onSubmit={form.handleSubmit(submit)}>
+    <form
+      className="grid gap-3 sm:grid-cols-2"
+      onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}
+    >
       {error && <Alert variant="error">{error}</Alert>}
       {(['binCode', 'sku', 'lotCode'] as const).map((name) => (
         <Input

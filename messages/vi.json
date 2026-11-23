@@ -1101,6 +1101,7 @@
     "title_staff_accounts": "Tài khoản nhân viên",
     "title_admin": "Quản trị nền tảng",
     "logout": "Đăng xuất",
+    "logoutFailed": "Không đăng xuất được. Vui lòng thử lại.",
     "default_title": "ORCA",
     "workspace_label": "Không gian làm việc",
     "home": "Trang chủ",
@@ -1155,6 +1156,10 @@
     "noNotifications": "Không có thông báo phân công kho."
   },
   "Auth": {
+    "otp_send_failed": "Không gửi được mã xác thực. Vui lòng thử lại.",
+    "otp_verify_failed": "Không xác thực được mã. Kiểm tra mã rồi thử lại.",
+    "register_failed": "Không hoàn tất được đăng ký. Vui lòng thử lại.",
+    "reset_action_failed": "Không thực hiện được yêu cầu đặt lại mật khẩu. Vui lòng thử lại.",
     "inviteHeading": "Tham gia cửa hàng",
     "inviteSubheading": "Thiết lập mật khẩu để hoàn tất lời mời làm nhân viên.",
     "inviteSuccess": "Đã kích hoạt tài khoản nhân viên. Bạn có thể đăng nhập bằng email nhận lời mời và mật khẩu vừa tạo.",
@@ -1390,6 +1395,9 @@
     "removePhoto": "Xóa ảnh hồ sơ",
     "photoRemoved": "Đã xóa ảnh hồ sơ.",
     "photoRemoveFailed": "Không thể xóa ảnh hồ sơ. Vui lòng thử lại.",
+    "photoTooLarge": "Ảnh hồ sơ không được vượt quá 5 MB.",
+    "fullNameInvalid": "Họ và tên phải có ít nhất 2 ký tự.",
+    "phoneInvalid": "Nhập số điện thoại gồm 10 chữ số và bắt đầu bằng 0.",
     "firstName": "Tên và tên đệm",
     "lastName": "Họ",
     "nameHint": "Dùng họ tên giống như trên giấy tờ chính thức của bạn.",
@@ -1671,11 +1679,20 @@
     "centralHub": "Trung tâm phân phối miền Trung",
     "southHub": "Trung tâm phân phối miền Nam"
   },
+  "Notifications": {
+    "copyFailed": "Không sao chép được. Hãy chọn nội dung và sao chép thủ công.",
+    "label": "Thông báo",
+    "dismiss": "Đóng thông báo",
+    "validationTitle": "Thông tin nhập chưa hợp lệ",
+    "validationHint": "Kiểm tra các trường báo lỗi rồi thử lại.",
+    "errorHint": "Đã xảy ra lỗi. Xem chi tiết trên màn hình."
+  },
   "Error": {
     "not_found_heading": "Không tìm thấy trang",
     "not_found_message": "Xin lỗi, trang bạn đang cố gắng truy cập không tồn tại, đã bị xóa hoặc tạm thời không khả dụng.",
     "back_to_home": "Về trang chủ",
     "error_heading": "Đã xảy ra lỗi",
+    "reload_hint": "Hãy tải lại trang để thử lại.",
     "reload_page": "Tải lại trang",
     "forbidden_heading": "Không có quyền truy cập",
     "forbidden_message": "Tài khoản của bạn không có quyền truy cập trang này. Vui lòng quay lại khu vực được phép truy cập.",
@@ -1694,6 +1711,7 @@
     "only_letters_spaces": "Chỉ được chứa chữ cái và khoảng trắng"
   },
   "AdminTenants": {
+    "detailLoadFailed": "Không tải được chi tiết workspace. Vui lòng thử lại.",
     "customInbox": "Yêu cầu gói riêng cần xử lý",
     "inboxRequested": "Chờ tư vấn",
     "inboxDraft": "Chờ hoàn tất hợp đồng",
@@ -2005,6 +2023,8 @@
     }
   },
   "Webhooks": {
+    "saveFailed": "Không lưu được webhook. Vui lòng thử lại.",
+    "actionFailed": "Không cập nhật được webhook này. Vui lòng thử lại.",
     "categoryOrders": "Quản lý Đơn hàng",
     "categoryShipping": "Vận chuyển & Giao nhận",
     "categoryInventoryFinance": "Kho bãi & Tài chính",
@@ -2281,6 +2301,7 @@
     "releaseItemsLabel": "Mã sản phẩm sẽ được nhả",
     "releaseItemQty": "{qty, number} đơn vị",
     "releaseItemsLoadError": "Không tải được danh sách mã sản phẩm của đơn này.",
+    "releaseFailed": "Không thể nhả giữ hàng. Vui lòng thử lại.",
     "releaseConfirm": "Xác nhận nhả",
     "cancel": "Huỷ",
     "releaseSuccess": "Đã nhả {count, number} lượt giữ hàng của đơn {order}.",
@@ -3248,6 +3269,7 @@
     "timelineTitle": "Hành trình vận đơn",
     "timelineSubtitle": "Chi tiết các mốc quét kiện và luân chuyển bưu cục",
     "journeyUnknown": "Trạng thái cần kiểm tra",
+    "deliveryFailedHint": "Bưu tá có thể liên hệ lại người nhận hoặc cập nhật lý do giao hàng chưa thành công.",
     "timelineEmpty": "Chưa có cập nhật hành trình.",
     "journey": "Hành trình giao hàng",
     "trackOnCarrier": "Tra cứu trên cổng {carrier}",

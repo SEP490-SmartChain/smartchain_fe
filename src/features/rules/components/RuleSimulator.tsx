@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import { SimulationSnapshotEditor } from './SimulationSnapshotEditor';
@@ -82,26 +83,29 @@ export function RuleSimulator({ kind, rules }: { kind: RuleKind; rules: RuleReco
   const allowed = can(
     kind === 'ALLOCATION' ? 'rules.simulate.allocation' : 'rules.simulate.carrier',
   );
-  const submit = handleSubmit(async (value) => {
-    if (!allowed) return;
-    const state = requests.current;
-    const attempt = ++state.generation;
-    state.controller?.abort();
-    state.controller = new AbortController();
-    setResult(null);
-    setError(null);
-    try {
-      const response = await ruleSimulationApi.simulate(
-        toSimulationRequest(kind, value),
-        state.controller.signal,
-      );
-      if (attempt === state.generation) setResult({ fingerprint, data: response });
-    } catch (failure) {
-      if (attempt === state.generation) {
-        setError(failure instanceof ApiError ? failure.message : t('failed'));
+  const submit = handleSubmit(
+    async (value) => {
+      if (!allowed) return;
+      const state = requests.current;
+      const attempt = ++state.generation;
+      state.controller?.abort();
+      state.controller = new AbortController();
+      setResult(null);
+      setError(null);
+      try {
+        const response = await ruleSimulationApi.simulate(
+          toSimulationRequest(kind, value),
+          state.controller.signal,
+        );
+        if (attempt === state.generation) setResult({ fingerprint, data: response });
+      } catch (failure) {
+        if (attempt === state.generation) {
+          setError(failure instanceof ApiError ? failure.message : t('failed'));
+        }
       }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   if (!allowed) return null;
   return (
     <section

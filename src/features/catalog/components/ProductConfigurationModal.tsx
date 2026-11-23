@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -29,6 +31,7 @@ interface Props {
 }
 
 export function ProductConfigurationModal({ product, onClose, onChanged }: Props) {
+  const [submitError, setSubmitError] = useState('');
   const t = useTranslations('ProductCatalog');
   const {
     register,
@@ -67,7 +70,7 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
       toast.success(t('editSuccess'));
     } catch (error) {
       if (principal !== useAuthStore.getState().user) return;
-      toast.error(error instanceof ApiError ? error.message : t('editSaveError'));
+      setSubmitError(error instanceof ApiError ? error.message : t('editSaveError'));
     }
   };
   return (
@@ -78,10 +81,16 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
       width="560px"
     >
       <form
+        onSubmitCapture={() => setSubmitError('')}
         className="space-y-4"
         noValidate
-        onSubmit={(event) => void handleSubmit(handleSave)(event)}
+        onSubmit={(event) => void handleSubmit(handleSave, () => notifyInvalidForm())(event)}
       >
+        {submitError && (
+          <Alert variant="error" onClose={() => setSubmitError('')}>
+            {submitError}
+          </Alert>
+        )}
         <Checkbox
           label={t('trackLot')}
           {...register('trackLot')}
@@ -100,8 +109,13 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
               setValue('nearExpiryDays', product?.nearExpiryDays ?? 30, { shouldValidate: true });
             },
           })}
+          error={errors?.trackExpiry?.message}
         />
-        <Checkbox label={t('manufactureRequired')} {...register('manufactureRequired')} />
+        <Checkbox
+          label={t('manufactureRequired')}
+          {...register('manufactureRequired')}
+          error={errors?.manufactureRequired?.message}
+        />
         {tracksExpiry ? (
           <div className="grid gap-4 sm:grid-cols-2">
             {(

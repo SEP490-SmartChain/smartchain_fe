@@ -13,6 +13,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -90,25 +91,28 @@ export function WarehouseCalendarPanel({
       controller.abort();
     };
   }, [warehouse.id, warehouse.version, queryAt, principal, t, reset, retry]);
-  const save = handleSubmit(async (values) => {
-    if (!canEdit || !calendar) return;
-    const identity = useAuthStore.getState().user;
-    try {
-      await warehouseApi.updateCalendar(warehouse.id, {
-        workingDays: values.workingDays,
-        closedDates: closedDateList(values.closedDatesText),
-        expectedVersion: calendar.version,
-      });
-      if (identity !== useAuthStore.getState().user) return;
-      reset(values);
-      toast.success(t('calendarSaved'));
-      setRetry((value) => value + 1);
-      onSaved();
-    } catch (failure) {
-      if (identity !== useAuthStore.getState().user) return;
-      setError(failure instanceof ApiError ? failure.message : t('saveError'));
-    }
-  });
+  const save = handleSubmit(
+    async (values) => {
+      if (!canEdit || !calendar) return;
+      const identity = useAuthStore.getState().user;
+      try {
+        await warehouseApi.updateCalendar(warehouse.id, {
+          workingDays: values.workingDays,
+          closedDates: closedDateList(values.closedDatesText),
+          expectedVersion: calendar.version,
+        });
+        if (identity !== useAuthStore.getState().user) return;
+        reset(values);
+        toast.success(t('calendarSaved'));
+        setRetry((value) => value + 1);
+        onSaved();
+      } catch (failure) {
+        if (identity !== useAuthStore.getState().user) return;
+        setError(failure instanceof ApiError ? failure.message : t('saveError'));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
   const hasUnsavedChanges = Object.keys(dirtyFields).length > 0;
   const needsCheck =
     !!calendar && at !== `${calendar.localDate}T${minuteToTime(calendar.localMinute)}`;
@@ -195,7 +199,9 @@ export function WarehouseCalendarPanel({
                 ))}
               </div>
               {errors.workingDays && (
-                <p className="text-sm text-[var(--sc-error)]">{errors.workingDays.message}</p>
+                <Alert variant="error" compact>
+                  {errors.workingDays.message}
+                </Alert>
               )}
               <label className="block text-sm font-medium">
                 {t('closedDates')}
@@ -210,7 +216,9 @@ export function WarehouseCalendarPanel({
                 </span>
               </label>
               {errors.closedDatesText && (
-                <p className="text-sm text-[var(--sc-error)]">{errors.closedDatesText.message}</p>
+                <Alert variant="error" compact>
+                  {errors.closedDatesText.message}
+                </Alert>
               )}
             </fieldset>
             <details className={styles.calendarImpact}>

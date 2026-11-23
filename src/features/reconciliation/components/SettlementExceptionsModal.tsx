@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { carrierSettlementApi } from '../api/carrierSettlementApi';
@@ -64,17 +65,20 @@ function ManualMatchForm({ batch, record, onDone, onCancel }: ManualMatchFormPro
     defaultValues: { trackingNumber: '', reason: '' },
   });
 
-  const handleMatch = handleSubmit(async (values) => {
-    setError(null);
-    const revision = useAuthStore.getState().revision;
-    try {
-      const result = await carrierSettlementApi.match(batch.id, record.rowNumber, values);
-      if (revision !== useAuthStore.getState().revision) return;
-      onDone(t('matched', { row: result.rowNumber }));
-    } catch (failure) {
-      setError(errorMessage(failure, t('matchError')));
-    }
-  });
+  const handleMatch = handleSubmit(
+    async (values) => {
+      setError(null);
+      const revision = useAuthStore.getState().revision;
+      try {
+        const result = await carrierSettlementApi.match(batch.id, record.rowNumber, values);
+        if (revision !== useAuthStore.getState().revision) return;
+        onDone(t('matched', { row: result.rowNumber }));
+      } catch (failure) {
+        setError(errorMessage(failure, t('matchError')));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   return (
     <form onSubmit={handleMatch} className="space-y-3" noValidate>
@@ -118,22 +122,25 @@ function OpenDisputeForm({ batch, rowNumbers, onDone, onCancel }: OpenDisputeFor
     defaultValues: { externalTicketRef: '', note: '' },
   });
 
-  const handleOpen = handleSubmit(async (parsed) => {
-    setError(null);
-    const revision = useAuthStore.getState().revision;
-    try {
-      const result = await carrierSettlementApi.openDispute({
-        batchId: batch.id,
-        rowNumbers,
-        ...(parsed.externalTicketRef ? { externalTicketRef: parsed.externalTicketRef } : {}),
-        ...(parsed.note ? { note: parsed.note } : {}),
-      });
-      if (revision !== useAuthStore.getState().revision) return;
-      onDone(t('disputeOpened', { code: result.code, rows: result.records }));
-    } catch (failure) {
-      setError(errorMessage(failure, t('disputeError')));
-    }
-  });
+  const handleOpen = handleSubmit(
+    async (parsed) => {
+      setError(null);
+      const revision = useAuthStore.getState().revision;
+      try {
+        const result = await carrierSettlementApi.openDispute({
+          batchId: batch.id,
+          rowNumbers,
+          ...(parsed.externalTicketRef ? { externalTicketRef: parsed.externalTicketRef } : {}),
+          ...(parsed.note ? { note: parsed.note } : {}),
+        });
+        if (revision !== useAuthStore.getState().revision) return;
+        onDone(t('disputeOpened', { code: result.code, rows: result.records }));
+      } catch (failure) {
+        setError(errorMessage(failure, t('disputeError')));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   return (
     <form onSubmit={handleOpen} className="space-y-3" noValidate>

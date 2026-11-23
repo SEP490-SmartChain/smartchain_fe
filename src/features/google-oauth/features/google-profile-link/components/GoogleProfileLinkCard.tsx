@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card, CardHeader } from '@/components/Common/Card/Card';
@@ -102,11 +103,7 @@ export function GoogleProfileLinkCard({
           </Button>
         )}
 
-        {errorMessage && (
-          <p role="alert" className="m-0 text-sm text-[var(--sc-error-dark)]">
-            {errorMessage}
-          </p>
-        )}
+        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
       </div>
     </Card>
   );

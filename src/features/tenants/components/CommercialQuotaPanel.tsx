@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -104,70 +105,25 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
     };
   }, [tenantId, revision, t]);
   const contract = state?.contracts.find((item) => item.id === state.currentContractId);
-  const requestChange = change.handleSubmit(async (input) => {
-    if (!contract) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    if (operation.current?.planVersionId !== input.planVersionId) {
-      operation.current = { planVersionId: input.planVersionId, key: createUuid() };
-    }
-    try {
-      await commercialApi.requestPlanChange(
-        input.planVersionId,
-        contract.version,
-        operation.current.key,
-        controller.current?.signal,
-      );
-      if (current()) {
-        operation.current = null;
-        setNotice(t('requested'));
-        await reload();
-      }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
-  const requestClose = close.handleSubmit(async (input) => {
-    if (!contract) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.requestClosure(
-        contract.version,
-        input.reason,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('closing'));
-        await reload();
-      }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
-  const reject = (id: string) =>
-    rejection.handleSubmit(async (input) => {
-      if (!tenantId || !contract) return;
+  const requestChange = change.handleSubmit(
+    async (input) => {
+      if (!contract) return;
       setBusy(true);
       setError(null);
       setNotice(null);
+      if (operation.current?.planVersionId !== input.planVersionId) {
+        operation.current = { planVersionId: input.planVersionId, key: createUuid() };
+      }
       try {
-        await commercialApi.rejectPlanChange(
-          tenantId,
-          id,
+        await commercialApi.requestPlanChange(
+          input.planVersionId,
           contract.version,
-          input.reason,
+          operation.current.key,
           controller.current?.signal,
         );
         if (current()) {
-          setNotice(t('rejected'));
-          rejection.reset();
+          operation.current = null;
+          setNotice(t('requested'));
           await reload();
         }
       } catch (failure) {
@@ -175,7 +131,61 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
       } finally {
         if (current()) setBusy(false);
       }
-    });
+    },
+    () => notifyInvalidForm(),
+  );
+  const requestClose = close.handleSubmit(
+    async (input) => {
+      if (!contract) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.requestClosure(
+          contract.version,
+          input.reason,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('closing'));
+          await reload();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
+      }
+    },
+    () => notifyInvalidForm(),
+  );
+  const reject = (id: string) =>
+    rejection.handleSubmit(
+      async (input) => {
+        if (!tenantId || !contract) return;
+        setBusy(true);
+        setError(null);
+        setNotice(null);
+        try {
+          await commercialApi.rejectPlanChange(
+            tenantId,
+            id,
+            contract.version,
+            input.reason,
+            controller.current?.signal,
+          );
+          if (current()) {
+            setNotice(t('rejected'));
+            rejection.reset();
+            await reload();
+          }
+        } catch (failure) {
+          if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+        } finally {
+          if (current()) setBusy(false);
+        }
+      },
+      () => notifyInvalidForm(),
+    );
   const pendingChange =
     quota?.changes.some((item) => ['REQUESTED', 'SCHEDULED'].includes(item.status)) ?? false;
   const isCurrentContract = Boolean(

@@ -18,6 +18,7 @@ import {
 } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { canStartSellerIntake } from '@/lib/sellerService';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -96,10 +97,13 @@ export function AsnWorkspace() {
       generation.current = request + 1;
     };
   }, [search, status, refresh, user]);
+  const [pageError, setPageError] = useState('');
+  const [detailError, setDetailError] = useState<{ id: string; message: string }>();
   async function more() {
     if (!cursor || loading) return;
     const request = generation.current;
     setLoading(true);
+    setPageError('');
     try {
       const page = await asnApi.list(search, status || undefined, cursor);
       if (request !== generation.current || user !== useAuthStore.getState().user) return;
@@ -107,7 +111,7 @@ export function AsnWorkspace() {
       setCursor(page.pagination.hasNext ? page.pagination.nextCursor : null);
     } catch (error) {
       if (request === generation.current) {
-        toast.error(error instanceof ApiError ? error.message : t('loadError'));
+        setPageError(error instanceof ApiError ? error.message : t('loadError'));
       }
     } finally {
       if (request === generation.current) setLoading(false);
@@ -116,6 +120,7 @@ export function AsnWorkspace() {
   async function open(asn: Asn) {
     const request = generation.current;
     setDetailLoading(true);
+    setDetailError(undefined);
     try {
       const detail = await asnApi.get(asn.id);
       if (request === generation.current && user === useAuthStore.getState().user) {
@@ -123,7 +128,10 @@ export function AsnWorkspace() {
       }
     } catch (error) {
       if (request === generation.current) {
-        toast.error(error instanceof ApiError ? error.message : t('loadError'));
+        setDetailError({
+          id: asn.id,
+          message: error instanceof ApiError ? error.message : t('loadError'),
+        });
       }
     } finally {
       if (request === generation.current) setDetailLoading(false);
@@ -199,6 +207,11 @@ export function AsnWorkspace() {
                     >
                       {asn.asnCode}
                     </Button>
+                    {detailError?.id === asn.id && (
+                      <Alert variant="error" compact>
+                        {detailError.message}
+                      </Alert>
+                    )}
                   </td>
                   <td className="px-4 py-3">{asn.externalReference || '—'}</td>
                   <td className="px-4 py-3">
@@ -249,6 +262,7 @@ export function AsnWorkspace() {
           </table>
         </div>
         {loading && <p role="status">{t('loading')}</p>}
+        {pageError && <Alert variant="error">{pageError}</Alert>}
         {cursor && (
           <Button variant="outline" disabled={loading} onClick={() => void more()}>
             {t('loadMore')}
@@ -287,6 +301,7 @@ function AsnCommand({
 }) {
   const t = useTranslations('Asns');
   const [busy, setBusy] = useState(false);
+  const [commandError, setCommandError] = useState('');
   const {
     register,
     handleSubmit,
@@ -300,6 +315,7 @@ function AsnCommand({
     const principal = useAuthStore.getState().user;
     if (action === 'submit' && !canStartSellerIntake(principal)) return;
     setBusy(true);
+    setCommandError('');
     try {
       if (action === 'submit') await asnApi.submit(asn.id, asn.version);
       else await asnApi.cancel(asn.id, asn.version, reason);
@@ -309,7 +325,7 @@ function AsnCommand({
       onClose();
     } catch (error) {
       if (principal === useAuthStore.getState().user) {
-        toast.error(error instanceof ApiError ? error.message : t('saveError'));
+        setCommandError(error instanceof ApiError ? error.message : t('saveError'));
       }
     } finally {
       setBusy(false);
@@ -329,11 +345,18 @@ function AsnCommand({
         className="space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
-          if (action === 'submit') void run();
-          else void handleSubmit((values) => run(values.reason))(event);
+          if (action === 'submit') {
+            void run();
+          } else {
+            void handleSubmit(
+              (values) => run(values.reason),
+              () => notifyInvalidForm(),
+            )(event);
+          }
         }}
       >
         <p className="break-all font-medium">{asn.asnCode}</p>
+        {commandError && <Alert variant="error">{commandError}</Alert>}
         <p className="text-sm">{t(action === 'submit' ? 'submitConfirm' : 'cancelConfirm')}</p>
         {action === 'cancel' && (
           <Input

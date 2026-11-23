@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert, Button, Card, CardContent, Input, Select } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -173,7 +174,13 @@ export function PutawayBinOverridePanel({
                 {bins.length === 0 ? (
                   <p>{t('empty')}</p>
                 ) : (
-                  <form className="space-y-4" onSubmit={handleSubmit((input) => void send(input))}>
+                  <form
+                    className="space-y-4"
+                    onSubmit={handleSubmit(
+                      (input) => void send(input),
+                      () => notifyInvalidForm(),
+                    )}
+                  >
                     <fieldset disabled={locked} className="space-y-4">
                       <Select
                         label={t('bin')}

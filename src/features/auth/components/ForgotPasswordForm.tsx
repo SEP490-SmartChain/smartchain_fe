@@ -5,7 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, Mail, MailCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Button, Input } from '@/components/Common';
+import { Alert, Button, Input } from '@/components/Common';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import { usePasswordResetRequest } from '../hooks/usePasswordResetRequest';
 import {
@@ -28,7 +30,7 @@ const BackToLoginLink = () => {
 
 export function ForgotPasswordForm() {
   const t = useTranslations();
-  const { sent, submittedEmail, requestReset, reset } = usePasswordResetRequest();
+  const { sent, submittedEmail, requestReset, reset, requestError } = usePasswordResetRequest();
   const {
     register,
     handleSubmit,
@@ -63,7 +65,11 @@ export function ForgotPasswordForm() {
 
   return (
     <>
-      <form className="flex flex-col gap-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form
+        className="flex flex-col gap-5"
+        onSubmit={handleSubmit(onSubmit, () => notifyInvalidForm())}
+        noValidate
+      >
         <Input
           id="forgot-email"
           type="email"
@@ -78,6 +84,9 @@ export function ForgotPasswordForm() {
           error={errors.email?.message}
           aria-invalid={!!errors.email}
         />
+        {requestError && (
+          <Alert variant="error">{requestError.message ?? t('Auth.reset_action_failed')}</Alert>
+        )}
         <Button type="submit" isLoading={isSubmitting} className="w-full">
           {t(isSubmitting ? 'Auth.forgot_sending' : 'Auth.forgot_send')}
         </Button>

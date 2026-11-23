@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import {
@@ -144,7 +145,13 @@ export function ExceptionAddressCorrection({
           </Button>
         </>
       ) : source ? (
-        <form className="space-y-3" onSubmit={form.handleSubmit((values) => send(values))}>
+        <form
+          className="space-y-3"
+          onSubmit={form.handleSubmit(
+            (values) => send(values),
+            () => notifyInvalidForm(),
+          )}
+        >
           <Select
             label={t('province')}
             disabled={busy}

@@ -4,6 +4,7 @@ import type { FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-f
 
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Select } from '@/components/Common/Select/Select';
 
@@ -121,23 +122,18 @@ export function WarehouseAddressFields({
 
   if (provinceState === 'error' || wardState === 'error') {
     return (
-      <div
-        role="alert"
-        className="flex items-center justify-between gap-3 text-sm text-[var(--sc-error)]"
-      >
-        <span>{t('divisionLoadError')}</span>
-        <Button type="button" variant="outline" onClick={() => setAttempt((n) => n + 1)}>
-          {t('retry')}
-        </Button>
-      </div>
+      <Alert variant="error">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span>{t('divisionLoadError')}</span>
+          <Button type="button" variant="outline" onClick={() => setAttempt((n) => n + 1)}>
+            {t('retry')}
+          </Button>
+        </div>
+      </Alert>
     );
   }
   if (provinceState === 'ready' && provinces.length === 0) {
-    return (
-      <p role="alert" className="text-sm text-[var(--sc-warning)]">
-        {t('divisionEmpty')}
-      </p>
-    );
+    return <Alert variant="warning">{t('divisionEmpty')}</Alert>;
   }
 
   return (

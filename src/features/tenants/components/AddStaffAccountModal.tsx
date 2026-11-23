@@ -12,6 +12,7 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { staffAccountApi } from '../api/staffAccountApi';
@@ -51,25 +52,29 @@ export function AddStaffAccountModal({ isOpen, onClose, onSuccess }: AddStaffAcc
   const close = () => {
     if (!running.current) onClose();
   };
-  const submit = handleSubmit(async (values) => {
-    if (running.current) return;
-    running.current = true;
-    setError(null);
-    const abort = new AbortController();
-    controller.current = abort;
-    const isCurrent = () => !abort.signal.aborted && revision === useAuthStore.getState().revision;
-    try {
-      await staffAccountApi.create(values, abort.signal);
-      if (!isCurrent()) return;
-      toast.success(t('inviteCreated'));
-      onSuccess?.();
-      onClose();
-    } catch (failure) {
-      if (isCurrent()) setError(failure instanceof Error ? failure.message : t('inviteFailed'));
-    } finally {
-      running.current = false;
-    }
-  });
+  const submit = handleSubmit(
+    async (values) => {
+      if (running.current) return;
+      running.current = true;
+      setError(null);
+      const abort = new AbortController();
+      controller.current = abort;
+      const isCurrent = () =>
+        !abort.signal.aborted && revision === useAuthStore.getState().revision;
+      try {
+        await staffAccountApi.create(values, abort.signal);
+        if (!isCurrent()) return;
+        toast.success(t('inviteCreated'));
+        onSuccess?.();
+        onClose();
+      } catch (failure) {
+        if (isCurrent()) setError(failure instanceof Error ? failure.message : t('inviteFailed'));
+      } finally {
+        running.current = false;
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   return (
     <Modal isOpen={isOpen} onClose={close} title={t('inviteTitle')} width="480px">

@@ -6,8 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Globe, Key, Package, ShieldCheck, Truck, Warehouse } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Button, Checkbox, Input, Switch } from '@/components/Common';
+import { Alert, Button, Checkbox, Input, Switch } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import { createWebhookFormSchema, type CreateWebhookFormData } from '../schemas/webhook.schemas';
 import { WEBHOOK_EVENT_TOPICS, type WebhookEndpoint } from '../types/webhook.types';
@@ -23,6 +25,7 @@ export interface WebhookFormModalProps {
   }) => Promise<void>;
   initialData?: WebhookEndpoint | null;
   isSubmitting?: boolean;
+  submitError?: string;
 }
 
 const CATEGORIES = [
@@ -37,6 +40,7 @@ export function WebhookFormModal({
   onSubmit,
   initialData,
   isSubmitting = false,
+  submitError,
 }: WebhookFormModalProps) {
   const t = useTranslations('Webhooks');
   const isEditing = Boolean(initialData);
@@ -132,7 +136,12 @@ export function WebhookFormModal({
       title={isEditing ? t('editWebhookTitle') : t('createWebhookTitle')}
       width="760px"
     >
-      <form onSubmit={handleSubmit(onFormSubmit)} noValidate className="space-y-6">
+      <form
+        onSubmit={handleSubmit(onFormSubmit, () => notifyInvalidForm())}
+        noValidate
+        className="space-y-6"
+      >
+        {submitError && <Alert variant="error">{submitError}</Alert>}
         {/* Endpoint URL Input */}
         <div>
           <Input
@@ -183,9 +192,9 @@ export function WebhookFormModal({
           </div>
 
           {errors.eventTypes && (
-            <p className="mb-3 text-xs font-medium text-[var(--sc-error-dark)]">
+            <Alert variant="error" compact className="mb-3">
               {t(errors.eventTypes.message as any)}
-            </p>
+            </Alert>
           )}
 
           <div className="space-y-4">

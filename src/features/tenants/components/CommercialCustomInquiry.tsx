@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -59,32 +60,35 @@ export function CommercialCustomInquiry() {
       abort.abort();
     };
   }, [reload]);
-  const submit = form.handleSubmit(async (input) => {
-    if (loading || inquiries.length > 0 || running.current) return;
-    running.current = true;
-    setError(null);
-    const current = () =>
-      !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
-    try {
-      const result = await commercialApi.inquire(
-        input.message,
-        operation.current,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setSent(true);
-        setInquiries([{ ...result, message: input.message }]);
-        form.reset();
+  const submit = form.handleSubmit(
+    async (input) => {
+      if (loading || inquiries.length > 0 || running.current) return;
+      running.current = true;
+      setError(null);
+      const current = () =>
+        !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
+      try {
+        const result = await commercialApi.inquire(
+          input.message,
+          operation.current,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setSent(true);
+          setInquiries([{ ...result, message: input.message }]);
+          form.reset();
+        }
+      } catch (failure) {
+        if (current()) {
+          await reload(controller.current?.signal);
+          if (current()) setError(failure instanceof Error ? failure.message : t('inquiryFailed'));
+        }
+      } finally {
+        running.current = false;
       }
-    } catch (failure) {
-      if (current()) {
-        await reload(controller.current?.signal);
-        if (current()) setError(failure instanceof Error ? failure.message : t('inquiryFailed'));
-      }
-    } finally {
-      running.current = false;
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <details
       aria-busy={loading}

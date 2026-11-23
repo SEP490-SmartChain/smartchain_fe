@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -24,6 +26,7 @@ export function ReleaseReservationsDialog({
   onChanged,
 }: ReleaseReservationsDialogProps) {
   const t = useTranslations('Inventory');
+  const [releaseError, setReleaseError] = useState('');
   const { items, isLoadingItems, itemsError, isReleasing, isUnavailable, release } =
     useReleaseReservations(target?.fulfillmentOrderId ?? null);
 
@@ -34,6 +37,7 @@ export function ReleaseReservationsDialog({
   const shouldShowUnavailable = isUnavailable || hasNothingToRelease;
 
   const handleConfirm = async () => {
+    setReleaseError('');
     const outcome = await release();
     if (outcome.status === 'released') {
       toast.success(
@@ -46,13 +50,19 @@ export function ReleaseReservationsDialog({
       onClose();
     } else if (outcome.status === 'unavailable') {
       onChanged();
+    } else {
+      setReleaseError(outcome.message ?? t('releaseFailed'));
     }
+  };
+  const handleClose = () => {
+    setReleaseError('');
+    onClose();
   };
 
   return (
     <Modal
       isOpen={target !== null}
-      onClose={onClose}
+      onClose={handleClose}
       title={t('releaseDialogTitle', { order: orderCode })}
       width="520px"
     >
@@ -66,6 +76,7 @@ export function ReleaseReservationsDialog({
         )}
 
         {itemsError && <Alert variant="error" title={t('releaseItemsLoadError')} />}
+        {releaseError && <Alert variant="error">{releaseError}</Alert>}
 
         {isLoadingItems ? (
           <span
@@ -96,7 +107,7 @@ export function ReleaseReservationsDialog({
         )}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={handleClose}>
             {t('cancel')}
           </Button>
           <Button

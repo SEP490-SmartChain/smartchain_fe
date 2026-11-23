@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -316,11 +317,13 @@ export function SellerWithdrawalForm({
             className="mt-3 grid gap-3 sm:grid-cols-2"
             onChange={() => setNotice('')}
             onInvalidCapture={() => setNotice('')}
-            onSubmit={address.handleSubmit((values) =>
-              execute({
-                kind: 'ADDRESS',
-                input: { ...values, expectedVersion: data?.address?.version ?? 0 },
-              }),
+            onSubmit={address.handleSubmit(
+              (values) =>
+                execute({
+                  kind: 'ADDRESS',
+                  input: { ...values, expectedVersion: data?.address?.version ?? 0 },
+                }),
+              () => notifyInvalidForm(),
             )}
           >
             {(['recipientName', 'recipientPhone', 'address'] as const).map((name) => (
@@ -384,35 +387,38 @@ export function SellerWithdrawalForm({
           className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]"
           onChange={() => setNotice('')}
           onInvalidCapture={() => setNotice('')}
-          onSubmit={form.handleSubmit((values) => {
-            setNotice('');
-            const issue = withdrawalReviewError(
-              data?.address,
-              address.getValues(),
-              choice,
-              values.qty,
-            );
-            if (issue === 'ADDRESS_UNSAVED') {
-              setError(t('unsavedAddress'));
-              return;
-            }
-            if (issue || !choice || !data?.address || (initialLot && !values.reason)) {
-              setError(t('unavailable'));
-              return;
-            }
-            return execute({
-              kind: 'WITHDRAWAL',
-              input: {
-                clientRequestId: createUuid(),
-                ...(values.reason ? { reason: values.reason } : {}),
-                warehouseId: choice.warehouseId,
-                productId: choice.productId,
-                lotId: choice.lotId,
-                qty: values.qty,
-                addressVersion: data.address.version,
-              },
-            });
-          })}
+          onSubmit={form.handleSubmit(
+            (values) => {
+              setNotice('');
+              const issue = withdrawalReviewError(
+                data?.address,
+                address.getValues(),
+                choice,
+                values.qty,
+              );
+              if (issue === 'ADDRESS_UNSAVED') {
+                setError(t('unsavedAddress'));
+                return;
+              }
+              if (issue || !choice || !data?.address || (initialLot && !values.reason)) {
+                setError(t('unavailable'));
+                return;
+              }
+              return execute({
+                kind: 'WITHDRAWAL',
+                input: {
+                  clientRequestId: createUuid(),
+                  ...(values.reason ? { reason: values.reason } : {}),
+                  warehouseId: choice.warehouseId,
+                  productId: choice.productId,
+                  lotId: choice.lotId,
+                  qty: values.qty,
+                  addressVersion: data.address.version,
+                },
+              });
+            },
+            () => notifyInvalidForm(),
+          )}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
             <h3 className="text-base font-semibold">{t('chooseGoods')}</h3>

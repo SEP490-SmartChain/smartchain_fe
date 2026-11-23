@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
@@ -103,11 +104,7 @@ export function TenantStatusModal({
           </div>
         </div>
 
-        {error && (
-          <div className="rounded-lg border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] p-3 text-xs text-[var(--sc-error-dark)]">
-            {error}
-          </div>
-        )}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {isSuspending ? (
           <div>

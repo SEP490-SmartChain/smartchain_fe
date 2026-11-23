@@ -17,6 +17,7 @@ import {
   Select,
 } from '@/components/Common';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -205,7 +206,10 @@ export function RelocationForm({ warehouse, source, disabled, onLock, onSaved, o
           <form
             noValidate
             className="space-y-4"
-            onSubmit={handleSubmit((input) => void send(input))}
+            onSubmit={handleSubmit(
+              (input) => void send(input),
+              () => notifyInvalidForm(),
+            )}
           >
             <Controller
               control={control}

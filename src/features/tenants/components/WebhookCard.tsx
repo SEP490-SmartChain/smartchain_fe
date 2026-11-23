@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { AlertCircle, CheckCircle2, Edit2, Globe, Key, Loader2, Send, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Badge, Button, Card, Switch } from '@/components/Common';
+import { Alert, Badge, Button, Card, Switch } from '@/components/Common';
 
 import {
   WEBHOOK_EVENT_TOPICS,
@@ -21,6 +21,7 @@ export interface WebhookCardProps {
   isToggling: boolean;
   isDeleting: boolean;
   testResult?: WebhookTestResult;
+  actionError?: string;
 }
 
 export function WebhookCard({
@@ -33,6 +34,7 @@ export function WebhookCard({
   isToggling,
   isDeleting,
   testResult,
+  actionError,
 }: WebhookCardProps) {
   const t = useTranslations('Webhooks');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -211,6 +213,11 @@ export function WebhookCard({
             <span className="text-xs text-[var(--sc-text-tertiary)]">{t('sendTestPingHint')}</span>
           </div>
 
+          {actionError && (
+            <Alert variant="error" compact>
+              {actionError}
+            </Alert>
+          )}
           {/* Test Ping Status Badge / Result Message */}
           {testResult && (
             <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -227,24 +234,19 @@ export function WebhookCard({
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 rounded-lg border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] px-2.5 py-1 text-xs text-[var(--sc-error-dark)]">
-                  <AlertCircle size={14} className="text-[var(--sc-error)]" />
-                  <span className="font-semibold">
-                    {testResult.statusCode
-                      ? `HTTP ${testResult.statusCode} Failed`
-                      : t('pingFailed')}
-                  </span>
+                <Alert variant="error" compact title={t('pingFailed')}>
+                  {testResult.statusCode && (
+                    <span className="mr-1">HTTP {testResult.statusCode}</span>
+                  )}
                   {typeof testResult.responseTimeMs === 'number' && (
                     <span className="font-mono text-[11px] opacity-80">
                       ({testResult.responseTimeMs}ms)
                     </span>
                   )}
-                  {testResult.error && (
-                    <span className="max-w-[180px] truncate text-[11px] opacity-90">
-                      - {testResult.error}
-                    </span>
+                  {(testResult.error || testResult.message) && (
+                    <div>{testResult.error || testResult.message}</div>
                   )}
-                </div>
+                </Alert>
               )}
             </div>
           )}

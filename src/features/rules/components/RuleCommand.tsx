@@ -9,6 +9,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -44,27 +45,30 @@ export function RuleCommand({
     resolver: zodResolver(reasonSchema(t('invalid'))),
     defaultValues: { reason: '' },
   });
-  const submit = handleSubmit(async (values) => {
-    const identity = useAuthStore.getState().user;
-    setError(null);
-    try {
-      if (command.operation === 'reorder') {
-        await ruleApi.reorder(priorityEntries(command.items), values.reason);
-      } else {
-        await ruleApi.command(
-          command.rule,
-          command.operation,
-          values.reason,
-          command.targetVersion,
-        );
+  const submit = handleSubmit(
+    async (values) => {
+      const identity = useAuthStore.getState().user;
+      setError(null);
+      try {
+        if (command.operation === 'reorder') {
+          await ruleApi.reorder(priorityEntries(command.items), values.reason);
+        } else {
+          await ruleApi.command(
+            command.rule,
+            command.operation,
+            values.reason,
+            command.targetVersion,
+          );
+        }
+        if (identity === useAuthStore.getState().user) onSaved();
+      } catch (failure) {
+        if (identity === useAuthStore.getState().user) {
+          setError(failure instanceof ApiError ? failure.message : t('saveError'));
+        }
       }
-      if (identity === useAuthStore.getState().user) onSaved();
-    } catch (failure) {
-      if (identity === useAuthStore.getState().user) {
-        setError(failure instanceof ApiError ? failure.message : t('saveError'));
-      }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <Modal
       isOpen
