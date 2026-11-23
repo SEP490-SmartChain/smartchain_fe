@@ -24,9 +24,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   User,
-  UserCheck,
   Users,
-  UserX,
   X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -40,7 +38,6 @@ import { Can } from '@/components/Common/Can/Can';
 import { Card } from '@/components/Common/Card/Card';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
-import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -265,90 +262,67 @@ export function StaffAccountDirectory() {
   const toIndex = Math.min(currentPage * PAGE_SIZE, sortedAccounts.length);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t('title')}
-        description={t('subtitle')}
-        actions={
+    <div className="space-y-5">
+      {/* Card 1: Unified Header + 4-Column Divided KPI Strip */}
+      <Card padding="none" className="overflow-hidden border-[var(--sc-border-default)]">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--sc-border-default)] p-5">
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-[var(--sc-text-primary)]">
+              {t('title')}
+            </h1>
+            <p className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">{t('subtitle')}</p>
+          </div>
           <Can capability="iam.users.manage">
             <Button
               type="button"
+              size="sm"
               onClick={() => setAddModalOpen(true)}
-              className="shadow-sm transition-transform active:scale-95"
+              className="shadow-2xs transition-transform active:scale-95"
             >
-              <Plus size={16} aria-hidden="true" />
+              <Plus size={15} aria-hidden="true" />
               {t('inviteTitle')}
             </Button>
           </Can>
-        }
-      />
+        </div>
 
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary-dark)]">
-              <Users size={20} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
-                {t('totalStaff')}
-              </p>
-              <p className="text-xl font-bold tracking-tight text-[var(--sc-text-primary)]">
-                {summaryStats.total}
-              </p>
-            </div>
+        <div className="grid grid-cols-2 divide-x divide-y border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 sm:grid-cols-4 sm:divide-y-0">
+          <div className="p-4">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--sc-text-tertiary)]">
+              {t('totalStaff')}
+            </span>
+            <p className="mt-1 text-lg font-bold tabular-nums text-[var(--sc-text-primary)]">
+              {summaryStats.total}
+            </p>
           </div>
-        </Card>
 
-        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-success-bg)] text-[var(--sc-success-dark)] border border-[var(--sc-success-border)]">
-              <UserCheck size={20} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
-                {t('activeAccounts')}
-              </p>
-              <p className="text-xl font-bold tracking-tight text-[var(--sc-success-dark)]">
-                {summaryStats.active}
-              </p>
-            </div>
+          <div className="p-4">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--sc-text-tertiary)]">
+              {t('activeAccounts')}
+            </span>
+            <p className="mt-1 text-lg font-bold tabular-nums text-[var(--sc-success-dark)]">
+              {summaryStats.active}
+            </p>
           </div>
-        </Card>
 
-        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-warning-bg)] text-[var(--sc-warning-dark)] border border-[var(--sc-warning-border)]">
-              <Clock size={20} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
-                {t('pending')}
-              </p>
-              <p className="text-xl font-bold tracking-tight text-[var(--sc-warning-dark)]">
-                {summaryStats.pending}
-              </p>
-            </div>
+          <div className="p-4">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--sc-text-tertiary)]">
+              {t('pending')}
+            </span>
+            <p className="mt-1 text-lg font-bold tabular-nums text-[var(--sc-warning-dark)]">
+              {summaryStats.pending}
+            </p>
           </div>
-        </Card>
 
-        <Card padding="sm" className="relative overflow-hidden border-[var(--sc-border-default)]">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-error-bg)] text-[var(--sc-error-dark)] border border-[var(--sc-error-border)]">
-              <UserX size={20} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--sc-text-secondary)] truncate">
-                {t('lockedAccounts')}
-              </p>
-              <p className="text-xl font-bold tracking-tight text-[var(--sc-error-dark)]">
-                {summaryStats.locked}
-              </p>
-            </div>
+          <div className="p-4">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--sc-text-tertiary)]">
+              {t('lockedAccounts')}
+            </span>
+            <p className="mt-1 text-lg font-bold tabular-nums text-[var(--sc-error-dark)]">
+              {summaryStats.locked}
+            </p>
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {error ? (
         <Alert variant="error" title={t('loadError')}>
@@ -774,86 +748,18 @@ export function StaffAccountDirectory() {
 
                         {/* Expandable detail card */}
                         {isExpanded && (
-                          <tr className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/25 animate-in fade-in duration-150">
-                            <td colSpan={7} className="p-3 sm:p-4">
-                              <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-5 shadow-xs">
-                                {/* Top Bar: Identity & Actions */}
-                                <div className="flex flex-col gap-3 border-b border-[var(--sc-border-default)] pb-4 sm:flex-row sm:items-center sm:justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <StaffAvatar account={account} />
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <h4 className="text-sm font-bold text-[var(--sc-text-primary)]">
-                                          {account.fullName}
-                                        </h4>
-                                        {isSelf && (
-                                          <span className="rounded-md border border-[var(--sc-primary-light)] bg-[var(--sc-primary-lighter)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--sc-primary-dark)]">
-                                            {t('currentAccount')}
-                                          </span>
-                                        )}
-                                        <Badge
-                                          status={
-                                            account.status === 'ACTIVE'
-                                              ? 'success'
-                                              : account.status === 'PENDING'
-                                                ? 'warning'
-                                                : 'error'
-                                          }
-                                          label={
-                                            account.status === 'ACTIVE'
-                                              ? t('active')
-                                              : account.status === 'PENDING'
-                                                ? t('pending')
-                                                : t('blocked')
-                                          }
-                                          size="sm"
-                                          variant="solid"
-                                        />
-                                      </div>
-                                      <p className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">
-                                        {t('accountIdentifier')}:{' '}
-                                        <span className="font-mono text-[11px] text-[var(--sc-text-tertiary)]">
-                                          {account.userId}
-                                        </span>
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {/* Direct Lock/Unlock action in header */}
-                                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
-                                      disabled={
-                                        isSelf ||
-                                        updatingUserId === account.userId ||
-                                        account.status === 'PENDING'
-                                      }
-                                      isLoading={updatingUserId === account.userId}
-                                      title={isSelf ? t('cannotLockSelf') : undefined}
-                                      onClick={() => setSelectedAccount(account)}
-                                      className="gap-1.5 text-xs font-medium"
-                                    >
-                                      {account.status === 'ACTIVE' ? (
-                                        <LockKeyhole size={14} />
-                                      ) : (
-                                        <LockKeyholeOpen size={14} />
-                                      )}
-                                      {account.status === 'ACTIVE' ? t('lock') : t('unlock')}
-                                    </Button>
-                                  </div>
-                                </div>
-
-                                {/* 3 Information Tiles */}
-                                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                  {/* Contact Information */}
-                                  <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-3.5">
-                                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--sc-text-secondary)]">
-                                      <Mail size={14} className="text-[var(--sc-primary)]" />
+                          <tr className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/20 animate-in fade-in duration-150">
+                            <td colSpan={7} className="px-4 py-3.5">
+                              <div className="overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-2xs">
+                                {/* 3-Column Divided Detail Strip */}
+                                <div className="grid divide-y border-[var(--sc-border-default)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                                  {/* Column 1: Contact Information */}
+                                  <div className="p-4">
+                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-tertiary)]">
+                                      <Mail size={13} className="text-[var(--sc-primary)]" />
                                       <span>{t('contactInfo')}</span>
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                       <div className="flex items-center justify-between gap-2">
                                         <span className="truncate text-xs font-semibold text-[var(--sc-text-primary)]">
                                           {account.email}
@@ -879,9 +785,9 @@ export function StaffAccountDirectory() {
                                           {notifications('copyFailed')}
                                         </Alert>
                                       )}
-                                      <div className="flex items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
+                                      <div className="flex items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
                                         <Phone
-                                          size={13}
+                                          size={12}
                                           className="shrink-0 text-[var(--sc-text-tertiary)]"
                                         />
                                         <span className="truncate">
@@ -891,11 +797,11 @@ export function StaffAccountDirectory() {
                                     </div>
                                   </div>
 
-                                  {/* Role & Scope */}
-                                  <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-3.5">
-                                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                                  {/* Column 2: Role & Scope */}
+                                  <div className="p-4">
+                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-tertiary)]">
                                       <ShieldCheck
-                                        size={14}
+                                        size={13}
                                         className="text-teal-600 dark:text-teal-400"
                                       />
                                       <span>{t('roleAndPermissions')}</span>
@@ -905,7 +811,7 @@ export function StaffAccountDirectory() {
                                         {account.roles.map((role) => (
                                           <span
                                             key={role}
-                                            className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
+                                            className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-800 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-300"
                                           >
                                             {roleLabel(role)}
                                           </span>
@@ -919,16 +825,16 @@ export function StaffAccountDirectory() {
                                     </div>
                                   </div>
 
-                                  {/* Activity & Security */}
-                                  <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 p-3.5">
-                                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--sc-text-secondary)]">
+                                  {/* Column 3: Activity & Security */}
+                                  <div className="p-4">
+                                    <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-tertiary)]">
                                       <Clock
-                                        size={14}
+                                        size={13}
                                         className="text-amber-600 dark:text-amber-400"
                                       />
                                       <span>{t('activityAndSecurity')}</span>
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-1">
                                       <div className="flex items-center gap-2">
                                         <span
                                           className={cn(
@@ -955,24 +861,48 @@ export function StaffAccountDirectory() {
                                   </div>
                                 </div>
 
-                                {/* Security Guidance Banner */}
-                                <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/60 px-3.5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
-                                  {isSelf ? (
-                                    <>
-                                      <ShieldAlert
-                                        size={15}
-                                        className="shrink-0 text-amber-600 dark:text-amber-400"
-                                      />
-                                      <span>{t('selfAccountHint')}</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Info
-                                        size={15}
-                                        className="shrink-0 text-[var(--sc-primary)]"
-                                      />
-                                      <span>{t('staffAccountHint')}</span>
-                                    </>
+                                {/* Compact Footer Bar: Security Guidance + Action */}
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/35 px-4 py-2.5 text-xs text-[var(--sc-text-secondary)]">
+                                  <div className="flex items-center gap-2">
+                                    {isSelf ? (
+                                      <>
+                                        <ShieldAlert
+                                          size={14}
+                                          className="shrink-0 text-amber-600 dark:text-amber-400"
+                                        />
+                                        <span>{t('selfAccountHint')}</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Info
+                                          size={14}
+                                          className="shrink-0 text-[var(--sc-primary)]"
+                                        />
+                                        <span>{t('staffAccountHint')}</span>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {!isSelf && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant={account.status === 'ACTIVE' ? 'danger' : 'outline'}
+                                      disabled={
+                                        updatingUserId === account.userId ||
+                                        account.status === 'PENDING'
+                                      }
+                                      isLoading={updatingUserId === account.userId}
+                                      onClick={() => setSelectedAccount(account)}
+                                      className="gap-1.5 text-xs font-medium"
+                                    >
+                                      {account.status === 'ACTIVE' ? (
+                                        <LockKeyhole size={13} />
+                                      ) : (
+                                        <LockKeyholeOpen size={13} />
+                                      )}
+                                      {account.status === 'ACTIVE' ? t('lock') : t('unlock')}
+                                    </Button>
                                   )}
                                 </div>
                               </div>
