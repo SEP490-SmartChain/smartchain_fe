@@ -32,7 +32,6 @@ import { CommercialPdfPreview } from './CommercialPdfPreview';
 import { CommercialPreparationForm } from './CommercialPreparationForm';
 import { CommercialQuotaPanel } from './CommercialQuotaPanel';
 import { useSellerCommercial } from '../hooks/useSellerCommercial';
-import { shouldUseSigningWindow } from '../lib/signingPresentation';
 
 import type { CommercialPlan } from '../api/commercialApi';
 
@@ -43,9 +42,7 @@ export function SellerContractOnboarding() {
   const flow = useSellerCommercial();
   const { can } = useAccess();
   const [selectedPlan, setSelectedPlan] = useState<CommercialPlan | null>(null);
-  const signingInWindow = shouldUseSigningWindow(
-    typeof window === 'undefined' ? '' : window.location.origin,
-  );
+  const signingInWindow = true;
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const currentContract = flow.state?.contracts.find(
@@ -399,7 +396,7 @@ export function SellerContractOnboarding() {
                   size="sm"
                   isLoading={flow.busy}
                   onClick={() => {
-                    void flow.open(request.id);
+                    void flow.open(request.id, true);
                   }}
                 >
                   <FileSignature size={15} />
@@ -564,6 +561,17 @@ export function SellerContractOnboarding() {
                       className="mt-3 h-[68vh] w-full rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]"
                       referrerPolicy="no-referrer"
                       allow="fullscreen"
+                      onLoad={(event) => {
+                        try {
+                          const frameOrigin = event.currentTarget.contentWindow?.location.origin;
+                          if (frameOrigin && frameOrigin === window.location.origin) {
+                            flow.close();
+                            void flow.reload();
+                          }
+                        } catch {
+                          // Cross-origin while on SignNow; once SignNow redirects back to our origin, close the iframe.
+                        }
+                      }}
                     />
                   )}
                 </div>

@@ -136,7 +136,7 @@ export function useSellerCommercial() {
       if (isCurrent()) setBusy(false);
     }
   };
-  const open = async (id: string, separateWindow = false) => {
+  const open = async (id: string, separateWindow = true) => {
     if (busy) return;
     setBusy(true);
     setError(null);

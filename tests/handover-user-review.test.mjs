@@ -30,6 +30,7 @@ function render(name, state, props, overrides = {}) {
     },
     useState: () => [state[index++], () => {}],
     useEffect() {},
+    useSearchParams: () => [new URLSearchParams(), () => {}],
     useLocale: () => 'vi',
     createPortal: (node) => node,
     document: { body: {} },

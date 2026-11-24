@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
@@ -28,6 +28,7 @@ import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { FulfillmentSlaRiskPanel, type PickingDeepLinkRequest } from './FulfillmentSlaRiskPanel';
 import { PickLineLabels } from './PickLineLabels';
 import { PickShortEvidence } from './PickShortEvidence';
 import {
@@ -54,6 +55,7 @@ import {
 } from '../schemas/pickingSchema';
 
 const CLAIM_WAVE_MAX_PARCELS = 20;
+const MAX_DEEP_LINK_LINE_PAGES = 10;
 const PICK_SCAN_FIELDS = ['binScan', 'skuScan', 'lotScan'] as const;
 const PICK_STEPS = [...PICK_SCAN_FIELDS, 'qty'] as const;
 const PICK_SCAN_ERRORS = {
@@ -61,6 +63,13 @@ const PICK_SCAN_ERRORS = {
   skuScan: 'WRONG_SKU',
   lotScan: 'WRONG_LOT',
 } as const;
+
+function preferredScrollBehavior(): ScrollBehavior {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'auto';
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
 
 /**
  * Local `datetime-local` value one minute in the past: the server rejects a cut-off in the future
@@ -75,10 +84,73 @@ function currentCutoffInput(): string {
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
     revision = useAuthStore((s) => s.revision);
-  return <PickingScope key={`${user?.userId}:${revision}`} />;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handoffWarehouse = searchParams.get('warehouse');
+  const handoffWave = searchParams.get('wave');
+  const handoffLine = searchParams.get('line');
+  const handoffFulfillment = searchParams.get('fulfillment');
+  const handoffException = searchParams.get('exception');
+  const rawIntent = searchParams.get('intent');
+  const handoffIntent: 'shortage' | 'progress' | null =
+    rawIntent === 'shortage' || rawIntent === 'progress' ? rawIntent : null;
+  const clearHandoffParams = () => {
+    setSearchParams(
+      (previous) => {
+        const nextParams = new URLSearchParams(previous);
+        nextParams.delete('warehouse');
+        nextParams.delete('wave');
+        nextParams.delete('line');
+        nextParams.delete('fulfillment');
+        nextParams.delete('exception');
+        nextParams.delete('intent');
+        return nextParams;
+      },
+      { replace: true },
+    );
+  };
+  return (
+    <PickingScope
+      key={`${user?.userId}:${revision}`}
+      handoffWarehouse={handoffWarehouse}
+      handoffWave={handoffWave}
+      handoffLine={handoffLine}
+      handoffFulfillment={handoffFulfillment}
+      handoffException={handoffException}
+      handoffIntent={handoffIntent}
+      clearHandoffParams={clearHandoffParams}
+    />
+  );
 }
-function PickingScope() {
+type PendingPickingDeepLink = {
+  readonly warehouseId: string;
+  readonly waveId: string;
+  readonly fulfillmentOrderId?: string;
+  readonly lineId?: string;
+  readonly exceptionId?: string;
+  readonly intent: 'shortage' | 'progress' | 'wave';
+  readonly pagesVisited: number;
+  readonly requiredFetchSeq: number;
+};
+
+function PickingScope({
+  handoffWarehouse = null,
+  handoffWave = null,
+  handoffLine = null,
+  handoffFulfillment = null,
+  handoffException = null,
+  handoffIntent = null,
+  clearHandoffParams,
+}: {
+  handoffWarehouse?: string | null;
+  handoffWave?: string | null;
+  handoffLine?: string | null;
+  handoffFulfillment?: string | null;
+  handoffException?: string | null;
+  handoffIntent?: 'shortage' | 'progress' | null;
+  clearHandoffParams?: () => void;
+} = {}) {
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
+  const revision = useAuthStore((s) => s.revision) ?? 0;
   const locale = useLocale();
   const t = useTranslations('Picking'),
     { can } = useAccess();
@@ -100,10 +172,84 @@ function PickingScope() {
     [pending, setPending] = useState<PickPending | null>(null),
     [waveRequest, setWaveRequest] = useState<string | null>(null),
     [busy, setBusy] = useState(false);
+  const [pendingDeepLink, setPendingDeepLink] = useState<PendingPickingDeepLink | null>(null);
+  const [highlightedLineId, setHighlightedLineId] = useState<string | null>(null);
+  const [deepLinkFetchSeq, setDeepLinkFetchSeq] = useState(0);
   const mounted = useRef(true),
-    abort = useRef(new AbortController());
+    abort = useRef(new AbortController()),
+    backlogRef = useRef<HTMLDivElement>(null),
+    wavesRef = useRef<HTMLDivElement>(null),
+    pickListHeadingRef = useRef<HTMLDivElement>(null),
+    pendingDeepLinkRef = useRef<PendingPickingDeepLink | null>(null),
+    detailFetchSeqRef = useRef(0),
+    loadedDetailSeqRef = useRef(0),
+    handoffWarehouseRef = useRef(handoffWarehouse),
+    clearHandoffParamsRef = useRef(clearHandoffParams);
+  handoffWarehouseRef.current = handoffWarehouse;
+  clearHandoffParamsRef.current = clearHandoffParams;
+  const updatePendingDeepLink = (nextLink: PendingPickingDeepLink | null) => {
+    pendingDeepLinkRef.current = nextLink;
+    setPendingDeepLink(nextLink);
+  };
   const manager = can('warehouse.picking.manage');
   const navigate = useNavigate();
+  const focusBacklog = () => {
+    backlogRef.current?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'start' });
+    backlogRef.current?.focus();
+  };
+  const focusWaves = () => {
+    wavesRef.current?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'start' });
+    wavesRef.current?.focus();
+  };
+  const focusPickListHeading = () => {
+    window.requestAnimationFrame(() => {
+      pickListHeadingRef.current?.scrollIntoView({
+        behavior: preferredScrollBehavior(),
+        block: 'start',
+      });
+      pickListHeadingRef.current?.focus();
+    });
+  };
+  const focusLineById = (targetId: string) => {
+    window.requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`[data-pick-line-id="${targetId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'center' });
+        el.focus();
+      } else {
+        pickListHeadingRef.current?.focus();
+      }
+    });
+  };
+  const handleOpenPickingTarget = (target: PickingDeepLinkRequest) => {
+    setError('');
+    setNotice('');
+    setHighlightedLineId(null);
+    const lineId = target.kind === 'open_picking_line' ? target.lineId : undefined;
+    // High #3: Always force a live detail re-fetch on click so stale rendered lines are never trusted.
+    const nextFetchSeq = detailFetchSeqRef.current + 1;
+    detailFetchSeqRef.current = nextFetchSeq;
+    updatePendingDeepLink({
+      warehouseId: warehouse,
+      waveId: target.waveId,
+      fulfillmentOrderId: target.fulfillmentOrderId,
+      lineId,
+      exceptionId: target.kind === 'open_picking_line' ? target.exceptionId : undefined,
+      intent: target.kind === 'open_picking_line' ? target.intent : 'wave',
+      pagesVisited: 0,
+      requiredFetchSeq: nextFetchSeq,
+    });
+    if (waveId !== target.waveId) {
+      setWaveId(target.waveId);
+      setLineCursor(null);
+    } else if (
+      lineCursor !== null &&
+      (!detail || !lineId || !detail.lines.some((l) => l.id === lineId))
+    ) {
+      setLineCursor(null);
+    }
+    setDeepLinkFetchSeq(nextFetchSeq);
+  };
   // One operator holding both warehouse roles assigns the wave to themself (UC-80/81 then UC-82).
   const canClaim =
     manager && can('warehouse.picking.confirm') && staff.some((person) => person.id === actorId);
@@ -125,32 +271,92 @@ function PickingScope() {
       abort.current.abort();
     };
   }, []);
+  // Fetch authorized warehouses once per session; clearing URL handoff params must never re-fetch (M1).
   useEffect(() => {
     const c = new AbortController();
+    let active = true;
     setLoading(true);
-    void pickingApi
-      .warehouses(c.signal)
-      .then((data) => {
-        if (!c.signal.aborted) {
-          setWarehouses(data);
-          if (data.length === 1 && data[0]) setWarehouse(data[0].id);
-        }
-      })
-      .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
+    const startTimer = window.setTimeout(() => {
+      if (!active) return;
+      void pickingApi
+        .warehouses(c.signal)
+        .then((data) => {
+          if (active && !c.signal.aborted) {
+            setWarehouses(data);
+            if (!handoffWarehouseRef.current && data.length === 1 && data[0]) {
+              setWarehouse(data[0].id);
+            }
+          }
+        })
+        .catch(() => {
+          if (active && !c.signal.aborted) setError(t('loadError'));
+        })
+        .finally(() => {
+          if (active && !c.signal.aborted) setLoading(false);
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(startTimer);
+      c.abort();
+    };
   }, [t]);
+  // Apply URL deep-link handoff (?warehouse=&wave=&line=&exception=&intent=) after warehouses resolve (M1 + M2).
   useEffect(() => {
-    setWaveId('');
+    if (!warehouses.length || !handoffWarehouse) return;
+    const authorizedTarget = warehouses.find((item) => item.id === handoffWarehouse);
+    if (authorizedTarget) {
+      if (handoffWave) {
+        const resolvedIntent: PendingPickingDeepLink['intent'] =
+          handoffIntent ?? (handoffException ? 'shortage' : handoffLine ? 'progress' : 'wave');
+        const nextFetchSeq = detailFetchSeqRef.current + 1;
+        detailFetchSeqRef.current = nextFetchSeq;
+        updatePendingDeepLink({
+          warehouseId: authorizedTarget.id,
+          waveId: handoffWave,
+          fulfillmentOrderId: handoffFulfillment ?? undefined,
+          lineId: handoffLine ?? undefined,
+          exceptionId: handoffException ?? undefined,
+          intent: resolvedIntent,
+          pagesVisited: 0,
+          requiredFetchSeq: nextFetchSeq,
+        });
+        setWaveId(handoffWave);
+        setLineCursor(null);
+        setDeepLinkFetchSeq(nextFetchSeq);
+      }
+      setWarehouse(authorizedTarget.id);
+    } else if (!warehouse && warehouses.length === 1 && warehouses[0]) {
+      setWarehouse(warehouses[0].id);
+    }
+    clearHandoffParamsRef.current?.();
+  }, [
+    warehouses,
+    handoffWarehouse,
+    handoffWave,
+    handoffLine,
+    handoffFulfillment,
+    handoffException,
+    handoffIntent,
+    warehouse,
+  ]);
+  useEffect(() => {
+    // M1: Preserve an active deep-link intent that specifically targets THIS warehouse scope;
+    // reset wave & intent whenever switching away to a different warehouse or actor.
+    const activeDeepLink = pendingDeepLinkRef.current;
+    const preserveDeepLink = Boolean(
+      warehouse && activeDeepLink && activeDeepLink.warehouseId === warehouse,
+    );
+    if (!preserveDeepLink) {
+      setWaveId('');
+      updatePendingDeepLink(null);
+    }
     setDetail(null);
     setWaves([]);
     setBacklog(null);
     setBacklogCursor(null);
     setCursor(null);
+    setHighlightedLineId(null);
     setPending(
       actorId && warehouse
         ? loadFulfillmentPending(
@@ -166,46 +372,181 @@ function PickingScope() {
   useEffect(() => {
     if (!warehouse) return;
     const c = new AbortController();
+    let active = true;
     setLoading(true);
     setError('');
-    void Promise.all([
-      pickingApi.waves(warehouse, cursor, c.signal),
-      manager ? pickingApi.staff(warehouse, c.signal) : Promise.resolve([]),
-      manager ? pickingApi.backlog(warehouse, backlogCursor, c.signal) : Promise.resolve(null),
-    ])
-      .then(([page, options, backlogPage]) => {
-        if (!c.signal.aborted) {
-          setWaves(page.items);
-          setNext(page.nextCursor);
-          setStaff(options);
-          if (backlogPage) setBacklog(backlogPage);
-        }
-      })
-      .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
+    const startTimer = window.setTimeout(() => {
+      if (!active) return;
+      void Promise.all([
+        pickingApi.waves(warehouse, cursor, c.signal),
+        manager ? pickingApi.staff(warehouse, c.signal) : Promise.resolve([]),
+        manager ? pickingApi.backlog(warehouse, backlogCursor, c.signal) : Promise.resolve(null),
+      ])
+        .then(([page, options, backlogPage]) => {
+          if (active && !c.signal.aborted) {
+            setWaves(page.items);
+            setNext(page.nextCursor);
+            setStaff(options);
+            if (backlogPage) setBacklog(backlogPage);
+          }
+        })
+        .catch(() => {
+          if (active && !c.signal.aborted) setError(t('loadError'));
+        })
+        .finally(() => {
+          if (active && !c.signal.aborted) setLoading(false);
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(startTimer);
+      c.abort();
+    };
   }, [warehouse, cursor, backlogCursor, manager, refresh, t]);
   useEffect(() => {
     setLineCursor(null);
   }, [warehouse, waveId]);
+  // M1 + High #3: Keep deep-link intent out of detail fetch deps so clearing intent after locating a line
+  // NEVER re-fetches detail or unmounts the focused line, while deepLinkFetchSeq forces a fresh live read on CTA click.
   useEffect(() => {
     setDetail(null);
     if (!warehouse || !waveId) return;
     const c = new AbortController();
+    const fetchSeqAtStart = detailFetchSeqRef.current;
     void pickingApi
       .detail(warehouse, waveId, c.signal, lineCursor)
       .then((data) => {
-        if (!c.signal.aborted) setDetail(data);
+        if (!c.signal.aborted) {
+          loadedDetailSeqRef.current = fetchSeqAtStart;
+          setDetail(data);
+        }
       })
       .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
+        if (!c.signal.aborted) {
+          if (pendingDeepLinkRef.current?.waveId === waveId) {
+            updatePendingDeepLink(null);
+            setWaveId('');
+            setNotice(t('deepLinkWaveUnavailable'));
+            focusWaves();
+          } else {
+            setError(t('loadError'));
+          }
+        }
       });
     return () => c.abort();
-  }, [warehouse, waveId, refresh, lineCursor, t]);
+  }, [warehouse, waveId, refresh, lineCursor, deepLinkFetchSeq, t]);
+  // Resolve verified deep-link wave/line focus across line pagination pages with live intent/exceptionId
+  // and strict same-parcel fallback only (M1 + M2 + High #3).
+  useEffect(() => {
+    if (!pendingDeepLink || !detail || detail.id !== pendingDeepLink.waveId) return;
+    if (loadedDetailSeqRef.current < pendingDeepLink.requiredFetchSeq) return;
+    if (!pendingDeepLink.lineId) {
+      updatePendingDeepLink(null);
+      focusPickListHeading();
+      return;
+    }
+    const isSameParcelLine = (candidate: PickLine, referenceLine?: PickLine): boolean => {
+      // Medium #3: Strictly require UUID parity (never fall back to display orderCode + parcelNo,
+      // which could collide across sellers when legacy rows omit fulfillmentOrderId).
+      const expectedOrderId =
+        pendingDeepLink.fulfillmentOrderId ?? referenceLine?.fulfillmentOrderId;
+      if (!expectedOrderId || !candidate.fulfillmentOrderId) {
+        return false;
+      }
+      return candidate.fulfillmentOrderId === expectedOrderId;
+    };
+    const findSameParcelFallback = (referenceLine?: PickLine): PickLine | undefined =>
+      detail.lines.find(
+        (l) =>
+          l.id !== referenceLine?.id && isSameParcelLine(l, referenceLine) && Boolean(l.shortage),
+      ) ??
+      detail.lines.find(
+        (l) =>
+          l.id !== referenceLine?.id && isSameParcelLine(l, referenceLine) && l.remainingQty > 0,
+      );
+
+    const targetLine = detail.lines.find((line) => line.id === pendingDeepLink.lineId);
+    if (targetLine) {
+      updatePendingDeepLink(null);
+      // Medium #3: Verify parcel UUID parity even on direct lineId hit; if identity is missing
+      // or belongs to another parcel, never highlight another seller's line — focus pick-list heading.
+      if (
+        pendingDeepLink.fulfillmentOrderId &&
+        (!targetLine.fulfillmentOrderId ||
+          targetLine.fulfillmentOrderId !== pendingDeepLink.fulfillmentOrderId)
+      ) {
+        setNotice(t('deepLinkLineUnavailable'));
+        setHighlightedLineId(null);
+        focusPickListHeading();
+        return;
+      }
+
+      if (pendingDeepLink.intent === 'shortage') {
+        const liveShortageMatches =
+          targetLine.shortage !== null &&
+          (!pendingDeepLink.exceptionId || targetLine.shortage.id === pendingDeepLink.exceptionId);
+        if (!liveShortageMatches) {
+          const fallbackLine = findSameParcelFallback(targetLine);
+          setNotice(t('deepLinkShortageResolved'));
+          if (fallbackLine) {
+            setHighlightedLineId(fallbackLine.id);
+            focusLineById(fallbackLine.id);
+          } else {
+            setHighlightedLineId(null);
+            focusPickListHeading();
+          }
+          return;
+        }
+      } else if (pendingDeepLink.intent === 'progress') {
+        if (targetLine.remainingQty <= 0) {
+          const fallbackLine = findSameParcelFallback(targetLine);
+          setNotice(t('deepLinkLineCompleted'));
+          if (fallbackLine) {
+            setHighlightedLineId(fallbackLine.id);
+            focusLineById(fallbackLine.id);
+          } else {
+            setHighlightedLineId(null);
+            focusPickListHeading();
+          }
+          return;
+        }
+        if (targetLine.shortage !== null) {
+          setNotice(t('deepLinkLineNowShortage'));
+        }
+      }
+
+      setHighlightedLineId(targetLine.id);
+      focusLineById(targetLine.id);
+      return;
+    }
+    if (detail.nextCursor && pendingDeepLink.pagesVisited < MAX_DEEP_LINK_LINE_PAGES) {
+      const nextPageLink: PendingPickingDeepLink = {
+        ...pendingDeepLink,
+        pagesVisited: pendingDeepLink.pagesVisited + 1,
+      };
+      pendingDeepLinkRef.current = nextPageLink;
+      setPendingDeepLink(nextPageLink);
+      setLineCursor(detail.nextCursor);
+      return;
+    }
+    const sameParcelReplacement = pendingDeepLink.fulfillmentOrderId
+      ? findSameParcelFallback(undefined)
+      : undefined;
+    updatePendingDeepLink(null);
+    if (sameParcelReplacement) {
+      setNotice(
+        pendingDeepLink.intent === 'shortage'
+          ? t('deepLinkShortageResolved')
+          : t('deepLinkLineUnavailable'),
+      );
+      setHighlightedLineId(sameParcelReplacement.id);
+      focusLineById(sameParcelReplacement.id);
+      return;
+    }
+    setHighlightedLineId(null);
+    setNotice(t('deepLinkLineUnavailable'));
+    focusPickListHeading();
+  }, [detail, pendingDeepLink, t]);
   useEffect(() => {
     if (!waveRequest || !warehouse) return;
     const c = new AbortController();
@@ -307,14 +648,25 @@ function PickingScope() {
   }
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/60 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] pb-3.5">
         {warehouses.length === 1 && warehouses[0] ? (
-          <p className="min-w-0 flex-1 text-sm text-[var(--sc-text-primary)]">
-            <span className="text-[var(--sc-text-secondary)]">{t('warehouse')}: </span>
-            <strong className="font-semibold">{`${warehouses[0].code} · ${warehouses[0].name}`}</strong>
-          </p>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm text-[var(--sc-text-primary)]">
+            <span
+              aria-hidden="true"
+              className="h-2 w-2 shrink-0 rounded-full bg-[var(--sc-primary)]"
+            />
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--sc-text-secondary)]">
+              {t('warehouse')}
+            </span>
+            <span className="rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs font-semibold text-[var(--sc-primary-dark)] tabular-nums">
+              {warehouses[0].code}
+            </span>
+            <strong className="font-semibold text-[var(--sc-text-primary)]">
+              {warehouses[0].name}
+            </strong>
+          </div>
         ) : (
-          <div className="min-w-64 flex-1">
+          <div className="min-w-64 max-w-md flex-1">
             <Select
               label={t('warehouse')}
               value={warehouse}
@@ -327,6 +679,7 @@ function PickingScope() {
         )}
         <Button
           variant="outline"
+          size="sm"
           disabled={!!pending || busy || !!waveRequest}
           onClick={() => {
             setCursor(null);
@@ -369,9 +722,25 @@ function PickingScope() {
           </Button>
         </div>
       )}
+      {warehouse && can('warehouse.fulfillmentSlaRisk.view') && (
+        <FulfillmentSlaRiskPanel
+          key={`${actorId}:${revision}:${warehouse}`}
+          warehouseId={warehouse}
+          warehouseName={warehouses.find((item) => item.id === warehouse)?.name}
+          showWarehouseName={false}
+          canManagePicking={manager}
+          onFocusBacklog={focusBacklog}
+          onFocusWaves={focusWaves}
+          onOpenPickingTarget={handleOpenPickingTarget}
+        />
+      )}
       {warehouse && manager && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.9fr)]">
-          <Card>
+          <Card
+            ref={backlogRef}
+            tabIndex={-1}
+            className="outline-none focus:ring-2 focus:ring-[var(--sc-primary)] focus:ring-offset-2"
+          >
             <CardContent>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-base font-semibold">{t('backlog')}</h2>
@@ -471,7 +840,11 @@ function PickingScope() {
       )}
       {warehouse && (
         <div className="grid items-start gap-5 lg:grid-cols-[300px_1fr]">
-          <Card>
+          <Card
+            ref={wavesRef}
+            tabIndex={-1}
+            className="outline-none focus:ring-2 focus:ring-[var(--sc-primary)] focus:ring-offset-2"
+          >
             <CardContent>
               <div className="mb-3 flex items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-2.5">
                 <h2 className="text-base font-semibold text-[var(--sc-text-primary)]">
@@ -588,7 +961,11 @@ function PickingScope() {
                 </p>
               ) : (
                 <>
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-3">
+                  <div
+                    ref={pickListHeadingRef}
+                    tabIndex={-1}
+                    className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)]"
+                  >
                     <h2
                       className="min-w-0 break-words text-base font-semibold text-[var(--sc-text-primary)]"
                       title={detail.waveCode}
@@ -637,6 +1014,7 @@ function PickingScope() {
                         disabled={!!pending || busy}
                         manager={manager}
                         execute={execute}
+                        highlighted={highlightedLineId === line.id}
                         canConfirm={
                           can('warehouse.picking.confirm') &&
                           line.id ===
@@ -817,6 +1195,7 @@ function PickLineCard({
   disabled,
   manager,
   canConfirm,
+  highlighted = false,
   execute,
 }: {
   warehouseId: string;
@@ -824,6 +1203,7 @@ function PickLineCard({
   disabled: boolean;
   manager: boolean;
   canConfirm: boolean;
+  highlighted?: boolean;
   execute: (c: PickPending) => Promise<'LOT_SCAN_REQUIRED' | void>;
 }) {
   const t = useTranslations('Picking'),
@@ -907,7 +1287,11 @@ function PickLineCard({
   const isActivePick = line.remainingQty > 0 && canConfirm && !line.shortage;
   return (
     <section
-      className={`space-y-3 rounded-xl border p-4 transition-colors ${
+      data-pick-line-id={line.id}
+      tabIndex={-1}
+      className={`space-y-3 rounded-xl border p-4 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)] ${
+        highlighted ? 'ring-2 ring-[var(--sc-primary)] ring-offset-2' : ''
+      } ${
         line.shortage
           ? 'border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)]/20'
           : isCompleted

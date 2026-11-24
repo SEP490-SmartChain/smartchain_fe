@@ -284,3 +284,7 @@ same user (UC-80/81), who then confirms picks (UC-82) and packs. The server stil
 Manager role for wave creation and the Staff role for scans. Self-approval of a lot replacement
 (UC-84) by that operator is accepted and recorded as `isSelfApproved` in the shortage evidence.
 Users with a single warehouse role keep the separated flow.
+
+## UC-166 fulfillment SLA risk
+
+`warehouse.fulfillmentSlaRisk.view` is PLATFORM `WAREHOUSE_MANAGER` only (UC-166 / Report 3 UC-156), paired with `GET /v1/warehouse-ops/fulfillment-sla-risks` (`execution.read`). The read-only advisory panel inside `/warehouse/picking` inspects only the currently selected warehouse; the backend verifies a live `WAREHOUSE_MANAGER` assignment in Postgres before reading mode flags or cached risk rows and returns no `tenantId`, customer PII, COD/order money, `holdReason`, or carrier secrets. `ORCA_ADMIN`, `OPS_DISPATCHER`, `WAREHOUSE_STAFF`, `ORCA_ACCOUNTANT`, `SELLER_OWNER`, `SELLER_STAFF`, and mixed/legacy/unknown scopes gain no visibility.
