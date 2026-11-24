@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -264,7 +265,10 @@ export function ReceivingWorkspace({
             <div className="grid gap-3 md:grid-cols-2">
               <form
                 className="flex flex-wrap gap-2"
-                onSubmit={handleSubmit(({ code }) => setSearch(code))}
+                onSubmit={handleSubmit(
+                  ({ code }) => setSearch(code),
+                  () => notifyInvalidForm(),
+                )}
               >
                 <div className="w-full min-w-0">
                   <Input

@@ -3,6 +3,9 @@ import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
+import { useNativeFieldError } from '@/hooks/useNativeFieldError';
 import { cn } from '@/lib/utils';
 
 export interface SelectOption {
@@ -26,7 +29,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
     {
       label,
-      error,
+      error: formError,
       helperText,
       isRequired,
       options,
@@ -34,13 +37,19 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       isPlaceholderDisabled = true,
       className,
       id,
+      'aria-describedby': describedBy,
+      onInvalid,
+      onInput,
       ...props
     },
     ref,
   ) => {
     const t = useTranslations('Common');
     const reactId = React.useId();
+    const { nativeError, handleInvalid, handleInput } = useNativeFieldError();
+    const error = formError || nativeError;
     const selectId = id || reactId;
+    const errorId = error ? `${selectId}-error` : undefined;
 
     return (
       <div className="w-full">
@@ -72,9 +81,18 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 : 'border-[var(--sc-border-default)]',
               className,
             )}
-            aria-invalid={error ? true : props['aria-invalid']}
             aria-required={isRequired || props['aria-required']}
+            aria-describedby={[describedBy, errorId].filter(Boolean).join(' ') || undefined}
             {...props}
+            aria-invalid={error ? true : props['aria-invalid']}
+            onInvalid={(event) => {
+              handleInvalid(event);
+              onInvalid?.(event);
+            }}
+            onInput={(event) => {
+              handleInput(event);
+              onInput?.(event);
+            }}
           >
             <option value="" disabled={isPlaceholderDisabled}>
               {placeholder ?? t('select_option')}
@@ -92,7 +110,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           />
         </div>
 
-        {error && <p className="mb-0 mt-1.5 text-xs text-[var(--sc-error-dark)]">{error}</p>}
+        {error && (
+          <Alert id={errorId} variant="error" compact className="mt-1.5">
+            {error}
+          </Alert>
+        )}
         {helperText && !error && (
           <p className="mb-0 mt-1.5 text-xs text-[var(--sc-text-secondary)]">{helperText}</p>
         )}

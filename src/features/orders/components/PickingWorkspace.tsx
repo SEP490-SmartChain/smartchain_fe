@@ -23,6 +23,7 @@ import {
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -703,7 +704,10 @@ function WaveForm({
     setPreviewError(null);
   }, [cutoffAt, maxParcels, warehouseId]);
   const requestPreview = async () => {
-    if (!(await f.trigger(['cutoffAt', 'maxParcels']))) return;
+    if (!(await f.trigger(['cutoffAt', 'maxParcels']))) {
+      notifyInvalidForm();
+      return;
+    }
     const values = f.getValues();
     setPreviewBusy(true);
     setPreviewError(null);
@@ -726,7 +730,7 @@ function WaveForm({
     <Card>
       <CardContent>
         <h2 className="mb-4 font-semibold">{t('waveSetup')}</h2>
-        <form onSubmit={f.handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={f.handleSubmit(onSubmit, () => notifyInvalidForm())} className="space-y-3">
           <Input
             type="datetime-local"
             label={t('cutoff')}
@@ -767,7 +771,7 @@ function WaveForm({
               {preview.candidateScanLimitReached && <p className="mt-1">{t('previewScanLimit')}</p>}
             </div>
           )}
-          {previewError && <Alert variant="warning">{previewError}</Alert>}
+          {previewError && <Alert variant="error">{previewError}</Alert>}
           <div className="grid gap-2">
             <Button
               className="w-full"
@@ -981,12 +985,14 @@ function PickLineCard({
                     path: `pick-shortages/${line.shortage?.id}/replacement`,
                     payload: { ...v, clientScanId: createUuid() },
                   }),
+                () => notifyInvalidForm(),
               )}
             >
               <div className="min-w-52 flex-1">
                 <Input
                   label={t('approvalReason')}
                   {...approval.register('reason')}
+                  error={approval.formState.errors?.reason?.message}
                   required
                   disabled={disabled}
                 />
@@ -1023,20 +1029,23 @@ function PickLineCard({
               autoComplete="off"
               onSubmit={
                 step === 'qty'
-                  ? f.handleSubmit(async (v) => {
-                      const result = await execute({
-                        path: `pick-lines/${line.id}/confirm`,
-                        payload: {
-                          binScan: v.binScan,
-                          skuScan: v.skuScan,
-                          ...(v.lotScan ? { lotScan: v.lotScan } : {}),
-                          qty: v.qty,
-                          expectedVersion: line.version,
-                          clientScanId: createUuid(),
-                        },
-                      });
-                      if (result === 'LOT_SCAN_REQUIRED') setStep('lotScan');
-                    })
+                  ? f.handleSubmit(
+                      async (v) => {
+                        const result = await execute({
+                          path: `pick-lines/${line.id}/confirm`,
+                          payload: {
+                            binScan: v.binScan,
+                            skuScan: v.skuScan,
+                            ...(v.lotScan ? { lotScan: v.lotScan } : {}),
+                            qty: v.qty,
+                            expectedVersion: line.version,
+                            clientScanId: createUuid(),
+                          },
+                        });
+                        if (result === 'LOT_SCAN_REQUIRED') setStep('lotScan');
+                      },
+                      () => notifyInvalidForm(),
+                    )
                   : (event) => {
                       event.preventDefault();
                       void acceptScan(step, f.getValues(step));
@@ -1125,17 +1134,20 @@ function PickLineCard({
           ) : (
             <form
               className="grid gap-3 rounded-xl border border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)]/20 p-3.5 sm:grid-cols-2"
-              onSubmit={shortage.handleSubmit((v) =>
-                execute({
-                  path: `pick-lines/${line.id}/shortages`,
-                  payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
-                }),
+              onSubmit={shortage.handleSubmit(
+                (v) =>
+                  execute({
+                    path: `pick-lines/${line.id}/shortages`,
+                    payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
+                  }),
+                () => notifyInvalidForm(),
               )}
             >
               <Input
                 type="number"
                 label={t('observed')}
                 {...shortage.register('observedQty', { valueAsNumber: true })}
+                error={shortage.formState.errors?.observedQty?.message}
                 disabled={disabled}
                 required
                 min={0}
@@ -1152,17 +1164,15 @@ function PickLineCard({
                 }
               />
               {shortage.formState.errors.evidenceKey && (
-                <p
-                  role="alert"
-                  className="text-xs font-medium text-[var(--sc-error-dark)] sm:col-span-2"
-                >
+                <Alert variant="error" compact className="sm:col-span-2">
                   {t('evidenceRequired')}
-                </p>
+                </Alert>
               )}
               <div className="sm:col-span-2">
                 <Input
                   label={t('reason')}
                   {...shortage.register('reason')}
+                  error={shortage.formState.errors?.reason?.message}
                   disabled={disabled}
                   required
                 />

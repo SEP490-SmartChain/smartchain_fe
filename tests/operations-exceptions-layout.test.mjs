@@ -40,6 +40,7 @@ async function workspace({
         if (!initialized) effects.push(effect);
       },
     },
+    '@/lib/errorNotifications': { notifyInvalidForm: () => assert.fail('Unexpected invalid form') },
     'react-hook-form': {
       useForm: () => ({
         register: () => ({}),

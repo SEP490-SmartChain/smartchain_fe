@@ -13,6 +13,7 @@ import {
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -411,7 +412,7 @@ function PackingForm({
       </div>
       {error && <Alert variant="error">{error}</Alert>}
       {(detail.status === 'PICKED' || recoveryOnly) && writable ? (
-        <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
+        <form className="space-y-4" onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}>
           {recoveryOnly ? <Alert>{t('writeError')}</Alert> : <Alert>{t('verifyHint')}</Alert>}
           {!recoveryOnly && (
             <div className="space-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/50 p-4">

@@ -18,6 +18,7 @@ import { z } from 'zod';
 
 import { Alert, Badge, Button, Input } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError, apiClient } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -476,7 +477,10 @@ export function ReceiptPhotos({
           {canWrite && (
             <form
               className="flex flex-col gap-4 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4"
-              onSubmit={handleSubmit((values) => void upload(values))}
+              onSubmit={handleSubmit(
+                (values) => void upload(values),
+                () => notifyInvalidForm(),
+              )}
             >
               <div className={recordId === null ? 'grid gap-4 lg:grid-cols-2' : 'space-y-3'}>
                 <div className="space-y-3">
@@ -540,9 +544,9 @@ export function ReceiptPhotos({
                       {...register('note')}
                     />
                     {errors.note && (
-                      <p id={noteErrorId} className="text-xs text-[var(--sc-error-dark)]">
+                      <Alert variant="error" compact id={noteErrorId}>
                         {t('mediaNoteInvalid')}
-                      </p>
+                      </Alert>
                     )}
                   </div>
                 )}

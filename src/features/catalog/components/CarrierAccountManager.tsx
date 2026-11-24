@@ -100,28 +100,32 @@ function AccountManager() {
     setCursor(undefined);
     setRevision((value) => value + 1);
   };
+  const [rowError, setRowError] = useState<{ id: string; message: string }>();
+  const [revokeError, setRevokeError] = useState('');
   const test = async (row: CarrierAccount) => {
+    setRowError(undefined);
     setBusy(row.id);
     try {
       const result = await carrierAccountApi.test(row.id);
       if (result.status === 'CONNECTED') toast.success(t('testPassed'));
-      else toast.error(t('testFailed'));
+      else setRowError({ id: row.id, message: t('testFailed') });
       refresh();
     } catch {
-      toast.error(t('testFailed'));
+      setRowError({ id: row.id, message: t('testFailed') });
     } finally {
       setBusy(null);
     }
   };
   const revoke = async () => {
     if (!revoking) return;
+    setRevokeError('');
     setBusy(revoking.id);
     try {
       await carrierAccountApi.revoke(revoking.id);
       setRevoking(null);
       refresh();
     } catch {
-      toast.error(t('operationFailed'));
+      setRevokeError(t('operationFailed'));
     } finally {
       setBusy(null);
     }
@@ -154,6 +158,11 @@ function AccountManager() {
       render: (row) =>
         row.status !== 'REVOKED' && (
           <div className="flex flex-wrap justify-end gap-2">
+            {rowError?.id === row.id && (
+              <Alert variant="error" compact>
+                {rowError.message}
+              </Alert>
+            )}
             <Button
               size="sm"
               variant="soft"
@@ -174,7 +183,10 @@ function AccountManager() {
               size="sm"
               variant="softDanger"
               disabled={busy !== null}
-              onClick={() => setRevoking(row)}
+              onClick={() => {
+                setRevokeError('');
+                setRevoking(row);
+              }}
             >
               {t('revoke')}
             </Button>
@@ -271,6 +283,7 @@ function AccountManager() {
           }}
         >
           <p>{t('revokeConfirm')}</p>
+          {revokeError && <Alert variant="error">{revokeError}</Alert>}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="outline" disabled={busy !== null} onClick={() => setRevoking(null)}>
               {t('cancel')}

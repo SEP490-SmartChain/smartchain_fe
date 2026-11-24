@@ -3,13 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, MessageSquare } from 'lucide-react';
+import { ChevronDown, MessageSquare, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { z } from 'zod';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -59,45 +60,50 @@ export function CommercialCustomInquiry() {
       abort.abort();
     };
   }, [reload]);
-  const submit = form.handleSubmit(async (input) => {
-    if (loading || inquiries.length > 0 || running.current) return;
-    running.current = true;
-    setError(null);
-    const current = () =>
-      !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
-    try {
-      const result = await commercialApi.inquire(
-        input.message,
-        operation.current,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setSent(true);
-        setInquiries([{ ...result, message: input.message }]);
-        form.reset();
+  const submit = form.handleSubmit(
+    async (input) => {
+      if (loading || inquiries.length > 0 || running.current) return;
+      running.current = true;
+      setError(null);
+      const current = () =>
+        !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
+      try {
+        const result = await commercialApi.inquire(
+          input.message,
+          operation.current,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setSent(true);
+          setInquiries([{ ...result, message: input.message }]);
+          form.reset();
+        }
+      } catch (failure) {
+        if (current()) {
+          await reload(controller.current?.signal);
+          if (current()) setError(failure instanceof Error ? failure.message : t('inquiryFailed'));
+        }
+      } finally {
+        running.current = false;
       }
-    } catch (failure) {
-      if (current()) {
-        await reload(controller.current?.signal);
-        if (current()) setError(failure instanceof Error ? failure.message : t('inquiryFailed'));
-      }
-    } finally {
-      running.current = false;
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <details
       aria-busy={loading}
       open={inquiries.length > 0 || !!error}
-      className="group rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)]"
+      className="group overflow-hidden rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] shadow-[var(--sc-shadow-section)]"
     >
-      <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3 rounded-2xl px-5 py-4 outline-none focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)] sm:px-6 [&::-webkit-details-marker]:hidden">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--sc-bg-secondary)] text-[var(--sc-text-secondary)]">
-          <MessageSquare size={19} aria-hidden="true" />
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-3.5 outline-none transition-colors hover:bg-[var(--sc-bg-secondary)]/40 focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)] sm:px-6 [&::-webkit-details-marker]:hidden">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+          <MessageSquare size={16} aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{t('customInquiry')}</span>
-          <span className="mt-0.5 block text-xs leading-5 text-[var(--sc-text-secondary)]">
+          <span className="block text-sm font-semibold text-[var(--sc-text-primary)]">
+            {t('customInquiry')}
+          </span>
+          <span className="mt-0.5 block text-xs text-[var(--sc-text-secondary)]">
             {t(inquiries.length > 0 ? 'inquiryHistory' : 'customInquiryHint')}
           </span>
         </span>
@@ -107,30 +113,43 @@ export function CommercialCustomInquiry() {
           className="shrink-0 text-[var(--sc-text-secondary)] transition-transform group-open:rotate-180 motion-reduce:transition-none"
         />
       </summary>
-      <div className="space-y-3 border-t border-[var(--sc-border-light)] px-5 py-4 sm:px-6">
+      <div className="space-y-3 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 px-5 py-4 sm:px-6">
         {error && <Alert variant="error">{error}</Alert>}
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={loading || form.formState.isSubmitting}
-          onClick={() => void reload(controller.current?.signal)}
-        >
-          {t('refresh')}
-        </Button>
-        {loading && <p role="status">{t('inquiryLoading')}</p>}
+        {loading && (
+          <p role="status" className="m-0 text-xs text-[var(--sc-text-secondary)]">
+            {t('inquiryLoading')}
+          </p>
+        )}
         {sent && <Alert variant="success">{t('inquirySubmitted')}</Alert>}
         {!loading && inquiries.length > 0 && (
-          <>
-            <Alert variant="info">{t('inquiryPending')}</Alert>
-            <h4 className="font-medium">{t('inquiryHistory')}</h4>
-            <ul className="space-y-3">
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="m-0 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
+                {t('inquiryHistory')}
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loading || form.formState.isSubmitting}
+                onClick={() => void reload(controller.current?.signal)}
+              >
+                <RefreshCw size={13} />
+                {t('refresh')}
+              </Button>
+            </div>
+            <Alert variant="info" compact>
+              {t('inquiryPending')}
+            </Alert>
+            <ul className="space-y-2">
               {inquiries.map((inquiry) => (
                 <li
                   key={inquiry.operationKey}
-                  className="rounded-lg border border-[var(--sc-border-default)] p-4"
+                  className="rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-3.5 text-sm"
                 >
-                  <p className="whitespace-pre-wrap break-words">{inquiry.message}</p>
-                  <p className="mt-2 text-xs text-[var(--sc-text-secondary)]">
+                  <p className="m-0 whitespace-pre-wrap break-words text-[var(--sc-text-primary)]">
+                    {inquiry.message}
+                  </p>
+                  <p className="mb-0 mt-1.5 text-xs text-[var(--sc-text-secondary)]">
                     {t('inquirySentAt')}:{' '}
                     <time dateTime={inquiry.submittedAt}>
                       {new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -143,10 +162,13 @@ export function CommercialCustomInquiry() {
                 </li>
               ))}
             </ul>
-          </>
+          </div>
         )}
         {!loading && !error && inquiries.length === 0 && (
-          <form onSubmit={submit} className="space-y-3">
+          <form
+            onSubmit={submit}
+            className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
+          >
             <Input
               label={t('inquiryMessage')}
               error={form.formState.errors.message ? t('inquiryInvalid') : undefined}

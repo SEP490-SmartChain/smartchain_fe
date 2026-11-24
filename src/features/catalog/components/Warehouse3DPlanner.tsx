@@ -26,6 +26,7 @@ import { z } from 'zod';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -664,26 +665,29 @@ export default function Warehouse3DPlanner({
                     {editing && canEdit && (
                       <form
                         className={styles.positionForm}
-                        onSubmit={position.handleSubmit((values) => {
-                          if (!selected) return;
-                          const next =
-                            selected.kind === 'zone'
-                              ? {
-                                  ...plan,
-                                  zones: [
-                                    ...plan.zones.filter((item) => item.zoneId !== selected.id),
-                                    { zoneId: selected.id, ...values },
-                                  ],
-                                }
-                              : {
-                                  ...plan,
-                                  bins: [
-                                    ...plan.bins.filter((item) => item.binId !== selected.id),
-                                    { binId: selected.id, x: values.x, z: values.z },
-                                  ],
-                                };
-                          apply(next);
-                        })}
+                        onSubmit={position.handleSubmit(
+                          (values) => {
+                            if (!selected) return;
+                            const next =
+                              selected.kind === 'zone'
+                                ? {
+                                    ...plan,
+                                    zones: [
+                                      ...plan.zones.filter((item) => item.zoneId !== selected.id),
+                                      { zoneId: selected.id, ...values },
+                                    ],
+                                  }
+                                : {
+                                    ...plan,
+                                    bins: [
+                                      ...plan.bins.filter((item) => item.binId !== selected.id),
+                                      { binId: selected.id, x: values.x, z: values.z },
+                                    ],
+                                  };
+                            apply(next);
+                          },
+                          () => notifyInvalidForm(),
+                        )}
                       >
                         <p>{t(bin ? 'binCoordinates' : 'zoneCoordinates')}</p>
                         <div className={styles.fields}>
@@ -744,7 +748,10 @@ export default function Warehouse3DPlanner({
                     <summary>{t('floorSize')}</summary>
                     <form
                       className={styles.positionForm}
-                      onSubmit={floorSize.handleSubmit((values) => apply({ ...plan, ...values }))}
+                      onSubmit={floorSize.handleSubmit(
+                        (values) => apply({ ...plan, ...values }),
+                        () => notifyInvalidForm(),
+                      )}
                     >
                       <p>{t('floorSizeHelp')}</p>
                       <div className={styles.fields}>

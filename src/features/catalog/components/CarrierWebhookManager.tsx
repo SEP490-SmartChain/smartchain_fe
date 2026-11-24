@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 
 import { Alert, Badge, Button, Card, Input, Switch } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -89,6 +90,7 @@ function WebhookEditor({ initial }: { initial: CarrierWebhookSettings }) {
   const [savedToken, setSavedToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [failure, setFailure] = useState<'saveFailed' | 'stale' | null>(null);
+  const [copyError, setCopyError] = useState<'url' | 'token' | null>(null);
   const lifetime = useRef<AbortController | null>(null);
   useEffect(() => {
     const abort = new AbortController();
@@ -109,42 +111,46 @@ function WebhookEditor({ initial }: { initial: CarrierWebhookSettings }) {
   });
   const busy = form.formState.isSubmitting;
   const origin = webhookPublicOrigin();
-  const copy = async (value: string) => {
+  const copy = async (value: string, target: 'url' | 'token') => {
+    setCopyError(null);
     try {
       await navigator.clipboard.writeText(value);
       if (!lifetime.current?.signal.aborted) toast.success(t('copied'));
     } catch {
-      if (!lifetime.current?.signal.aborted) toast.error(t('copyFailed'));
+      if (!lifetime.current?.signal.aborted) setCopyError(target);
     }
   };
-  const save = form.handleSubmit(async (values) => {
-    setFailure(null);
-    const signal = lifetime.current?.signal;
-    try {
-      const result = await carrierWebhookApi.update(
-        current.carrierCode,
-        {
-          publicBaseUrl: origin,
-          enabled: values.status === 'enabled',
-          expectedVersion: current.version,
-          ...(values.token ? { token: values.token } : {}),
-        },
-        signal,
-      );
-      if (signal?.aborted) return;
-      setCurrent(result);
-      if (values.token) setSavedToken(values.token);
-      form.reset({
-        token: '',
-        status: result.enabled ? 'enabled' : 'disabled',
-      });
-      toast.success(t('saved'));
-    } catch (error) {
-      if (!signal?.aborted) {
-        setFailure(error instanceof ApiError && error.status === 409 ? 'stale' : 'saveFailed');
+  const save = form.handleSubmit(
+    async (values) => {
+      setFailure(null);
+      const signal = lifetime.current?.signal;
+      try {
+        const result = await carrierWebhookApi.update(
+          current.carrierCode,
+          {
+            publicBaseUrl: origin,
+            enabled: values.status === 'enabled',
+            expectedVersion: current.version,
+            ...(values.token ? { token: values.token } : {}),
+          },
+          signal,
+        );
+        if (signal?.aborted) return;
+        setCurrent(result);
+        if (values.token) setSavedToken(values.token);
+        form.reset({
+          token: '',
+          status: result.enabled ? 'enabled' : 'disabled',
+        });
+        toast.success(t('saved'));
+      } catch (error) {
+        if (!signal?.aborted) {
+          setFailure(error instanceof ApiError && error.status === 409 ? 'stale' : 'saveFailed');
+        }
       }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const callbackUrl = carrierCallbackUrl(origin, current.carrierCode, savedToken || undefined);
   const canCopyUrl = current.carrierCode !== 'GHTK' || Boolean(savedToken);
   return (
@@ -196,7 +202,7 @@ function WebhookEditor({ initial }: { initial: CarrierWebhookSettings }) {
                 ).join('');
                 form.setValue('token', token, { shouldDirty: true, shouldValidate: true });
               } catch {
-                toast.error(t('generateFailed'));
+                form.setError('token', { message: t('generateFailed') });
               }
             }}
           >
@@ -231,13 +237,18 @@ function WebhookEditor({ initial }: { initial: CarrierWebhookSettings }) {
             size="sm"
             disabled={!canCopyUrl || busy}
             onClick={() => {
-              void copy(callbackUrl);
+              void copy(callbackUrl, 'url');
             }}
           >
             <Copy size={14} />
             {t('copyUrl')}
           </Button>
         </div>
+        {copyError === 'url' && (
+          <Alert variant="error" compact>
+            {t('copyFailed')}
+          </Alert>
+        )}
         {current.carrierCode === 'GHTK' && !savedToken && current.hasToken && (
           <p className="text-xs text-[var(--sc-text-secondary)]">{t('existingGhtkToken')}</p>
         )}
@@ -260,10 +271,15 @@ function WebhookEditor({ initial }: { initial: CarrierWebhookSettings }) {
               <Button variant="outline" size="sm" onClick={() => setShowToken((value) => !value)}>
                 {t(showToken ? 'hideToken' : 'showToken')}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => void copy(savedToken)}>
+              <Button variant="outline" size="sm" onClick={() => void copy(savedToken, 'token')}>
                 {t('copyToken')}
               </Button>
             </div>
+            {copyError === 'token' && (
+              <Alert variant="error" compact>
+                {t('copyFailed')}
+              </Alert>
+            )}
           </div>
         )}
       </div>

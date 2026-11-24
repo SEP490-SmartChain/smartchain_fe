@@ -10,6 +10,7 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -55,7 +56,7 @@ export function ImportProductsModal({ isOpen, onClose, onChanged }: Props) {
       <form
         className="space-y-4"
         noValidate
-        onSubmit={(event) => void handleSubmit(handleImport)(event)}
+        onSubmit={(event) => void handleSubmit(handleImport, () => notifyInvalidForm())(event)}
       >
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('importHint')}</p>
         <a

@@ -57,6 +57,7 @@ function mount({ dirty = true, fail = false } = {}) {
   };
   const bindings = {
     react,
+    '@/lib/errorNotifications': { notifyInvalidForm: () => assert.fail('Unexpected invalid form') },
     'react-hook-form': { useForm: () => form },
     '@hookform/resolvers/zod': { zodResolver: () => ({}) },
     'next-intl': { useTranslations: () => (key) => key },

@@ -513,7 +513,9 @@
     },
     "purpose": {
       "PLAN_FEE": "Phí tháng đầu",
-      "DEPOSIT": "Tiền cọc"
+      "DEPOSIT": "Tiền cọc",
+      "DEBT": "Công nợ dịch vụ",
+      "CLOSEOUT": "Quyết toán thanh lý hợp đồng"
     },
     "samplePdfTitle": "Mẫu hợp đồng dịch vụ ORCA",
     "preparedPdfTitle": "Hợp đồng dịch vụ ORCA — Bản chờ ký",
@@ -1101,6 +1103,7 @@
     "title_staff_accounts": "Tài khoản nhân viên",
     "title_admin": "Quản trị nền tảng",
     "logout": "Đăng xuất",
+    "logoutFailed": "Không đăng xuất được. Vui lòng thử lại.",
     "default_title": "ORCA",
     "workspace_label": "Không gian làm việc",
     "home": "Trang chủ",
@@ -1155,6 +1158,10 @@
     "noNotifications": "Không có thông báo phân công kho."
   },
   "Auth": {
+    "otp_send_failed": "Không gửi được mã xác thực. Vui lòng thử lại.",
+    "otp_verify_failed": "Không xác thực được mã. Kiểm tra mã rồi thử lại.",
+    "register_failed": "Không hoàn tất được đăng ký. Vui lòng thử lại.",
+    "reset_action_failed": "Không thực hiện được yêu cầu đặt lại mật khẩu. Vui lòng thử lại.",
     "inviteHeading": "Tham gia cửa hàng",
     "inviteSubheading": "Thiết lập mật khẩu để hoàn tất lời mời làm nhân viên.",
     "inviteSuccess": "Đã kích hoạt tài khoản nhân viên. Bạn có thể đăng nhập bằng email nhận lời mời và mật khẩu vừa tạo.",
@@ -1390,6 +1397,9 @@
     "removePhoto": "Xóa ảnh hồ sơ",
     "photoRemoved": "Đã xóa ảnh hồ sơ.",
     "photoRemoveFailed": "Không thể xóa ảnh hồ sơ. Vui lòng thử lại.",
+    "photoTooLarge": "Ảnh hồ sơ không được vượt quá 5 MB.",
+    "fullNameInvalid": "Họ và tên phải có ít nhất 2 ký tự.",
+    "phoneInvalid": "Nhập số điện thoại gồm 10 chữ số và bắt đầu bằng 0.",
     "firstName": "Tên và tên đệm",
     "lastName": "Họ",
     "nameHint": "Dùng họ tên giống như trên giấy tờ chính thức của bạn.",
@@ -1671,11 +1681,20 @@
     "centralHub": "Trung tâm phân phối miền Trung",
     "southHub": "Trung tâm phân phối miền Nam"
   },
+  "Notifications": {
+    "copyFailed": "Không sao chép được. Hãy chọn nội dung và sao chép thủ công.",
+    "label": "Thông báo",
+    "dismiss": "Đóng thông báo",
+    "validationTitle": "Thông tin nhập chưa hợp lệ",
+    "validationHint": "Kiểm tra các trường báo lỗi rồi thử lại.",
+    "errorHint": "Đã xảy ra lỗi. Xem chi tiết trên màn hình."
+  },
   "Error": {
     "not_found_heading": "Không tìm thấy trang",
     "not_found_message": "Xin lỗi, trang bạn đang cố gắng truy cập không tồn tại, đã bị xóa hoặc tạm thời không khả dụng.",
     "back_to_home": "Về trang chủ",
     "error_heading": "Đã xảy ra lỗi",
+    "reload_hint": "Hãy tải lại trang để thử lại.",
     "reload_page": "Tải lại trang",
     "forbidden_heading": "Không có quyền truy cập",
     "forbidden_message": "Tài khoản của bạn không có quyền truy cập trang này. Vui lòng quay lại khu vực được phép truy cập.",
@@ -1694,6 +1713,7 @@
     "only_letters_spaces": "Chỉ được chứa chữ cái và khoảng trắng"
   },
   "AdminTenants": {
+    "detailLoadFailed": "Không tải được chi tiết workspace. Vui lòng thử lại.",
     "customInbox": "Yêu cầu gói riêng cần xử lý",
     "inboxRequested": "Chờ tư vấn",
     "inboxDraft": "Chờ hoàn tất hợp đồng",
@@ -2005,6 +2025,8 @@
     }
   },
   "Webhooks": {
+    "saveFailed": "Không lưu được webhook. Vui lòng thử lại.",
+    "actionFailed": "Không cập nhật được webhook này. Vui lòng thử lại.",
     "categoryOrders": "Quản lý Đơn hàng",
     "categoryShipping": "Vận chuyển & Giao nhận",
     "categoryInventoryFinance": "Kho bãi & Tài chính",
@@ -2281,6 +2303,7 @@
     "releaseItemsLabel": "Mã sản phẩm sẽ được nhả",
     "releaseItemQty": "{qty, number} đơn vị",
     "releaseItemsLoadError": "Không tải được danh sách mã sản phẩm của đơn này.",
+    "releaseFailed": "Không thể nhả giữ hàng. Vui lòng thử lại.",
     "releaseConfirm": "Xác nhận nhả",
     "cancel": "Huỷ",
     "releaseSuccess": "Đã nhả {count, number} lượt giữ hàng của đơn {order}.",
@@ -3248,6 +3271,7 @@
     "timelineTitle": "Hành trình vận đơn",
     "timelineSubtitle": "Chi tiết các mốc quét kiện và luân chuyển bưu cục",
     "journeyUnknown": "Trạng thái cần kiểm tra",
+    "deliveryFailedHint": "Bưu tá có thể liên hệ lại người nhận hoặc cập nhật lý do giao hàng chưa thành công.",
     "timelineEmpty": "Chưa có cập nhật hành trình.",
     "journey": "Hành trình giao hàng",
     "trackOnCarrier": "Tra cứu trên cổng {carrier}",
@@ -4527,7 +4551,9 @@
       "ADJUST": "Điều chỉnh",
       "COMBO": "Bộ",
       "UNIT": "Đơn vị",
-      "CLAIM": "khiếu nại"
+      "CLAIM": "khiếu nại",
+      "CONTRACT": "Hợp đồng",
+      "BATCH": "Lô đối soát"
     }
   },
   "ReceiptCartons": {
@@ -4644,7 +4670,7 @@
     "approve": "Duyệt khoản đủ điều kiện",
     "dispute": "Tranh chấp dòng",
     "resolve": "Giải quyết tranh chấp",
-    "reason": "Lý do và giải thích bằng chứng",
+    "reason": "Nội dung / Lý do ghi nhận",
     "adjustment": "Số tiền điều chỉnh có dấu (VND; 0 để bác bỏ)",
     "invalidReason": "Nhập lý do từ 5 đến 1.000 ký tự.",
     "invalidAmount": "Nhập số tiền VND nguyên chính xác.",
@@ -4652,13 +4678,13 @@
     "wednesday": "Duyệt theo lịch thứ Tư giờ Việt Nam. Chỉ ghi nhận chuyển khoản thực tế vào thứ Tư, sau khi đã duyệt.",
     "recordTransfer": "Ghi nhận đã chuyển khoản",
     "transferHelp": "Thực hiện chuyển tiền bên ngoài ORCA trước. Sau đó tải PDF bằng chứng riêng tư và ghi nhận đúng số tiền đã duyệt. ORCA không tự chuyển tiền.",
-    "bankReference": "Mã giao dịch ngân hàng thực tế",
-    "transferredAt": "Thời điểm chuyển thực tế (ISO 8601 có múi giờ)",
-    "evidence": "PDF bằng chứng ngân hàng riêng tư (tối đa 20 MB)",
-    "evidenceReady": "Đã tải bằng chứng riêng tư",
-    "pdfRequired": "Tải PDF bằng chứng ngân hàng tối đa 20 MB.",
-    "invalidReference": "Nhập mã giao dịch thực tế (3–200 ký tự).",
-    "invalidTime": "Nhập thời gian có giây và múi giờ, ví dụ 2026-11-04T02:00:00Z.",
+    "bankReference": "Mã giao dịch ngân hàng (UNC)",
+    "transferredAt": "Thời điểm chuyển khoản",
+    "evidence": "Chứng từ ngân hàng (PDF, tối đa 20 MB)",
+    "evidenceReady": "Đã đính kèm PDF chứng từ",
+    "pdfRequired": "Đính kèm biên lai ngân hàng (PDF, tối đa 20 MB)",
+    "invalidReference": "Nhập mã giao dịch ngân hàng (3–200 ký tự).",
+    "invalidTime": "Chọn ngày giờ chuyển khoản hợp lệ.",
     "uncertain": "Chưa rõ thao tác đã hoàn tất hay chưa. Làm mới để kiểm tra; nếu cần, thử lại đúng yêu cầu cũ.",
     "retrySame": "Thử lại cùng lệnh",
     "forbidden": "Bạn không có quyền xem dữ liệu tài chính.",
@@ -4717,6 +4743,23 @@
       "material": "Phí vật tư đóng gói",
       "returnHandling": "Phí xử lý hàng hoàn",
       "combo": "Phí đóng gói bộ sản phẩm"
+    },
+    "sourceType": {
+      "BILLABLE_EVENT": "Sự kiện tính phí",
+      "BANK_RECEIPT": "Biên lai ngân hàng",
+      "ONLINE_RECEIPT": "Thanh toán trực tuyến",
+      "PAYMENT_TRANSACTION": "Giao dịch thanh toán",
+      "ONBOARDING_PLAN_FEE": "Phí kích hoạt gói",
+      "SUBSCRIPTION": "Phí thuê bao kỳ",
+      "RECONCILIATION_POSTING": "Đối soát cước & COD",
+      "RECONCILED_COD_BATCH": "Lô đối soát COD",
+      "APPROVED_CLAIM": "Khiếu nại bồi thường",
+      "APPROVED_FEE_CORRECTION": "Điều chỉnh phí đã duyệt",
+      "PAYOUT_DISPUTE": "Xử lý tranh chấp sao kê",
+      "PAYOUT_TRANSFER": "Chuyển khoản sao kê tuần",
+      "CLOSEOUT_OFFSET": "Bù trừ cọc tất toán",
+      "CLOSEOUT_TRANSFER": "Chuyển khoản hoàn tất toán",
+      "MOCK_ONBOARDING": "Thanh toán thử nghiệm"
     }
   },
   "Reports": {

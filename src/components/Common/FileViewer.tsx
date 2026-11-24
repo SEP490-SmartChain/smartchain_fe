@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { FileText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { PdfPage } from '@/components/Common/pdf-viewer/components/PdfPage';
 import { PdfThumbnail } from '@/components/Common/pdf-viewer/components/PdfThumbnail';
 import { ViewerControls } from '@/components/Common/pdf-viewer/components/ViewerControls';
@@ -101,9 +102,7 @@ export function FileViewer({
               {isLoading && (
                 <div className="p-4 text-gray-400 text-sm text-center">{t('loading_file')}</div>
               )}
-              {error && (
-                <div className="p-4 text-red-500 text-sm text-center">{t('error_loading_pdf')}</div>
-              )}
+              {error && <Alert variant="error">{t('error_loading_pdf')}</Alert>}
             </div>
           </div>
 

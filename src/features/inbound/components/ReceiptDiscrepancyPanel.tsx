@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
 import { Alert, Badge, Button, Card, Input, Select } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -319,22 +320,25 @@ export function ReceiptDiscrepancyPanel({
                 ['RECEIVING', 'DISCREPANCY'].includes(state.asnStatus) && (
                   <form
                     className="space-y-3"
-                    onSubmit={handleSubmit((values) => {
-                      const candidate = candidates.find((c) => c.key === values.source);
-                      if (candidate) {
-                        void send({
-                          qty: candidate.qty,
-                          input: {
-                            operationKey: operation.current,
-                            expectedVersion: state.receiptVersion,
-                            inboundLineId: candidate.inboundLineId,
-                            receivingRecordId: candidate.receivingRecordId,
-                            discrepancyType: candidate.discrepancyType,
-                            reason: values.reason,
-                          },
-                        });
-                      }
-                    })}
+                    onSubmit={handleSubmit(
+                      (values) => {
+                        const candidate = candidates.find((c) => c.key === values.source);
+                        if (candidate) {
+                          void send({
+                            qty: candidate.qty,
+                            input: {
+                              operationKey: operation.current,
+                              expectedVersion: state.receiptVersion,
+                              inboundLineId: candidate.inboundLineId,
+                              receivingRecordId: candidate.receivingRecordId,
+                              discrepancyType: candidate.discrepancyType,
+                              reason: values.reason,
+                            },
+                          });
+                        }
+                      },
+                      () => notifyInvalidForm(),
+                    )}
                   >
                     <fieldset className="space-y-3" disabled={busy || loading || Boolean(attempt)}>
                       <Select

@@ -13,6 +13,8 @@ import { useTranslations } from 'next-intl';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 
+import { notifyInvalidForm } from '@/lib/errorNotifications';
+
 import { serviceTariffApi } from '../api/serviceTariffApi';
 import {
   SERVICE_FEE_UNITS,
@@ -68,17 +70,20 @@ export function ServiceTariffEditor({
         },
   });
   const fields = useFieldArray({ control: form.control, name: 'lines' });
-  const submit = form.handleSubmit(async (input) => {
-    setError(null);
-    try {
-      await serviceTariffApi.save(input, row ?? undefined, abort.current.signal);
-      if (!abort.current.signal.aborted) onSaved();
-    } catch (failure) {
-      if (!abort.current.signal.aborted) {
-        setError(failure instanceof Error ? failure.message : t('saveError'));
+  const submit = form.handleSubmit(
+    async (input) => {
+      setError(null);
+      try {
+        await serviceTariffApi.save(input, row ?? undefined, abort.current.signal);
+        if (!abort.current.signal.aborted) onSaved();
+      } catch (failure) {
+        if (!abort.current.signal.aborted) {
+          setError(failure instanceof Error ? failure.message : t('saveError'));
+        }
       }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const invalid = (hasError: unknown) => (hasError ? t('invalid') : undefined);
   return (
     <Modal
@@ -224,6 +229,7 @@ function RateLine({
             }
           },
         })}
+        error={form.formState.errors?.lines?.[index]?.feeType?.message}
       />
       <div>
         <span className="mb-1 block text-sm font-medium text-[var(--sc-text-primary)]">
@@ -250,6 +256,7 @@ function RateLine({
         step="any"
         required
         {...form.register(`lines.${index}.lowerBound`)}
+        error={form.formState.errors?.lines?.[index]?.lowerBound?.message}
       />
       <Input
         label={t('upper')}
@@ -259,6 +266,7 @@ function RateLine({
         {...form.register(`lines.${index}.upperBound`, {
           setValueAs: (value: string) => (value === '' ? null : value),
         })}
+        error={form.formState.errors?.lines?.[index]?.upperBound?.message}
       />
       <div className="flex items-end">
         <Button

@@ -173,7 +173,7 @@ export function WarehouseLayoutPanel({
       onSaved?.();
     } catch (failure) {
       if (token === revision.current) {
-        toast.error(failure instanceof ApiError ? failure.message : t('saveError'));
+        return failure instanceof ApiError ? failure.message : t('saveError');
       }
     }
   };
@@ -212,7 +212,7 @@ export function WarehouseLayoutPanel({
       onSaved?.();
     } catch (failure) {
       if (token === revision.current) {
-        toast.error(failure instanceof ApiError ? failure.message : t('saveError'));
+        return failure instanceof ApiError ? failure.message : t('saveError');
       }
     }
   };

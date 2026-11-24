@@ -18,6 +18,7 @@ import {
   Select,
 } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -61,6 +62,7 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
     [preparation, setPreparation] = useState<PutawayWaitingItem | null>(null),
     [preparationLocked, setPreparationLocked] = useState(false),
     [error, setError] = useState(''),
+    [taskActionError, setTaskActionError] = useState(''),
     [loading, setLoading] = useState(false),
     [refresh, setRefresh] = useState(0),
     [taskLocked, setTaskLocked] = useState(false),
@@ -83,6 +85,7 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
     setCursor(null);
     setWaitingCursor(null);
     setSelected(null);
+    setTaskActionError('');
     setPreparation(null);
     setPreparationLocked(false);
     setPage(null);
@@ -183,6 +186,7 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
         </Button>
       </div>
       {error && <Alert variant="error">{error}</Alert>}
+      {!selected && taskActionError && <Alert variant="error">{taskActionError}</Alert>}
       {loading && !visible ? (
         <p role="status">{t('loading')}</p>
       ) : (
@@ -329,6 +333,7 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
                     onOpen={() => {
                       setPreparation(null);
                       setSelected(task);
+                      setTaskActionError('');
                     }}
                   />
                 ))}
@@ -367,7 +372,8 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
                   manager={manager}
                   onLock={setTaskLocked}
                   disabled={loading || relocationLocked || overrideLocked || preparationLocked}
-                  onSaved={(keepDraft = false, result) => {
+                  onSaved={({ keepDraft, result, failure = '' } = {}) => {
+                    setTaskActionError(failure);
                     if (result?.status === 'ASSIGNED') {
                       setSelected({
                         ...selected,
@@ -424,7 +430,7 @@ function PutawayTaskForm({
   task: PutawayTask;
   staff: { id: string; fullName: string }[];
   manager: boolean;
-  onSaved: (keepDraft?: boolean, partial?: PutawayResult) => void;
+  onSaved: (options?: { keepDraft?: boolean; result?: PutawayResult; failure?: string }) => void;
   onLock: (locked: boolean) => void;
   disabled: boolean;
 }) {
@@ -538,7 +544,7 @@ function PutawayTaskForm({
       setAttempt(null);
       if (result?.status === 'ASSIGNED') {
         toast.success(t('partialConfirmed', { remaining: task.qty - result.confirmedQty }));
-        onSaved(false, result);
+        onSaved({ result });
       } else {
         toast.success(t(command.kind === 'ASSIGN' ? 'assignmentSuccess' : 'confirmSuccess'));
         onSaved();
@@ -548,8 +554,9 @@ function PutawayTaskForm({
       setError(e instanceof ApiError ? e.message : t('saveError'));
       if (e instanceof ApiError && [400, 403, 404, 409, 422].includes(e.status)) {
         setAttempt(null);
-        toast.error(e.message);
-        if ([403, 404, 409].includes(e.status)) onSaved(e.status === 409);
+        if ([403, 404, 409].includes(e.status)) {
+          onSaved({ keepDraft: e.status === 409, failure: e.message });
+        }
       } else setAttempt(command);
     } finally {
       if (g === generation.current) setBusy(false);
@@ -637,25 +644,28 @@ function PutawayTaskForm({
             {confirmAllowed ? (
               <form
                 className="space-y-4"
-                onSubmit={handleSubmit((input) => {
-                  const qty = showQuantity ? input.qty : remaining;
-                  if (qty === undefined || qty > qtyLimit) {
-                    setError(t('placementQuantityError', { remaining: qtyLimit }));
-                    return;
-                  }
-                  const choice = alternateBinReasons.find((option) => option === reasonChoice);
-                  const reason =
-                    alternate && choice
-                      ? choice === 'other'
-                        ? input.reason
-                        : t(`placementReasons.${choice}`)
-                      : undefined;
-                  if (alternate && !reason) {
-                    setError(t('placementReasonRequired'));
-                    return;
-                  }
-                  void send({ kind: 'CONFIRM', input: { ...input, qty, reason } });
-                })}
+                onSubmit={handleSubmit(
+                  (input) => {
+                    const qty = showQuantity ? input.qty : remaining;
+                    if (qty === undefined || qty > qtyLimit) {
+                      setError(t('placementQuantityError', { remaining: qtyLimit }));
+                      return;
+                    }
+                    const choice = alternateBinReasons.find((option) => option === reasonChoice);
+                    const reason =
+                      alternate && choice
+                        ? choice === 'other'
+                          ? input.reason
+                          : t(`placementReasons.${choice}`)
+                        : undefined;
+                    if (alternate && !reason) {
+                      setError(t('placementReasonRequired'));
+                      return;
+                    }
+                    void send({ kind: 'CONFIRM', input: { ...input, qty, reason } });
+                  },
+                  () => notifyInvalidForm(),
+                )}
               >
                 <fieldset className="max-w-lg space-y-2" disabled={busy || disabled}>
                   <Input

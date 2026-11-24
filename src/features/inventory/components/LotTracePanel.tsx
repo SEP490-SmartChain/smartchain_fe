@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -34,16 +35,20 @@ export function LotTracePanel({ warehouseId }: { warehouseId: string }) {
     <div className="space-y-4">
       <p className="text-sm text-[var(--sc-text-secondary)]">{t('description')}</p>
       <form
-        onSubmit={handleSubmit((v) => {
-          setQuery(v);
-          setCursor(undefined);
-          setAttempt((n) => n + 1);
-        })}
+        onSubmit={handleSubmit(
+          (v) => {
+            setQuery(v);
+            setCursor(undefined);
+            setAttempt((n) => n + 1);
+          },
+          () => notifyInvalidForm(),
+        )}
         className="grid gap-3 sm:grid-cols-[180px_1fr_auto]"
       >
         <Select
           label={t('direction')}
           {...register('kind')}
+          error={errors?.kind?.message}
           options={[
             ...(can('inventory.trace.forward') ? [{ value: 'lots', label: t('forward') }] : []),
             { value: 'parcels', label: t('backward') },
@@ -321,7 +326,7 @@ function RecallForm({
         }
       }}
     >
-      <form className="space-y-4" onSubmit={handleSubmit(submit)}>
+      <form className="space-y-4" onSubmit={handleSubmit(submit, () => notifyInvalidForm())}>
         <Alert variant="warning" title={t('recallWarning')} />
         <p>{lot.lotCode}</p>
         {error && <Alert variant="error" title={t('error')} />}

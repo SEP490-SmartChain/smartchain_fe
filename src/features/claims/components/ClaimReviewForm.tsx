@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { Alert, Button, Select } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import { getPendingClaim, retryClaimCommand, sendClaimCommand } from '../api/claimCommands';
@@ -77,57 +78,64 @@ export function ClaimReviewForm({
           : '';
     setError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('errors.generic'));
   };
-  const submit = form.handleSubmit(async (values) => {
-    if (stale) return;
-    if (mode === 'investigate' && !values.responsibility) {
-      form.setError('responsibility', { message: t('required') });
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      let version: number;
-      if (mode === 'investigate' && values.responsibility) {
-        const result = await sendClaimCommand(
-          {
-            kind: 'investigate',
-            id: claim.id,
-            scope,
-            input: {
-              expectedVersion: reviewVersion,
-              responsibility: values.responsibility,
-              complete: values.complete,
-              note: values.note,
+  const submit = form.handleSubmit(
+    async (values) => {
+      if (stale) return;
+      if (mode === 'investigate' && !values.responsibility) {
+        form.setError('responsibility', { message: t('required') });
+        return;
+      }
+      setBusy(true);
+      setError('');
+      try {
+        let version: number;
+        if (mode === 'investigate' && values.responsibility) {
+          const result = await sendClaimCommand(
+            {
+              kind: 'investigate',
+              id: claim.id,
+              scope,
+              input: {
+                expectedVersion: reviewVersion,
+                responsibility: values.responsibility,
+                complete: values.complete,
+                note: values.note,
+              },
             },
-          },
-          signal,
-        );
-        version = result.version;
-      } else {
-        const result = await sendClaimCommand(
-          {
-            kind: 'decide',
-            id: claim.id,
-            scope,
-            input: { expectedVersion: reviewVersion, decision: values.decision, note: values.note },
-          },
-          signal,
-        );
-        version = result.version;
+            signal,
+          );
+          version = result.version;
+        } else {
+          const result = await sendClaimCommand(
+            {
+              kind: 'decide',
+              id: claim.id,
+              scope,
+              input: {
+                expectedVersion: reviewVersion,
+                decision: values.decision,
+                note: values.note,
+              },
+            },
+            signal,
+          );
+          version = result.version;
+        }
+        if (!signal.aborted) {
+          saved(version);
+        }
+      } catch (e) {
+        if (!signal.aborted) {
+          fail(e);
+          setPending(getPendingClaim(mode, claim.id, scope));
+          onChanged();
+        }
+      } finally {
+        if (!signal.aborted) setBusy(false);
       }
-      if (!signal.aborted) {
-        saved(version);
-      }
-    } catch (e) {
-      if (!signal.aborted) {
-        fail(e);
-        setPending(getPendingClaim(mode, claim.id, scope));
-        onChanged();
-      }
-    } finally {
-      if (!signal.aborted) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const retry = async () => {
     if (!pending) return;
     setBusy(true);
@@ -228,6 +236,7 @@ export function ClaimReviewForm({
                     },
                   ]}
                   {...form.register('decision')}
+                  error={form.formState.errors?.decision?.message}
                 />
               </>
             )}
@@ -241,9 +250,9 @@ export function ClaimReviewForm({
               />
             </label>
             {form.formState.errors.note && (
-              <p role="alert" className="text-sm text-[var(--sc-error)]">
+              <Alert variant="error" compact>
                 {t('noteLength')}
-              </p>
+              </Alert>
             )}
             <Button type="submit" isLoading={busy} disabled={mode === 'decide' && !ready}>
               {t(mode === 'investigate' ? 'saveInvestigation' : 'submitDecision')}

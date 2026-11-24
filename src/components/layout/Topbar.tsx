@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Avatar, Button } from '@/components/Common';
+import { Alert, Avatar, Button } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -48,7 +48,7 @@ export default function Topbar() {
   const t = useTranslations('Topbar');
   const sidebar = useTranslations('Sidebar');
   const locale = useLocale();
-  const { logout, isLoggingOut } = useAuth();
+  const { logout, isLoggingOut, logoutError } = useAuth();
   const user = useAuthStore((state) => state.user);
   const avatarUrl = useAvatarUrl(user?.avatarUrl);
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
@@ -407,6 +407,11 @@ export default function Topbar() {
                 {t('logout')}
                 <LogOut size={16} strokeWidth={1.5} />
               </button>
+              {logoutError && (
+                <Alert variant="error" compact className="mt-2">
+                  {logoutError.message ?? t('logoutFailed')}
+                </Alert>
+              )}
             </div>
           )}
         </div>
