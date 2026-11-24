@@ -907,3 +907,28 @@ test('one warehouse operator holding Manager and Staff roles sees one outbound w
     assert.equal(policy.can(single, 'warehouse.picking.confirm'), confirm, roles[0]);
   }
 });
+
+test('UC-166: warehouse.fulfillmentSlaRisk.view is strictly limited to PLATFORM WAREHOUSE_MANAGER', () => {
+  for (const [role, scope] of ALL_ROLES) {
+    assert.equal(
+      policy.can(effective([role], scope), 'warehouse.fulfillmentSlaRisk.view'),
+      role === 'WAREHOUSE_MANAGER',
+      role,
+    );
+  }
+  assert.equal(
+    policy.can(
+      effective(['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'], PLATFORM),
+      'warehouse.fulfillmentSlaRisk.view',
+    ),
+    true,
+  );
+  for (const invalid of [
+    effective(['WAREHOUSE_MANAGER'], TENANT),
+    effective(['WAREHOUSE_MANAGER', 'SELLER_OWNER'], PLATFORM),
+    effective(['WAREHOUSE_MANAGER', 'TENANT_ADMIN'], PLATFORM),
+    [],
+  ]) {
+    assert.equal(policy.can(invalid, 'warehouse.fulfillmentSlaRisk.view'), false);
+  }
+});

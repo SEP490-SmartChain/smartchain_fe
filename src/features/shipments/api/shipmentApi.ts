@@ -13,9 +13,23 @@ import {
 
 export const shipmentApi = {
   /** UC-104: SLA breaches of the warehouses the operator may access. */
-  async slaExceptions(isOpenOnly: boolean, before: string | null, signal?: AbortSignal) {
+  async slaExceptions(
+    isOpenOnly: boolean,
+    before: string | null,
+    signal?: AbortSignal,
+    filters?: {
+      readonly warehouseId?: string | null;
+      readonly reasonCode?: string | null;
+    },
+  ) {
     const response = await apiClient.get<ApiResponse<unknown>>('/v1/sla-exceptions', {
-      params: { openOnly: String(isOpenOnly), limit: '50', ...(before ? { before } : {}) },
+      params: {
+        openOnly: String(isOpenOnly),
+        limit: '50',
+        ...(before ? { before } : {}),
+        ...(filters?.warehouseId ? { warehouseId: filters.warehouseId } : {}),
+        ...(filters?.reasonCode ? { reasonCode: filters.reasonCode } : {}),
+      },
       signal,
       silent: true,
     });

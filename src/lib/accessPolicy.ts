@@ -375,6 +375,14 @@ export const CAPABILITIES: readonly CapabilityDef[] = [
     'SS-1186 UC-82/83: assigned pick and shortage evidence via inventory.update',
   ),
   capability(
+    'warehouse.fulfillmentSlaRisk.view',
+    'warehouses',
+    'PLATFORM',
+    ['WAREHOUSE_MANAGER'],
+    'APPROVED',
+    'UC-166 (Report 3 UC-156): GET /v1/warehouse-ops/fulfillment-sla-risks, execution.read with live warehouse manager assignment',
+  ),
+  capability(
     'inventory.reservations.release',
     'inventory',
     'TENANT',

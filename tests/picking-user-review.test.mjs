@@ -240,6 +240,7 @@ function pickingSession(result) {
     PickLineCard: 'PickLineCard',
     PickLineLabels: 'PickLineLabels',
     WaveForm: 'WaveForm',
+    FulfillmentSlaRiskPanel: 'FulfillmentSlaRiskPanel',
   };
   const code = ts.transpileModule(declaration.getText(tree), {
     compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 },
