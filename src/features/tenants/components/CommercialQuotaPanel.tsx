@@ -273,42 +273,92 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
         <>
           <div className="grid divide-y border-b border-[var(--sc-border-default)] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <div className={compact ? 'p-4' : 'px-5 py-4 sm:px-6'}>
-              <div className="flex items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
-                <Warehouse size={15} className="text-[var(--sc-primary)]" aria-hidden="true" />
-                <span>{t('warehouses')}</span>
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--sc-text-secondary)]">
+                <span className="flex items-center gap-1.5">
+                  <Warehouse size={15} className="text-[var(--sc-primary)]" aria-hidden="true" />
+                  <span>{t('warehouses')}</span>
+                </span>
               </div>
-              <p className="mb-0 mt-1.5 text-lg font-semibold tabular-nums text-[var(--sc-text-primary)]">
+              <p className="mb-0 mt-1.5 text-lg font-bold tabular-nums text-[var(--sc-text-primary)]">
                 {quota.usage?.occupiedWarehouses ?? '—'}{' '}
                 <span className="text-sm font-normal text-[var(--sc-text-secondary)]">
                   / {quota.plan.warehouseAllowance}
                 </span>
               </p>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--sc-bg-secondary)]">
+                <div
+                  className="h-full rounded-full bg-[var(--sc-primary)] transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      quota.plan.warehouseAllowance > 0
+                        ? ((quota.usage?.occupiedWarehouses ?? 0) / quota.plan.warehouseAllowance) *
+                            100
+                        : 0,
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
 
             <div className={compact ? 'p-4' : 'px-5 py-4 sm:px-6'}>
-              <div className="flex items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
-                <Package size={15} className="text-[var(--sc-info)]" aria-hidden="true" />
-                <span>{t('orders')}</span>
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--sc-text-secondary)]">
+                <span className="flex items-center gap-1.5">
+                  <Package size={15} className="text-[var(--sc-info)]" aria-hidden="true" />
+                  <span>{t('orders')}</span>
+                </span>
               </div>
-              <p className="mb-0 mt-1.5 text-lg font-semibold tabular-nums text-[var(--sc-text-primary)]">
+              <p className="mb-0 mt-1.5 text-lg font-bold tabular-nums text-[var(--sc-text-primary)]">
                 {quota.usage?.salesOrdersCreated ?? '—'}{' '}
                 <span className="text-sm font-normal text-[var(--sc-text-secondary)]">
                   / {quota.plan.salesOrderAllowance}
                 </span>
               </p>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--sc-bg-secondary)]">
+                <div
+                  className="h-full rounded-full bg-[var(--sc-info)] transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      quota.plan.salesOrderAllowance > 0
+                        ? ((quota.usage?.salesOrdersCreated ?? 0) /
+                            quota.plan.salesOrderAllowance) *
+                            100
+                        : 0,
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
 
             <div className={compact ? 'p-4' : 'px-5 py-4 sm:px-6'}>
-              <div className="flex items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
-                <Layers3 size={15} className="text-[var(--sc-warning)]" aria-hidden="true" />
-                <span>{t('storage')}</span>
+              <div className="flex items-center justify-between gap-2 text-xs text-[var(--sc-text-secondary)]">
+                <span className="flex items-center gap-1.5">
+                  <Layers3 size={15} className="text-[var(--sc-warning)]" aria-hidden="true" />
+                  <span>{t('storage')}</span>
+                </span>
               </div>
-              <p className="mb-0 mt-1.5 text-lg font-semibold tabular-nums text-[var(--sc-text-primary)]">
+              <p className="mb-0 mt-1.5 text-lg font-bold tabular-nums text-[var(--sc-text-primary)]">
                 {quota.usage?.knownStockVolumeM3 ?? '—'}{' '}
                 <span className="text-sm font-normal text-[var(--sc-text-secondary)]">
                   / {quota.plan.storageAllowanceM3} m³
                 </span>
               </p>
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--sc-bg-secondary)]">
+                <div
+                  className="h-full rounded-full bg-[var(--sc-warning)] transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Number(quota.plan.storageAllowanceM3) > 0
+                        ? (Number(quota.usage?.knownStockVolumeM3 ?? 0) /
+                            Number(quota.plan.storageAllowanceM3)) *
+                            100
+                        : 0,
+                    )}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -443,7 +493,11 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
                         )
                         .map((item) => ({
                           value: item.id,
-                          label: `${item.name} · ${item.monthlyFeeVnd} VND`,
+                          label: `${item.name} · ${
+                            item.monthlyFeeVnd
+                              ? `${BigInt(item.monthlyFeeVnd).toLocaleString('vi-VN')} VND`
+                              : '—'
+                          }`,
                         }))}
                       error={change.formState.errors.planVersionId ? t('invalid') : undefined}
                       {...change.register('planVersionId')}

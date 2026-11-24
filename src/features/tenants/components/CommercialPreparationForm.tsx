@@ -9,7 +9,6 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
-
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import {
@@ -130,19 +129,28 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
         )}
         {rates && (
           <>
-            <details className="rounded-lg border border-[var(--sc-border-default)] p-3">
-              <summary className="cursor-pointer font-semibold">
+            <details className="overflow-hidden rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]">
+              <summary className="cursor-pointer bg-[var(--sc-bg-secondary)]/50 px-3.5 py-2.5 text-xs font-semibold text-[var(--sc-text-primary)]">
                 {t('serviceRates')} · {rates.service.code} v{rates.service.versionNo}
               </summary>
               {rates.service.lines.length ? (
-                <div className="mt-2 overflow-x-auto">
-                  <table aria-label={t('serviceRates')} className="w-full min-w-[360px] text-left">
-                    <thead>
+                <div className="overflow-x-auto border-t border-[var(--sc-border-default)]">
+                  <table
+                    aria-label={t('serviceRates')}
+                    className="w-full min-w-[360px] text-left text-xs"
+                  >
+                    <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                       <tr>
-                        <th scope="col">{t('rateItem')}</th>
-                        <th scope="col">{t('rateUnit')}</th>
-                        <th scope="col">{t('rateBand')}</th>
-                        <th scope="col" className="text-right">
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('rateItem')}
+                        </th>
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('rateUnit')}
+                        </th>
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('rateBand')}
+                        </th>
+                        <th scope="col" className="px-3.5 py-2 text-right">
                           {t('unitPrice')}
                         </th>
                       </tr>
@@ -150,18 +158,20 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
                     <tbody className="divide-y divide-[var(--sc-border-default)]">
                       {rates.service.lines.map((line) => (
                         <tr key={[line.feeType, line.unit, line.lowerBound].join('/')}>
-                          <td className="py-2">
+                          <td className="px-3.5 py-2 font-medium text-[var(--sc-text-primary)]">
                             {tariffText.has('fee_' + line.feeType)
                               ? tariffText('fee_' + line.feeType)
                               : line.feeType}
                           </td>
-                          <td>
+                          <td className="px-3.5 py-2 text-[var(--sc-text-secondary)]">
                             {tariffText.has('unit_' + line.unit)
                               ? tariffText('unit_' + line.unit)
                               : line.unit}
                           </td>
-                          <td>{range(line.lowerBound, line.upperBound)}</td>
-                          <td className="whitespace-nowrap text-right font-medium">
+                          <td className="px-3.5 py-2 text-[var(--sc-text-secondary)]">
+                            {range(line.lowerBound, line.upperBound)}
+                          </td>
+                          <td className="whitespace-nowrap px-3.5 py-2 text-right font-semibold tabular-nums text-[var(--sc-text-primary)]">
                             {money.format(BigInt(line.unitPriceVnd))}
                           </td>
                         </tr>
@@ -170,37 +180,53 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
                   </table>
                 </div>
               ) : (
-                <p className="mt-2">{t('noRateLines')}</p>
+                <p className="m-0 px-3.5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
+                  {t('noRateLines')}
+                </p>
               )}
             </details>
-            <details className="rounded-lg border border-[var(--sc-border-default)] p-3">
-              <summary className="cursor-pointer font-semibold">
+            <details className="overflow-hidden rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)]">
+              <summary className="cursor-pointer bg-[var(--sc-bg-secondary)]/50 px-3.5 py-2.5 text-xs font-semibold text-[var(--sc-text-primary)]">
                 {t('freightRates')} · {rates.freight.code} v{rates.freight.versionNo}
               </summary>
               {rates.freight.lines.length ? (
-                <div className="mt-2 overflow-x-auto">
-                  <table aria-label={t('freightRates')} className="w-full min-w-[500px] text-left">
-                    <thead>
+                <div className="overflow-x-auto border-t border-[var(--sc-border-default)]">
+                  <table
+                    aria-label={t('freightRates')}
+                    className="w-full min-w-[500px] text-left text-xs"
+                  >
+                    <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 text-[11px] font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                       <tr>
-                        <th scope="col">{t('shippingLane')}</th>
-                        <th scope="col">{t('weightBand')}</th>
-                        <th scope="col">{t('baseRate')}</th>
-                        <th scope="col">{t('stepRate')}</th>
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('shippingLane')}
+                        </th>
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('weightBand')}
+                        </th>
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('baseRate')}
+                        </th>
+                        <th scope="col" className="px-3.5 py-2">
+                          {t('stepRate')}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--sc-border-default)]">
                       {rates.freight.lines.map((line) => (
                         <tr key={[line.direction, line.laneCode, line.minWeightG].join('/')}>
-                          <td className="py-2">
+                          <td className="px-3.5 py-2 font-medium text-[var(--sc-text-primary)]">
                             {line.laneCode}
-                            <br />
-                            {t(line.direction === 'RETURN' ? 'returnRate' : 'outboundRate')}
+                            <span className="ml-1.5 text-[11px] font-normal text-[var(--sc-text-secondary)]">
+                              · {t(line.direction === 'RETURN' ? 'returnRate' : 'outboundRate')}
+                            </span>
                           </td>
-                          <td>{range(line.minWeightG, line.maxWeightG)}</td>
-                          <td className="whitespace-nowrap font-medium">
+                          <td className="px-3.5 py-2 text-[var(--sc-text-secondary)]">
+                            {range(line.minWeightG, line.maxWeightG)}
+                          </td>
+                          <td className="whitespace-nowrap px-3.5 py-2 font-semibold tabular-nums text-[var(--sc-text-primary)]">
                             {money.format(BigInt(line.basePriceVnd))}
                           </td>
-                          <td className="whitespace-nowrap">
+                          <td className="whitespace-nowrap px-3.5 py-2 tabular-nums text-[var(--sc-text-secondary)]">
                             {t('stepAmount', {
                               price: money.format(BigInt(line.stepPriceVnd)),
                               weight: line.stepWeightG,
@@ -212,7 +238,9 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
                   </table>
                 </div>
               ) : (
-                <p className="mt-2">{t('noRateLines')}</p>
+                <p className="m-0 px-3.5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
+                  {t('noRateLines')}
+                </p>
               )}
             </details>
           </>
@@ -236,19 +264,24 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
           ))}
         </div>
       )}
-      <Button type="button" variant="outline" onClick={onPreview} disabled={busy}>
-        {t('preview')}
-      </Button>
-      <Checkbox
-        {...form.register('hasReviewedTerms')}
-        required
-        disabled={busy}
-        label={t('reviewedTerms')}
-        error={form.formState.errors.hasReviewedTerms ? t('reviewRequired') : undefined}
-      />
-      <Button type="submit" disabled={!rates} isLoading={busy || form.formState.isSubmitting}>
-        {t('confirmPrepare')}
-      </Button>
+      <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 p-3.5">
+        <Checkbox
+          {...form.register('hasReviewedTerms')}
+          required
+          disabled={busy}
+          label={t('reviewedTerms')}
+          error={form.formState.errors.hasReviewedTerms ? t('reviewRequired') : undefined}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] pt-3.5">
+        <Button type="button" variant="outline" size="sm" onClick={onPreview} disabled={busy}>
+          {t('preview')}
+        </Button>
+        <Button type="submit" disabled={!rates} isLoading={busy || form.formState.isSubmitting}>
+          {t('confirmPrepare')}
+        </Button>
+      </div>
     </form>
   );
 }
