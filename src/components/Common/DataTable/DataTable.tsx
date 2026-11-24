@@ -20,6 +20,8 @@ interface DataTableProps<T> {
   data: T[];
   isLoading?: boolean;
   getRowKey?: (row: T) => React.Key;
+  getRowId?: (row: T) => string | undefined;
+  getRowClassName?: (row: T) => string | undefined;
   emptyMessage?: React.ReactNode;
   pagination?: {
     currentPage: number;
@@ -34,6 +36,8 @@ export default function DataTable<T extends object>({
   data,
   isLoading,
   getRowKey,
+  getRowId,
+  getRowClassName,
   emptyMessage,
   pagination,
 }: DataTableProps<T>) {
@@ -78,23 +82,29 @@ export default function DataTable<T extends object>({
                 </td>
               </tr>
             ) : (
-              data.map((row, rowIndex) => (
-                <tr
-                  key={getRowKey ? getRowKey(row) : rowIndex}
-                  className="border-b border-[var(--sc-border-default)] transition-colors duration-150 last:border-b-0 hover:bg-[var(--sc-primary-alpha-08)]"
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={String(column.key)}
-                      className={`px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
-                    >
-                      {column.render
-                        ? column.render(row)
-                        : String((row as Record<string, unknown>)[column.key] ?? '')}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              data.map((row, rowIndex) => {
+                const customRowClass = getRowClassName?.(row);
+                return (
+                  <tr
+                    key={getRowKey ? getRowKey(row) : rowIndex}
+                    id={getRowId?.(row)}
+                    className={`border-b border-[var(--sc-border-default)] transition-colors duration-150 last:border-b-0 ${
+                      customRowClass ?? 'hover:bg-[var(--sc-primary-alpha-08)]'
+                    }`}
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={String(column.key)}
+                        className={`px-4 py-3.5 text-[13px] text-[var(--sc-text-primary)] align-middle ${ALIGN_CLASS[column.align ?? 'left']}`}
+                      >
+                        {column.render
+                          ? column.render(row)
+                          : String((row as Record<string, unknown>)[column.key] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

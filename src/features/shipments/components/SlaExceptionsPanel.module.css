@@ -1,0 +1,301 @@
+/* ORCA Operations Cockpit styling for SlaExceptionsPanel (UC-104 / UC-166 overdue handoff).
+ * Harmonized with tokens.css & FulfillmentSlaRiskPanel.module.css: 60-30-10 balance,
+ * Ocean Teal actions, semantic crimson accents for active overdue parcels, WCAG AA contrast. */
+
+.panelCard {
+  overflow: hidden;
+  border-top: 2px solid var(--sc-primary);
+}
+
+.panelCardOverdue {
+  border-top: 2px solid var(--sc-error);
+}
+
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--sc-border-default);
+  padding: 1.25rem 1.375rem;
+  background: linear-gradient(
+    115deg,
+    var(--sc-primary-alpha-08) 0%,
+    var(--sc-bg-surface) 44%,
+    var(--sc-bg-surface) 100%
+  );
+}
+
+.panelHeaderOverdue {
+  background: linear-gradient(
+    115deg,
+    color-mix(in srgb, var(--sc-error-bg) 52%, var(--sc-bg-surface)) 0%,
+    var(--sc-bg-surface) 48%,
+    var(--sc-bg-surface) 100%
+  );
+}
+
+@media (min-width: 640px) {
+  .panelHeader {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 1.35rem 1.5rem;
+  }
+}
+
+.headerIcon {
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--sc-radius-lg);
+  background: var(--sc-primary-lighter);
+  color: var(--sc-primary-dark);
+}
+
+.headerIconOverdue {
+  background: var(--sc-error-bg);
+  color: var(--sc-error-dark);
+}
+
+/* Contextual focus strip when landing from Picking -> Xem kien qua han */
+.focusStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  border-bottom: 1px solid var(--sc-border-default);
+  border-left: 3px solid var(--sc-primary);
+  background: color-mix(in srgb, var(--sc-bg-secondary) 72%, var(--sc-bg-surface));
+  padding: 0.75rem 1.375rem;
+}
+
+.focusStripOverdue {
+  border-left-color: var(--sc-error);
+  background: color-mix(in srgb, var(--sc-error-bg) 34%, var(--sc-bg-surface));
+}
+
+@media (min-width: 640px) {
+  .focusStrip {
+    padding: 0.8rem 1.5rem;
+  }
+}
+
+.focusCountPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--sc-error-border);
+  background: var(--sc-error-bg);
+  padding: 0.2rem 0.65rem;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-error-dark);
+}
+
+.focusSelectedPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--sc-primary) 42%, var(--sc-border-default));
+  background: var(--sc-primary-alpha-12);
+  padding: 0.2rem 0.65rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sc-primary-dark);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  border-radius: var(--sc-radius-md);
+  border: 1px solid var(--sc-border-strong);
+  background: var(--sc-bg-surface);
+  padding: 0.25rem 0.7rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sc-text-primary);
+  transition:
+    border-color var(--sc-transition-fast),
+    color var(--sc-transition-fast),
+    background-color var(--sc-transition-fast);
+}
+
+.backLink:hover {
+  border-color: var(--sc-primary);
+  color: var(--sc-primary-dark);
+  background: var(--sc-primary-alpha-08);
+}
+
+/* Row marking: clearly mark open overdue handover parcels and specifically highlighted parcels */
+.overdueRow {
+  background: color-mix(in srgb, var(--sc-error-bg) 26%, var(--sc-bg-surface));
+}
+
+.overdueRow:hover {
+  background: color-mix(in srgb, var(--sc-error-bg) 42%, var(--sc-bg-surface));
+}
+
+.overdueRow > td:first-child {
+  box-shadow: inset 3px 0 0 var(--sc-error);
+}
+
+.highlightedRow {
+  background: color-mix(in srgb, var(--sc-error-bg) 50%, var(--sc-bg-surface));
+  animation: sc-highlight-settle 900ms var(--sc-ease-standard) 1;
+}
+
+.highlightedRow:hover {
+  background: color-mix(in srgb, var(--sc-error-bg) 60%, var(--sc-bg-surface));
+}
+
+.highlightedRow > td:first-child {
+  box-shadow: inset 4px 0 0 var(--sc-error);
+}
+
+.highlightedNeutralRow {
+  background: color-mix(in srgb, var(--sc-primary-alpha-12) 85%, var(--sc-bg-surface));
+  animation: sc-highlight-settle 900ms var(--sc-ease-standard) 1;
+}
+
+.highlightedNeutralRow:hover {
+  background: var(--sc-primary-alpha-12);
+}
+
+.highlightedNeutralRow > td:first-child {
+  box-shadow: inset 4px 0 0 var(--sc-primary);
+}
+
+@keyframes sc-highlight-settle {
+  0% {
+    box-shadow: inset 0 0 0 2px var(--sc-error);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .highlightedRow,
+  .highlightedNeutralRow {
+    animation: none;
+  }
+}
+
+.parcelPrimary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.parcelCode {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-text-primary);
+}
+
+.selectedTag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--sc-primary);
+  padding: 0.1rem 0.5rem;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .selectedTag {
+  color: #050b14;
+}
+
+.parcelMeta {
+  margin-top: 0.3rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stageChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--sc-radius-sm);
+  border: 1px solid var(--sc-border-default);
+  background: var(--sc-bg-secondary);
+  padding: 0.1rem 0.45rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sc-text-secondary);
+}
+
+.trackingRef {
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-text-secondary);
+}
+
+.overdueDurationPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--sc-error-border);
+  background: var(--sc-error-bg);
+  padding: 0.15rem 0.55rem;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-error-dark);
+}
+
+.clockSubtext {
+  margin-top: 0.25rem;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sc-text-secondary);
+}
+
+.quickJumpLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  white-space: nowrap;
+  border-radius: var(--sc-radius-md);
+  border: 1px solid color-mix(in srgb, var(--sc-primary) 34%, var(--sc-border-default));
+  background: var(--sc-primary-alpha-08);
+  padding: 0.25rem 0.7rem;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sc-primary-dark);
+  transition:
+    background-color var(--sc-transition-fast),
+    border-color var(--sc-transition-fast),
+    color var(--sc-transition-fast),
+    box-shadow var(--sc-transition-fast);
+}
+
+.quickJumpLink:hover {
+  border-color: var(--sc-primary);
+  background: var(--sc-primary);
+  color: #ffffff;
+  box-shadow: var(--sc-shadow-button);
+}
+
+[data-theme='dark'] .quickJumpLink:hover {
+  color: #050b14;
+}
