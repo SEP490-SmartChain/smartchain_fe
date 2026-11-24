@@ -13,6 +13,8 @@ import {
   Package,
   ReceiptText,
   RefreshCw,
+  ShieldCheck,
+  Wallet,
   Warehouse,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -64,15 +66,46 @@ export function SellerContractOnboarding() {
     contract.status === 'CONFIRMED' &&
     flow.state?.serviceStatus === 'PENDING_ACTIVATION';
 
+  const contractStatusMap: Record<string, string> = {
+    DRAFT: t('customDraftStatus'),
+    ACCEPTED: t('status.COMPLETED'),
+    CONFIRMED: t('status.COMPLETED'),
+    TERMINATING: locale === 'vi' ? 'Đang thanh lý' : 'Terminating',
+    TERMINATED: locale === 'vi' ? 'Đã thanh lý' : 'Terminated',
+  };
+
   const contractStatusLabel = contract
     ? isCustomDraft
       ? t('customDraftStatus')
       : isCustomAwaitingPayment
         ? t('customPaymentStatus')
-        : request
-          ? t(`status.${request.status}`)
-          : contract.status
+        : contract.status === 'TERMINATING' || contract.status === 'TERMINATED'
+          ? contractStatusMap[contract.status]
+          : request
+            ? t(`status.${request.status}`)
+            : (contractStatusMap[contract.status] ?? contract.status)
     : '';
+
+  const contractBadgeStatus =
+    contract?.status === 'TERMINATED'
+      ? 'default'
+      : contract?.status === 'TERMINATING'
+        ? 'warning'
+        : request?.status === 'COMPLETED' ||
+            contract?.status === 'CONFIRMED' ||
+            contract?.status === 'ACCEPTED'
+          ? 'success'
+          : 'warning';
+
+  const formatShortInvoiceNo = (invoiceNo: string, id: string) => {
+    if (invoiceNo.endsWith(id)) {
+      const prefix = invoiceNo.split('-')[0] || 'INV';
+      return `${prefix}-${id.slice(0, 8).toUpperCase()}`;
+    }
+    return invoiceNo.length > 24
+      ? `${invoiceNo.slice(0, 12)}…${invoiceNo.slice(-8).toUpperCase()}`
+      : invoiceNo;
+  };
 
   const financialItems = contract
     ? [
@@ -209,21 +242,35 @@ export function SellerContractOnboarding() {
                             </div>
                           </div>
                           {plan.depositRequiredVnd && (
-                            <div>
-                              <dt className="text-[var(--sc-text-secondary)]">{t('deposit')}</dt>
-                              <dd className="mt-0.5 font-semibold tabular-nums text-[var(--sc-text-primary)]">
-                                {money(plan.depositRequiredVnd)}
-                              </dd>
+                            <div className="flex items-center gap-2">
+                              <ShieldCheck
+                                size={15}
+                                aria-hidden="true"
+                                className="shrink-0 text-[var(--sc-primary)]"
+                              />
+                              <div>
+                                <dt className="text-[var(--sc-text-secondary)]">{t('deposit')}</dt>
+                                <dd className="mt-0.5 font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                                  {money(plan.depositRequiredVnd)}
+                                </dd>
+                              </div>
                             </div>
                           )}
                           {plan.creditLimitVnd && (
-                            <div>
-                              <dt className="text-[var(--sc-text-secondary)]">
-                                {t('planDebtLimit')}
-                              </dt>
-                              <dd className="mt-0.5 font-semibold tabular-nums text-[var(--sc-text-primary)]">
-                                {money(plan.creditLimitVnd)}
-                              </dd>
+                            <div className="flex items-center gap-2">
+                              <Wallet
+                                size={15}
+                                aria-hidden="true"
+                                className="shrink-0 text-[var(--sc-primary)]"
+                              />
+                              <div>
+                                <dt className="text-[var(--sc-text-secondary)]">
+                                  {t('planDebtLimit')}
+                                </dt>
+                                <dd className="mt-0.5 font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                                  {money(plan.creditLimitVnd)}
+                                </dd>
+                              </div>
                             </div>
                           )}
                         </dl>
@@ -326,10 +373,7 @@ export function SellerContractOnboarding() {
                     aria-label={t('signingStatus')}
                     className="inline-flex items-center"
                   >
-                    <Badge
-                      status={request?.status === 'COMPLETED' ? 'success' : 'warning'}
-                      label={contractStatusLabel}
-                    />
+                    <Badge status={contractBadgeStatus} label={contractStatusLabel} />
                   </span>
                   {flow.state && (
                     <Badge
@@ -338,9 +382,11 @@ export function SellerContractOnboarding() {
                     />
                   )}
                 </div>
-                <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">
-                  {t('contractDescription')} · {t('version')}:{' '}
-                  <span className="font-mono font-medium text-[var(--sc-text-primary)]">
+                <p className="mb-0 mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
+                  <span>{t('contractDescription')}</span>
+                  <span>·</span>
+                  <span>{t('version')}:</span>
+                  <span className="inline-flex items-center rounded border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--sc-text-primary)]">
                     {contract.agreementVersionRef}
                   </span>
                 </p>
@@ -544,8 +590,11 @@ export function SellerContractOnboarding() {
                           <span className="text-sm font-semibold text-[var(--sc-text-primary)]">
                             {t('invoice')}
                           </span>
-                          <code className="rounded bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--sc-text-secondary)]">
-                            {invoice.invoiceNo}
+                          <code
+                            title={invoice.invoiceNo}
+                            className="rounded border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--sc-text-secondary)]"
+                          >
+                            {formatShortInvoiceNo(invoice.invoiceNo, invoice.id)}
                           </code>
                           <Badge
                             status={
