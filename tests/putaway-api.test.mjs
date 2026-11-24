@@ -140,8 +140,26 @@ test('confirms the assigned quantity with the actual storage bin code only', asy
   };
   assert.deepEqual(await api.confirm(warehouse, task, id, placement), result);
   assert.deepEqual(commands, [placement]);
-  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, qty: 7 }));
+  await assert.rejects(api.confirm(warehouse, task, id, { ...placement, qty: 8 }));
   assert.deepEqual(commands, [placement]);
+});
+test('posts a partial quantity with alternate bin reason and accepts the remaining task', async () => {
+  const partial = {
+    operationKey: id,
+    expectedVersion: 2,
+    toBinScan: 'ST-02',
+    qty: 3,
+    reason: 'Ô gợi ý đã đầy',
+  };
+  const progress = { ...result, status: 'ASSIGNED', confirmedQty: 5 };
+  globalThis.fetch = async (_url, opts) => {
+    assert.deepEqual(JSON.parse(opts.body), partial);
+    return ok(progress);
+  };
+  assert.deepEqual(
+    await api.confirm(warehouse, { ...task, confirmedQty: 2 }, id, partial),
+    progress,
+  );
 });
 test('preserves exact scans and operation after unknown transport failure', async () => {
   const commands = [];
@@ -205,13 +223,15 @@ test('rejects forged input, empty scans and unsafe quantities', () => {
       false,
     );
 });
-test('partial task quantity does not reach the physical API', async () => {
+test('quantity above the remaining task balance does not reach the physical API', async () => {
   let calls = 0;
   globalThis.fetch = async () => {
     calls++;
     return ok(result);
   };
-  await assert.rejects(api.confirm(warehouse, task, id, { ...input, qty: 6 }));
+  await assert.rejects(
+    api.confirm(warehouse, { ...task, confirmedQty: 2 }, id, { ...input, qty: 6 }),
+  );
   assert.equal(calls, 0);
 });
 test('assignment result binds the exact task and chosen Staff', async () => {

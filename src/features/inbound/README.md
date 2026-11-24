@@ -354,3 +354,9 @@ Run `node --test tests/receipt-cartons.test.mjs` for API/validation regression a
 transport, including committed-but-lost replies and conflicts. This visual harness
 is not deployed API/financial acceptance; BE has separate restricted PostgreSQL
 receipt-to-billing integration tests.
+
+### Putaway confirmations (UC-43)
+
+Assigned Staff can scan an eligible storage bin and enter the quantity physically stored there. Using a different bin requires a reason. The task remains open for its unplaced balance and uses a new operation key for the next scan. Transport retries preserve the exact submitted command. Warehouse Managers can view confirmed movements and replan or reassign the remaining balance.
+
+For a full placement, Staff scans the bin and confirms the displayed remaining quantity. The form asks for a quantity when Staff selects partial putaway or the scanned bin cannot fit the full balance. Alternate bin scans offer common reasons and an option to enter a different reason.

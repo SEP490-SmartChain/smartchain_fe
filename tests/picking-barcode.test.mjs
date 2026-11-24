@@ -91,12 +91,18 @@ test('Picking barcode i18n keys exist in both vi.json and en.json', () => {
   const vi = JSON.parse(readFileSync(new URL('../messages/vi.json', import.meta.url), 'utf8'));
   const en = JSON.parse(readFileSync(new URL('../messages/en.json', import.meta.url), 'utf8'));
   for (const key of [
-    'matchedCode',
+    'scanProgress',
+    'continueScan',
+    'previousStep',
+    'skipLot',
     'resolvingBin',
     'viewQrLabels',
     'lineQr',
     'pickLabelsTitle',
     'pickLabelsHint',
+    'previousLabel',
+    'nextLabel',
+    'labelProgress',
     'labelBin',
     'labelSku',
     'labelLot',

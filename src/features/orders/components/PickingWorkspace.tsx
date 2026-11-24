@@ -56,6 +56,13 @@ import {
 
 const CLAIM_WAVE_MAX_PARCELS = 20;
 const MAX_DEEP_LINK_LINE_PAGES = 10;
+const PICK_SCAN_FIELDS = ['binScan', 'skuScan', 'lotScan'] as const;
+const PICK_STEPS = [...PICK_SCAN_FIELDS, 'qty'] as const;
+const PICK_SCAN_ERRORS = {
+  binScan: 'WRONG_BIN',
+  skuScan: 'WRONG_SKU',
+  lotScan: 'WRONG_LOT',
+} as const;
 
 function preferredScrollBehavior(): ScrollBehavior {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -633,6 +640,7 @@ function PickingScope({
               ? t(`errors.${code}`)
               : t('rejected'),
         );
+        if (code === 'LOT_SCAN_REQUIRED') return code;
       } else setError(t('unknown'));
     } finally {
       if (mounted.current) setBusy(false);
@@ -1196,17 +1204,18 @@ function PickLineCard({
   manager: boolean;
   canConfirm: boolean;
   highlighted?: boolean;
-  execute: (c: PickPending) => Promise<void>;
+  execute: (c: PickPending) => Promise<'LOT_SCAN_REQUIRED' | void>;
 }) {
   const t = useTranslations('Picking'),
     [mode, setMode] = useState<'scan' | 'short'>('scan'),
+    [step, setStep] = useState<(typeof PICK_STEPS)[number]>('binScan'),
     [uploadBusy, setUploadBusy] = useState(false),
     [resolvingBin, setResolvingBin] = useState(false);
   const binLookupSeq = useRef(0),
     binLookupAbort = useRef<AbortController | null>(null);
   const f = useForm<z.infer<typeof pickScanSchema>>({
     resolver: zodResolver(pickScanSchema),
-    defaultValues: { qty: 1 },
+    defaultValues: { binScan: '', skuScan: '', lotScan: '', qty: 1 },
   });
   const shortage = useForm<z.infer<typeof pickShortFormSchema>>({
     resolver: zodResolver(pickShortFormSchema),
@@ -1216,63 +1225,64 @@ function PickLineCard({
     resolver: zodResolver(pickApprovalSchema),
   });
   useEffect(() => {
-    if (canConfirm && !disabled && line.remainingQty > 0 && !line.shortage) f.setFocus('binScan');
-  }, [f, canConfirm, disabled, line.remainingQty, line.shortage]);
+    if (
+      canConfirm &&
+      !disabled &&
+      !resolvingBin &&
+      mode === 'scan' &&
+      line.remainingQty > 0 &&
+      !line.shortage
+    ) {
+      f.setFocus(step);
+    }
+  }, [f, canConfirm, disabled, resolvingBin, mode, step, line.remainingQty, line.shortage]);
   useEffect(() => {
     return () => {
       binLookupSeq.current += 1;
       binLookupAbort.current?.abort();
     };
   }, []);
-  const [binValue, skuValue, lotValue] = f.watch(['binScan', 'skuScan', 'lotScan']);
-  async function resolveScannedBinIfNeeded(scanned: string): Promise<string> {
-    const normalized = normalizeScannedCode(scanned);
-    if (!normalized || normalized === line.binCode) return normalized;
+  async function resolveScannedBinIfNeeded(code: string): Promise<string | null> {
+    if (code === line.binCode) return code;
     binLookupAbort.current?.abort();
     const controller = new AbortController();
     binLookupAbort.current = controller;
     const seq = ++binLookupSeq.current;
     setResolvingBin(true);
     try {
-      const resolved = await pickingApi.resolveBinCode(warehouseId, normalized, controller.signal);
-      if (seq !== binLookupSeq.current || controller.signal.aborted) return normalized;
-      if (resolved && normalizeScannedCode(f.getValues('binScan') ?? '') === normalized) {
-        const cleanResolved = normalizeScannedCode(resolved);
-        f.setValue('binScan', cleanResolved, { shouldValidate: true, shouldDirty: true });
-        return cleanResolved;
-      }
-      return normalized;
+      const resolved = await pickingApi.resolveBinCode(warehouseId, code, controller.signal);
+      if (seq !== binLookupSeq.current || controller.signal.aborted) return null;
+      return resolved ? normalizeScannedCode(resolved) : code;
     } finally {
       if (seq === binLookupSeq.current) setResolvingBin(false);
     }
   }
-  function applyCameraScan(field: PickScanField, rawCode: string) {
+  async function acceptScan(field: PickScanField, rawCode: string) {
+    if (disabled || resolvingBin) return;
     const structured = parsePickQrPayload(rawCode);
-    if (structured) {
-      if (structured.bin) {
-        f.setValue('binScan', structured.bin, { shouldValidate: true, shouldDirty: true });
-        void resolveScannedBinIfNeeded(structured.bin);
+    const scanned: Partial<Record<PickScanField, string>> = structured
+      ? { binScan: structured.bin, skuScan: structured.sku, lotScan: structured.lot }
+      : { [field]: normalizeScannedCode(rawCode) };
+    const expected = { binScan: line.binCode, skuScan: line.sku, lotScan: line.lotCode };
+    let next: (typeof PICK_STEPS)[number] = field;
+    for (const name of PICK_SCAN_FIELDS.slice(PICK_SCAN_FIELDS.indexOf(field))) {
+      const code = scanned[name];
+      if (!code && name !== field) break;
+      const actual = name === 'binScan' && code ? await resolveScannedBinIfNeeded(code) : code;
+      if (actual === null) return;
+      f.setValue(name, actual ?? '', { shouldDirty: true });
+      if (!actual || actual !== expected[name]) {
+        setStep(name);
+        f.setError(name, { message: t(`errors.${PICK_SCAN_ERRORS[name]}`) }, { shouldFocus: true });
+        return;
       }
-      if (structured.sku) {
-        f.setValue('skuScan', structured.sku, { shouldValidate: true, shouldDirty: true });
-      }
-      if (structured.lot) {
-        f.setValue('lotScan', structured.lot, { shouldValidate: true, shouldDirty: true });
-      }
-      f.setFocus('qty');
-      return;
+      f.clearErrors(name);
+      next = getNextPickScanField(name);
     }
-    const normalized = normalizeScannedCode(rawCode);
-    if (!normalized) return;
-    f.setValue(field, normalized, { shouldValidate: true, shouldDirty: true });
-    if (field === 'binScan') void resolveScannedBinIfNeeded(normalized);
-    f.setFocus(getNextPickScanField(field));
+    setStep(next);
   }
-  const matchedByField: Record<PickScanField, boolean> = {
-    binScan: normalizeScannedCode(binValue ?? '') === line.binCode,
-    skuScan: normalizeScannedCode(skuValue ?? '') === line.sku,
-    lotScan: normalizeScannedCode(lotValue ?? '') === line.lotCode,
-  };
+  const stepIndex = PICK_STEPS.indexOf(step);
+  const backStep = PICK_STEPS[stepIndex - 1];
   const isCompleted = line.remainingQty === 0;
   const isActivePick = line.remainingQty > 0 && canConfirm && !line.shortage;
   return (
@@ -1391,7 +1401,7 @@ function PickLineCard({
             <Button
               size="sm"
               variant={mode === 'short' ? 'primary' : 'ghost'}
-              disabled={disabled}
+              disabled={disabled || resolvingBin}
               onClick={() => setMode('short')}
             >
               {t('reportShort')}
@@ -1399,100 +1409,111 @@ function PickLineCard({
           </div>
           {mode === 'scan' ? (
             <form
-              className="grid gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/45 p-3.5 sm:grid-cols-2"
+              className="space-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/45 p-3.5"
               autoComplete="off"
-              onSubmit={f.handleSubmit(
-                async (v) => {
-                  const resolvedBin =
-                    v.binScan !== line.binCode
-                      ? await resolveScannedBinIfNeeded(v.binScan)
-                      : v.binScan;
-                  const lotScan = v.lotScan ? normalizeScannedCode(v.lotScan) : '';
-                  await execute({
-                    path: `pick-lines/${line.id}/confirm`,
-                    payload: {
-                      binScan: resolvedBin,
-                      skuScan: v.skuScan,
-                      ...(lotScan ? { lotScan } : {}),
-                      qty: v.qty,
-                      expectedVersion: line.version,
-                      clientScanId: createUuid(),
-                    },
-                  });
-                },
-                () => notifyInvalidForm(),
-              )}
+              onSubmit={
+                step === 'qty'
+                  ? f.handleSubmit(
+                      async (v) => {
+                        const result = await execute({
+                          path: `pick-lines/${line.id}/confirm`,
+                          payload: {
+                            binScan: v.binScan,
+                            skuScan: v.skuScan,
+                            ...(v.lotScan ? { lotScan: v.lotScan } : {}),
+                            qty: v.qty,
+                            expectedVersion: line.version,
+                            clientScanId: createUuid(),
+                          },
+                        });
+                        if (result === 'LOT_SCAN_REQUIRED') setStep('lotScan');
+                      },
+                      () => notifyInvalidForm(),
+                    )
+                  : (event) => {
+                      event.preventDefault();
+                      void acceptScan(step, f.getValues(step));
+                    }
+              }
             >
-              {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => {
-                const isLot = name === 'lotScan';
-                return (
-                  <div key={name} className="space-y-1">
-                    <div className="flex items-end gap-2">
-                      <div className="min-w-0 flex-1">
-                        <Input
-                          label={isLot ? t('lotOptional') : t(name)}
-                          {...f.register(name, {
-                            setValueAs: (value: string) =>
-                              normalizeScannedCode(String(value ?? '')),
-                            onChange: () => {
-                              if (name === 'binScan') {
-                                binLookupSeq.current += 1;
-                                binLookupAbort.current?.abort();
-                                setResolvingBin(false);
-                              }
-                            },
-                          })}
-                          disabled={disabled}
-                          required={!isLot}
-                          onKeyDown={(event) => {
-                            if (event.key !== 'Enter') return;
-                            event.preventDefault();
-                            if (name === 'binScan') {
-                              void resolveScannedBinIfNeeded(f.getValues('binScan') ?? '');
-                            }
-                            f.setFocus(getNextPickScanField(name));
-                          }}
-                          error={f.formState.errors[name] ? t('required') : undefined}
-                        />
-                      </div>
-                      <BarcodeScanButton
-                        label={t(`scanCamera.${name}`)}
-                        disabled={disabled}
-                        iconOnly
-                        onScan={(code) => applyCameraScan(name, code)}
-                      />
-                    </div>
-                    {name === 'binScan' && resolvingBin && (
-                      <p className="text-xs text-[var(--sc-text-secondary)]" role="status">
-                        {t('resolvingBin')}
-                      </p>
-                    )}
-                    {matchedByField[name] && (
-                      <p className="text-xs font-medium text-[var(--sc-success-dark)]">
-                        {t('matchedCode')}
-                      </p>
-                    )}
+              <p className="text-xs text-[var(--sc-text-secondary)]" aria-live="polite">
+                {t('scanProgress', { step: stepIndex + 1, total: PICK_STEPS.length })}
+              </p>
+              {step === 'qty' ? (
+                <Input
+                  key={step}
+                  type="number"
+                  label={t('qty')}
+                  {...f.register('qty', { valueAsNumber: true })}
+                  onFocus={(event) => event.currentTarget.select()}
+                  disabled={disabled}
+                  required
+                  min={1}
+                  max={line.remainingQty}
+                  error={f.formState.errors.qty ? t('invalidQty') : undefined}
+                />
+              ) : (
+                <div key={step} className="flex flex-wrap items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      label={t(step)}
+                      {...f.register(step, {
+                        onChange: () => f.clearErrors(step),
+                      })}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+                        event.preventDefault();
+                        void acceptScan(step, event.currentTarget.value);
+                      }}
+                      readOnly={resolvingBin}
+                      disabled={disabled}
+                      required
+                      helperText={step === 'lotScan' ? t('lotOptional') : undefined}
+                      error={f.formState.errors[step]?.message}
+                    />
                   </div>
-                );
-              })}
-              <Input
-                type="number"
-                label={t('qty')}
-                {...f.register('qty', { valueAsNumber: true })}
-                onFocus={(event) => event.currentTarget.select()}
-                disabled={disabled}
-                required
-                min={1}
-                max={line.remainingQty}
-                error={f.formState.errors.qty ? t('invalidQty') : undefined}
-              />
-              <Button
-                type="submit"
-                className="min-h-11 sm:col-span-2"
-                disabled={disabled || resolvingBin}
-              >
-                {t('confirmScan')}
-              </Button>
+                  <BarcodeScanButton
+                    label={t(`scanCamera.${step}`)}
+                    className="mt-6"
+                    disabled={disabled || resolvingBin}
+                    onScan={(code) => void acceptScan(step, code)}
+                  />
+                </div>
+              )}
+              {resolvingBin && (
+                <p className="text-xs text-[var(--sc-text-secondary)]" role="status">
+                  {t('resolvingBin')}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-end gap-2">
+                {backStep && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled || resolvingBin}
+                    onClick={() => setStep(backStep)}
+                  >
+                    {t('previousStep')}
+                  </Button>
+                )}
+                {step === 'lotScan' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={disabled}
+                    onClick={() => {
+                      f.setValue('lotScan', '');
+                      f.clearErrors('lotScan');
+                      setStep('qty');
+                    }}
+                  >
+                    {t('skipLot')}
+                  </Button>
+                )}
+                <Button type="submit" className="min-h-11" disabled={disabled || resolvingBin}>
+                  {t(step === 'qty' ? 'confirmScan' : 'continueScan')}
+                </Button>
+              </div>
             </form>
           ) : (
             <form

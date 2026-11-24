@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  Input,
+  Select,
+} from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
@@ -26,6 +35,8 @@ import {
   type PutawayPlacement,
   type PutawayAssignment,
   type PutawayWaitingItem,
+  type PutawayResult,
+  type PutawayPlacementHistory,
 } from '../api/putawayApi';
 
 import type { InboundWarehouseScope } from '../types/inboundWarehouse.types';
@@ -354,16 +365,22 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
             {selected && visible.items.some((i) => i.id === selected.id) && (
               <div id={`putaway-task-${selected.id}`} className="space-y-4">
                 <PutawayTaskForm
-                  key={`${current}:${selected.id}:${user?.userId}`}
+                  key={`${current}:${selected.id}:${selected.version}:${user?.userId}`}
                   warehouse={current}
                   task={selected}
                   staff={visible.staff}
                   manager={manager}
                   onLock={setTaskLocked}
                   disabled={loading || relocationLocked || overrideLocked || preparationLocked}
-                  onSaved={(keepDraft = false, failure = '') => {
+                  onSaved={({ keepDraft, result, failure = '' } = {}) => {
                     setTaskActionError(failure);
-                    if (!keepDraft) {
+                    if (result?.status === 'ASSIGNED') {
+                      setSelected({
+                        ...selected,
+                        version: result.version,
+                        confirmedQty: result.confirmedQty,
+                      });
+                    } else if (!keepDraft) {
                       setSelected(null);
                       setCursor(null);
                     }
@@ -398,6 +415,8 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
     </div>
   );
 }
+const alternateBinReasons = ['full', 'damaged', 'blocked', 'other'] as const;
+
 function PutawayTaskForm({
   warehouse,
   task,
@@ -411,7 +430,7 @@ function PutawayTaskForm({
   task: PutawayTask;
   staff: { id: string; fullName: string }[];
   manager: boolean;
-  onSaved: (keepDraft?: boolean, failure?: string) => void;
+  onSaved: (options?: { keepDraft?: boolean; result?: PutawayResult; failure?: string }) => void;
   onLock: (locked: boolean) => void;
   disabled: boolean;
 }) {
@@ -419,6 +438,13 @@ function PutawayTaskForm({
     user = useAuthStore((s) => s.user),
     { can } = useAccess(),
     [assignee, setAssignee] = useState(task.assigneeId ?? ''),
+    [placement, setPlacement] = useState<Awaited<
+      ReturnType<typeof putawayApi.placementOptions>
+    > | null>(null),
+    [partial, setPartial] = useState(false),
+    [reasonChoice, setReasonChoice] = useState(''),
+    [history, setHistory] = useState<PutawayPlacementHistory | null>(null),
+    [detailsError, setDetailsError] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [attempt, setAttempt] = useState<
@@ -429,7 +455,10 @@ function PutawayTaskForm({
   const generation = useRef(0),
     controller = useRef<AbortController | null>(null),
     titleRef = useRef<HTMLHeadingElement>(null);
+  const remaining = task.qty - task.confirmedQty;
+  const locale = useLocale();
   const {
+    control,
     register,
     handleSubmit,
     setValue,
@@ -442,6 +471,18 @@ function PutawayTaskForm({
       toBinScan: '',
     },
   });
+  const scannedBin = useWatch({ control, name: 'toBinScan' });
+  const options = placement?.items;
+  const scannedOption = scannedBin
+    ? options?.find((bin) => scannedBin === bin.code || scannedBin === bin.barcode)
+    : undefined;
+  const qtyLimit = scannedOption?.maxQty ?? remaining;
+  const limited = qtyLimit < remaining;
+  const showQuantity = partial || limited;
+  const alternate =
+    Boolean(scannedBin) &&
+    scannedBin !== task.toBinCode &&
+    scannedBin !== placement?.suggestedBinBarcode;
   useEffect(() => {
     titleRef.current?.focus();
     const c = new AbortController();
@@ -463,16 +504,35 @@ function PutawayTaskForm({
     can('warehouse.putaway.confirm') &&
     task.status === 'ASSIGNED' &&
     task.assigneeId === user?.userId;
+  useEffect(() => {
+    const c = new AbortController();
+    const load = async () => {
+      try {
+        if (confirmAllowed) {
+          const next = await putawayApi.placementOptions(warehouse, task, c.signal);
+          if (!c.signal.aborted) setPlacement(next);
+        } else if (manager && task.confirmedQty > 0) {
+          const placements = await putawayApi.placementHistory(warehouse, task, c.signal);
+          if (!c.signal.aborted) setHistory(placements);
+        }
+      } catch {
+        if (!c.signal.aborted) setDetailsError(true);
+      }
+    };
+    void load();
+    return () => c.abort();
+  }, [confirmAllowed, manager, task, warehouse]);
   async function send(command: NonNullable<typeof attempt>) {
     if (disabled || busy || user !== useAuthStore.getState().user) return;
     const g = generation.current;
     setBusy(true);
     setError('');
     try {
+      let result: PutawayResult | undefined;
       if (command.kind === 'ASSIGN') {
         await putawayApi.assign(warehouse, task, command.input, controller.current?.signal);
       } else {
-        await putawayApi.confirm(
+        result = await putawayApi.confirm(
           warehouse,
           task,
           user?.userId ?? '',
@@ -482,14 +542,21 @@ function PutawayTaskForm({
       }
       if (g !== generation.current || user !== useAuthStore.getState().user) return;
       setAttempt(null);
-      toast.success(t(command.kind === 'ASSIGN' ? 'assignmentSuccess' : 'confirmSuccess'));
-      onSaved();
+      if (result?.status === 'ASSIGNED') {
+        toast.success(t('partialConfirmed', { remaining: task.qty - result.confirmedQty }));
+        onSaved({ result });
+      } else {
+        toast.success(t(command.kind === 'ASSIGN' ? 'assignmentSuccess' : 'confirmSuccess'));
+        onSaved();
+      }
     } catch (e: unknown) {
       if (g !== generation.current || user !== useAuthStore.getState().user) return;
       setError(e instanceof ApiError ? e.message : t('saveError'));
       if (e instanceof ApiError && [400, 403, 404, 409, 422].includes(e.status)) {
         setAttempt(null);
-        if ([403, 404, 409].includes(e.status)) onSaved(e.status === 409, e.message);
+        if ([403, 404, 409].includes(e.status)) {
+          onSaved({ keepDraft: e.status === 409, failure: e.message });
+        }
       } else setAttempt(command);
     } finally {
       if (g === generation.current) setBusy(false);
@@ -502,8 +569,37 @@ function PutawayTaskForm({
           {t('taskTitle', { sku: task.sku, lot: task.lotCode })}
         </h2>
         <p className="break-words text-sm">
-          {t('expected', { from: task.fromBinCode, to: task.toBinCode, qty: task.qty })}
+          {t('expected', { from: task.fromBinCode, to: task.toBinCode, qty: remaining })}
         </p>
+        {detailsError && <Alert variant="warning">{t('placementDetailsError')}</Alert>}
+        {history && history.length > 0 && (
+          <section aria-label={t('placementHistory')} className="space-y-2">
+            <h3 className="font-semibold">{t('placementHistory')}</h3>
+            <ul className="space-y-2 text-sm">
+              {history.map((item) => (
+                <li key={item.id}>
+                  <p>
+                    {t('placementEntry', {
+                      from: task.fromBinCode,
+                      to: item.binCode,
+                      qty: item.qty,
+                      actor:
+                        staff.find((person) => person.id === item.actorId)?.fullName ??
+                        item.actorId,
+                      time: new Intl.DateTimeFormat(locale, {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      }).format(new Date(item.createdAt)),
+                    })}
+                  </p>
+                  {item.reason && (
+                    <p className="break-words text-[var(--sc-text-secondary)]">{item.reason}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {error && <Alert variant="error">{error}</Alert>}
         {attempt ? (
           <>
@@ -549,7 +645,25 @@ function PutawayTaskForm({
               <form
                 className="space-y-4"
                 onSubmit={handleSubmit(
-                  (input) => void send({ kind: 'CONFIRM', input }),
+                  (input) => {
+                    const qty = showQuantity ? input.qty : remaining;
+                    if (qty === undefined || qty > qtyLimit) {
+                      setError(t('placementQuantityError', { remaining: qtyLimit }));
+                      return;
+                    }
+                    const choice = alternateBinReasons.find((option) => option === reasonChoice);
+                    const reason =
+                      alternate && choice
+                        ? choice === 'other'
+                          ? input.reason
+                          : t(`placementReasons.${choice}`)
+                        : undefined;
+                    if (alternate && !reason) {
+                      setError(t('placementReasonRequired'));
+                      return;
+                    }
+                    void send({ kind: 'CONFIRM', input: { ...input, qty, reason } });
+                  },
                   () => notifyInvalidForm(),
                 )}
               >
@@ -571,9 +685,75 @@ function PutawayTaskForm({
                       })
                     }
                   />
+                  {!limited && (
+                    <Checkbox
+                      label={t('placementPartial')}
+                      checked={partial}
+                      onChange={(event) => setPartial(event.target.checked)}
+                    />
+                  )}
+                  {showQuantity && (
+                    <Input
+                      label={t('placementQuantity')}
+                      type="number"
+                      required
+                      min={1}
+                      max={qtyLimit}
+                      step={1}
+                      helperText={limited ? t('placementCapacity', { qty: qtyLimit }) : undefined}
+                      {...register('qty', { valueAsNumber: true, shouldUnregister: true })}
+                      error={
+                        errors.qty
+                          ? t('placementQuantityError', { remaining: qtyLimit })
+                          : undefined
+                      }
+                    />
+                  )}
+                  {alternate && (
+                    <Select
+                      label={t('placementReason')}
+                      required
+                      placeholder={t('placementChooseReason')}
+                      value={reasonChoice}
+                      onChange={(event) => setReasonChoice(event.target.value)}
+                      options={alternateBinReasons.map((reason) => ({
+                        value: reason,
+                        label: t(`placementReasons.${reason}`),
+                      }))}
+                    />
+                  )}
+                  {alternate && reasonChoice === 'other' && (
+                    <Input
+                      label={t('placementOtherReason')}
+                      required
+                      maxLength={500}
+                      {...register('reason', {
+                        shouldUnregister: true,
+                        setValueAs: (value: string) => value.trim() || undefined,
+                      })}
+                      error={errors.reason ? t('placementReasonError') : undefined}
+                    />
+                  )}
+                  {options && options.length > 0 && (
+                    <details className="text-sm">
+                      <summary className="cursor-pointer font-medium">
+                        {t('placementOptions')}
+                      </summary>
+                      <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto pl-4">
+                        {options.map((bin) => (
+                          <li key={bin.code}>
+                            {t('placementOption', { bin: bin.code, qty: bin.maxQty })}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                  {options?.length === 0 && (
+                    <Alert variant="warning">{t('noPlacementOptions')}</Alert>
+                  )}
                 </fieldset>
-                <Button type="submit" disabled={busy || disabled}>
-                  {t('confirm')}
+                <Button type="submit" disabled={busy || disabled || !scannedBin}>
+                  {showQuantity ? t('confirm') : t('confirmAll', { qty: remaining })}
                 </Button>
               </form>
             ) : (
