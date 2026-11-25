@@ -1687,7 +1687,408 @@
     "dismiss": "Đóng thông báo",
     "validationTitle": "Thông tin nhập chưa hợp lệ",
     "validationHint": "Kiểm tra các trường báo lỗi rồi thử lại.",
-    "errorHint": "Đã xảy ra lỗi. Xem chi tiết trên màn hình."
+    "errorHint": "Đã xảy ra lỗi. Xem chi tiết trên màn hình.",
+    "title": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "empty": "Chưa có thông báo mới",
+    "allTab": "Tất cả",
+    "unreadTab": "Chưa đọc",
+    "live": "Trực tiếp",
+    "offline": "Ngoại tuyến",
+    "allCategories": "Tất cả nhóm",
+    "viewDetail": "Xem chi tiết",
+    "banner": {
+      "activatedBadge": "Đã kích hoạt dịch vụ",
+      "activatedTitle": "Thanh toán thành công — Đã tự động kích hoạt dịch vụ",
+      "activatedDescription": "Giao dịch đã được xác nhận và mở khóa toàn bộ tính năng vận hành ngay lập tức mà không cần tải lại trang.",
+      "activatedContinue": "Bắt đầu vận hành ngay",
+      "postedBadge": "Đã ghi nhận thanh toán",
+      "postedTitle": "Thanh toán đã ghi nhận — Đang hoàn tất kích hoạt",
+      "postedDescription": "Giao dịch SePay đã được đối soát tự động. Trạng thái dịch vụ sẽ tự động mở khóa trong giây lát.",
+      "postedContinue": "Xem chi tiết hóa đơn"
+    },
+    "events": {
+      "asn_submitted": {
+        "title": "Phiếu nhập kho mới được gửi",
+        "body": "Một phiếu nhập kho mới đã được gửi tới kho chờ tiếp nhận."
+      },
+      "asn_cancelled": {
+        "title": "Phiếu nhập kho đã hủy",
+        "body": "Phiếu nhập kho đã được hủy xử lý."
+      },
+      "asn_arrived": {
+        "title": "Hàng nhập kho đã đến nơi",
+        "body": "Phiếu nhập kho đã tới cổng kho và sẵn sàng kiểm đếm."
+      },
+      "inbound_discrepancy_seller_notified": {
+        "title": "Phát hiện sai lệch nhập kho",
+        "body": "Lô hàng nhập kho có sai lệch kiểm đếm cần nhà bán kiểm tra."
+      },
+      "receipt_discrepancy_reported": {
+        "title": "Báo cáo sai lệch biên bản nhận hàng",
+        "body": "Biên bản nhận hàng ghi nhận sai lệch và đang chờ quản lý kho phê duyệt."
+      },
+      "receipt_reviewed_approved": {
+        "title": "Biên bản nhận hàng đã được duyệt",
+        "body": "Biên bản nhận hàng đã được quản lý kho phê duyệt hoàn tất."
+      },
+      "receipt_reviewed_returned": {
+        "title": "Yêu cầu kiểm đếm lại biên bản nhận hàng",
+        "body": "Quản lý kho đã trả lại biên bản nhận hàng để nhân viên kho kiểm đếm lại."
+      },
+      "asn_received": {
+        "title": "Đã hoàn tất nhận hàng vào kho",
+        "body": "Phiếu nhập kho đã hoàn tất bước nhận hàng vật lý tại kho."
+      },
+      "putaway_completed": {
+        "title": "Hàng đã lên kệ sẵn sàng mở bán",
+        "body": "Hàng hóa đã được xếp lên kệ lưu trữ và sẵn sàng tồn kho khả dụng."
+      },
+      "pick_wave_ready": {
+        "title": "Đợt lấy hàng mới sẵn sàng",
+        "body": "Đợt lấy hàng mới đã được tạo và sẵn sàng thực hiện tại kho."
+      },
+      "pick_short_reported": {
+        "title": "Báo thiếu hàng khi lấy đơn",
+        "body": "Phát hiện thiếu tồn kho tại vị trí lấy hàng, cần xử lý thay thế."
+      },
+      "pick_short_replaced": {
+        "title": "Đã xử lý thay thế hàng thiếu",
+        "body": "Hàng thay thế cho vị trí thiếu hàng đã được cập nhật."
+      },
+      "order_cancellation_requested": {
+        "title": "Yêu cầu hủy đơn hàng khẩn",
+        "body": "Có đơn hàng vừa yêu cầu hủy — dừng lấy/đóng gói và đưa hàng về kệ nếu cần."
+      },
+      "order_picked_ready_for_packing": {
+        "title": "Đơn hàng sẵn sàng đóng gói",
+        "body": "Đơn hàng đã lấy đủ sản phẩm và sẵn sàng chuyển sang khu đóng gói."
+      },
+      "shipment_label_ready": {
+        "title": "Nhãn vận đơn đã sẵn sàng",
+        "body": "Nhãn vận đơn đã được tạo thành công cho kiện hàng."
+      },
+      "shipment_label_failed": {
+        "title": "Tạo nhãn vận đơn thất bại",
+        "body": "Không thể tạo nhãn vận đơn từ hãng vận chuyển, cần kiểm tra và thử lại."
+      },
+      "parcel_handed_over": {
+        "title": "Kiện hàng đã bàn giao vận chuyển",
+        "body": "Kiện hàng đã hoàn tất bàn giao cho đơn vị vận chuyển."
+      },
+      "shipment_status_delivered": {
+        "title": "Giao hàng thành công",
+        "body": "Vận đơn đã được giao thành công tới người nhận."
+      },
+      "shipment_status_delivery_failed": {
+        "title": "Giao hàng thất bại",
+        "body": "Vận đơn giao không thành công tới người nhận, cần theo dõi xử lý."
+      },
+      "shipment_status_returning": {
+        "title": "Vận đơn đang hoàn về",
+        "body": "Vận đơn đang trong quá trình chuyển hoàn về kho ORCA."
+      },
+      "shipment_status_lost": {
+        "title": "Cảnh báo vận đơn thất lạc",
+        "body": "Hãng vận chuyển ghi nhận sự cố thất lạc kiện hàng cần mở khiếu nại."
+      },
+      "shipment_returned": {
+        "title": "Vận đơn đã hoàn về kho",
+        "body": "Kiện hàng hoàn trả đã về tới kho để kiểm tra."
+      },
+      "sla_handover_overdue": {
+        "title": "Cảnh báo quá hạn bàn giao SLA",
+        "body": "Đơn hàng đã vượt thời hạn cam kết bàn giao cho hãng vận chuyển."
+      },
+      "sla_tracking_stalled": {
+        "title": "Cảnh báo hành trình vận đơn bị đứng",
+        "body": "Vận đơn chưa có cập nhật hành trình mới quá thời gian SLA."
+      },
+      "handover_carrier_pickup_mismatch": {
+        "title": "Sai lệch bàn giao hãng vận chuyển",
+        "body": "Phiên bàn giao ghi nhận chênh lệch kiện hàng với đơn vị vận chuyển."
+      },
+      "stock_low": {
+        "title": "Cảnh báo tồn kho thấp",
+        "body": "Có sản phẩm xuống dưới mức tồn kho an toàn, cần bổ sung hàng."
+      },
+      "inventory_low_stock": {
+        "title": "Tồn kho dưới ngưỡng tối thiểu",
+        "body": "Mức tồn kho khả dụng đang dưới ngưỡng tối thiểu đã thiết lập."
+      },
+      "lot_near_expiry": {
+        "title": "Cảnh báo lô hàng sắp hết hạn",
+        "body": "Phát hiện lô hàng sắp hết hạn hoặc đã khóa theo quy tắc hạn sử dụng."
+      },
+      "orders_sheet_sync_failed": {
+        "title": "Đồng bộ Google Sheet thất bại",
+        "body": "Kết nối Google Sheet đơn hàng gặp lỗi, vui lòng kiểm tra lại cấu hình."
+      },
+      "order_on_hold": {
+        "title": "Đơn hàng đang tạm giữ",
+        "body": "Đơn hàng đang bị tạm giữ để rà soát trước khi phân bổ."
+      },
+      "order_backorder": {
+        "title": "Đơn hàng chờ bổ sung tồn kho",
+        "body": "Đơn hàng đang tạm chờ (Backorder) do chưa đủ tồn kho khả dụng."
+      },
+      "order_exception_corrected": {
+        "title": "Đã xử lý ngoại lệ đơn hàng",
+        "body": "Thông tin đơn hàng bị lỗi đã được chỉnh sửa và đưa lại vào luồng xử lý."
+      },
+      "webhook_endpoint_exhausted": {
+        "title": "Webhook endpoint ngừng phản hồi",
+        "body": "Điểm cuối webhook đã vượt quá số lần thử lại và cần kiểm tra."
+      },
+      "putaway_plan_ready": {
+        "title": "Kế hoạch xếp kệ đã sẵn sàng",
+        "body": "Nhiệm vụ xếp kệ lưu trữ đã được lập và sẵn sàng thực hiện."
+      },
+      "putaway_capacity_required": {
+        "title": "Cần điều chỉnh sức chứa kệ",
+        "body": "Không đủ sức chứa tại các kệ hiện có, cần quản lý kho xử lý."
+      },
+      "putaway_bin_overridden": {
+        "title": "Đã ghi đè vị trí kệ xếp hàng",
+        "body": "Vị trí kệ đích của nhiệm vụ xếp hàng vừa được quản lý kho điều chỉnh."
+      },
+      "putback_retargeted": {
+        "title": "Đã chuyển vị trí đưa hàng về kệ",
+        "body": "Nhiệm vụ đưa hàng hủy về kệ vừa được cập nhật vị trí đích mới."
+      },
+      "withdrawal_created": {
+        "title": "Yêu cầu rút hàng mới",
+        "body": "Phiếu rút tồn kho mới vừa được tạo và chờ kho xử lý."
+      },
+      "withdrawal_dispatched": {
+        "title": "Phiếu rút hàng đã xuất kho",
+        "body": "Hàng hóa của phiếu rút hàng đã được xuất khỏi kho thành công."
+      },
+      "carrier_health_changed": {
+        "title": "Thay đổi tình trạng hãng vận chuyển",
+        "body": "Tình trạng kết nối tới hãng vận chuyển vừa có sự thay đổi."
+      },
+      "rate_collection_completed": {
+        "title": "Hoàn tất thu thập bảng giá cước",
+        "body": "Phiên thu thập giá cước vận chuyển mới nhất đã hoàn tất."
+      },
+      "rate_change_alert_created": {
+        "title": "Cảnh báo biến động giá cước",
+        "body": "Hệ thống phát hiện biến động cước phí cần xem xét cập nhật."
+      },
+      "ai_forecast_completed": {
+        "title": "Dự báo nhu cầu AI hoàn tất",
+        "body": "Kết quả dự báo nhu cầu tồn kho AI đã sẵn sàng để xem."
+      },
+      "ai_forecast_failed": {
+        "title": "Dự báo nhu cầu AI thất bại",
+        "body": "Phiên chạy dự báo nhu cầu AI gặp sự cố, vui lòng thử lại sau."
+      },
+      "commercial_custom_inquiry_submitted": {
+        "title": "Có yêu cầu gói doanh nghiệp mới",
+        "body": "Một yêu cầu tư vấn gói tùy chỉnh mới vừa được gửi tới hệ thống."
+      },
+      "commercial_custom_contract_offered": {
+        "title": "Đề xuất hợp đồng mới đã sẵn sàng",
+        "body": "ORCA vừa phát hành hợp đồng đề xuất tùy chỉnh cho doanh nghiệp."
+      },
+      "commercial_signing_requested": {
+        "title": "Yêu cầu ký hợp đồng điện tử",
+        "body": "Hợp đồng đã sẵn sàng và đang chờ ký xác nhận trên SignNow."
+      },
+      "commercial_contract_signed": {
+        "title": "Hợp đồng đã được ký thành công",
+        "body": "Hợp đồng đã hoàn tất ký số. Đang chuẩn bị hóa đơn thanh toán kích hoạt."
+      },
+      "commercial_signing_declined": {
+        "title": "Hợp đồng bị từ chối ký",
+        "body": "Phiên ký hợp đồng điện tử đã bị từ chối hoặc hủy bỏ."
+      },
+      "commercial_payment_posted": {
+        "title": "Ghi nhận thanh toán thành công",
+        "body": "Thanh toán qua SePay đã được ghi nhận và đối soát tức thời."
+      },
+      "commercial_bank_receipt_posted": {
+        "title": "Đã ghi nhận chứng từ chuyển khoản",
+        "body": "Chứng từ thanh toán chuyển khoản ngân hàng đã được kế toán xác nhận."
+      },
+      "commercial_mock_payment_posted": {
+        "title": "Ghi nhận thanh toán thử nghiệm",
+        "body": "Giao dịch thanh toán thử nghiệm đã được ghi nhận trên hóa đơn."
+      },
+      "commercial_service_activated": {
+        "title": "Dịch vụ đã được kích hoạt",
+        "body": "Tài khoản dịch vụ ORCA đã kích hoạt và mở khóa toàn bộ tính năng."
+      },
+      "sepay_unmatched_received": {
+        "title": "Nhận giao dịch SePay chưa khớp",
+        "body": "Có giao dịch SePay mới cần kế toán kiểm tra và đối soát thủ công."
+      },
+      "commercial_plan_change_requested": {
+        "title": "Yêu cầu đổi gói dịch vụ",
+        "body": "Yêu cầu thay đổi gói dịch vụ vừa được ghi nhận chờ xử lý."
+      },
+      "commercial_plan_change_scheduled": {
+        "title": "Đã lên lịch đổi gói dịch vụ",
+        "body": "Yêu cầu đổi gói dịch vụ đã được duyệt và lên lịch áp dụng."
+      },
+      "commercial_plan_change_rejected": {
+        "title": "Yêu cầu đổi gói bị từ chối",
+        "body": "Yêu cầu thay đổi gói dịch vụ chưa được chấp thuận."
+      },
+      "commercial_plan_change_applied": {
+        "title": "Đã áp dụng gói dịch vụ mới",
+        "body": "Gói dịch vụ mới đã chính thức có hiệu lực trên tài khoản."
+      },
+      "commercial_service_status_changed": {
+        "title": "Trạng thái dịch vụ đã thay đổi",
+        "body": "Trạng thái sử dụng dịch vụ của tài khoản vừa được cập nhật."
+      },
+      "tenant_status_changed": {
+        "title": "Trạng thái doanh nghiệp đã thay đổi",
+        "body": "Trạng thái hoạt động của doanh nghiệp vừa được quản trị viên cập nhật."
+      },
+      "commercial_closure_requested": {
+        "title": "Yêu cầu đóng hợp đồng",
+        "body": "Yêu cầu chấm dứt và tất toán hợp đồng đã được ghi nhận."
+      },
+      "commercial_contract_closed": {
+        "title": "Hợp đồng đã đóng",
+        "body": "Hợp đồng dịch vụ đã hoàn tất thanh lý và đóng thành công."
+      },
+      "invoice_issued": {
+        "title": "Hóa đơn mới đã được phát hành",
+        "body": "Một hóa đơn mới vừa được phát hành trong kỳ thanh toán."
+      },
+      "invoice_due_soon": {
+        "title": "Hóa đơn sắp đến hạn thanh toán",
+        "body": "Có hóa đơn sắp đến hạn thanh toán, vui lòng kiểm tra và hoàn tất."
+      },
+      "payout_sent": {
+        "title": "Đã gửi đối soát chi trả COD",
+        "body": "Bảng kê chi trả COD mới đã được gửi để nhà bán đối soát."
+      },
+      "payout_confirmed": {
+        "title": "Người bán đã xác nhận chi trả",
+        "body": "Bảng kê chi trả COD đã được nhà bán xác nhận."
+      },
+      "payout_disputed": {
+        "title": "Khiếu nại đối soát chi trả COD",
+        "body": "Có khiếu nại sai lệch trong bảng kê chi trả COD cần kiểm tra."
+      },
+      "payout_line_disputed": {
+        "title": "Khiếu nại chi tiết dòng chi trả COD",
+        "body": "Một dòng giao dịch trên bảng kê chi trả COD vừa bị khiếu nại."
+      },
+      "payout_resolved": {
+        "title": "Đã giải quyết tranh chấp chi trả",
+        "body": "Tranh chấp trên bảng kê chi trả COD đã được giải quyết."
+      },
+      "payout_reviewed": {
+        "title": "Đã rà soát bảng kê chi trả COD",
+        "body": "Bảng kê chi trả COD vừa được cập nhật trạng thái rà soát."
+      },
+      "payout_approved": {
+        "title": "Đã phê duyệt lệnh chi trả COD",
+        "body": "Lệnh thanh toán chi trả COD đã được phê duyệt."
+      },
+      "payout_paid": {
+        "title": "Đã hoàn tất chi trả COD",
+        "body": "Khoản thanh toán chi trả COD đã được chuyển khoản hoàn tất."
+      },
+      "return_requested": {
+        "title": "Yêu cầu trả hàng mới",
+        "body": "Phiếu yêu cầu trả hàng mới vừa được tạo."
+      },
+      "return_reverse_requested": {
+        "title": "Yêu cầu thu hồi hoàn hàng",
+        "body": "Yêu cầu vận chuyển thu hồi hàng hoàn đã được khởi tạo."
+      },
+      "return_reverse_authorized": {
+        "title": "Đã duyệt vận chuyển thu hồi",
+        "body": "Lệnh vận chuyển thu hồi cho phiếu trả hàng đã được phê duyệt."
+      },
+      "return_authorized": {
+        "title": "Đã duyệt yêu cầu trả hàng",
+        "body": "Yêu cầu trả hàng đã được điều phối viên phê duyệt."
+      },
+      "return_arrived": {
+        "title": "Hàng hoàn trả đã về kho",
+        "body": "Kiện hàng hoàn trả đã được tiếp nhận tại kho để kiểm tra."
+      },
+      "return_inspected": {
+        "title": "Đã kiểm tra chất lượng hàng hoàn",
+        "body": "Nhân viên kho đã hoàn tất phân loại và chụp bằng chứng hàng hoàn."
+      },
+      "return_reviewed": {
+        "title": "Đã duyệt xử lý hàng hoàn trả",
+        "body": "Quản lý kho đã duyệt phương án xử lý đối với hàng hoàn trả."
+      },
+      "return_restocked": {
+        "title": "Đã nhập lại kho hàng hoàn trả",
+        "body": "Sản phẩm hoàn trả đạt chuẩn đã được nhập lại tồn kho."
+      },
+      "claim_opened": {
+        "title": "Hồ sơ khiếu nại mới",
+        "body": "Hồ sơ khiếu nại bồi thường mới vừa được tạo."
+      },
+      "claim_evidence_submitted": {
+        "title": "Đã bổ sung chứng từ khiếu nại",
+        "body": "Kho vừa tải lên thêm bằng chứng xác minh cho hồ sơ khiếu nại."
+      },
+      "claim_investigated": {
+        "title": "Đã hoàn tất xác minh khiếu nại",
+        "body": "Bộ phận vận hành đã hoàn tất điều tra nguyên nhân khiếu nại."
+      },
+      "claim_decided": {
+        "title": "Đã có quyết định khiếu nại",
+        "body": "Hồ sơ khiếu nại đã có kết luận phê duyệt cuối cùng."
+      },
+      "claim_credit_posted": {
+        "title": "Đã ghi nhận bù trừ khiếu nại",
+        "body": "Khoản bồi thường khiếu nại đã được hạch toán vào sổ cái."
+      },
+      "count_assigned": {
+        "title": "Phân công kiểm kê tồn kho",
+        "body": "Bạn vừa được phân công một phiên kiểm kê tồn kho mới tại kho."
+      },
+      "count_observed": {
+        "title": "Đã ghi nhận kết quả kiểm kê",
+        "body": "Nhân viên kho đã gửi số liệu kiểm đếm thực tế cho phiên kiểm kê."
+      },
+      "count_recount_requested": {
+        "title": "Yêu cầu kiểm kê lại",
+        "body": "Quản lý kho yêu cầu kiểm đếm lại cho phiên kiểm kê hiện tại."
+      },
+      "disposal_requested": {
+        "title": "Yêu cầu tiêu hủy hàng tồn kho",
+        "body": "Có yêu cầu tiêu hủy tồn kho mới đang chờ quản lý kho xét duyệt."
+      },
+      "disposal_reviewed": {
+        "title": "Đã duyệt yêu cầu tiêu hủy",
+        "body": "Quản lý kho đã phản hồi xét duyệt phiếu tiêu hủy tồn kho."
+      },
+      "disposal_revoked": {
+        "title": "Đã thu hồi yêu cầu tiêu hủy",
+        "body": "Phiếu yêu cầu tiêu hủy tồn kho vừa bị nhà bán thu hồi."
+      },
+      "disposal_executed": {
+        "title": "Đã hoàn tất tiêu hủy hàng",
+        "body": "Phiếu tiêu hủy tồn kho đã được kho thực hiện xong."
+      },
+      "lot_recalled": {
+        "title": "Cảnh báo thu hồi lô hàng",
+        "body": "Lô hàng vừa được đánh dấu thu hồi khẩn cấp để chặn xuất kho."
+      },
+      "recall_customer_notification": {
+        "title": "Thông báo thu hồi sản phẩm tới khách hàng",
+        "body": "Cần gửi thông báo thu hồi lô hàng khẩn tới các đơn hàng bị ảnh hưởng."
+      },
+      "platform_user_warehouses_assigned": {
+        "title": "Cập nhật phân công kho làm việc",
+        "body": "Danh sách kho được phân công của bạn vừa được cập nhật."
+      }
+    }
   },
   "Error": {
     "not_found_heading": "Không tìm thấy trang",

@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, PageHeader, Select } from '@/components/Common';
 import { useProducts } from '@/features/catalog';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/services/apiClient';
@@ -70,6 +71,7 @@ export function DemandForecast() {
   const [listError, setListError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const request = useRef<AbortController | null>(null);
   const {
     register,
@@ -110,7 +112,9 @@ export function DemandForecast() {
         setRuns((previous) =>
           [run, ...previous.filter((row) => row.jobId !== run.jobId)].slice(0, 100),
         );
-        if (isForecastPending(run)) timer = setTimeout(() => void poll(), 2000);
+        if (isForecastPending(run) && !isRealtimeConnected) {
+          timer = setTimeout(() => void poll(), 2000);
+        }
       } catch (failure) {
         if (controller.signal.aborted) return;
         setError(failure instanceof ApiError && failure.status === 404 ? 'notFound' : 'loadError');
@@ -127,7 +131,10 @@ export function DemandForecast() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [selectedId, retry]);
+  }, [selectedId, isRealtimeConnected, retry]);
+  useRealtimeSync(['forecast.demand'], () => {
+    setRetry((value) => value + 1);
+  });
   async function submit(send: (signal: AbortSignal) => Promise<ForecastRun>) {
     request.current?.abort();
     const controller = new AbortController();

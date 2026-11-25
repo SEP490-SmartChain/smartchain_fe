@@ -17,6 +17,7 @@ import {
   Input,
   Select,
 } from '@/components/Common';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
@@ -156,8 +157,16 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
       });
     return () => c.abort();
   }, [current, cursor, waitingCursor, user, manager, refresh, t, preparationLocked]);
+  const isRealtimeConnected = useIsRealtimeConnected();
+  useRealtimeSync(
+    ['inbound.putaway'],
+    () => {
+      if (!selected && !locked) setRefresh((value) => value + 1);
+    },
+    { enabled: Boolean(current) },
+  );
   useEffect(() => {
-    if (!visible?.waiting.length || selected || locked || loading) return;
+    if (!visible?.waiting.length || selected || locked || loading || isRealtimeConnected) return;
     const update = () => setRefresh((value) => value + 1);
     const timer = window.setInterval(update, 30_000);
     window.addEventListener('focus', update);
@@ -165,7 +174,7 @@ export function PutawayWorkspace({ warehouse, onNavigationLockChange }: InboundW
       window.clearInterval(timer);
       window.removeEventListener('focus', update);
     };
-  }, [visible?.waiting.length, selected, locked, loading]);
+  }, [visible?.waiting.length, selected, locked, loading, isRealtimeConnected]);
   return (
     <div className="space-y-6" aria-busy={loading}>
       <div className="flex flex-wrap items-start justify-between gap-3">

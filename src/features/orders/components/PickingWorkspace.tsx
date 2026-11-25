@@ -22,6 +22,7 @@ import {
   loadFulfillmentPending,
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
@@ -84,6 +85,11 @@ function currentCutoffInput(): string {
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
     revision = useAuthStore((s) => s.revision);
+  const isRealtimeConnected = useIsRealtimeConnected();
+  const [syncRevision, setSyncRevision] = useState(0);
+  useRealtimeSync(['outbound.picking', 'outbound.orders'], () => {
+    setSyncRevision((n) => n + 1);
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const handoffWarehouse = searchParams.get('warehouse');
   const handoffWave = searchParams.get('wave');
@@ -118,6 +124,8 @@ export function PickingWorkspace() {
       handoffException={handoffException}
       handoffIntent={handoffIntent}
       clearHandoffParams={clearHandoffParams}
+      syncRevision={syncRevision}
+      realtimeConnected={isRealtimeConnected}
     />
   );
 }
@@ -140,6 +148,8 @@ function PickingScope({
   handoffException = null,
   handoffIntent = null,
   clearHandoffParams,
+  syncRevision = 0,
+  realtimeConnected = false,
 }: {
   handoffWarehouse?: string | null;
   handoffWave?: string | null;
@@ -148,6 +158,8 @@ function PickingScope({
   handoffException?: string | null;
   handoffIntent?: 'shortage' | 'progress' | null;
   clearHandoffParams?: () => void;
+  syncRevision?: number;
+  realtimeConnected?: boolean;
 } = {}) {
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const revision = useAuthStore((s) => s.revision) ?? 0;
@@ -402,7 +414,7 @@ function PickingScope({
       window.clearTimeout(startTimer);
       c.abort();
     };
-  }, [warehouse, cursor, backlogCursor, manager, refresh, t]);
+  }, [warehouse, cursor, backlogCursor, manager, refresh, syncRevision, t]);
   useEffect(() => {
     setLineCursor(null);
   }, [warehouse, waveId]);
@@ -434,7 +446,7 @@ function PickingScope({
         }
       });
     return () => c.abort();
-  }, [warehouse, waveId, refresh, lineCursor, deepLinkFetchSeq, t]);
+  }, [warehouse, waveId, refresh, syncRevision, lineCursor, deepLinkFetchSeq, t]);
   // Resolve verified deep-link wave/line focus across line pagination pages with live intent/exceptionId
   // and strict same-parcel fallback only (M1 + M2 + High #3).
   useEffect(() => {
@@ -573,14 +585,17 @@ function PickingScope({
       }
     };
     void read();
-    const timer = setInterval(() => {
-      void read();
-    }, 2000);
+    const timer = setInterval(
+      () => {
+        void read();
+      },
+      realtimeConnected ? 15000 : 2000,
+    );
     return () => {
       c.abort();
       clearInterval(timer);
     };
-  }, [warehouse, waveRequest, t]);
+  }, [warehouse, waveRequest, realtimeConnected, syncRevision, t]);
   async function execute(command: PickPending) {
     if (busy) return;
     setBusy(true);

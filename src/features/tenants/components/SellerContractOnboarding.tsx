@@ -24,6 +24,7 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 import Modal from '@/components/Common/Modal/Modal';
+import { LivePaymentSuccessBanner } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -37,6 +38,7 @@ import type { CommercialPlan } from '../api/commercialApi';
 
 export function SellerContractOnboarding() {
   const t = useTranslations('Commercial');
+  const nt = useTranslations('Notifications');
   const navigate = useNavigate();
   const locale = useLocaleStore((state) => state.locale);
   const flow = useSellerCommercial();
@@ -124,6 +126,32 @@ export function SellerContractOnboarding() {
         <Alert variant="error" title={t('error')}>
           {flow.error.message}
         </Alert>
+      )}
+      {flow.live?.isPaymentLiveConfirmed && (
+        <LivePaymentSuccessBanner
+          status={flow.live.isServiceLiveActivated ? 'ACTIVATED' : 'POSTED'}
+          invoiceNumber={flow.live.state.lastInvoiceNumber}
+          amountVnd={flow.live.state.lastAmountVnd}
+          receiptId={flow.live.state.lastReceiptId}
+          locale={locale === 'en' ? 'en' : 'vi'}
+          badgeLabel={nt(
+            flow.live.isServiceLiveActivated ? 'banner.activatedBadge' : 'banner.postedBadge',
+          )}
+          title={nt(
+            flow.live.isServiceLiveActivated ? 'banner.activatedTitle' : 'banner.postedTitle',
+          )}
+          description={nt(
+            flow.live.isServiceLiveActivated
+              ? 'banner.activatedDescription'
+              : 'banner.postedDescription',
+          )}
+          continueLabel={nt(
+            flow.live.isServiceLiveActivated ? 'banner.activatedContinue' : 'banner.postedContinue',
+          )}
+          onContinue={() => {
+            void navigate(flow.live?.isServiceLiveActivated ? '/orders' : '/billing');
+          }}
+        />
       )}
       {!flow.configured && !flow.loading && (
         <Alert variant="warning" title={t('notConfigured')}>
@@ -482,7 +510,7 @@ export function SellerContractOnboarding() {
             request?.errorCode ||
             (request?.status === 'COMPLETED' &&
               !flow.invoices.some((invoice) => invoice.contractId === contract.id)) ||
-            flow.signingUrl) && (
+            (flow.signingUrl && !flow.live?.shouldCloseSigningModal)) && (
             <div className="space-y-3 border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
               {request?.status === 'PREPARING' && (
                 <p className="m-0 text-sm text-[var(--sc-text-secondary)]">{t('preparingHelp')}</p>
@@ -509,7 +537,7 @@ export function SellerContractOnboarding() {
                   <Alert variant="info">{t('invoicePendingAfterSigning')}</Alert>
                 )}
 
-              {flow.signingUrl && (
+              {flow.signingUrl && !flow.live?.shouldCloseSigningModal && (
                 <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-3">

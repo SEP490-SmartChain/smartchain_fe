@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { sepayReconciliationApi } from '../api/sepayReconciliationApi';
@@ -51,6 +52,10 @@ export function useUnmatchedSepayTransfers() {
       controller.current?.abort();
     };
   }, [authRevision, loadPage]);
+
+  useRealtimeSync(['commercial.unmatched', 'commercial.billing'], () => {
+    void loadPage(null, false);
+  });
 
   return {
     transfers,

@@ -20,6 +20,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Card } from '@/components/Common/Card/Card';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -391,6 +392,10 @@ export function SlaExceptionsPanel() {
     void load(null);
     return () => controller.current?.abort();
   }, [load, authRevision]);
+
+  useRealtimeSync(['sla.exceptions', 'shipments.tracking'], () => {
+    void load(null);
+  });
 
   // Smoothly scroll a specifically requested parcel row into view once loaded.
   useEffect(() => {

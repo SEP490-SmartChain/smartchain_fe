@@ -13,6 +13,7 @@ import {
   loadFulfillmentPending,
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
@@ -49,9 +50,13 @@ function prefersReducedMotion(): boolean {
 export function HandoverWorkspace() {
   const revision = useAuthStore((s) => s.revision),
     user = useAuthStore((s) => s.user);
-  return <HandoverSession key={`${user?.userId}:${revision}`} />;
+  const [syncRevision, setSyncRevision] = useState(0);
+  useRealtimeSync(['outbound.handover', 'shipments.tracking'], () => {
+    setSyncRevision((n) => n + 1);
+  });
+  return <HandoverSession key={`${user?.userId}:${revision}`} syncRevision={syncRevision} />;
 }
-function HandoverSession() {
+function HandoverSession({ syncRevision = 0 }: { syncRevision?: number }) {
   const t = useTranslations('Packing'),
     { can } = useAccess();
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
@@ -136,6 +141,7 @@ function HandoverSession() {
           create={can('warehouse.handover.create')}
           sign={can('warehouse.handover.confirm')}
           putback={can('warehouse.putback.confirm')}
+          syncRevision={syncRevision}
         />
       )}
     </div>
@@ -150,6 +156,7 @@ function WarehouseHandover({
   create,
   sign,
   putback,
+  syncRevision = 0,
 }: {
   actorId: string;
   warehouse: string;
@@ -159,6 +166,7 @@ function WarehouseHandover({
   create: boolean;
   sign: boolean;
   putback: boolean;
+  syncRevision?: number;
 }) {
   const t = useTranslations('Packing');
   const locale = useLocale();
@@ -231,7 +239,7 @@ function WarehouseHandover({
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
-  }, [warehouse, reload, t, cursors]);
+  }, [warehouse, reload, syncRevision, t, cursors]);
   useEffect(() => {
     if (!targetFulfillmentId || !data) return;
     const match = data.shipments.find((item) => item.fulfillmentOrderId === targetFulfillmentId);

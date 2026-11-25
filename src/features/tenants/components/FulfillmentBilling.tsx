@@ -14,6 +14,7 @@ import { Card } from '@/components/Common/Card/Card';
 import { MonthPicker } from '@/components/Common/DatePicker/MonthPicker';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { notificationTarget } from '@/lib/notificationTarget';
@@ -85,6 +86,9 @@ function InvoiceList({
       abort.abort();
     };
   }, [tenantId, filters, revision, t]);
+  useRealtimeSync(['commercial.billing', 'commercial.onboarding'], () => {
+    setRevision((value) => value + 1);
+  });
 
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
