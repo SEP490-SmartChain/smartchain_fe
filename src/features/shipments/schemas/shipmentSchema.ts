@@ -36,6 +36,24 @@ export const trackingEventSchema = z.object({
   eventTime: z.string().datetime(),
   isApplied: z.boolean(),
   ignoreReason: z.string().max(100).nullable(),
+  reasonCode: z.string().max(64).nullable().optional(),
+  hubCode: z.string().max(64).nullable().optional(),
+  hubName: z.string().max(100).nullable().optional(),
+  attemptNo: z.number().int().min(1).max(100).nullable().optional(),
+  weightGram: z.number().int().min(1).max(2_000_000).nullable().optional(),
+  courier: z
+    .object({
+      externalCode: z.string().max(64),
+      displayName: z.string().max(100),
+      phoneMasked: z
+        .string()
+        .max(24)
+        .regex(/^[0-9xX*+ -]{4,24}$/)
+        .includes('*'),
+      vehiclePlate: z.string().max(24),
+    })
+    .nullable()
+    .optional(),
 });
 export type TrackingEvent = z.infer<typeof trackingEventSchema>;
 export const paginationSchema = z.object({

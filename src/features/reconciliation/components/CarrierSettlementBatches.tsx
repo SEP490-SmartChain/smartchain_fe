@@ -15,7 +15,9 @@ import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
+import { CodAgingReport } from './CodAgingReport';
 import { SettlementExceptionsModal } from './SettlementExceptionsModal';
+import { SettlementRemittancesModal } from './SettlementRemittancesModal';
 import { carrierSettlementApi } from '../api/carrierSettlementApi';
 import { useSettlementBatches } from '../hooks/useSettlementBatches';
 import {
@@ -139,6 +141,7 @@ export function CarrierSettlementBatches() {
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<SettlementBatch | null>(null);
+  const [moneyBatch, setMoneyBatch] = useState<SettlementBatch | null>(null);
   const [confirming, setConfirming] = useState<SettlementBatch | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -203,6 +206,19 @@ export function CarrierSettlementBatches() {
     { key: 'carrierCode', label: t('carrier') },
     { key: 'fileName', label: t('file') },
     {
+      key: 'deadline',
+      label: t('deadline'),
+      render: (row) =>
+        row.reconDeadlineAt ? (
+          <div>
+            {formatTime(row.reconDeadlineAt)}
+            {row.isLate && <Badge status="warning" label={t('late')} />}
+          </div>
+        ) : (
+          '—'
+        ),
+    },
+    {
       key: 'progress',
       label: t('progress'),
       render: (row) => `${row.processedRows}/${row.totalRows}`,
@@ -234,6 +250,9 @@ export function CarrierSettlementBatches() {
       label: t('actions'),
       render: (row) => (
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setMoneyBatch(row)}>
+            {t('bankEvidence')}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setReviewing(row)}>
             {t('viewExceptions')}
           </Button>
@@ -278,11 +297,16 @@ export function CarrierSettlementBatches() {
         </Button>
       </div>
       <SettlementUploadForm onUploaded={handleUploaded} />
+      <CodAgingReport key={authRevision} />
+      {batches.some((row) => row.status === 'PROCESSING' || row.exceptionRows > 0) && (
+        <Alert variant="warning">{t('batchDueReminder')}</Alert>
+      )}
       {notice && (
         <Alert variant="success" onClose={() => setNotice(null)}>
           {notice}
         </Alert>
       )}
+      {actionError && !confirming && <Alert variant="error">{actionError}</Alert>}
       {error ? (
         <Alert variant="error" title={t('loadError')}>
           <Button size="sm" variant="outline" onClick={() => void refetch()}>
@@ -316,6 +340,14 @@ export function CarrierSettlementBatches() {
             setNotice(message);
             void refetch();
           }}
+        />
+      )}
+      {moneyBatch && (
+        <SettlementRemittancesModal
+          key={`${moneyBatch.id}:${authRevision}`}
+          batchId={moneyBatch.id}
+          onClose={() => setMoneyBatch(null)}
+          onChanged={() => void refetch()}
         />
       )}
       <Modal

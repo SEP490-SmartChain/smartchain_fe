@@ -22,7 +22,8 @@ import {
   payoutResolutionSchema,
   payoutReviewOpen,
   payoutTransferSchema,
-  vietnamWednesday,
+  payoutApprovalOpen,
+  shortReference,
   type PayoutLine,
   type PayoutStatementDetail,
 } from '../schemas/payoutSchema';
@@ -30,6 +31,12 @@ import {
 import type { z } from 'zod';
 
 type Action = Parameters<typeof payoutApi.command>[1];
+
+/** Value for `<input type="datetime-local">` in the browser's own timezone. */
+function localDateTimeValue(value: Date): string {
+  const shifted = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
+  return shifted.toISOString().slice(0, 16);
+}
 interface Pending {
   action: Action;
   payload: Record<string, unknown>;
@@ -134,6 +141,11 @@ export function PayoutStatementDetail({
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(value));
+  const day = (value: string) =>
+    new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      dateStyle: 'medium',
+    }).format(new Date(`${value}T00:00:00+07:00`));
   const reviewOpen = row ? payoutReviewOpen(row, now) : false;
 
   const perform = async (
@@ -254,6 +266,11 @@ export function PayoutStatementDetail({
         ) : (
           row && (
             <>
+              {row.pendingReconBatchCount > 0 && (
+                <Alert variant="warning">
+                  {t('pendingReconciliation', { count: row.pendingReconBatchCount })}
+                </Alert>
+              )}
               {/* Unified Snapshot & Balances Card */}
               <Card
                 padding="none"
@@ -267,7 +284,7 @@ export function PayoutStatementDetail({
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold text-[var(--sc-text-primary)]">
-                          {row.periodStart} — {row.periodEnd}
+                          {day(row.periodStart)} – {day(row.periodEnd)}
                         </span>
                         <Badge
                           status={
@@ -278,6 +295,10 @@ export function PayoutStatementDetail({
                                 : 'default'
                           }
                           label={t(`status.${row.status}`)}
+                        />
+                        <Badge
+                          status={row.cycleKind === 'ON_DEMAND' ? 'info' : 'default'}
+                          label={t(`cycle.${row.cycleKind}`)}
                         />
                       </div>
                       <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
@@ -313,7 +334,7 @@ export function PayoutStatementDetail({
                       ['CONFIRMED', 'AUTO_CONFIRMED'].includes(row.status) && (
                         <Button
                           size="sm"
-                          disabled={busy || hasPending || !vietnamWednesday(now)}
+                          disabled={busy || hasPending || !payoutApprovalOpen(row, now)}
                           onClick={() => void perform('approve')}
                         >
                           {t('approve')}
@@ -387,6 +408,7 @@ export function PayoutStatementDetail({
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] bg-[var(--sc-success-bg)]/40 px-5 py-3">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <Badge status="success" label={t('recordedTransfer')} />
+                      {row.transfer.isLate && <Badge status="warning" label={t('lateTransfer')} />}
                       <span className="text-sm font-semibold tabular-nums text-[var(--sc-text-primary)]">
                         {money(row.transfer.amountVnd)}
                       </span>
@@ -404,7 +426,7 @@ export function PayoutStatementDetail({
                   {row.isLegacy ? t('legacy') : t('reviewHelp')}{' '}
                   {can('payout.manage') &&
                     ['CONFIRMED', 'AUTO_CONFIRMED', 'APPROVED'].includes(row.status) &&
-                    t('wednesday')}
+                    (row.cycleKind === 'ON_DEMAND' ? t('onDemand.approveHint') : t('wednesday'))}
                 </div>
               </Card>
 
@@ -434,13 +456,29 @@ export function PayoutStatementDetail({
                               ? t(`sourceType.${line.sourceType}`)
                               : line.sourceType}
                           </p>
+                          <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
+                            {t('postedOn', { date: date(line.postedAt) })}
+                            {' · '}
+                            <span className="font-mono tabular-nums" title={line.sourceId}>
+                              {shortReference(line.sourceId)}
+                            </span>
+                          </p>
+                          {line.carryForwardFromLineId && (
+                            <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
+                              {t('carried')}
+                            </p>
+                          )}
                           {line.disputes.map((dispute) => (
                             <p key={dispute.id} className="mb-0 mt-1.5 text-xs">
                               {dispute.reason}
                               {dispute.resolutionReason && ` · ${dispute.resolutionReason}`}
                               {dispute.adjustmentEntryId && (
-                                <span className="mt-0.5 block break-all font-mono text-[11px] text-[var(--sc-text-secondary)]">
-                                  {t('adjustmentReference')}: {dispute.adjustmentEntryId}
+                                <span className="mt-1 block text-[var(--sc-text-secondary)]">
+                                  {t('adjustmentReference')}
+                                  {': '}
+                                  <span className="font-mono">
+                                    {shortReference(dispute.adjustmentEntryId)}
+                                  </span>
                                 </span>
                               )}
                             </p>
@@ -595,6 +633,7 @@ export function PayoutStatementDetail({
                       type="datetime-local"
                       label={t('transferredAt')}
                       value={localTransferTime}
+                      max={localDateTimeValue(now)}
                       disabled={busy || hasPending}
                       onChange={(e) => {
                         const raw = e.target.value;

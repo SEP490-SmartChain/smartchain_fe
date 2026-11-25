@@ -58,6 +58,9 @@ export function ledgerEntryLabelKey(
   return 'fee.service';
 }
 export const payoutStatementSchema = z.object({
+  // WEEKLY follows the Monday/Tuesday/Wednesday calendar; ON_DEMAND covers an Accountant-chosen period.
+  cycleKind: z.enum(['WEEKLY', 'ON_DEMAND']).optional().default('WEEKLY'),
+  pendingReconBatchCount: z.number().int().nonnegative().optional().default(0),
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
   status: z.enum(['DRAFT', 'SENT', 'CONFIRMED', 'AUTO_CONFIRMED', 'APPROVED', 'PAID', 'CLOSED']),
@@ -91,6 +94,7 @@ export const payoutStatementDetailSchema = payoutStatementSchema.extend({
       bankReference: z.string(),
       amountVnd: money.refine((value) => BigInt(value) > BigInt(0)),
       confirmedAt: timestamp,
+      isLate: z.boolean().optional().default(false),
     })
     .nullable()
     .optional(),
@@ -144,6 +148,52 @@ export function vietnamWednesday(now: Date): boolean {
       now,
     ) === 'Wed'
   );
+}
+
+export function payoutApprovalOpen(
+  row: {
+    cutoffAt: string | null;
+    reviewDeadlineAt: string;
+    cycleKind?: 'WEEKLY' | 'ON_DEMAND';
+    status?: z.infer<typeof payoutStatementSchema>['status'];
+  },
+  now: Date,
+): boolean {
+  // On-demand statements are approved as soon as the seller confirms; no weekday window.
+  if (row.cycleKind === 'ON_DEMAND') return row.status === 'CONFIRMED';
+  return (
+    row.cutoffAt !== null &&
+    now >= new Date(row.reviewDeadlineAt) &&
+    now.getTime() < new Date(row.cutoffAt).getTime() + 7 * 24 * 60 * 60 * 1000
+  );
+}
+const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+/** Accountant form: settle the seller's unsettled entries of a chosen date range now. */
+export const onDemandPayoutSchema = z
+  .object({ periodFrom: dateOnly, periodTo: dateOnly })
+  .refine((value) => value.periodFrom <= value.periodTo, { path: ['periodTo'] });
+export type OnDemandPayoutValues = z.infer<typeof onDemandPayoutSchema>;
+/** Today in Vietnam time as yyyy-mm-dd, the business calendar used by statements. */
+export function vietnamToday(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+}
+/**
+ * Converts the chosen Vietnam dates into the API period: from the start of the first day up to
+ * the end of the last day, or up to now when the range ends today (a period cannot end in the future).
+ */
+export function onDemandPeriod(
+  values: OnDemandPayoutValues,
+  now: Date,
+): { periodFrom: string; periodTo: string } {
+  const start = new Date(`${values.periodFrom}T00:00:00+07:00`);
+  const dayAfterEnd = new Date(`${values.periodTo}T00:00:00+07:00`);
+  dayAfterEnd.setUTCDate(dayAfterEnd.getUTCDate() + 1);
+  const end = dayAfterEnd > now ? now : dayAfterEnd;
+  return { periodFrom: start.toISOString(), periodTo: end.toISOString() };
+}
+/** Short, human-readable reference for an internal record id. */
+export function shortReference(id: string): string {
+  return id.replace(/-/g, '').slice(0, 8).toUpperCase();
 }
 export type PayoutStatement = z.infer<typeof payoutStatementSchema>;
 export type PayoutLine = z.infer<typeof payoutLineSchema>;
