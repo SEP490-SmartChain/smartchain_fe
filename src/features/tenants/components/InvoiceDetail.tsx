@@ -7,7 +7,13 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import Modal from '@/components/Common/Modal/Modal';
+import {
+  LivePaymentSuccessBanner,
+  subscribeUiSync,
+  useCommercialLiveSync,
+} from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { apiClient } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -32,6 +38,7 @@ export function InvoiceDetail({
   onChanged: () => Promise<void>;
 }) {
   const t = useTranslations('Invoices');
+  const nt = useTranslations('Notifications');
   const locale = useLocaleStore((s) => s.locale);
   const scope = useAuthStore((s) => s.user?.actorScope);
   const { can } = useAccess();
@@ -76,6 +83,30 @@ export function InvoiceDetail({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const syncCommercial = useCallback(async () => {
+    await load();
+    await onChanged();
+  }, [load, onChanged]);
+
+  const refreshProfileAndInvoice = useCallback(async () => {
+    if (scope === 'TENANT') {
+      await apiClient.currentUser();
+    }
+    await load();
+    await onChanged();
+  }, [load, onChanged, scope]);
+
+  const live = useCommercialLiveSync({
+    subscribeUiSync,
+    onRefetchCommercial: syncCommercial,
+    onRefreshUser: refreshProfileAndInvoice,
+  });
+  const liveMatchesThisInvoice = Boolean(
+    invoice &&
+    live.isPaymentLiveConfirmed &&
+    (!live.state.lastInvoiceNumber || live.state.lastInvoiceNumber === invoice.invoiceNo),
+  );
   const perform = async (action: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -216,21 +247,51 @@ export function InvoiceDetail({
               )}
             </div>
             {invoice.paymentStatus === 'LEDGER' && <Alert variant="info">{t('ledgerHelp')}</Alert>}
-            {invoice.documentStatus === 'ISSUED' &&
-              invoice.paymentStatus === 'UNPAID' &&
-              !invoice.paymentRequired && <Alert variant="info">{t('noActiveObligation')}</Alert>}
-            {payment && invoice.paymentRequired && (
-              <InvoiceBankTransfer
-                payment={payment}
-                busy={busy}
-                onRefresh={() => {
-                  void perform(async () => {
-                    await load();
-                    await onChanged();
-                  });
-                }}
+            {liveMatchesThisInvoice && (
+              <LivePaymentSuccessBanner
+                status={live.isServiceLiveActivated ? 'ACTIVATED' : 'POSTED'}
+                invoiceNumber={live.state.lastInvoiceNumber ?? invoice.invoiceNo}
+                amountVnd={live.state.lastAmountVnd}
+                receiptId={live.state.lastReceiptId}
+                locale={locale === 'en' ? 'en' : 'vi'}
+                badgeLabel={nt(
+                  live.isServiceLiveActivated ? 'banner.activatedBadge' : 'banner.postedBadge',
+                )}
+                title={nt(
+                  live.isServiceLiveActivated ? 'banner.activatedTitle' : 'banner.postedTitle',
+                )}
+                description={nt(
+                  live.isServiceLiveActivated
+                    ? 'banner.activatedDescription'
+                    : 'banner.postedDescription',
+                )}
+                continueLabel={nt(
+                  live.isServiceLiveActivated
+                    ? 'banner.activatedContinue'
+                    : 'banner.postedContinue',
+                )}
+                onContinue={onClose}
               />
             )}
+            {invoice.documentStatus === 'ISSUED' &&
+              invoice.paymentStatus === 'UNPAID' &&
+              !invoice.paymentRequired &&
+              !liveMatchesThisInvoice && <Alert variant="info">{t('noActiveObligation')}</Alert>}
+            {payment &&
+              invoice.paymentRequired &&
+              invoice.paymentStatus !== 'PAID' &&
+              !liveMatchesThisInvoice && (
+                <InvoiceBankTransfer
+                  payment={payment}
+                  busy={busy}
+                  onRefresh={() => {
+                    void perform(async () => {
+                      await load();
+                      await onChanged();
+                    });
+                  }}
+                />
+              )}
             <div>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h4 className="font-semibold">{t('lineTitle')}</h4>

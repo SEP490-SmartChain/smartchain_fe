@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card } from '@/components/Common';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -63,6 +64,7 @@ function ClaimDetailContent({
     [preview, setPreview] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadIntent = useRef<{ file: File; id: string } | null>(null);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const fail = (failure: unknown) => {
     if (failure instanceof ApiError && [401, 403, 404].includes(failure.status)) {
       setClaim(null);
@@ -117,11 +119,15 @@ function ClaimDetailContent({
     // Authentication and warehouse changes remount this boundary.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, scope.warehouseId, signal, tick, refreshKey]);
+  useRealtimeSync(['claims.detail'], () => {
+    setTick((n) => n + 1);
+    onChanged();
+  });
   useEffect(() => {
-    if (claim?.creditState !== 'PENDING') return;
+    if (claim?.creditState !== 'PENDING' || isRealtimeConnected) return;
     const timer = setInterval(() => setTick((n) => n + 1), 10000);
     return () => clearInterval(timer);
-  }, [claim?.creditState]);
+  }, [claim?.creditState, isRealtimeConnected]);
   const refresh = () => {
     setTick((n) => n + 1);
     onChanged();

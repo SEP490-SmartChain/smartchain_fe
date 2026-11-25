@@ -12,6 +12,7 @@ import {
   loadFulfillmentPending,
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
@@ -33,9 +34,13 @@ import type { z } from 'zod';
 export function PackingWorkspace() {
   const revision = useAuthStore((s) => s.revision),
     user = useAuthStore((s) => s.user);
-  return <PackingSession key={`${user?.userId}:${revision}`} />;
+  const [syncRevision, setSyncRevision] = useState(0);
+  useRealtimeSync(['outbound.packing', 'outbound.orders'], () => {
+    setSyncRevision((n) => n + 1);
+  });
+  return <PackingSession key={`${user?.userId}:${revision}`} syncRevision={syncRevision} />;
 }
-function PackingSession() {
+function PackingSession({ syncRevision = 0 }: { syncRevision?: number } = {}) {
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const t = useTranslations('Packing'),
     { can } = useAccess();
@@ -94,6 +99,17 @@ function PackingSession() {
     }
     return () => c.abort();
   }, [warehouse, refresh, t]);
+  useEffect(() => {
+    if (!warehouse || syncRevision === 0) return;
+    const c = new AbortController();
+    void packingApi
+      .list(warehouse, c.signal)
+      .then((q) => {
+        if (!c.signal.aborted) setQueue(q);
+      })
+      .catch(() => undefined);
+    return () => c.abort();
+  }, [warehouse, syncRevision]);
   useEffect(() => {
     setPendingRecovery(null);
     if (!actorId || !warehouse || !detail) return;

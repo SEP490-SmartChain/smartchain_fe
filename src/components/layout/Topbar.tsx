@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
-  Bell,
   Command,
   LogOut,
   Monitor,
@@ -15,7 +14,16 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Avatar, Button } from '@/components/Common';
+import { Avatar } from '@/components/Common';
+import {
+  NotificationBellPopover,
+  httpRealtimeNotificationClient,
+  presentRealtimeToast,
+  useNotificationStore,
+  useRealtimeConnection,
+  type InAppNotificationDto,
+  type RealtimeParams,
+} from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
@@ -40,21 +48,57 @@ interface SearchItem {
 export default function Topbar() {
   const [activePopover, setActivePopover] = useState<PopoverName>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const { assignedCount, unreadCount, markAllRead, refreshFailed, refresh } =
+  const { unreadCount: warehouseUnreadCount, markAllRead: markWarehouseNoticesRead } =
     useWarehouseAssignmentNotices();
   const controlsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const t = useTranslations('Topbar');
+  const nt = useTranslations('Notifications');
   const sidebar = useTranslations('Sidebar');
   const locale = useLocale();
   const { logout, isLoggingOut } = useAuth();
   const user = useAuthStore((state) => state.user);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const revision = useAuthStore((state) => state.revision);
   const avatarUrl = useAvatarUrl(user?.avatarUrl);
   const { setSidebarOpen, themeMode, isDarkMode, setThemeMode } = useUiStore();
 
+  const items = useNotificationStore((state) => state.items);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const connectionStatus = useNotificationStore((state) => state.connectionStatus);
+  const markReadLocal = useNotificationStore((state) => state.markReadLocal);
+  const markAllReadLocal = useNotificationStore((state) => state.markAllReadLocal);
+
+  const translateNotification = useCallback(
+    (key: string, values?: RealtimeParams) => {
+      const hasFn = (nt as unknown as { has?: (k: string) => boolean }).has;
+      if (typeof hasFn === 'function' && !hasFn(key)) {
+        return key;
+      }
+      return nt(key, values as Record<string, string | number | Date> | undefined);
+    },
+    [nt],
+  );
+
+  useRealtimeConnection({
+    client: httpRealtimeNotificationClient,
+    enabled: Boolean(user?.userId && accessToken),
+    authScopeKey: `${user?.userId ?? 'anon'}:${revision}`,
+    onNotification: (notification) => {
+      presentRealtimeToast(notification, {
+        translate: translateNotification,
+        onNavigate: (targetPath) => {
+          void navigate(targetPath);
+        },
+        actionLabel: nt('viewDetail'),
+      });
+    },
+  });
+
   const displayName = user?.fullName?.replace(/\s*\(local\)$/i, '') || user?.email || t('member');
-  const { roles, can } = useAccess();
+  const { roles } = useAccess();
 
   const roleLabels: Record<string, string> = {
     ORCA_ADMIN: t('role_orca_admin'),
@@ -269,93 +313,36 @@ export default function Topbar() {
           )}
         </div>
 
-        <div className="relative">
-          <button
-            type="button"
-            className="sc-icon-button relative"
-            onClick={() => togglePopover('notification')}
-            aria-label={t('notifications')}
-            aria-haspopup="dialog"
-            aria-expanded={activePopover === 'notification'}
-          >
-            <Bell
-              size={16}
-              strokeWidth={1.5}
-              className={cn(unreadCount > 0 && 'sc-notification-ring')}
-            />
-            {unreadCount > 0 && (
-              <span className="absolute right-[5px] top-[5px] h-1.5 w-1.5 rounded-full bg-[var(--sc-error)] ring-1 ring-[var(--sc-bg-surface)]" />
-            )}
-          </button>
-
-          {activePopover === 'notification' && (
-            <div
-              role="dialog"
-              aria-label={t('notifications')}
-              className="sc-popover-enter fixed left-4 right-4 top-[72px] z-50 overflow-hidden rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-[var(--sc-shadow-popover)] sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.5rem)] sm:w-[420px]"
-            >
-              <div className="flex items-center justify-between border-b border-[var(--sc-border-default)] p-3">
-                <h2 className="m-0 text-base font-medium">{t('all_notifications')}</h2>
-                <Button
-                  type="button"
-                  className="rounded px-2 py-1 text-xs font-medium text-[var(--sc-primary)] hover:bg-[var(--sc-primary-alpha-08)]"
-                  variant="ghost"
-                  size="sm"
-                  onClick={markAllRead}
-                  disabled={unreadCount === 0}
-                >
-                  {t('mark_all_read')}
-                </Button>
-              </div>
-              <p className="px-4 pb-1 pt-3 text-xs text-[var(--sc-text-tertiary)]">
-                {t('assignmentNoticeHint')}
-              </p>
-              {refreshFailed && (
-                <div className="px-4 py-2 text-sm" role="status">
-                  <p>{t('assignmentRefreshFailed')}</p>
-                  <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-                    {t('assignmentRetry')}
-                  </Button>
-                </div>
-              )}
-              <ul className="max-h-[405px] overflow-y-auto px-1 pb-2">
-                {assignedCount > 0 ? (
-                  <li>
-                    <Link
-                      to={can('platform.warehouses.view') ? '/admin/warehouses' : '/warehouses'}
-                      onClick={() => {
-                        markAllRead();
-                        setActivePopover(null);
-                      }}
-                      className="flex w-full gap-3 rounded-lg p-3 text-left transition-colors hover:bg-[var(--sc-bg-secondary)]"
-                    >
-                      <span
-                        className={cn(
-                          'mt-1 h-2 w-2 shrink-0 rounded-full',
-                          unreadCount === 0
-                            ? 'bg-[var(--sc-border-strong)]'
-                            : 'bg-[var(--sc-primary)]',
-                        )}
-                      />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium text-[var(--sc-text-primary)]">
-                          {t('assignmentNoticeTitle')}
-                        </span>
-                        <span className="mt-1 block text-xs leading-4 text-[var(--sc-text-tertiary)]">
-                          {t('assignmentNoticeBody', { count: assignedCount, unread: unreadCount })}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ) : (
-                  <li className="px-4 py-3 text-sm text-[var(--sc-text-secondary)]">
-                    {t('noNotifications')}
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
-        </div>
+        <NotificationBellPopover
+          items={items}
+          unreadCount={Math.max(unreadCount, warehouseUnreadCount)}
+          connectionStatus={connectionStatus}
+          open={activePopover === 'notification'}
+          onOpenChange={(open) => setActivePopover(open ? 'notification' : null)}
+          translate={translateNotification}
+          labels={{
+            title: nt('title'),
+            markAllRead: nt('markAllRead'),
+            empty: nt('empty'),
+            allTab: nt('allTab'),
+            unreadTab: nt('unreadTab'),
+            live: nt('live'),
+            offline: nt('offline'),
+            allCategories: nt('allCategories'),
+          }}
+          onMarkRead={async (id) => {
+            const res = await httpRealtimeNotificationClient.markAsRead(id);
+            markReadLocal(id, res.readAt, res.unreadCount);
+          }}
+          onMarkAllRead={async () => {
+            await httpRealtimeNotificationClient.markAllAsRead();
+            markAllReadLocal(new Date().toISOString());
+            markWarehouseNoticesRead();
+          }}
+          onNavigate={(targetPath: string, _item: InAppNotificationDto) => {
+            void navigate(targetPath);
+          }}
+        />
 
         <div className="relative">
           <button

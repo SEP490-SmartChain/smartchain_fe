@@ -13,6 +13,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { MonthPicker } from '@/components/Common/DatePicker/MonthPicker';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
@@ -78,6 +79,9 @@ function InvoiceList({
       abort.abort();
     };
   }, [tenantId, filters, revision, t]);
+  useRealtimeSync(['commercial.billing', 'commercial.onboarding'], () => {
+    setRevision((value) => value + 1);
+  });
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const date = (value: string) =>

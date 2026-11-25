@@ -18,6 +18,7 @@ import {
 } from '@/components/Common';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -89,13 +90,28 @@ function SellerOrdersSession({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const activeDetailId = useRef<string | null>(null);
+  const isRealtimeConnected = useIsRealtimeConnected();
   useOrderDetailRefresh({
     scope,
     owner,
     detail,
-    active: modal === 'detail' && !busy,
+    active: modal === 'detail' && !busy && !isRealtimeConnected,
     setDetail,
     setError,
+  });
+  useRealtimeSync(['outbound.orders', 'shipments.tracking'], () => {
+    orders.reload();
+    const currentId = activeDetailId.current;
+    if (modal === 'detail' && currentId && !running.current && orderScope() === scope) {
+      void execute(async (signal) => {
+        const response = await ordersApi.detail(currentId, owner, signal);
+        if (orderScope() === scope && !signal.aborted && activeDetailId.current === currentId) {
+          setDetail((current) =>
+            current?.id === currentId && current.version > response.version ? current : response,
+          );
+        }
+      });
+    }
   });
   const running = useRef(false);
   const controllers = useRef(new Set<AbortController>());

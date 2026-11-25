@@ -13,6 +13,7 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { CommercialAdminControls } from './CommercialAdminControls';
@@ -68,6 +69,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
   const [busy, setBusy] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const revision = useAuthStore((value) => value.revision);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const custom = useForm<z.infer<typeof customSchema>>({
     resolver: zodResolver(customSchema),
     defaultValues: {
@@ -98,6 +100,9 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
     const result = await commercialApi.contracts(tenantId, controller.current?.signal);
     if (current()) setState(result);
   };
+  useRealtimeSync(['commercial.onboarding', 'commercial.billing'], () => {
+    void reload();
+  });
   useEffect(() => {
     const abort = new AbortController();
     controller.current = abort;
@@ -109,7 +114,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       } catch {
         // Keep the last visible contract and the explicit refresh action available.
       } finally {
-        if (!abort.signal.aborted) {
+        if (!abort.signal.aborted && !isRealtimeConnected) {
           timer = setTimeout(() => void pollContracts(), 10000);
         }
       }
@@ -129,14 +134,16 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
           setError(failure instanceof Error ? failure.message : t('loadError'));
         }
       } finally {
-        if (!abort.signal.aborted) timer = setTimeout(() => void pollContracts(), 10000);
+        if (!abort.signal.aborted && !isRealtimeConnected) {
+          timer = setTimeout(() => void pollContracts(), 10000);
+        }
       }
     })();
     return () => {
       abort.abort();
       clearTimeout(timer);
     };
-  }, [tenantId, revision, t]);
+  }, [tenantId, revision, isRealtimeConnected, t]);
   const contract = state?.contracts.find((item) => item.id === state.currentContractId);
   const isCustomDraft = contract?.contractKind === 'CUSTOM' && contract.status === 'DRAFT';
   const payableContractId =
@@ -154,7 +161,9 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
           (row) => row.contractId === payableContractId && row.documentType === 'ONBOARDING',
         );
         setPayment({ contractId: payableContractId, invoice });
-        if (invoice?.paymentStatus !== 'PAID') timer = setTimeout(() => void check(), 10000);
+        if (invoice?.paymentStatus !== 'PAID' && !isRealtimeConnected) {
+          timer = setTimeout(() => void check(), 10000);
+        }
       } catch {
         if (!abort.signal.aborted) setPayment({ contractId: payableContractId, failed: true });
       }
@@ -164,7 +173,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       abort.abort();
       clearTimeout(timer);
     };
-  }, [payableContractId, tenantId, revision]);
+  }, [payableContractId, tenantId, revision, isRealtimeConnected]);
   const selectedFile = isCustomDraft ? selectedFiles?.[0] : undefined;
   const enterprisePlans = terms?.plans.filter((item) => item.code === 'ENTERPRISE') ?? [];
   const selectedPlanId = useWatch({ control: custom.control, name: 'planVersionId' });

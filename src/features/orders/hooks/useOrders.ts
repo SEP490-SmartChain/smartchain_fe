@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { ordersApi, type OrderFilters, type SellerOrder } from '../api/ordersApi';
@@ -52,6 +53,9 @@ export function useOrders(scope: string, filters: OrderFilters, owner: boolean) 
       request.current?.controller.abort();
     };
   }, [load, scope]);
+  useRealtimeSync(['outbound.orders', 'shipments.tracking'], () => {
+    void load();
+  });
   return {
     items,
     loading,

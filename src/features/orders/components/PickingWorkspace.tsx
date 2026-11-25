@@ -22,6 +22,7 @@ import {
   loadFulfillmentPending,
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -67,9 +68,26 @@ function currentCutoffInput(): string {
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
     revision = useAuthStore((s) => s.revision);
-  return <PickingScope key={`${user?.userId}:${revision}`} />;
+  const isRealtimeConnected = useIsRealtimeConnected();
+  const [syncRevision, setSyncRevision] = useState(0);
+  useRealtimeSync(['outbound.picking', 'outbound.orders'], () => {
+    setSyncRevision((n) => n + 1);
+  });
+  return (
+    <PickingScope
+      key={`${user?.userId}:${revision}`}
+      syncRevision={syncRevision}
+      realtimeConnected={isRealtimeConnected}
+    />
+  );
 }
-function PickingScope() {
+function PickingScope({
+  syncRevision = 0,
+  realtimeConnected = false,
+}: {
+  syncRevision?: number;
+  realtimeConnected?: boolean;
+} = {}) {
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const locale = useLocale();
   const t = useTranslations('Picking'),
@@ -180,7 +198,7 @@ function PickingScope() {
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [warehouse, cursor, backlogCursor, manager, refresh, t]);
+  }, [warehouse, cursor, backlogCursor, manager, refresh, syncRevision, t]);
   useEffect(() => {
     setLineCursor(null);
   }, [warehouse, waveId]);
@@ -197,7 +215,7 @@ function PickingScope() {
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
-  }, [warehouse, waveId, refresh, lineCursor, t]);
+  }, [warehouse, waveId, refresh, syncRevision, lineCursor, t]);
   useEffect(() => {
     if (!waveRequest || !warehouse) return;
     const c = new AbortController();
@@ -224,14 +242,17 @@ function PickingScope() {
       }
     };
     void read();
-    const timer = setInterval(() => {
-      void read();
-    }, 2000);
+    const timer = setInterval(
+      () => {
+        void read();
+      },
+      realtimeConnected ? 15000 : 2000,
+    );
     return () => {
       c.abort();
       clearInterval(timer);
     };
-  }, [warehouse, waveRequest, t]);
+  }, [warehouse, waveRequest, realtimeConnected, syncRevision, t]);
   async function execute(command: PickPending) {
     if (busy) return;
     setBusy(true);
