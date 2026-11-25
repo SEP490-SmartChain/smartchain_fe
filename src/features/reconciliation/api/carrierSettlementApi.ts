@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
+import { sepayReconciliationApi } from './sepayReconciliationApi';
 import {
   disputeDetailSchema,
   disputeSchema,
@@ -25,6 +26,9 @@ const pagination = z.object({
   nextCursor: z.string().nullable(),
 });
 const batchSchema = z.object({
+  dueForWeek: z.string().date().optional(),
+  reconDeadlineAt: z.string().datetime().optional(),
+  isLate: z.boolean().optional(),
   id: z.string().uuid(),
   carrierCode: z.string(),
   fileName: z.string(),
@@ -50,6 +54,69 @@ const recordSchema = z.object({
 
 /** SS-1288 / UC-137–141: ORCA Accountant carrier settlement batches. */
 export const carrierSettlementApi = {
+  async codAging(after: string | null, signal?: AbortSignal) {
+    const response = await apiClient.get<ApiResponse<unknown>>(
+      '/v1/reconciliation/settlement-batches/cod-aging',
+      { params: after ? { after, limit: '50' } : { limit: '50' }, signal, silent: true },
+    );
+    return z
+      .object({
+        items: z.array(
+          z.object({
+            carrierCode: z.string(),
+            tenantId: z.string().uuid(),
+            shipmentCount: z.number().int().positive(),
+            codVnd: money,
+            oldestDeliveredAt: z.string().datetime(),
+          }),
+        ),
+        pagination,
+      })
+      .parse({ items: response.data, pagination: response.meta.pagination });
+  },
+  /** Seller names the Accountant may see, to label report rows instead of internal ids. */
+  async sellerNames(signal?: AbortSignal): Promise<Map<string, string>> {
+    const { data } = await apiClient.get<ApiResponse<unknown>>('/v1/commercial/financial-sellers', {
+      signal,
+      silent: true,
+    });
+    const sellers = z
+      .object({ sellers: z.array(z.object({ id: z.string().uuid(), name: z.string() })) })
+      .parse(data).sellers;
+    return new Map(sellers.map((seller) => [seller.id, seller.name]));
+  },
+  async remittances(batchId: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `/v1/reconciliation/settlement-batches/${encodeURIComponent(batchId)}/remittances`,
+      { signal, silent: true },
+    );
+    return z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          bankReference: z.string(),
+          amountVnd: money,
+          receivedAt: z.string().datetime(),
+          evidenceRef: z.string(),
+        }),
+      )
+      .parse(data);
+  },
+  async linkRemittance(
+    batchId: string,
+    body:
+      | { bankReference: string; amountVnd: string; receivedAt: string; evidenceRef: string }
+      | { notificationId: string },
+    signal?: AbortSignal,
+  ) {
+    const action = 'notificationId' in body ? 'sepay-remittances' : 'remittances';
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `/v1/reconciliation/settlement-batches/${encodeURIComponent(batchId)}/${action}`,
+      body,
+      { signal, silent: true },
+    );
+    return z.object({ id: z.string().uuid(), isReplay: z.boolean() }).parse(data);
+  },
   async upload(
     carrierCode: SettlementCarrierCode,
     file: File,
@@ -198,6 +265,7 @@ export const carrierSettlementApi = {
       status?: DisputeStatus;
       externalTicketRef?: string;
       resolvedAmountVnd?: string;
+      codResolutions?: { rowNumber: number; amountVnd: string }[];
       note?: string;
     },
     signal?: AbortSignal,
@@ -216,3 +284,12 @@ export const carrierSettlementApi = {
       .parse(data);
   },
 };
+
+/** A SePay outage must not hide bank evidence already linked to the batch. */
+export async function loadRemittanceSources(batchId: string, signal?: AbortSignal) {
+  const [receipts, sepay] = await Promise.allSettled([
+    carrierSettlementApi.remittances(batchId, signal),
+    sepayReconciliationApi.unmatched(null, signal),
+  ]);
+  return { receipts, sepay };
+}

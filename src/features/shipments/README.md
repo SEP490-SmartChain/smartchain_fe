@@ -13,3 +13,9 @@ Carrier live tests, channel sync and SLA are separate acceptance work.
 `SlaExceptionsPanel` on the operations exception queue (`/exceptions`, sidebar "Hàng đợi sự cố") (`shipments.sla.view`: Admin, Ops Dispatcher, Warehouse Manager)
 lists overdue handover and stalled carrier progress for the warehouses the server allows. Admin/Ops can take
 ownership (`shipments.sla.assign`); alerts close automatically after handover or carrier progress.
+
+Delivery details (A5): timeline accepts optional hub, masked courier name/phone/plate,
+attempt, measured grams and normalized reason code. Event labels take precedence over the
+standard-state label for hub movement and delivery incidents. Legacy responses still parse;
+POD/raw payload, recipient and money fields are excluded. This does not add SSE or a public
+tracking route. Deploy with the backend delivery-details migration and updated timeline API.

@@ -6,6 +6,7 @@ import {
   AlertCircle,
   BookOpen,
   CalendarDays,
+  CalendarPlus,
   Landmark,
   RefreshCw,
   ShieldCheck,
@@ -25,12 +26,14 @@ import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { CloseoutSettlement } from './CloseoutSettlement';
+import { OnDemandStatementForm } from './OnDemandStatementForm';
 import { PayoutStatementDetail } from './PayoutStatementDetail';
 import { commercialApi } from '../api/commercialApi';
 import { payoutApi } from '../api/payoutApi';
 import {
   ledgerEntryLabelKey,
   payoutReadError,
+  shortReference,
   type LedgerEntry,
   type PayoutStatement,
   type PayoutSummary,
@@ -47,7 +50,9 @@ function SellerMoney({
 }) {
   const t = useTranslations('Payouts');
   const locale = useLocaleStore((s) => s.locale);
+  const { can } = useAccess();
   const [summary, setSummary] = useState<PayoutSummary | null>(null),
+    [isCreating, setIsCreating] = useState(false),
     [statements, setStatements] = useState<PayoutStatement[]>([]),
     [ledger, setLedger] = useState<LedgerEntry[]>([]),
     [statementCursor, setStatementCursor] = useState<string | null>(null),
@@ -356,10 +361,31 @@ function SellerMoney({
                 />
               </div>
             ) : (
-              <p className="m-0 text-xs text-[var(--sc-text-secondary)]">{t('cycleHelp')}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">{t('cycleHelp')}</p>
+                {tenantId && can('payout.manage') && !isCreating && (
+                  <Button size="sm" variant="outline" onClick={() => setIsCreating(true)}>
+                    <CalendarPlus size={14} aria-hidden="true" />
+                    {t('onDemand.open')}
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 
+          {tab === 'statements' && tenantId && isCreating && (
+            <div className="border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
+              <OnDemandStatementForm
+                tenantId={tenantId}
+                onCancel={() => setIsCreating(false)}
+                onCreated={(statementId) => {
+                  setIsCreating(false);
+                  setSelected(statementId);
+                  setRevision((value) => value + 1);
+                }}
+              />
+            </div>
+          )}
           {tab === 'statements' ? (
             <div className="divide-y divide-[var(--sc-border-default)]">
               {statements.length ? (
@@ -373,6 +399,9 @@ function SellerMoney({
                         <span className="text-sm font-semibold text-[var(--sc-text-primary)]">
                           {date(row.periodStart)} – {date(row.periodEnd)}
                         </span>
+                        {row.cycleKind === 'ON_DEMAND' && (
+                          <Badge status="info" label={t('cycle.ON_DEMAND')} />
+                        )}
                         <Badge
                           status={
                             row.status === 'PAID'
@@ -453,6 +482,14 @@ function SellerMoney({
                               ? t(`sourceType.${entry.sourceType}`)
                               : entry.sourceType}
                           </span>
+                          <span className="ml-2 font-mono tabular-nums" title={entry.sourceId}>
+                            {shortReference(entry.sourceId)}
+                          </span>
+                          {entry.reversesEntryId && (
+                            <p className="mb-0 mt-1">
+                              {t('reverses', { reference: shortReference(entry.reversesEntryId) })}
+                            </p>
+                          )}
                         </td>
                       </tr>
                     );

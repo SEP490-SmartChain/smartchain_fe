@@ -1,6 +1,9 @@
 export type SettlementCarrierCode = 'GHN' | 'GHTK' | 'VIETTEL_POST';
 
 export interface SettlementBatch {
+  dueForWeek?: string;
+  reconDeadlineAt?: string;
+  isLate?: boolean;
   id: string;
   carrierCode: string;
   fileName: string;
