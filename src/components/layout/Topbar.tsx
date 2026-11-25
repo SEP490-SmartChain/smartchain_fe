@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import {
   Command,
@@ -21,7 +21,6 @@ import {
   presentRealtimeToast,
   useNotificationStore,
   useRealtimeConnection,
-  type InAppNotificationDto,
   type RealtimeParams,
 } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
@@ -53,7 +52,6 @@ export default function Topbar() {
   const controlsRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const t = useTranslations('Topbar');
   const nt = useTranslations('Notifications');
   const sidebar = useTranslations('Sidebar');
@@ -89,10 +87,6 @@ export default function Topbar() {
     onNotification: (notification) => {
       presentRealtimeToast(notification, {
         translate: translateNotification,
-        onNavigate: (targetPath) => {
-          void navigate(targetPath);
-        },
-        actionLabel: nt('viewDetail'),
       });
     },
   });
@@ -338,9 +332,6 @@ export default function Topbar() {
             await httpRealtimeNotificationClient.markAllAsRead();
             markAllReadLocal(new Date().toISOString());
             markWarehouseNoticesRead();
-          }}
-          onNavigate={(targetPath: string, _item: InAppNotificationDto) => {
-            void navigate(targetPath);
           }}
         />
 
