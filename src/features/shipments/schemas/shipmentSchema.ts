@@ -36,6 +36,24 @@ export const trackingEventSchema = z.object({
   eventTime: z.string().datetime(),
   isApplied: z.boolean(),
   ignoreReason: z.string().max(100).nullable(),
+  reasonCode: z.string().max(64).nullable().optional(),
+  hubCode: z.string().max(64).nullable().optional(),
+  hubName: z.string().max(100).nullable().optional(),
+  attemptNo: z.number().int().min(1).max(100).nullable().optional(),
+  weightGram: z.number().int().min(1).max(2_000_000).nullable().optional(),
+  courier: z
+    .object({
+      externalCode: z.string().max(64),
+      displayName: z.string().max(100),
+      phoneMasked: z
+        .string()
+        .max(24)
+        .regex(/^[0-9xX*+ -]{4,24}$/)
+        .includes('*'),
+      vehiclePlate: z.string().max(24),
+    })
+    .nullable()
+    .optional(),
 });
 export type TrackingEvent = z.infer<typeof trackingEventSchema>;
 export const paginationSchema = z.object({
@@ -87,6 +105,10 @@ export const slaExceptionSchema = z.object({
   warehouseId: z.string().uuid(),
   warehouseCode: z.string().max(100),
   trackingNumber: z.string().max(100).nullable(),
+  fulfillmentOrderId: z.string().uuid().nullable().optional(),
+  orderCode: z.string().max(100).nullable().optional(),
+  parcelNo: z.number().int().positive().nullable().optional(),
+  fulfillmentStatus: z.string().max(64).nullable().optional(),
   readyAt: z.string().datetime().nullable(),
   deadline: z.string().datetime().nullable(),
   lastProgressAt: z.string().datetime().nullable(),
@@ -99,11 +121,16 @@ export const slaExceptionSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 export type SlaException = z.infer<typeof slaExceptionSchema>;
+const slaExceptionCursorSchema = z
+  .string()
+  .regex(
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})(?:\|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/i,
+  );
 export const slaExceptionPageSchema = z.object({
   items: z.array(slaExceptionSchema),
   pagination: z.object({
     limit: z.number().int().positive(),
     hasNext: z.boolean(),
-    nextCursor: z.string().datetime().nullable(),
+    nextCursor: slaExceptionCursorSchema.nullable(),
   }),
 });

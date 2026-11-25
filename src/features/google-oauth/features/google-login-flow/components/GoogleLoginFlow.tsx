@@ -1,5 +1,7 @@
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
 import { GoogleSignInButton, useGoogleIdentityServices } from '../../google-sign-in-button/index';
 import { useGoogleLogin } from '../hooks/useGoogleLogin';
 
@@ -57,9 +59,9 @@ function GoogleLoginFlowContent({
         disabled={!ready || isSubmitting}
       />
       {error && (
-        <p role="alert" className="m-0 text-xs text-[var(--sc-error-dark)]">
+        <Alert variant="error" compact>
           {t('google_error_generic')}
-        </p>
+        </Alert>
       )}
     </div>
   );

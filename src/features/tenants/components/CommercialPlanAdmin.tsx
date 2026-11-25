@@ -15,6 +15,7 @@ import Modal from '@/components/Common/Modal/Modal';
 import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { Select } from '@/components/Common/Select/Select';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { commercialApi, type PublishedCommercialTerms } from '../api/commercialApi';
@@ -134,38 +135,42 @@ export function CommercialPlanAdmin() {
       abort.abort();
     };
   }, [revision, t]);
-  const savePlan = plan.handleSubmit(async (value) => {
-    if (publishingPlan.current) return;
-    publishingPlan.current = true;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const includedServices = value.includedServices
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
-      const expectedVersionNo = Math.max(
-        0,
-        ...(terms?.plans.filter((item) => item.code === value.code).map((item) => item.versionNo) ??
-          []),
-      );
-      const result = await commercialApi.createPlan(
-        { ...value, includedServices, expectedVersionNo },
-        controller.current?.signal,
-      );
-      if (!current()) return;
-      agreement.setValue('planVersionId', value.code === 'ENTERPRISE' ? '' : result.id);
-      setNotice(t('planSaved'));
-      await reload(controller.current?.signal);
-      if (current()) setActiveTab('versions');
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      publishingPlan.current = false;
-      if (current()) setBusy(false);
-    }
-  });
+  const savePlan = plan.handleSubmit(
+    async (value) => {
+      if (publishingPlan.current) return;
+      publishingPlan.current = true;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const includedServices = value.includedServices
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const expectedVersionNo = Math.max(
+          0,
+          ...(terms?.plans
+            .filter((item) => item.code === value.code)
+            .map((item) => item.versionNo) ?? []),
+        );
+        const result = await commercialApi.createPlan(
+          { ...value, includedServices, expectedVersionNo },
+          controller.current?.signal,
+        );
+        if (!current()) return;
+        agreement.setValue('planVersionId', value.code === 'ENTERPRISE' ? '' : result.id);
+        setNotice(t('planSaved'));
+        await reload(controller.current?.signal);
+        if (current()) setActiveTab('versions');
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        publishingPlan.current = false;
+        if (current()) setBusy(false);
+      }
+    },
+    () => notifyInvalidForm(),
+  );
   const replacement = terms?.plans.find(
     (item) => item.id === replacementPlanId,
   )?.publishedAgreement;
@@ -177,47 +182,50 @@ export function CommercialPlanAdmin() {
         ? item.id === replacementPlanId && Boolean(item.publishedAgreement)
         : !item.publishedAgreementVersionRef;
     }) ?? [];
-  const publish = agreement.handleSubmit(async (value) => {
-    if (!eligiblePlans.some((item) => item.id === value.planVersionId)) return;
-    if (terms?.plans.some((item) => item.publishedAgreementVersionRef === value.versionRef)) {
-      agreement.setError('versionRef', { type: 'manual', message: t('agreementRefAlreadyUsed') });
-      return;
-    }
-    if (!terms?.serviceTariffs.some((item) => item.id === value.serviceTariffVersionId)) {
-      agreement.setError('serviceTariffVersionId', {
-        type: 'manual',
-        message: t('chooseCurrentTariff'),
-      });
-      return;
-    }
-    if (!terms.freightTariffs.some((item) => item.id === value.freightTariffVersionId)) {
-      agreement.setError('freightTariffVersionId', {
-        type: 'manual',
-        message: t('chooseCurrentTariff'),
-      });
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.publishAgreement(
-        { ...value, templateId: value.templateId || undefined },
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('agreementSaved'));
-        agreement.reset(agreementDefaults);
-        setReplacementPlanId(null);
-        setActiveTab('versions');
-        await reload(controller.current?.signal);
+  const publish = agreement.handleSubmit(
+    async (value) => {
+      if (!eligiblePlans.some((item) => item.id === value.planVersionId)) return;
+      if (terms?.plans.some((item) => item.publishedAgreementVersionRef === value.versionRef)) {
+        agreement.setError('versionRef', { type: 'manual', message: t('agreementRefAlreadyUsed') });
+        return;
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+      if (!terms?.serviceTariffs.some((item) => item.id === value.serviceTariffVersionId)) {
+        agreement.setError('serviceTariffVersionId', {
+          type: 'manual',
+          message: t('chooseCurrentTariff'),
+        });
+        return;
+      }
+      if (!terms.freightTariffs.some((item) => item.id === value.freightTariffVersionId)) {
+        agreement.setError('freightTariffVersionId', {
+          type: 'manual',
+          message: t('chooseCurrentTariff'),
+        });
+        return;
+      }
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.publishAgreement(
+          { ...value, templateId: value.templateId || undefined },
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('agreementSaved'));
+          agreement.reset(agreementDefaults);
+          setReplacementPlanId(null);
+          setActiveTab('versions');
+          await reload(controller.current?.signal);
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
+      }
+    },
+    () => notifyInvalidForm(),
+  );
   const openAgreement = (item: AdminPlan) => {
     const published = item.publishedAgreement;
     if (item.publishedAgreementVersionRef && !published) {
@@ -514,6 +522,7 @@ export function CommercialPlanAdmin() {
                   }
                 },
               })}
+              error={plan.formState.errors?.code?.message}
             />
             <Input
               label={t('planName')}
@@ -682,6 +691,7 @@ export function CommercialPlanAdmin() {
                 { value: 'EXISTING_FIELDS', label: t('preparedLayout') },
               ]}
               {...agreement.register('compositionMode')}
+              error={agreement.formState.errors?.compositionMode?.message}
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] pt-4">

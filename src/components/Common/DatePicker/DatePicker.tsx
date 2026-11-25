@@ -5,6 +5,8 @@ import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
 import { cn } from '@/lib/utils';
 
 import 'react-day-picker/dist/style.css';
@@ -65,7 +67,11 @@ export function DatePicker({
           )}
         />
       </button>
-      {error && <span className="text-xs text-[var(--sc-error-dark)]">{error}</span>}
+      {error && (
+        <Alert variant="error" compact>
+          {error}
+        </Alert>
+      )}
 
       {isOpen && (
         <div

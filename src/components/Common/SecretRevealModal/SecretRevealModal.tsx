@@ -1,9 +1,10 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { AlertTriangle, Check, Copy, Key } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/Common/Button/Button';
+import { Alert } from '@/components/Common/Alert/Alert';
 import Modal from '@/components/Common/Modal/Modal';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 
@@ -43,14 +44,24 @@ export function SecretRevealModal({
   details,
 }: SecretRevealModalProps) {
   const { isCopied, copy } = useCopyToClipboard();
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const handleCopy = async () => {
-    if (await copy(secret)) toast.success(labels.copySucceeded);
-    else toast.error(labels.copyFailed);
+    const success = await copy(secret);
+    setCopyFailed(!success);
+    if (success) toast.success(labels.copySucceeded);
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={labels.title} width="600px">
+    <Modal
+      isOpen={isOpen}
+      onClose={() => {
+        setCopyFailed(false);
+        onClose();
+      }}
+      title={labels.title}
+      width="600px"
+    >
       <div className="space-y-5">
         <div className="flex items-start gap-3 rounded-xl border border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)] p-4 text-[var(--sc-warning-dark)]">
           <AlertTriangle
@@ -73,6 +84,11 @@ export function SecretRevealModal({
           >
             {labels.secretLabel}
           </label>
+          {copyFailed && (
+            <Alert variant="error" compact className="mb-2">
+              {labels.copyFailed}
+            </Alert>
+          )}
           <div className="flex items-center gap-2">
             <div className="relative flex min-w-0 flex-1 items-center">
               <div className="pointer-events-none absolute left-3 flex items-center text-[var(--sc-text-tertiary)]">

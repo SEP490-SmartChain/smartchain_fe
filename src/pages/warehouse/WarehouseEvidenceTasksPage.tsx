@@ -233,9 +233,9 @@ function WarehouseEvidenceTasksWorkspace() {
                     </p>
                   )}
                   {fileInvalid && (
-                    <p className="mb-0 mt-2 text-sm text-[var(--sc-error-dark)]" role="alert">
+                    <Alert variant="error" className="mt-2">
                       {t('invalidImage')}
-                    </p>
+                    </Alert>
                   )}
                   {state.pending && state.uploadState === 'retry' && (
                     <p className="mb-0 mt-2 text-sm text-[var(--sc-warning-dark)]" role="status">

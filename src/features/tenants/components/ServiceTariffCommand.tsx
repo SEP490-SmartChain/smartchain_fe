@@ -8,6 +8,8 @@ import { useTranslations } from 'next-intl';
 import { Alert, Button, Input } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 
+import { notifyInvalidForm } from '@/lib/errorNotifications';
+
 import { serviceTariffApi } from '../api/serviceTariffApi';
 import { serviceTariffCommandSchema, type ServiceTariff } from '../schemas/serviceTariffSchema';
 
@@ -36,30 +38,33 @@ export function ServiceTariffCommand({
     resolver: zodResolver(serviceTariffCommandSchema),
     defaultValues: { reason: '', effectiveTo: '' },
   });
-  const submit = form.handleSubmit(async (input) => {
-    if (
-      mode === 'close' &&
-      (!input.effectiveTo ||
-        new Date(input.effectiveTo) <= new Date() ||
-        new Date(input.effectiveTo) <= new Date(row.effectiveFrom))
-    ) {
-      form.setError('effectiveTo', { message: 'invalid' });
-      return;
-    }
-    setError(null);
-    try {
-      if (mode === 'publish') {
-        await serviceTariffApi.publish(row, input.reason, abort.current.signal);
-      } else {
-        await serviceTariffApi.close(row, input.effectiveTo, input.reason, abort.current.signal);
+  const submit = form.handleSubmit(
+    async (input) => {
+      if (
+        mode === 'close' &&
+        (!input.effectiveTo ||
+          new Date(input.effectiveTo) <= new Date() ||
+          new Date(input.effectiveTo) <= new Date(row.effectiveFrom))
+      ) {
+        form.setError('effectiveTo', { message: 'invalid' });
+        return;
       }
-      if (!abort.current.signal.aborted) onSaved();
-    } catch (failure) {
-      if (!abort.current.signal.aborted) {
-        setError(failure instanceof Error ? failure.message : t('saveError'));
+      setError(null);
+      try {
+        if (mode === 'publish') {
+          await serviceTariffApi.publish(row, input.reason, abort.current.signal);
+        } else {
+          await serviceTariffApi.close(row, input.effectiveTo, input.reason, abort.current.signal);
+        }
+        if (!abort.current.signal.aborted) onSaved();
+      } catch (failure) {
+        if (!abort.current.signal.aborted) {
+          setError(failure instanceof Error ? failure.message : t('saveError'));
+        }
       }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <Modal
       isOpen

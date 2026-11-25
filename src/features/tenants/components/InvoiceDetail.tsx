@@ -6,8 +6,15 @@ import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
+import { Card } from '@/components/Common/Card/Card';
 import Modal from '@/components/Common/Modal/Modal';
+import {
+  LivePaymentSuccessBanner,
+  subscribeUiSync,
+  useCommercialLiveSync,
+} from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { apiClient } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -32,6 +39,7 @@ export function InvoiceDetail({
   onChanged: () => Promise<void>;
 }) {
   const t = useTranslations('Invoices');
+  const nt = useTranslations('Notifications');
   const locale = useLocaleStore((s) => s.locale);
   const scope = useAuthStore((s) => s.user?.actorScope);
   const { can } = useAccess();
@@ -43,6 +51,7 @@ export function InvoiceDetail({
     [busy, setBusy] = useState(false),
     [payment, setPayment] = useState<InvoicePayment | null>(null);
   const abort = useRef(new AbortController());
+
   useEffect(() => {
     const current = new AbortController();
     abort.current = current;
@@ -50,6 +59,7 @@ export function InvoiceDetail({
       current.abort();
     };
   }, []);
+
   const load = useCallback(async () => {
     const current = abort.current;
     setLoading(true);
@@ -73,9 +83,35 @@ export function InvoiceDetail({
       if (!current.signal.aborted) setLoading(false);
     }
   }, [id, tenantId, t]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  const syncCommercial = useCallback(async () => {
+    await load();
+    await onChanged();
+  }, [load, onChanged]);
+
+  const refreshProfileAndInvoice = useCallback(async () => {
+    if (scope === 'TENANT') {
+      await apiClient.currentUser();
+    }
+    await load();
+    await onChanged();
+  }, [load, onChanged, scope]);
+
+  const live = useCommercialLiveSync({
+    subscribeUiSync,
+    onRefetchCommercial: syncCommercial,
+    onRefreshUser: refreshProfileAndInvoice,
+  });
+  const liveMatchesThisInvoice = Boolean(
+    invoice &&
+    live.isPaymentLiveConfirmed &&
+    (!live.state.lastInvoiceNumber || live.state.lastInvoiceNumber === invoice.invoiceNo),
+  );
+
   const perform = async (action: () => Promise<void>) => {
     setBusy(true);
     setError(null);
@@ -89,12 +125,14 @@ export function InvoiceDetail({
       if (!abort.current.signal.aborted) setBusy(false);
     }
   };
+
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const date = (value: string) =>
     new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB').format(
       new Date(`${value}T12:00:00Z`),
     );
+
   const download = async () => {
     const blob = await invoiceApi.pdf(id, tenantId, abort.current.signal);
     if (abort.current.signal.aborted) return;
@@ -105,9 +143,28 @@ export function InvoiceDetail({
     anchor.click();
     URL.revokeObjectURL(url);
   };
+
+  const formatInvoiceCode = (inv: FeeInvoice) =>
+    inv.invoiceNo.endsWith(inv.id)
+      ? `${inv.invoiceNo.slice(0, -inv.id.length)}${inv.id.slice(0, 8).toUpperCase()}`
+      : inv.invoiceNo;
+
+  const formatSourceLabel = (line: FeeInvoiceLine, inv: FeeInvoice) => {
+    if (line.feeType && t.has(`feeTypes.${line.feeType}`)) {
+      return t(`feeTypes.${line.feeType}`);
+    }
+    if (line.ledgerEntryId) {
+      return t('kinds.ADJUSTMENT');
+    }
+    if (inv.documentType === 'PLAN') {
+      return t('kinds.PLAN');
+    }
+    return t('contract');
+  };
+
   return (
-    <Modal isOpen onClose={onClose} title={t('detailTitle')} width="1100px">
-      <div className="space-y-5">
+    <Modal isOpen onClose={onClose} title={t('detailTitle')} width="960px">
+      <div className="space-y-4">
         {error && (
           <Alert variant="error">
             {error}
@@ -121,49 +178,88 @@ export function InvoiceDetail({
             </Button>
           </Alert>
         )}
-        {loading && <p role="status">{t('loading')}</p>}
+        {loading && (
+          <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
+            {t('loading')}
+          </p>
+        )}
         {invoice && (
           <>
-            <div className="rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-[var(--sc-bg-elevated)] p-3 text-[var(--sc-primary)]">
-                    <FileCheck2 size={24} aria-hidden />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-[var(--sc-primary)]">
-                      {t(`kinds.${invoice.documentType}`)} · {invoice.periodKey}
-                    </p>
-                    <h3 className="mt-2 text-lg font-semibold" title={invoice.invoiceNo}>
-                      {invoice.invoiceNo.endsWith(invoice.id)
-                        ? `${invoice.invoiceNo.slice(0, -invoice.id.length)}${invoice.id.slice(0, 8).toUpperCase()}`
-                        : invoice.invoiceNo}
-                    </h3>
-                    <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
+            {/* Unified Card 1: Invoice Summary Header, Actions & 3-Column Financial Strip */}
+            <Card
+              padding="none"
+              className="overflow-hidden border border-[var(--sc-border-default)]"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--sc-border-default)] px-5 py-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                    <FileCheck2 size={18} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="m-0 text-base font-semibold text-[var(--sc-text-primary)]">
+                        {formatInvoiceCode(invoice)}
+                      </h3>
+                      <span className="rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                        {t(`kinds.${invoice.documentType}`)}
+                        {!invoice.periodKey.startsWith('INITIAL') ? ` · ${invoice.periodKey}` : ''}
+                      </span>
+                      <Badge
+                        status={
+                          invoice.documentStatus === 'DRAFT'
+                            ? 'default'
+                            : invoice.paymentStatus === 'PAID'
+                              ? 'success'
+                              : invoice.paymentStatus === 'EXPIRED'
+                                ? 'error'
+                                : invoice.paymentStatus === 'LEDGER'
+                                  ? 'info'
+                                  : 'warning'
+                        }
+                        label={t(
+                          `states.${invoice.documentStatus === 'DRAFT' ? 'DRAFT' : invoice.paymentStatus}`,
+                        )}
+                      />
+                    </div>
+                    <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">
                       {invoice.documentType === 'SERVICE'
                         ? t('ledgerDocument')
                         : t('due', { date: date(invoice.dueOn) })}
                     </p>
                   </div>
                 </div>
-                <Badge
-                  status={
-                    invoice.documentStatus === 'DRAFT'
-                      ? 'default'
-                      : invoice.paymentStatus === 'PAID'
-                        ? 'success'
-                        : invoice.paymentStatus === 'EXPIRED'
-                          ? 'error'
-                          : invoice.paymentStatus === 'LEDGER'
-                            ? 'info'
-                            : 'warning'
-                  }
-                  label={t(
-                    `states.${invoice.documentStatus === 'DRAFT' ? 'DRAFT' : invoice.paymentStatus}`,
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy || invoice.documentStatus !== 'ISSUED'}
+                    onClick={() => {
+                      void perform(download);
+                    }}
+                  >
+                    <Download size={14} />
+                    {t('pdf')}
+                  </Button>
+                  {scope === 'TENANT' && invoice.paymentRequired && (
+                    <Button
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => {
+                        void perform(async () => {
+                          const result = await invoiceApi.payment(id, abort.current.signal);
+                          if (!abort.current.signal.aborted) setPayment(result);
+                        });
+                      }}
+                    >
+                      {t('pay')}
+                    </Button>
                   )}
-                />
+                </div>
               </div>
-              <dl className="mt-6 grid gap-5 border-t border-[var(--sc-border-default)] pt-5 sm:grid-cols-3">
+
+              {/* 3-Column Financial Strip */}
+              <dl className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                 {[
                   ['total', invoice.totalVnd],
                   ['paid', invoice.paidVnd],
@@ -172,10 +268,16 @@ export function InvoiceDetail({
                   ([key, value]) =>
                     key &&
                     value !== undefined && (
-                      <div key={key}>
+                      <div key={key} className="px-5 py-3.5">
                         <dt className="text-xs text-[var(--sc-text-secondary)]">{t(key)}</dt>
                         <dd
-                          className={`mt-2 text-xl font-semibold tabular-nums ${key === 'outstanding' ? 'text-[var(--sc-primary)]' : ''}`}
+                          className={`mt-1 text-lg font-bold tabular-nums ${
+                            key === 'outstanding'
+                              ? BigInt(value) > BigInt(0)
+                                ? 'text-[var(--sc-warning-dark)]'
+                                : 'text-[var(--sc-primary)]'
+                              : 'text-[var(--sc-text-primary)]'
+                          }`}
                         >
                           {money(value)}
                         </dd>
@@ -183,81 +285,102 @@ export function InvoiceDetail({
                     ),
                 )}
               </dl>
-              <details className="mt-5 text-xs text-[var(--sc-text-secondary)]">
-                <summary className="cursor-pointer rounded py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
-                  {t('documentReference')}
-                </summary>
-                <p className="mt-2 break-all font-mono">{invoice.invoiceNo}</p>
-              </details>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                disabled={busy || invoice.documentStatus !== 'ISSUED'}
-                onClick={() => {
-                  void perform(download);
-                }}
-              >
-                <Download size={16} />
-                {t('pdf')}
-              </Button>
-              {scope === 'TENANT' && invoice.paymentRequired && (
-                <Button
-                  disabled={busy}
-                  onClick={() => {
-                    void perform(async () => {
-                      const result = await invoiceApi.payment(id, abort.current.signal);
-                      if (!abort.current.signal.aborted) setPayment(result);
-                    });
-                  }}
-                >
-                  {t('pay')}
-                </Button>
+
+              {invoice.paymentStatus === 'LEDGER' && (
+                <div className="border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 px-5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
+                  {t('ledgerHelp')}
+                </div>
               )}
-            </div>
-            {invoice.paymentStatus === 'LEDGER' && <Alert variant="info">{t('ledgerHelp')}</Alert>}
-            {invoice.documentStatus === 'ISSUED' &&
-              invoice.paymentStatus === 'UNPAID' &&
-              !invoice.paymentRequired && <Alert variant="info">{t('noActiveObligation')}</Alert>}
-            {payment && invoice.paymentRequired && (
-              <InvoiceBankTransfer
-                payment={payment}
-                busy={busy}
-                onRefresh={() => {
-                  void perform(async () => {
-                    await load();
-                    await onChanged();
-                  });
-                }}
+              {invoice.documentStatus === 'ISSUED' &&
+                invoice.paymentStatus === 'UNPAID' &&
+                !invoice.paymentRequired &&
+                !liveMatchesThisInvoice && (
+                  <div className="border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 px-5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
+                    {t('noActiveObligation')}
+                  </div>
+                )}
+            </Card>
+
+            {liveMatchesThisInvoice && (
+              <LivePaymentSuccessBanner
+                status={live.isServiceLiveActivated ? 'ACTIVATED' : 'POSTED'}
+                invoiceNumber={live.state.lastInvoiceNumber ?? invoice.invoiceNo}
+                amountVnd={live.state.lastAmountVnd}
+                receiptId={live.state.lastReceiptId}
+                locale={locale === 'en' ? 'en' : 'vi'}
+                badgeLabel={nt(
+                  live.isServiceLiveActivated ? 'banner.activatedBadge' : 'banner.postedBadge',
+                )}
+                title={nt(
+                  live.isServiceLiveActivated ? 'banner.activatedTitle' : 'banner.postedTitle',
+                )}
+                description={nt(
+                  live.isServiceLiveActivated
+                    ? 'banner.activatedDescription'
+                    : 'banner.postedDescription',
+                )}
+                continueLabel={nt(
+                  live.isServiceLiveActivated
+                    ? 'banner.activatedContinue'
+                    : 'banner.postedContinue',
+                )}
+                onContinue={onClose}
               />
             )}
-            <div>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h4 className="font-semibold">{t('lineTitle')}</h4>
-                <span className="inline-flex items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
+
+            {payment &&
+              invoice.paymentRequired &&
+              invoice.paymentStatus !== 'PAID' &&
+              !liveMatchesThisInvoice && (
+                <InvoiceBankTransfer
+                  payment={payment}
+                  busy={busy}
+                  onRefresh={() => {
+                    void perform(async () => {
+                      await load();
+                      await onChanged();
+                    });
+                  }}
+                />
+              )}
+
+            {/* Unified Card 2: Fee Lines Table */}
+            <Card
+              padding="none"
+              className="overflow-hidden border border-[var(--sc-border-default)]"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] px-5 py-3.5">
+                <h4 className="m-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+                  {t('lineTitle')}
+                </h4>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--sc-primary-alpha-08)] px-2.5 py-1 text-xs font-medium text-[var(--sc-primary)]">
                   <ShieldCheck size={14} aria-hidden />
                   {t('sourceTraceable')}
                 </span>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-[var(--sc-border-default)]">
+
+              <div className="overflow-x-auto">
                 <table
-                  className="w-full min-w-[650px] text-left text-sm"
+                  className="w-full min-w-[600px] text-left text-sm"
                   aria-label={t('lineTitle')}
                 >
-                  <thead className="bg-[var(--sc-bg-secondary)]">
+                  <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/60 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                     <tr>
-                      {['descriptionColumn', 'quantity', 'rate', 'amount', 'source'].map((key) => (
-                        <th key={key} className="px-4 py-3 text-xs font-medium">
-                          {t(key)}
-                        </th>
-                      ))}
+                      <th className="px-5 py-3">{t('descriptionColumn')}</th>
+                      <th className="px-5 py-3">{t('quantity')}</th>
+                      <th className="px-5 py-3 text-right">{t('rate')}</th>
+                      <th className="px-5 py-3 text-right">{t('amount')}</th>
+                      <th className="px-5 py-3">{t('source')}</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[var(--sc-border-default)]">
                     {lines.map((line) => (
-                      <tr key={line.id} className="border-t border-[var(--sc-border-default)]">
-                        <td className="px-4 py-3">
-                          <span className="font-medium">
+                      <tr
+                        key={line.id}
+                        className="transition-colors hover:bg-[var(--sc-bg-secondary)]/25"
+                      >
+                        <td className="px-5 py-3.5">
+                          <span className="font-medium text-[var(--sc-text-primary)]">
                             {line.description === 'CLAIM_CREDIT'
                               ? t('feeTypes.CLAIM_CREDIT')
                               : line.feeType && t.has(`feeTypes.${line.feeType}`)
@@ -268,69 +391,57 @@ export function InvoiceDetail({
                                     ? t('kinds.ADJUSTMENT')
                                     : line.description}
                           </span>
-                          <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+                          <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
                             {t.has(`units.${line.unit}`) ? t(`units.${line.unit}`) : line.unit}
                             {line.unitPriceVnd === '0' ? ` · ${t('included')}` : ''}
                           </p>
                         </td>
-                        <td className="px-4 py-3 tabular-nums">{line.quantity}</td>
-                        <td className="whitespace-nowrap px-4 py-3 tabular-nums">
+                        <td className="px-5 py-3.5 tabular-nums text-[var(--sc-text-secondary)]">
+                          {line.quantity}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right tabular-nums text-[var(--sc-text-secondary)]">
                           {money(line.unitPriceVnd)}
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-medium tabular-nums">
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right font-semibold tabular-nums text-[var(--sc-text-primary)]">
                           {money(line.amountVnd)}
                         </td>
-                        <td className="max-w-80 break-all px-4 py-3 text-xs text-[var(--sc-text-secondary)]">
-                          <details>
-                            <summary className="cursor-pointer rounded py-1 text-[var(--sc-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
-                              {t('viewSource')}
-                            </summary>
-                            <p className="mt-2">{line.description}</p>
-                            <p className="mt-2">
-                              {line.refType ?? (line.ledgerEntryId ? 'ADJUST' : t('contract'))}
-                            </p>
-                            <p className="mt-1 font-mono">
-                              {line.refId ?? line.ledgerEntryId ?? invoice.contractId}
-                            </p>
-                            {line.billableEventId && (
-                              <p className="mt-2 font-mono">
-                                {t('event')}: {line.billableEventId}
-                              </p>
-                            )}
-                            {line.tariffVersionRef && (
-                              <p className="mt-2 font-mono">
-                                {t('tariff')}: {line.tariffVersionRef}
-                              </p>
-                            )}
-                          </details>
+                        <td className="px-5 py-3.5 text-xs">
+                          <span className="inline-flex items-center rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/60 px-2.5 py-1 font-medium text-[var(--sc-text-secondary)]">
+                            {formatSourceLabel(line, invoice)}
+                          </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-            {cursor && (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() => {
-                  void perform(async () => {
-                    const page = await invoiceApi.lines(
-                      id,
-                      { tenantId, cursor, limit: 100 },
-                      abort.current.signal,
-                    );
-                    if (!abort.current.signal.aborted) {
-                      setLines((old) => [...old, ...page.items]);
-                      setCursor(page.pagination.nextCursor);
-                    }
-                  });
-                }}
-              >
-                {t('more')}
-              </Button>
-            )}
+
+              {cursor && (
+                <div className="border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 px-5 py-2.5 text-right">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => {
+                      void perform(async () => {
+                        const page = await invoiceApi.lines(
+                          id,
+                          { tenantId, cursor, limit: 100 },
+                          abort.current.signal,
+                        );
+                        if (!abort.current.signal.aborted) {
+                          setLines((old) => [...old, ...page.items]);
+                          setCursor(page.pagination.nextCursor);
+                        }
+                      });
+                    }}
+                  >
+                    {t('more')}
+                  </Button>
+                </div>
+              )}
+            </Card>
+
             {tenantId &&
               can('invoice.bankReceipt.post') &&
               invoice.paymentRequired &&

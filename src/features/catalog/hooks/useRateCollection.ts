@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+
 import { carrierAccountApi, type CarrierAccount } from '../api/carrierAccountApi';
 import { freightTariffApi } from '../api/freightTariffApi';
 import { rateIntelligenceApi, type RateCollectionJob } from '../api/rateIntelligenceApi';
@@ -35,6 +37,7 @@ export function useRateCollection() {
   const [jobs, setJobs] = useState<RateCollectionJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadError, setHasLoadError] = useState(false);
+  const isRealtimeConnected = useIsRealtimeConnected();
 
   const refresh = useCallback(async (isQuiet = false, signal?: AbortSignal) => {
     if (!isQuiet) {
@@ -66,15 +69,18 @@ export function useRateCollection() {
   }, [refresh]);
 
   const hasRunningJob = jobs.some((job) => job.status === 'PENDING' || job.status === 'RUNNING');
+  useRealtimeSync(['rates.collection'], () => {
+    void refresh(true);
+  });
   useEffect(() => {
-    if (!hasRunningJob) return undefined;
+    if (!hasRunningJob || isRealtimeConnected) return undefined;
     const controller = new AbortController();
     const timer = window.setInterval(() => void refresh(true, controller.signal), POLL_INTERVAL_MS);
     return () => {
       controller.abort();
       window.clearInterval(timer);
     };
-  }, [hasRunningJob, refresh]);
+  }, [hasRunningJob, isRealtimeConnected, refresh]);
 
   /** Changes whenever a price update starts or finishes, so dependent tables reload. */
   const refreshToken = jobs.map((job) => `${job.id}:${job.status}`).join('|') || 'none';

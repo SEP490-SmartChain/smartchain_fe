@@ -162,6 +162,24 @@ export const payoutApi = {
     );
     return mutationSchema.parse(data);
   },
+  /** Accountant: freeze and send a statement for a chosen period without waiting for Monday. */
+  async createOnDemand(
+    payload: { operationKey: string; periodFrom: string; periodTo: string },
+    tenantId: string,
+    signal?: AbortSignal,
+  ) {
+    z.object({
+      operationKey: z.string().uuid(),
+      periodFrom: z.string().datetime({ offset: true }),
+      periodTo: z.string().datetime({ offset: true }),
+    }).parse(payload);
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `${root}/statements/on-demand${query({ tenantId: z.string().uuid().parse(tenantId) })}`,
+      payload,
+      { signal, silent: true },
+    );
+    return mutationSchema.parse(data);
+  },
   async upload(id: string, file: File, tenantId?: string, signal?: AbortSignal) {
     const form = new FormData();
     form.set('file', file);

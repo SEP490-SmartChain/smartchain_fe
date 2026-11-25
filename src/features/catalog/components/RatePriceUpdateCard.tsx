@@ -103,9 +103,7 @@ export function RatePriceUpdateCard({
                         : t('updateNever')}
                   </p>
                   {job && (job.status === 'FAILED' || job.status === 'PARTIAL') && job.errorCode ? (
-                    <p className="text-sm text-[var(--sc-error-dark)]">
-                      {t(`jobError_${jobErrorKey(job.errorCode)}`)}
-                    </p>
+                    <Alert variant="error">{t(`jobError_${jobErrorKey(job.errorCode)}`)}</Alert>
                   ) : null}
                 </div>
                 <Button

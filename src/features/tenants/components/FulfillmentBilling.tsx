@@ -10,10 +10,13 @@ import { useTranslations } from 'next-intl';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
+import { Card } from '@/components/Common/Card/Card';
 import { MonthPicker } from '@/components/Common/DatePicker/MonthPicker';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
@@ -21,7 +24,7 @@ import { useLocaleStore } from '@/stores/localeStore';
 import { InvoiceDetail } from './InvoiceDetail';
 import { commercialApi } from '../api/commercialApi';
 import { invoiceApi, type FeeInvoice } from '../api/invoiceApi';
-import { invoiceFiltersSchema, closeInvoicePeriodSchema } from '../schemas/invoiceSchema';
+import { closeInvoicePeriodSchema, invoiceFiltersSchema } from '../schemas/invoiceSchema';
 
 import type { z } from 'zod';
 
@@ -32,11 +35,15 @@ function InvoiceList({
   filters,
   initialId,
   compact,
+  headerActions,
+  filterBar,
 }: {
   tenantId?: string;
   filters: Filters;
   initialId: string | null;
   compact: boolean;
+  headerActions?: React.ReactNode;
+  filterBar?: React.ReactNode;
 }) {
   const t = useTranslations('Invoices');
   const locale = useLocaleStore((s) => s.locale);
@@ -53,6 +60,7 @@ function InvoiceList({
     resolver: zodResolver(closeInvoicePeriodSchema),
     defaultValues: { month: '' },
   });
+
   useEffect(() => {
     const abort = new AbortController();
     request.current = abort;
@@ -78,12 +86,19 @@ function InvoiceList({
       abort.abort();
     };
   }, [tenantId, filters, revision, t]);
+  useRealtimeSync(['commercial.billing', 'commercial.onboarding'], () => {
+    setRevision((value) => value + 1);
+  });
+
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const date = (value: string) =>
     new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-GB').format(
       new Date(`${value}T12:00:00Z`),
     );
+  const formatPeriod = (periodKey: string) =>
+    periodKey.startsWith('INITIAL') ? t('kinds.ONBOARDING') : periodKey;
+
   const more = async () => {
     const current = request.current;
     if (!cursor || loading || !current) return;
@@ -105,102 +120,159 @@ function InvoiceList({
       if (!current.signal.aborted) setLoading(false);
     }
   };
-  const close = closeForm.handleSubmit(async (input) => {
-    const current = request.current;
-    if (!tenantId || !current) return;
-    setError(null);
-    setNotice(null);
-    try {
-      const result = await invoiceApi.close(tenantId, input.month, current.signal);
-      if (!current.signal.aborted) {
-        setNotice(t('closed', { count: result.invoiceIds.length }));
-        setRevision((value) => value + 1);
+
+  const close = closeForm.handleSubmit(
+    async (input) => {
+      const current = request.current;
+      if (!tenantId || !current) return;
+      setError(null);
+      setNotice(null);
+      try {
+        const result = await invoiceApi.close(tenantId, input.month, current.signal);
+        if (!current.signal.aborted) {
+          setNotice(t('closed', { count: result.invoiceIds.length }));
+          setRevision((value) => value + 1);
+        }
+      } catch (failure) {
+        if (!current.signal.aborted) {
+          setError(failure instanceof Error ? failure.message : t('loadError'));
+        }
       }
-    } catch (failure) {
-      if (!current.signal.aborted) {
-        setError(failure instanceof Error ? failure.message : t('loadError'));
-      }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
+
+  const totalAmount = items.reduce((sum, item) => sum + BigInt(item.totalVnd), BigInt(0));
+  const outstandingAmount = items.reduce(
+    (sum, item) => sum + BigInt(item.outstandingVnd),
+    BigInt(0),
+  );
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
+      {/* Unified Card 1: Header & 3-Column Summary Metrics */}
       {!compact && (
-        <div className="grid gap-4 sm:grid-cols-3" aria-busy={loading}>
-          {[
-            { label: t('documents'), value: String(items.length), icon: FileText, emphasis: false },
-            {
-              label: t('documentTotal'),
-              value: money(
-                items.reduce((sum, item) => sum + BigInt(item.totalVnd), BigInt(0)).toString(),
-              ),
-              icon: CalendarDays,
-              emphasis: false,
-            },
-            {
-              label: t('outstanding'),
-              value: money(
-                items
-                  .reduce((sum, item) => sum + BigInt(item.outstandingVnd), BigInt(0))
-                  .toString(),
-              ),
-              icon: Wallet,
-              emphasis: true,
-            },
-          ].map((card) => (
-            <div
-              key={card.label}
-              className={`relative overflow-hidden rounded-2xl border p-5 ${card.emphasis ? 'border-[var(--sc-primary)] bg-[var(--sc-primary)] text-white' : 'border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)]'}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p
-                  className={`text-sm ${card.emphasis ? 'text-white/90' : 'text-[var(--sc-text-secondary)]'}`}
-                >
-                  {card.label}
+        <Card
+          padding="none"
+          className="border border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                <FileText size={18} aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h1 className="m-0 text-base font-semibold text-[var(--sc-text-primary)] sm:text-lg">
+                  {t('title')}
+                </h1>
+                <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
+                  {t('description')}
                 </p>
-                <card.icon
-                  size={19}
-                  className={card.emphasis ? 'text-white/80' : 'text-[var(--sc-primary)]'}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {headerActions}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                onClick={() => {
+                  setRevision((value) => value + 1);
+                }}
+              >
+                <RefreshCw size={14} aria-hidden />
+                {t('refresh')}
+              </Button>
+            </div>
+          </div>
+
+          <div
+            className="grid divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+            aria-busy={loading}
+          >
+            <div className="px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                <FileText size={14} className="text-[var(--sc-primary)]" aria-hidden />
+                <span>{t('documents')}</span>
+              </div>
+              <p className="mb-0 mt-1.5 text-xl font-bold tabular-nums text-[var(--sc-text-primary)]">
+                {loading && !items.length ? '—' : String(items.length)}
+              </p>
+              <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{t('loadedOnly')}</p>
+            </div>
+
+            <div className="px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                <CalendarDays size={14} className="text-[var(--sc-primary)]" aria-hidden />
+                <span>{t('documentTotal')}</span>
+              </div>
+              <p className="mb-0 mt-1.5 text-xl font-bold tabular-nums text-[var(--sc-text-primary)]">
+                {loading && !items.length ? '—' : money(totalAmount.toString())}
+              </p>
+              <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{t('loadedOnly')}</p>
+            </div>
+
+            <div className="px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                <Wallet
+                  size={14}
+                  className={
+                    outstandingAmount > BigInt(0)
+                      ? 'text-[var(--sc-warning)]'
+                      : 'text-[var(--sc-primary)]'
+                  }
                   aria-hidden
                 />
+                <span>{t('outstanding')}</span>
               </div>
-              <p className="mt-4 break-words text-2xl font-semibold tracking-tight tabular-nums">
-                {loading && !items.length ? '—' : card.value}
-              </p>
               <p
-                className={`mt-2 text-xs ${card.emphasis ? 'text-white/80' : 'text-[var(--sc-text-secondary)]'}`}
+                className={`mb-0 mt-1.5 text-xl font-bold tabular-nums ${
+                  outstandingAmount > BigInt(0)
+                    ? 'text-[var(--sc-warning-dark)]'
+                    : 'text-[var(--sc-primary)]'
+                }`}
               >
-                {t('loadedOnly')}
+                {loading && !items.length ? '—' : money(outstandingAmount.toString())}
               </p>
+              <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{t('loadedOnly')}</p>
             </div>
-          ))}
-        </div>
-      )}
-      {tenantId && can('invoice.period.close') && (
-        <form
-          onSubmit={close}
-          className="grid items-end gap-4 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-5 sm:grid-cols-[minmax(0,1fr)_auto]"
-        >
-          <Controller
-            control={closeForm.control}
-            name="month"
-            render={({ field, fieldState }) => (
-              <MonthPicker
-                label={t('closeMonth')}
-                placeholder={t('chooseMonth')}
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error ? t('invalidMonth') : undefined}
+          </div>
+
+          {tenantId && can('invoice.period.close') && (
+            <form
+              onSubmit={close}
+              className="grid items-end gap-3 border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 px-5 py-3.5 sm:grid-cols-[minmax(0,260px)_auto_1fr] sm:px-6"
+            >
+              <Controller
+                control={closeForm.control}
+                name="month"
+                render={({ field, fieldState }) => (
+                  <MonthPicker
+                    label={t('closeMonth')}
+                    placeholder={t('chooseMonth')}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={fieldState.error ? t('invalidMonth') : undefined}
+                  />
+                )}
               />
-            )}
-          />
-          <Button type="submit" variant="outline" isLoading={closeForm.formState.isSubmitting}>
-            {t('closePeriod')}
-          </Button>
-          <p className="text-xs leading-5 text-[var(--sc-text-secondary)] sm:col-span-2">
-            {t('closeHelp')}
-          </p>
-        </form>
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                isLoading={closeForm.formState.isSubmitting}
+              >
+                {t('closePeriod')}
+              </Button>
+              <p className="m-0 text-xs leading-5 text-[var(--sc-text-secondary)]">
+                {t('closeHelp')}
+              </p>
+            </form>
+          )}
+        </Card>
       )}
+
       {notice && <Alert variant="success">{notice}</Alert>}
       {error && (
         <Alert variant="error">
@@ -215,36 +287,52 @@ function InvoiceList({
           </Button>
         </Alert>
       )}
-      <div className="overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)]">
-        <div className="flex items-center justify-between gap-4 border-b border-[var(--sc-border-default)] p-5">
+
+      {/* Unified Card 2: Filter Toolbar & Invoice Table */}
+      <Card
+        padding="none"
+        className="border border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] px-5 py-3.5 sm:px-6">
           <div>
-            <h2 className="text-lg font-semibold">{t('listTitle')}</h2>
+            <h2 className="m-0 text-base font-semibold text-[var(--sc-text-primary)]">
+              {t('listTitle')}
+            </h2>
             {!compact && (
-              <p className="mt-1 text-sm text-[var(--sc-text-secondary)]">{t('listHelp')}</p>
+              <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">{t('listHelp')}</p>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={loading}
-            onClick={() => {
-              setRevision((value) => value + 1);
-            }}
-          >
-            <RefreshCw size={14} aria-hidden />
-            {t('refresh')}
-          </Button>
+          {compact && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              onClick={() => {
+                setRevision((value) => value + 1);
+              }}
+            >
+              <RefreshCw size={14} aria-hidden />
+              {t('refresh')}
+            </Button>
+          )}
         </div>
+
+        {filterBar && (
+          <div className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 px-5 py-3.5 sm:px-6">
+            {filterBar}
+          </div>
+        )}
+
         {loading && (
-          <p role="status" className="p-5 text-sm">
+          <p role="status" className="m-0 px-5 py-6 text-sm text-[var(--sc-text-secondary)]">
             {t('loading')}
           </p>
         )}
         {!loading && !error && !items.length && (
-          <div className={compact ? 'px-4 py-6 text-center' : 'px-6 py-14 text-center'}>
-            <FileText className="mx-auto mb-4 text-[var(--sc-text-secondary)]" size={32} />
-            <h3 className="font-semibold">{t('empty')}</h3>
-            <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">{t('emptyHelp')}</p>
+          <div className={compact ? 'px-4 py-6 text-center' : 'px-6 py-12 text-center'}>
+            <FileText className="mx-auto mb-3 text-[var(--sc-text-secondary)]" size={28} />
+            <h3 className="m-0 text-sm font-semibold">{t('empty')}</h3>
+            <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{t('emptyHelp')}</p>
           </div>
         )}
         {items.length > 0 && (
@@ -255,10 +343,10 @@ function InvoiceList({
               {items.map((item) => (
                 <article
                   key={item.id}
-                  className={compact ? 'space-y-2 px-4 py-3' : 'space-y-4 p-5'}
+                  className={compact ? 'space-y-2 px-4 py-3' : 'space-y-3 p-5'}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-[var(--sc-primary)]">
+                    <p className="m-0 text-xs font-semibold text-[var(--sc-primary)]">
                       {t(`kinds.${item.documentType}`)}
                     </p>
                     <Badge
@@ -278,7 +366,7 @@ function InvoiceList({
                       )}
                     />
                   </div>
-                  <p className="text-sm font-medium" title={item.invoiceNo}>
+                  <p className="m-0 text-sm font-medium" title={item.invoiceNo}>
                     {item.invoiceNo.endsWith(item.id)
                       ? `${item.invoiceNo.slice(0, -item.id.length)}${item.id.slice(0, 8).toUpperCase()}`
                       : item.invoiceNo}
@@ -286,14 +374,14 @@ function InvoiceList({
                   <dl className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <dt className="text-xs text-[var(--sc-text-secondary)]">{t('period')}</dt>
-                      <dd className="mt-1">{item.periodKey}</dd>
+                      <dd className="mt-0.5">{formatPeriod(item.periodKey)}</dd>
                     </div>
                     <div className="text-right">
                       <dt className="text-xs text-[var(--sc-text-secondary)]">{t('total')}</dt>
-                      <dd className="mt-1 font-semibold tabular-nums">{money(item.totalVnd)}</dd>
+                      <dd className="mt-0.5 font-semibold tabular-nums">{money(item.totalVnd)}</dd>
                     </div>
                   </dl>
-                  <p className="text-xs text-[var(--sc-text-secondary)]">
+                  <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
                     {item.documentType === 'SERVICE'
                       ? t('ledgerDocument')
                       : t('due', { date: date(item.dueOn) })}
@@ -318,28 +406,28 @@ function InvoiceList({
                   className="w-full min-w-[720px] text-left text-sm"
                   aria-label={t('listTitle')}
                 >
-                  <thead className="bg-[var(--sc-bg-secondary)] text-xs text-[var(--sc-text-secondary)]">
+                  <thead className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/60 text-xs font-semibold uppercase tracking-wider text-[var(--sc-text-secondary)]">
                     <tr>
                       {['invoice', 'kind', 'period', 'total', 'status', 'actions'].map((key) => (
-                        <th key={key} className="px-5 py-3 font-medium">
+                        <th key={key} className="px-5 py-3">
                           {t(key)}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[var(--sc-border-default)]">
                     {items.map((item) => (
                       <tr
                         key={item.id}
-                        className="border-t border-[var(--sc-border-default)] transition-colors hover:bg-[var(--sc-bg-secondary)] motion-reduce:transition-none"
+                        className="transition-colors hover:bg-[var(--sc-bg-secondary)]/30 motion-reduce:transition-none"
                       >
-                        <td className="px-5 py-5 font-medium">
+                        <td className="px-5 py-3.5 font-medium">
                           <span
-                            className="inline-flex items-center gap-2 whitespace-nowrap"
+                            className="inline-flex items-center gap-2 whitespace-nowrap text-[var(--sc-text-primary)]"
                             title={item.invoiceNo}
                           >
                             <FileText
-                              size={17}
+                              size={16}
                               className="shrink-0 text-[var(--sc-primary)]"
                               aria-hidden
                             />
@@ -347,18 +435,22 @@ function InvoiceList({
                               ? `${item.invoiceNo.slice(0, -item.id.length)}${item.id.slice(0, 8).toUpperCase()}`
                               : item.invoiceNo}
                           </span>
-                          <p className="mt-1 text-xs font-normal text-[var(--sc-text-secondary)]">
+                          <p className="mb-0 mt-0.5 text-xs font-normal text-[var(--sc-text-secondary)]">
                             {item.documentType === 'SERVICE'
                               ? t('ledgerDocument')
                               : t('due', { date: date(item.dueOn) })}
                           </p>
                         </td>
-                        <td className="px-5 py-4">{t(`kinds.${item.documentType}`)}</td>
-                        <td className="whitespace-nowrap px-5 py-4">{item.periodKey}</td>
-                        <td className="whitespace-nowrap px-5 py-4 font-medium tabular-nums">
+                        <td className="px-5 py-3.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                          {t(`kinds.${item.documentType}`)}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-xs text-[var(--sc-text-secondary)]">
+                          {formatPeriod(item.periodKey)}
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 font-semibold tabular-nums">
                           {money(item.totalVnd)}
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-3.5">
                           <Badge
                             status={
                               item.documentStatus === 'DRAFT'
@@ -376,16 +468,16 @@ function InvoiceList({
                             )}
                           />
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-3.5">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => {
                               setSelected(item.id);
                             }}
                           >
                             {t('details')}
-                            <ArrowUpRight size={15} aria-hidden />
+                            <ArrowUpRight size={14} aria-hidden />
                           </Button>
                         </td>
                       </tr>
@@ -397,9 +489,10 @@ function InvoiceList({
           </>
         )}
         {cursor && (
-          <div className="p-4 text-center">
+          <div className="border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 px-5 py-2.5 text-right">
             <Button
-              variant="ghost"
+              size="sm"
+              variant="outline"
               disabled={loading}
               onClick={() => {
                 void more();
@@ -409,7 +502,8 @@ function InvoiceList({
             </Button>
           </div>
         )}
-      </div>
+      </Card>
+
       {selected && (
         <InvoiceDetail
           key={selected}
@@ -432,7 +526,9 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
   const t = useTranslations('Invoices');
   const scope = useAuthStore((s) => s.user?.actorScope);
   const [sellers, setSellers] = useState<{ id: string; name: string }[]>([]),
-    [selected, setSelected] = useState(''),
+    [selected, setSelected] = useState(
+      () => sessionStorage.getItem('orca_platform_selected_seller') || '',
+    ),
     [error, setError] = useState<string | null>(null),
     [retry, setRetry] = useState(0),
     [filters, setFilters] = useState<Filters>({ month: '', documentType: '' });
@@ -440,6 +536,7 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
     resolver: zodResolver(invoiceFiltersSchema),
     defaultValues: filters,
   });
+
   useEffect(() => {
     const abort = new AbortController();
     if (scope === 'PLATFORM' && !fixedTenant) {
@@ -448,6 +545,15 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
         .then((rows) => {
           if (!abort.signal.aborted) {
             setSellers(rows);
+            setSelected((prev) => {
+              if (prev && rows.some((r) => r.id === prev)) return prev;
+              const preferred =
+                rows.find((r) => r.id === 'd9ff7a86-17fd-49ff-b3fa-bdb60afc94bb')?.id ||
+                rows[0]?.id ||
+                '';
+              if (preferred) sessionStorage.setItem('orca_platform_selected_seller', preferred);
+              return preferred;
+            });
             setError(null);
           }
         })
@@ -461,93 +567,89 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
       abort.abort();
     };
   }, [scope, fixedTenant, t, retry]);
+
   const target = fixedTenant ?? (scope === 'PLATFORM' ? selected : undefined);
+
+  const sellerSelector =
+    scope === 'PLATFORM' && !fixedTenant ? (
+      <div className="w-64">
+        <SearchableSelect
+          placeholder={t('selectSeller')}
+          searchPlaceholder={t('searchSeller')}
+          value={selected}
+          options={sellers.map((seller) => ({ value: seller.id, label: seller.name }))}
+          onChange={(val) => {
+            setSelected(val);
+            if (val) sessionStorage.setItem('orca_platform_selected_seller', val);
+          }}
+        />
+      </div>
+    ) : null;
+
+  const filterForm = (
+    <form
+      onSubmit={form.handleSubmit(setFilters, () => notifyInvalidForm())}
+      className={`grid items-end gap-3 ${
+        fixedTenant ? 'sm:grid-cols-2' : 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]'
+      }`}
+    >
+      <Controller
+        control={form.control}
+        name="month"
+        render={({ field, fieldState }) => (
+          <MonthPicker
+            label={t('month')}
+            placeholder={t('chooseMonth')}
+            value={field.value}
+            onChange={field.onChange}
+            error={fieldState.error ? t('invalidMonth') : undefined}
+          />
+        )}
+      />
+      <Select
+        label={t('kind')}
+        placeholder={t('allKinds')}
+        options={['', 'ONBOARDING', 'PLAN', 'SERVICE', 'ADJUSTMENT'].map((value) => ({
+          value,
+          label: value ? t(`kinds.${value}`) : t('allKinds'),
+        }))}
+        {...form.register('documentType')}
+        error={form.formState.errors?.documentType?.message}
+      />
+      <Button type="submit" size="sm" variant="outline">
+        <Filter size={15} aria-hidden />
+        {t('apply')}
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={() => {
+          const empty: Filters = { month: '', documentType: '' };
+          form.reset(empty);
+          setFilters(empty);
+        }}
+      >
+        {t('reset')}
+      </Button>
+    </form>
+  );
+
   return (
-    <section className="space-y-6">
-      <div>
-        {!fixedTenant && (
-          <div className="flex items-start gap-4">
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--sc-primary)]">
-                {t('eyebrow')}
-              </p>
-              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('title')}</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--sc-text-secondary)]">
-                {t('description')}
-              </p>
-            </div>
-          </div>
-        )}
-        {error && (
-          <Alert variant="error">
-            {error}
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setRetry((value) => value + 1);
-              }}
-            >
-              {t('retry')}
-            </Button>
-          </Alert>
-        )}
-        {scope === 'PLATFORM' && !fixedTenant && (
-          <div className="mt-5">
-            <SearchableSelect
-              label={t('seller')}
-              placeholder={t('selectSeller')}
-              searchPlaceholder={t('searchSeller')}
-              value={selected}
-              options={sellers.map((seller) => ({ value: seller.id, label: seller.name }))}
-              onChange={(val) => {
-                setSelected(val);
-              }}
-            />
-          </div>
-        )}
-        <form
-          onSubmit={form.handleSubmit(setFilters)}
-          className={`grid items-end gap-3 rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] ${fixedTenant ? 'p-3 sm:grid-cols-2' : 'mt-6 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]'}`}
-        >
-          <Controller
-            control={form.control}
-            name="month"
-            render={({ field, fieldState }) => (
-              <MonthPicker
-                label={t('month')}
-                placeholder={t('chooseMonth')}
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error ? t('invalidMonth') : undefined}
-              />
-            )}
-          />
-          <Select
-            label={t('kind')}
-            placeholder={t('allKinds')}
-            options={['', 'ONBOARDING', 'PLAN', 'SERVICE', 'ADJUSTMENT'].map((value) => ({
-              value,
-              label: value ? t(`kinds.${value}`) : t('allKinds'),
-            }))}
-            {...form.register('documentType')}
-          />
-          <Button type="submit" variant="outline">
-            <Filter size={16} aria-hidden />
-            {t('apply')}
-          </Button>
+    <section className="space-y-3.5">
+      {error && (
+        <Alert variant="error">
+          {error}
           <Button
-            type="button"
             variant="ghost"
             onClick={() => {
-              const empty: Filters = { month: '', documentType: '' };
-              form.reset(empty);
-              setFilters(empty);
+              setRetry((value) => value + 1);
             }}
           >
-            {t('reset')}
+            {t('retry')}
           </Button>
-        </form>
-      </div>
+        </Alert>
+      )}
       {scope === 'TENANT' || target ? (
         <InvoiceList
           key={`${target ?? 'own'}:${filters.month}:${filters.documentType}:${linkedInvoice ?? ''}`}
@@ -555,9 +657,34 @@ export function FulfillmentBilling({ tenantId: fixedTenant }: { tenantId?: strin
           tenantId={target}
           filters={filters}
           compact={Boolean(fixedTenant)}
+          headerActions={sellerSelector}
+          filterBar={filterForm}
         />
       ) : (
-        <Alert variant="info">{t('selectSeller')}</Alert>
+        <Card
+          padding="none"
+          className="border border-[var(--sc-border-default)] shadow-[var(--sc-shadow-section)]"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sc-primary-alpha-08)] text-[var(--sc-primary)]">
+                <FileText size={18} aria-hidden="true" />
+              </span>
+              <div>
+                <h1 className="m-0 text-base font-semibold text-[var(--sc-text-primary)] sm:text-lg">
+                  {t('title')}
+                </h1>
+                <p className="mb-0 mt-0.5 text-xs text-[var(--sc-text-secondary)]">
+                  {t('description')}
+                </p>
+              </div>
+            </div>
+            {sellerSelector}
+          </div>
+          <div className="px-5 py-8 text-center text-sm text-[var(--sc-text-secondary)] sm:px-6">
+            {t('selectSeller')}
+          </div>
+        </Card>
       )}
     </section>
   );

@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Card, Input } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { orderPolicyApi, type OrderPolicy } from '../api/orderPolicyApi';
@@ -101,7 +102,7 @@ function OrderPolicySession() {
       ) : (
         <form
           className="space-y-4"
-          onSubmit={form.handleSubmit(save)}
+          onSubmit={form.handleSubmit(save, () => notifyInvalidForm())}
           onChange={() => setSaved(false)}
         >
           <div className="rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">

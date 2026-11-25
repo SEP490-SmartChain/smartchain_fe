@@ -2,7 +2,8 @@ import React from 'react';
 
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@/components/Common';
+import { Alert } from '@/components/Common/Alert/Alert';
+import { Button } from '@/components/Common/Button/Button';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -11,7 +12,6 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error?: Error;
 }
 
 export function ErrorBoundaryWithIntl(props: ErrorBoundaryProps) {
@@ -25,8 +25,8 @@ class ErrorBoundaryClass extends React.Component<
 > {
   state: ErrorBoundaryState = { hasError: false };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
   }
 
   render() {
@@ -35,13 +35,12 @@ class ErrorBoundaryClass extends React.Component<
       return (
         this.props.fallback || (
           <div className="flex items-center justify-center min-h-[50vh] p-8">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('error_heading')}</h2>
-              <p className="text-gray-500 text-sm">{this.state.error?.message}</p>
-              <Button className="mt-4" onClick={() => window.location.reload()}>
+            <Alert variant="error" title={t('error_heading')} className="w-full max-w-md">
+              <p className="m-0">{t('reload_hint')}</p>
+              <Button className="mt-3" onClick={() => window.location.reload()}>
                 {t('reload_page')}
               </Button>
-            </div>
+            </Alert>
           </div>
         )
       );

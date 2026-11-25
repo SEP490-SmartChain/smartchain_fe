@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import {
   assignedWarehouseIds,
   reconcileAssignmentNotices,
@@ -30,6 +31,7 @@ export function useWarehouseAssignmentNotices() {
   });
   const [refreshFailed, setRefreshFailed] = useState(false);
   const refreshing = useRef(false);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const eligible =
     user?.actorScope === 'PLATFORM' &&
     user.tenantId === null &&
@@ -67,13 +69,21 @@ export function useWarehouseAssignmentNotices() {
   useEffect(() => {
     if (!eligible) return;
     const update = () => void refresh();
-    const timer = window.setInterval(update, 30000);
+    const timer = isRealtimeConnected ? undefined : window.setInterval(update, 30000);
     window.addEventListener('focus', update);
     return () => {
-      window.clearInterval(timer);
+      if (timer !== undefined) window.clearInterval(timer);
       window.removeEventListener('focus', update);
     };
-  }, [eligible, refresh]);
+  }, [eligible, isRealtimeConnected, refresh]);
+
+  useRealtimeSync(
+    ['warehouses.assignments', 'auth.profile'],
+    () => {
+      void refresh();
+    },
+    { enabled: eligible },
+  );
 
   const readIds = snapshot.userId === userId ? snapshot.readIds : [];
   const unreadCount = warehouseIds.filter((id) => !readIds.includes(id)).length;

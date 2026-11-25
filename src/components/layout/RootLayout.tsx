@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { NextIntlClientProvider } from 'next-intl';
 
 import { Toaster, ErrorBoundary } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useLocaleStore, useUiStore } from '@/stores';
 
 import enMessages from '@messages/en.json';
@@ -27,10 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }, [setThemeMode, themeMode]);
 
   return (
-    <div>
+    <div onInvalidCapture={notifyInvalidForm}>
       <NextIntlClientProvider messages={messages} locale={locale}>
+        <Toaster />
         <ErrorBoundary>
-          <Toaster position="top-right" richColors />
           <AuthSessionBoundary>{children}</AuthSessionBoundary>
         </ErrorBoundary>
       </NextIntlClientProvider>

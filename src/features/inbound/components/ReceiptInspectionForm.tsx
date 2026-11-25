@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, ClipboardCheck, RefreshCw } from 'lucide-react'
 import { useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, Checkbox, Input, Select } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -256,15 +257,18 @@ export function ReceiptInspectionForm({
           {editable && (
             <form
               className="space-y-3"
-              onSubmit={handleSubmit((form) => {
-                if (state) {
-                  void send({
-                    ...form,
-                    operationKey: operation.current,
-                    expectedVersion: state.receiptVersion,
-                  });
-                }
-              })}
+              onSubmit={handleSubmit(
+                (form) => {
+                  if (state) {
+                    void send({
+                      ...form,
+                      operationKey: operation.current,
+                      expectedVersion: state.receiptVersion,
+                    });
+                  }
+                },
+                () => notifyInvalidForm(),
+              )}
             >
               <fieldset disabled={busy || loading || Boolean(attempt)} className="space-y-3">
                 {requiresQuarantine && <Alert variant="warning" title={t('qcAcceptanceBlocked')} />}
@@ -312,6 +316,7 @@ export function ReceiptInspectionForm({
                   label={t('qcReasonCode')}
                   options={qcReasons.map((value) => ({ value, label: t(`qcReason${value}`) }))}
                   {...register('reasonCode')}
+                  error={errors?.reasonCode?.message}
                 />
                 <Input
                   label={t('qcReason')}
@@ -341,9 +346,9 @@ export function ReceiptInspectionForm({
                         />
                       ))}
                       {errors.photoIds && (
-                        <p role="alert" className="text-sm text-[var(--sc-error)]">
+                        <Alert variant="error" compact>
                           {t('qcPhotoRequired')}
-                        </p>
+                        </Alert>
                       )}
                     </div>
                   )}

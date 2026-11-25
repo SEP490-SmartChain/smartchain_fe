@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
 
@@ -6,9 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -26,6 +28,7 @@ interface Props {
 }
 
 export function CreateProductModal({ isOpen, onClose, onChanged }: Props) {
+  const [submitError, setSubmitError] = useState('');
   const t = useTranslations('ProductCatalog');
   const validation = useTranslations('ProductCatalog.validation');
   const {
@@ -73,16 +76,22 @@ export function CreateProductModal({ isOpen, onClose, onChanged }: Props) {
       toast.success(t('createSuccess'));
     } catch (error) {
       if (principal !== useAuthStore.getState().user) return;
-      toast.error(error instanceof ApiError ? error.message : t('editSaveError'));
+      setSubmitError(error instanceof ApiError ? error.message : t('editSaveError'));
     }
   };
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('createTitle')} width="760px">
       <form
+        onSubmitCapture={() => setSubmitError('')}
         className="space-y-6"
         noValidate
-        onSubmit={(event) => void handleSubmit(handleCreate)(event)}
+        onSubmit={(event) => void handleSubmit(handleCreate, () => notifyInvalidForm())(event)}
       >
+        {submitError && (
+          <Alert variant="error" onClose={() => setSubmitError('')}>
+            {submitError}
+          </Alert>
+        )}
         <section className="min-w-0 rounded-xl border border-[var(--sc-border-default)] p-4 sm:p-5">
           <h4 className="mb-4 mt-0 text-sm font-semibold text-[var(--sc-text-primary)]">
             {t('identitySection')}

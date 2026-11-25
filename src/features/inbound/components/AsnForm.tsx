@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { warehouseApi } from '@/features/catalog';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { canStartSellerIntake } from '@/lib/sellerService';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -27,6 +28,7 @@ interface Props {
   readonly onSaved: () => void;
 }
 export function AsnForm({ draft, onClose, onSaved }: Props) {
+  const [submitError, setSubmitError] = useState('');
   const t = useTranslations('Asns');
   const creationKey = useRef(createUuid());
   const user = useAuthStore((state) => state.user);
@@ -140,7 +142,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
       onClose();
     } catch (error) {
       if (principal !== useAuthStore.getState().user) return;
-      toast.error(error instanceof ApiError ? error.message : t('saveError'));
+      setSubmitError(error instanceof ApiError ? error.message : t('saveError'));
     }
   };
   return (
@@ -152,7 +154,17 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
       title={draft ? t('editDraft') : t('createTitle')}
       width="900px"
     >
-      <form noValidate className="space-y-5" onSubmit={(event) => void handleSubmit(save)(event)}>
+      <form
+        onSubmitCapture={() => setSubmitError('')}
+        noValidate
+        className="space-y-5"
+        onSubmit={(event) => void handleSubmit(save, () => notifyInvalidForm())(event)}
+      >
+        {submitError && (
+          <Alert variant="error" onClose={() => setSubmitError('')}>
+            {submitError}
+          </Alert>
+        )}
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('createDescription')}</p>
         {loadFailed && (
           <Alert variant="error" title={t('loadError')}>

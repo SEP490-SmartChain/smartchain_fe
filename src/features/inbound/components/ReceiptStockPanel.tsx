@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert, Button, Card, Select } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -359,6 +360,7 @@ export function ReceiptStockPanel({
                         receipt: state.receiptId,
                         quantity: state.acceptedQty + state.quarantinedQty,
                       }),
+                    () => notifyInvalidForm(),
                   )}
                 >
                   <fieldset disabled={busy || loading} className="space-y-3">

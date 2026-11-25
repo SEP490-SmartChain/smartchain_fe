@@ -3,6 +3,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
 import { cn } from '@/lib/utils';
 
 export interface MonthPickerProps {
@@ -122,6 +124,7 @@ export function MonthPicker({
           aria-haspopup="dialog"
           aria-controls={`${inputId}-dialog`}
           aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           disabled={disabled}
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           className={cn(
@@ -251,7 +254,11 @@ export function MonthPicker({
         </div>
       )}
 
-      {error && <p className="mb-0 mt-1.5 text-xs text-[var(--sc-error-dark)]">{error}</p>}
+      {error && (
+        <Alert id={`${inputId}-error`} variant="error" compact className="mt-1.5">
+          {error}
+        </Alert>
+      )}
       {helperText && !error && (
         <p className="mb-0 mt-1.5 text-xs text-[var(--sc-text-secondary)]">{helperText}</p>
       )}

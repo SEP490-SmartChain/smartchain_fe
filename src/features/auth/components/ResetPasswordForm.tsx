@@ -4,10 +4,12 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Lock, MailCheck, ShieldAlert } from 'lucide-react';
+import { Eye, EyeOff, Lock, MailCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Button, Input } from '@/components/Common';
+import { Alert, Button, Input } from '@/components/Common';
+
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 
 import { usePasswordResetConfirm } from '../hooks/usePasswordResetConfirm';
 import {
@@ -17,7 +19,8 @@ import {
 
 export function ResetPasswordForm() {
   const t = useTranslations();
-  const { checking, tokenInvalid, confirmed, confirmReset } = usePasswordResetConfirm();
+  const { checking, tokenInvalid, confirmed, confirmReset, submitError } =
+    usePasswordResetConfirm();
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const {
@@ -44,10 +47,7 @@ export function ResetPasswordForm() {
   if (tokenInvalid) {
     return (
       <div className="flex flex-col gap-5">
-        <div className="flex items-start gap-2 rounded-lg border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] px-3 py-2.5 text-sm text-[var(--sc-error-dark)]">
-          <ShieldAlert size={16} className="mt-0.5 shrink-0 text-[var(--sc-error)]" />
-          <span>{t('Auth.reset_invalid_hint')}</span>
-        </div>
+        <Alert variant="error">{t('Auth.reset_invalid_hint')}</Alert>
         <Link
           to="/forgot-password"
           className="self-start text-sm font-medium text-[var(--sc-primary)] hover:text-[var(--sc-primary-dark)] hover:underline"
@@ -76,7 +76,11 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form className="flex flex-col gap-5" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      className="flex flex-col gap-5"
+      onSubmit={handleSubmit(onSubmit, () => notifyInvalidForm())}
+      noValidate
+    >
       <Input
         id="reset-new-password"
         type={showNewPassword ? 'text' : 'password'}
@@ -121,6 +125,9 @@ export function ResetPasswordForm() {
         error={errors.confirmPassword?.message}
         aria-invalid={!!errors.confirmPassword}
       />
+      {submitError && (
+        <Alert variant="error">{submitError.message ?? t('Auth.reset_action_failed')}</Alert>
+      )}
       <Button type="submit" isLoading={isSubmitting} className="w-full">
         {t(isSubmitting ? 'Auth.reset_submitting' : 'Auth.reset_submit')}
       </Button>

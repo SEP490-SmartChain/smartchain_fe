@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useProducts } from '@/features/catalog';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -211,49 +212,52 @@ export function ManualOrderForm({
   };
   const itemGroupError =
     form.formState.errors.items?.root?.message || form.formState.errors.items?.message;
-  const submit = form.handleSubmit(async (draft) => {
-    if (
-      running.current ||
-      orderScope() !== scope ||
-      !sellerOrderAccess().create ||
-      !sellerOrderAccess().intake
-    ) {
-      return;
-    }
-    let input;
-    try {
-      input = completeManualDraft(draft, automaticCode.current);
-    } catch {
-      setError(t('payment_breakdown_error'));
-      return;
-    }
-    running.current = true;
-    onBusyChange(true);
-    controller.current = new AbortController();
-    setError(null);
-    const payload = JSON.stringify(input);
-    if (operation.current?.payload !== payload) {
-      operation.current = { payload, key: `manual.${createUuid()}` };
-    }
-    try {
-      const accepted = await ordersApi.create(
-        input,
-        operation.current.key,
-        controller.current.signal,
-      );
-      if (orderScope() === scope && sellerOrderAccess().create) {
-        resetDraft();
-        onAccepted(accepted.orderId, input.externalOrderCode);
+  const submit = form.handleSubmit(
+    async (draft) => {
+      if (
+        running.current ||
+        orderScope() !== scope ||
+        !sellerOrderAccess().create ||
+        !sellerOrderAccess().intake
+      ) {
+        return;
       }
-    } catch (failure) {
-      if (orderScope() === scope && !controller.current?.signal.aborted) {
-        setError(t(orderErrorKey(failure)));
+      let input;
+      try {
+        input = completeManualDraft(draft, automaticCode.current);
+      } catch {
+        setError(t('payment_breakdown_error'));
+        return;
       }
-    } finally {
-      running.current = false;
-      if (orderScope() === scope) onBusyChange(false);
-    }
-  });
+      running.current = true;
+      onBusyChange(true);
+      controller.current = new AbortController();
+      setError(null);
+      const payload = JSON.stringify(input);
+      if (operation.current?.payload !== payload) {
+        operation.current = { payload, key: `manual.${createUuid()}` };
+      }
+      try {
+        const accepted = await ordersApi.create(
+          input,
+          operation.current.key,
+          controller.current.signal,
+        );
+        if (orderScope() === scope && sellerOrderAccess().create) {
+          resetDraft();
+          onAccepted(accepted.orderId, input.externalOrderCode);
+        }
+      } catch (failure) {
+        if (orderScope() === scope && !controller.current?.signal.aborted) {
+          setError(t(orderErrorKey(failure)));
+        }
+      } finally {
+        running.current = false;
+        if (orderScope() === scope) onBusyChange(false);
+      }
+    },
+    () => notifyInvalidForm(),
+  );
   const invalid = (field: keyof ManualDraft) =>
     form.formState.errors[field]
       ? t(
@@ -305,6 +309,7 @@ export function ManualOrderForm({
                 form.clearErrors();
               },
             })}
+            error={form.formState.errors?.entryMode?.message}
             options={[
               { value: 'DIRECT', label: t('directEntry') },
               { value: 'CALCULATED', label: t('calculatedEntry') },
@@ -521,9 +526,9 @@ export function ManualOrderForm({
               </div>
             ))}
             {itemGroupError && (
-              <p role="alert" className="text-[var(--sc-error)]">
+              <Alert variant="error" compact>
                 {t('items_error')}
-              </p>
+              </Alert>
             )}
             {products.hasNextPage && !search.trim() && (
               <Button
@@ -549,6 +554,7 @@ export function ManualOrderForm({
               <Select
                 label={t('deliveryTier')}
                 {...form.register('deliveryTier')}
+                error={form.formState.errors?.deliveryTier?.message}
                 options={[
                   { value: 'ECONOMY', label: t('deliveryTierEconomy') },
                   { value: 'BALANCED', label: t('deliveryTierBalanced') },
@@ -577,6 +583,7 @@ export function ManualOrderForm({
               <Select
                 label={t('deliveryTier')}
                 {...form.register('deliveryTier')}
+                error={form.formState.errors?.deliveryTier?.message}
                 options={[
                   { value: 'ECONOMY', label: t('deliveryTierEconomy') },
                   { value: 'BALANCED', label: t('deliveryTierBalanced') },

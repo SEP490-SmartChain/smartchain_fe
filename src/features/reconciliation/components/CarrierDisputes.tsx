@@ -12,6 +12,7 @@ import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTab
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -64,6 +65,7 @@ function DisputeDetailModal({
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<DisputeUpdateValues, unknown, DisputeUpdateOutput>({
@@ -79,38 +81,52 @@ function DisputeDetailModal({
     setError(null);
     try {
       const result = await carrierSettlementApi.dispute(disputeId, abort.signal);
-      if (!abort.signal.aborted) setDetail(result);
+      if (!abort.signal.aborted) {
+        setDetail(result);
+        setValue(
+          'codResolutions',
+          result.items
+            .filter((row) => row.codResolutionRequired)
+            .map((row) => ({ rowNumber: row.rowNumber, amountVnd: row.resolvedCodVnd ?? '' })),
+        );
+      }
     } catch (failure) {
       if (!abort.signal.aborted) setError(errorMessage(failure, loadErrorMessage));
     }
-  }, [disputeId, loadErrorMessage]);
+  }, [disputeId, loadErrorMessage, setValue]);
 
   useEffect(() => {
     void load();
     return () => controller.current?.abort();
   }, [load]);
 
-  const handleSave = handleSubmit(async (values) => {
-    if (!detail) return;
-    setSaveError(null);
-    const revision = useAuthStore.getState().revision;
-    try {
-      // The expected version guards against a concurrent edit; a stale write returns 409.
-      const result = await carrierSettlementApi.updateDispute(detail.id, {
-        expectedVersion: detail.version,
-        ...(values.status ? { status: values.status } : {}),
-        ...(values.externalTicketRef ? { externalTicketRef: values.externalTicketRef } : {}),
-        ...(values.status === 'RESOLVED' ? { resolvedAmountVnd: values.resolvedAmountVnd } : {}),
-        ...(values.note ? { note: values.note } : {}),
-      });
-      if (revision !== useAuthStore.getState().revision) return;
-      reset();
-      onChanged(t('saved', { code: detail.code, status: t(`status.${result.status}`) }));
-      await load();
-    } catch (failure) {
-      setSaveError(errorMessage(failure, t('saveError')));
-    }
-  });
+  const handleSave = handleSubmit(
+    async (values) => {
+      if (!detail) return;
+      setSaveError(null);
+      const revision = useAuthStore.getState().revision;
+      try {
+        // The expected version guards against a concurrent edit; a stale write returns 409.
+        const result = await carrierSettlementApi.updateDispute(detail.id, {
+          expectedVersion: detail.version,
+          ...(values.status ? { status: values.status } : {}),
+          ...(values.externalTicketRef ? { externalTicketRef: values.externalTicketRef } : {}),
+          ...(values.status === 'RESOLVED' ? { resolvedAmountVnd: values.resolvedAmountVnd } : {}),
+          ...(values.status === 'RESOLVED' && values.codResolutions?.length
+            ? { codResolutions: values.codResolutions }
+            : {}),
+          ...(values.note ? { note: values.note } : {}),
+        });
+        if (revision !== useAuthStore.getState().revision) return;
+        reset();
+        onChanged(t('saved', { code: detail.code, status: t(`status.${result.status}`) }));
+        await load();
+      } catch (failure) {
+        setSaveError(errorMessage(failure, t('saveError')));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   const nextStatuses = detail ? nextDisputeStatuses(detail.status) : [];
   const itemColumns: ColumnDef<CarrierDisputeDetail['items'][number]>[] = [
@@ -180,6 +196,7 @@ function DisputeDetailModal({
                 ...nextStatuses.map((status) => ({ value: status, label: t(`status.${status}`) })),
               ]}
               {...register('status')}
+              error={errors?.status?.message}
             />
             <Input
               label={t('ticket')}
@@ -196,6 +213,24 @@ function DisputeDetailModal({
                 {...register('resolvedAmountVnd')}
               />
             )}
+            {chosenStatus === 'RESOLVED' &&
+              detail.items
+                .filter((row) => row.codResolutionRequired)
+                .map((row, index) => (
+                  <Input
+                    key={row.rowNumber}
+                    label={t('codAllocation', { row: row.rowNumber, waybill: row.trackingNumber })}
+                    inputMode="numeric"
+                    {...register(`codResolutions.${index}.amountVnd`)}
+                    error={errors.codResolutions ? t('codInvalid') : undefined}
+                  />
+                ))}
+            {chosenStatus === 'RESOLVED' &&
+              detail.items.some((row) => row.codResolutionRequired) && (
+                <Alert variant="info" className="md:col-span-2">
+                  {t('codHelp')}
+                </Alert>
+              )}
             <Input
               label={t('note')}
               autoComplete="off"
@@ -219,7 +254,7 @@ function DisputeDetailModal({
   );
 }
 
-/** UC-143: carrier settlement disputes; resolution records the outcome, it never posts money. */
+/** UC-143: the API resolves and posts funded COD with explicit row allocations. */
 export function CarrierDisputes() {
   const t = useTranslations('CarrierDisputes');
   const locale = useLocaleStore((state) => state.locale);

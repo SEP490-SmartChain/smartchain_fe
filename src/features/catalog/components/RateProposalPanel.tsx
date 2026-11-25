@@ -11,6 +11,7 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Card, CardHeader } from '@/components/Common/Card/Card';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import { adminDivisionApi } from '../api/adminDivisionApi';
@@ -202,25 +203,28 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
   };
 
   const decide = (kind: 'approve' | 'reject') =>
-    handleSubmit(async ({ note }) => {
-      if (!selected) return;
-      setIsBusy(true);
-      setHasActionError(false);
-      try {
-        setSelected(
-          kind === 'approve'
-            ? await rateProposalApi.approve(selected.id, note)
-            : await rateProposalApi.reject(selected.id, note),
-        );
-        reset({ note: '' });
-        await load();
-      } catch (error) {
-        setHasActionError(true);
-        void error;
-      } finally {
-        setIsBusy(false);
-      }
-    });
+    handleSubmit(
+      async ({ note }) => {
+        if (!selected) return;
+        setIsBusy(true);
+        setHasActionError(false);
+        try {
+          setSelected(
+            kind === 'approve'
+              ? await rateProposalApi.approve(selected.id, note)
+              : await rateProposalApi.reject(selected.id, note),
+          );
+          reset({ note: '' });
+          await load();
+        } catch (error) {
+          setHasActionError(true);
+          void error;
+        } finally {
+          setIsBusy(false);
+        }
+      },
+      () => notifyInvalidForm(),
+    );
 
   const renderDetail = (selected: RateProposalDetail) => {
     const routeGroups = groupProposedRulesByRoute(selected.proposedRules);
@@ -343,11 +347,7 @@ export function RateProposalPanel({ refreshToken = '' }: RateProposalPanelProps)
               className="block w-full rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-3 py-2 text-sm"
               {...register('note')}
             />
-            {errors.note ? (
-              <p role="alert" className="text-sm text-[var(--sc-error-dark)]">
-                {errors.note.message}
-              </p>
-            ) : null}
+            {errors.note ? <Alert variant="error">{errors.note.message}</Alert> : null}
             <div className="flex flex-wrap gap-3">
               <Button type="button" isLoading={isBusy} onClick={() => void decide('approve')()}>
                 {t('proposalApprove')}

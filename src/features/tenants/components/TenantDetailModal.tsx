@@ -47,6 +47,8 @@ export function TenantDetailModal({
   initialTab = 'overview',
 }: TenantDetailModalProps) {
   const t = useTranslations('AdminTenants');
+  const notifications = useTranslations('Notifications');
+  const [copyErrorId, setCopyErrorId] = useState('');
   const commercial = useTranslations('CommercialAdmin');
   const [activeTab, setActiveTab] = useState<DetailTab>(initialTab);
   const tabBody = useRef<HTMLDivElement>(null);
@@ -54,8 +56,15 @@ export function TenantDetailModal({
 
   if (!tenant) return null;
 
-  const handleCopy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = async (text: string, key: string) => {
+    setCopyErrorId('');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      setCopiedKey(null);
+      setCopyErrorId(tenant.id);
+      return;
+    }
     setCopiedKey(key);
     toast.success('Đã sao chép vào bộ nhớ tạm');
     setTimeout(() => setCopiedKey(null), 2000);
@@ -100,7 +109,7 @@ export function TenantDetailModal({
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--sc-text-secondary)]">
                   <button
                     type="button"
-                    onClick={() => handleCopy(tenant.slug, 'slug')}
+                    onClick={() => void handleCopy(tenant.slug, 'slug')}
                     className="inline-flex items-center gap-1 rounded border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--sc-text-secondary)] transition-colors hover:border-[var(--sc-primary)] hover:text-[var(--sc-primary)]"
                   >
                     <span>{tenant.slug}</span>
@@ -122,6 +131,11 @@ export function TenantDetailModal({
                     <ExternalLink size={9} />
                   </a>
                 </div>
+                {copyErrorId === tenant.id && (
+                  <Alert variant="error" compact className="mt-2">
+                    {notifications('copyFailed')}
+                  </Alert>
+                )}
               </div>
             </div>
 

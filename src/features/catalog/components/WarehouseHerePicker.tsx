@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 
@@ -212,11 +213,7 @@ export default function WarehouseHerePicker({
           {t('search')}
         </Button>
       </div>
-      {searchError && (
-        <p role="alert" className="text-sm text-[var(--sc-error)]">
-          {t('searchUnavailable')}
-        </p>
-      )}
+      {searchError && <Alert variant="error">{t('searchUnavailable')}</Alert>}
       {results && results.length === 0 && (
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('searchNoResult')}</p>
       )}
@@ -239,9 +236,7 @@ export default function WarehouseHerePicker({
         </ul>
       )}
       {loadError ? (
-        <p role="alert" className="text-sm text-[var(--sc-error)]">
-          {t('mapLoadError')}
-        </p>
+        <Alert variant="error">{t('mapLoadError')}</Alert>
       ) : (
         <div
           ref={container}

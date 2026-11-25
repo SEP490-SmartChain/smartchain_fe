@@ -159,6 +159,7 @@ const expected = {
   'warehouse.putaway.confirm': S,
   'warehouse.picking.manage': M,
   'warehouse.picking.confirm': S,
+  'warehouse.fulfillmentSlaRisk.view': M,
   'warehouse.putaway.overrideBin': M,
   'warehouse.putaway.relocate': ['WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF'],
   'platform.warehouses.view': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],

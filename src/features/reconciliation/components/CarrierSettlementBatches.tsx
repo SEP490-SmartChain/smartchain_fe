@@ -11,10 +11,13 @@ import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
+import { CodAgingReport } from './CodAgingReport';
 import { SettlementExceptionsModal } from './SettlementExceptionsModal';
+import { SettlementRemittancesModal } from './SettlementRemittancesModal';
 import { carrierSettlementApi } from '../api/carrierSettlementApi';
 import { useSettlementBatches } from '../hooks/useSettlementBatches';
 import {
@@ -56,27 +59,30 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
     return () => abort.abort();
   }, []);
 
-  const handleUpload = handleSubmit(async ({ carrierCode, file }) => {
-    const selected = file[0];
-    if (!selected) return;
-    setError(null);
-    const isCurrent = () =>
-      !controller.current?.signal.aborted && authRevision === useAuthStore.getState().revision;
-    try {
-      const result = await carrierSettlementApi.upload(
-        carrierCode,
-        selected,
-        controller.current?.signal,
-      );
-      if (!isCurrent()) return;
-      reset({ carrierCode });
-      await onUploaded(
-        result.duplicate ? t('duplicate') : t('uploaded', { rows: result.totalRows }),
-      );
-    } catch (failure) {
-      if (isCurrent()) setError(failure instanceof Error ? failure.message : t('uploadError'));
-    }
-  });
+  const handleUpload = handleSubmit(
+    async ({ carrierCode, file }) => {
+      const selected = file[0];
+      if (!selected) return;
+      setError(null);
+      const isCurrent = () =>
+        !controller.current?.signal.aborted && authRevision === useAuthStore.getState().revision;
+      try {
+        const result = await carrierSettlementApi.upload(
+          carrierCode,
+          selected,
+          controller.current?.signal,
+        );
+        if (!isCurrent()) return;
+        reset({ carrierCode });
+        await onUploaded(
+          result.duplicate ? t('duplicate') : t('uploaded', { rows: result.totalRows }),
+        );
+      } catch (failure) {
+        if (isCurrent()) setError(failure instanceof Error ? failure.message : t('uploadError'));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   return (
     <form
@@ -88,6 +94,7 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
         label={t('carrier')}
         options={SETTLEMENT_CARRIERS.map((code) => ({ value: code, label: code }))}
         {...register('carrierCode')}
+        error={errors?.carrierCode?.message}
       />
       <div>
         <label htmlFor="settlement-file" className="mb-1 block text-sm font-medium">
@@ -102,12 +109,15 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
           aria-describedby="settlement-file-help"
           {...register('file')}
         />
-        <p
-          id="settlement-file-help"
-          className={`mt-1 text-xs ${errors.file ? 'text-[var(--sc-error)]' : 'text-[var(--sc-text-secondary)]'}`}
-        >
-          {errors.file ? t('fileInvalid') : t('fileHelp')}
-        </p>
+        {errors.file ? (
+          <Alert id="settlement-file-help" variant="error" compact className="mt-1">
+            {t('fileInvalid')}
+          </Alert>
+        ) : (
+          <p id="settlement-file-help" className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+            {t('fileHelp')}
+          </p>
+        )}
       </div>
       <Button type="submit" isLoading={isSubmitting}>
         {t('upload')}
@@ -131,6 +141,7 @@ export function CarrierSettlementBatches() {
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<SettlementBatch | null>(null);
+  const [moneyBatch, setMoneyBatch] = useState<SettlementBatch | null>(null);
   const [confirming, setConfirming] = useState<SettlementBatch | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -195,6 +206,19 @@ export function CarrierSettlementBatches() {
     { key: 'carrierCode', label: t('carrier') },
     { key: 'fileName', label: t('file') },
     {
+      key: 'deadline',
+      label: t('deadline'),
+      render: (row) =>
+        row.reconDeadlineAt ? (
+          <div>
+            {formatTime(row.reconDeadlineAt)}
+            {row.isLate && <Badge status="warning" label={t('late')} />}
+          </div>
+        ) : (
+          '—'
+        ),
+    },
+    {
       key: 'progress',
       label: t('progress'),
       render: (row) => `${row.processedRows}/${row.totalRows}`,
@@ -226,6 +250,9 @@ export function CarrierSettlementBatches() {
       label: t('actions'),
       render: (row) => (
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setMoneyBatch(row)}>
+            {t('bankEvidence')}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setReviewing(row)}>
             {t('viewExceptions')}
           </Button>
@@ -270,11 +297,16 @@ export function CarrierSettlementBatches() {
         </Button>
       </div>
       <SettlementUploadForm onUploaded={handleUploaded} />
+      <CodAgingReport key={authRevision} />
+      {batches.some((row) => row.status === 'PROCESSING' || row.exceptionRows > 0) && (
+        <Alert variant="warning">{t('batchDueReminder')}</Alert>
+      )}
       {notice && (
         <Alert variant="success" onClose={() => setNotice(null)}>
           {notice}
         </Alert>
       )}
+      {actionError && !confirming && <Alert variant="error">{actionError}</Alert>}
       {error ? (
         <Alert variant="error" title={t('loadError')}>
           <Button size="sm" variant="outline" onClick={() => void refetch()}>
@@ -308,6 +340,14 @@ export function CarrierSettlementBatches() {
             setNotice(message);
             void refetch();
           }}
+        />
+      )}
+      {moneyBatch && (
+        <SettlementRemittancesModal
+          key={`${moneyBatch.id}:${authRevision}`}
+          batchId={moneyBatch.id}
+          onClose={() => setMoneyBatch(null)}
+          onChanged={() => void refetch()}
         />
       )}
       <Modal

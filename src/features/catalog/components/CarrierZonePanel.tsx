@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Alert, Button, Input, RequiredNote, Select } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -70,31 +71,42 @@ function ZonePanel({ carrierId }: { carrierId: string }) {
     setError('');
     setEditing(row);
   }
-  const submit = form.handleSubmit(async (values) => {
-    const actor = useAuthStore.getState().user;
-    const revision = useAuthStore.getState().revision;
-    if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
-    setError('');
-    try {
-      await carrierZoneApi.save(carrierId, values, editing ?? undefined);
-      if (revision !== useAuthStore.getState().revision || actor !== useAuthStore.getState().user) {
-        return;
+  const submit = form.handleSubmit(
+    async (values) => {
+      const actor = useAuthStore.getState().user;
+      const revision = useAuthStore.getState().revision;
+      if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
+      setError('');
+      try {
+        await carrierZoneApi.save(carrierId, values, editing ?? undefined);
+        if (
+          revision !== useAuthStore.getState().revision ||
+          actor !== useAuthStore.getState().user
+        ) {
+          return;
+        }
+        setEditing(undefined);
+        setReload((n) => n + 1);
+      } catch (failure) {
+        if (
+          revision !== useAuthStore.getState().revision ||
+          actor !== useAuthStore.getState().user
+        ) {
+          return;
+        }
+        const codes: Record<string, string> = {
+          'CATALOG.ZONE_ROUTE_DUPLICATE': 'duplicate',
+          'CATALOG.ZONE_STALE_UPDATE': 'stale',
+          'CATALOG.ZONE_IN_USE': 'inUse',
+          'CATALOG.PROVINCE_NOT_FOUND': 'provinceMissing',
+        };
+        setError(
+          t(failure instanceof ApiError ? (codes[failure.code] ?? 'saveError') : 'saveError'),
+        );
       }
-      setEditing(undefined);
-      setReload((n) => n + 1);
-    } catch (failure) {
-      if (revision !== useAuthStore.getState().revision || actor !== useAuthStore.getState().user) {
-        return;
-      }
-      const codes: Record<string, string> = {
-        'CATALOG.ZONE_ROUTE_DUPLICATE': 'duplicate',
-        'CATALOG.ZONE_STALE_UPDATE': 'stale',
-        'CATALOG.ZONE_IN_USE': 'inUse',
-        'CATALOG.PROVINCE_NOT_FOUND': 'provinceMissing',
-      };
-      setError(t(failure instanceof ApiError ? (codes[failure.code] ?? 'saveError') : 'saveError'));
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const provinceOptions = provinces.map((p) => ({ value: p.code, label: `${p.name} (${p.code})` }));
   const provinceName = (code: string) => provinces.find((p) => p.code === code)?.name ?? code;
   return (

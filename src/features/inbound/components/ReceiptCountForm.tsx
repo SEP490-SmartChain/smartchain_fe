@@ -7,7 +7,9 @@ import { Check, ChevronDown, ChevronUp, Package, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, Input, Select } from '@/components/Common';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -81,6 +83,8 @@ export function ReceiptCountForm({
   const operationKey = useRef(createUuid());
   const lastAttempt = useRef<ReceiptCountInput | null>(null);
   const mounted = useRef(false);
+  const checkForChangesRef = useRef<(() => void) | null>(null);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const {
     register,
     handleSubmit,
@@ -215,16 +219,22 @@ export function ReceiptCountForm({
       }
     }
     const refreshOnFocus = () => void checkForChanges();
-    const timer = window.setInterval(refreshOnFocus, 15000);
+    checkForChangesRef.current = refreshOnFocus;
+    const timer = isRealtimeConnected ? undefined : window.setInterval(refreshOnFocus, 15000);
     window.addEventListener('focus', refreshOnFocus);
     document.addEventListener('visibilitychange', refreshOnFocus);
     return () => {
+      checkForChangesRef.current = null;
       controller.abort();
-      window.clearInterval(timer);
+      if (timer !== undefined) window.clearInterval(timer);
       window.removeEventListener('focus', refreshOnFocus);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
-  }, [warehouseId, asnId, owner, onReceiptChanged, reset, t]);
+  }, [warehouseId, asnId, owner, isRealtimeConnected, onReceiptChanged, reset, t]);
+
+  useRealtimeSync(['inbound.receipt', 'inbound.asn'], () => {
+    checkForChangesRef.current?.();
+  });
 
   async function send(input: ReceiptCountInput) {
     if (
@@ -419,11 +429,14 @@ export function ReceiptCountForm({
               <form
                 className="space-y-4"
                 noValidate
-                onSubmit={handleSubmit((values) => {
-                  if (receipt) {
-                    void send(countCommand(values, operationKey.current, receipt.version, line));
-                  }
-                })}
+                onSubmit={handleSubmit(
+                  (values) => {
+                    if (receipt) {
+                      void send(countCommand(values, operationKey.current, receipt.version, line));
+                    }
+                  },
+                  () => notifyInvalidForm(),
+                )}
               >
                 <fieldset disabled={isLocked || loading} className="space-y-4">
                   <Select
@@ -454,7 +467,7 @@ export function ReceiptCountForm({
                       }
                     }}
                   />
-                  {skuScanError && <Alert variant="warning">{skuScanError}</Alert>}
+                  {skuScanError && <Alert variant="error">{skuScanError}</Alert>}
                   {line?.trackExpiry && (
                     <Alert
                       variant="info"
@@ -610,14 +623,14 @@ export function ReceiptCountForm({
                       </fieldset>
                     ))}
                   {(errors.lots?.message || errors.lots?.root) && (
-                    <p role="alert" className="text-sm text-[var(--sc-error-dark)]">
+                    <Alert variant="error" compact>
                       {t(
                         errors.lots?.message === 'countLotsRequired' ||
                           errors.lots?.root?.message === 'countLotsRequired'
                           ? 'countLotsRequired'
                           : 'countBreakdownInvalid',
                       )}
-                    </p>
+                    </Alert>
                   )}
                   {line?.trackLot && (
                     <Button

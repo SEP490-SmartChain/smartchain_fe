@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
@@ -12,7 +13,9 @@ import {
   loadFulfillmentPending,
   persistFulfillmentPending,
 } from '@/features/orders/lib/fulfillmentPending';
+import { useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -34,17 +37,38 @@ import { handoverAckSchema, putbackFormSchema } from '../schemas/packingSchema';
 
 import type { z } from 'zod';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 export function HandoverWorkspace() {
   const revision = useAuthStore((s) => s.revision),
     user = useAuthStore((s) => s.user);
-  return <HandoverSession key={`${user?.userId}:${revision}`} />;
+  const [syncRevision, setSyncRevision] = useState(0);
+  useRealtimeSync(['outbound.handover', 'shipments.tracking'], () => {
+    setSyncRevision((n) => n + 1);
+  });
+  return <HandoverSession key={`${user?.userId}:${revision}`} syncRevision={syncRevision} />;
 }
-function HandoverSession() {
+function HandoverSession({ syncRevision = 0 }: { syncRevision?: number }) {
   const t = useTranslations('Packing'),
     { can } = useAccess();
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; code: string }[]>([]),
     [warehouse, setWarehouse] = useState('');
+  const [error, setError] = useState('');
+  const [targetFulfillmentId, setTargetFulfillmentId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handoffWarehouse = searchParams.get('warehouse');
+  const handoffFulfillmentRaw = searchParams.get('fulfillment');
+  const handoffFulfillment =
+    handoffFulfillmentRaw && UUID_RE.test(handoffFulfillmentRaw) ? handoffFulfillmentRaw : null;
   useEffect(() => {
     const c = new AbortController();
     void pickingApi
@@ -52,20 +76,52 @@ function HandoverSession() {
       .then((w) => {
         if (!c.signal.aborted) {
           setWarehouses(w);
-          if (w.length === 1) setWarehouse(w[0]?.id ?? '');
+          const authorizedTarget = handoffWarehouse
+            ? w.find((item) => item.id === handoffWarehouse)
+            : undefined;
+          if (authorizedTarget) {
+            setWarehouse(authorizedTarget.id);
+            if (handoffFulfillment) {
+              setTargetFulfillmentId(handoffFulfillment);
+            }
+            setSearchParams(
+              (previous) => {
+                const next = new URLSearchParams(previous);
+                next.delete('warehouse');
+                next.delete('fulfillment');
+                return next;
+              },
+              { replace: true },
+            );
+          } else if (w.length === 1) {
+            setWarehouse(w[0]?.id ?? '');
+            if (!handoffWarehouse && handoffFulfillment) {
+              setTargetFulfillmentId(handoffFulfillment);
+              setSearchParams(
+                (previous) => {
+                  const next = new URLSearchParams(previous);
+                  next.delete('fulfillment');
+                  return next;
+                },
+                { replace: true },
+              );
+            }
+          }
         }
       })
       .catch(() => {
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
-  }, [t]);
-  const [error, setError] = useState('');
+  }, [handoffFulfillment, handoffWarehouse, setSearchParams, t]);
   const warehouseSelector = (
     <Select
       label={t('warehouse')}
       value={warehouse}
-      onChange={(e) => setWarehouse(e.target.value)}
+      onChange={(e) => {
+        setWarehouse(e.target.value);
+        setTargetFulfillmentId(null);
+      }}
       options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
     />
   );
@@ -81,9 +137,11 @@ function HandoverSession() {
           warehouse={warehouse}
           warehouseSelector={warehouseSelector}
           warehouseName={warehouses.find((w) => w.id === warehouse)?.name ?? warehouse}
+          targetFulfillmentId={targetFulfillmentId}
           create={can('warehouse.handover.create')}
           sign={can('warehouse.handover.confirm')}
           putback={can('warehouse.putback.confirm')}
+          syncRevision={syncRevision}
         />
       )}
     </div>
@@ -94,17 +152,21 @@ function WarehouseHandover({
   warehouse,
   warehouseSelector,
   warehouseName,
+  targetFulfillmentId,
   create,
   sign,
   putback,
+  syncRevision = 0,
 }: {
   actorId: string;
   warehouse: string;
   warehouseName: string;
   warehouseSelector?: ReactNode;
+  targetFulfillmentId?: string | null;
   create: boolean;
   sign: boolean;
   putback: boolean;
+  syncRevision?: number;
 }) {
   const t = useTranslations('Packing');
   const locale = useLocale();
@@ -126,6 +188,9 @@ function WarehouseHandover({
   const [completedPutback, setCompletedPutback] = useState<{ sku: string; qty: number } | null>(
     null,
   );
+  const [highlightedFulfillmentId, setHighlightedFulfillmentId] = useState<string | null>(null);
+  const [deepLinkNotice, setDeepLinkNotice] = useState<'highlighted' | 'not_on_page' | null>(null);
+  const resolvedDeepLinkRef = useRef<string | null>(null);
   const draftCount = data?.manifests.filter((m) => m.status === 'DRAFT').length ?? 0;
   const signedCount = data?.manifests.filter((m) => m.status === 'SIGNED').length ?? 0;
   const activeTab =
@@ -174,7 +239,35 @@ function WarehouseHandover({
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
-  }, [warehouse, reload, t, cursors]);
+  }, [warehouse, reload, syncRevision, t, cursors]);
+  useEffect(() => {
+    if (!targetFulfillmentId || !data) return;
+    const match = data.shipments.find((item) => item.fulfillmentOrderId === targetFulfillmentId);
+    if (match) {
+      resolvedDeepLinkRef.current = targetFulfillmentId;
+      setTab('ready');
+      setHighlightedFulfillmentId(targetFulfillmentId);
+      setDeepLinkNotice('highlighted');
+      const frame = window.requestAnimationFrame(() => {
+        const el = document.querySelector<HTMLElement>(
+          `[data-handover-fulfillment-id="${targetFulfillmentId}"]`,
+        );
+        if (el) {
+          el.scrollIntoView({
+            behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+            block: 'center',
+          });
+          el.focus({ preventScroll: true });
+        }
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+    if (resolvedDeepLinkRef.current !== targetFulfillmentId && !cursors.shipments) {
+      setHighlightedFulfillmentId(null);
+      setDeepLinkNotice('not_on_page');
+    }
+    return undefined;
+  }, [cursors.shipments, data, targetFulfillmentId]);
   async function manifest() {
     if (running.current || !create || (!selected.length && !pending.current)) return;
     running.current = true;
@@ -255,6 +348,15 @@ function WarehouseHandover({
           {(data.nextShipmentCursor || data.nextManifestCursor) && (
             <p className="text-xs text-[var(--sc-text-secondary)]">{t('pageCountsHint')}</p>
           )}
+          {deepLinkNotice && (
+            <Alert variant="info">
+              {t(
+                deepLinkNotice === 'highlighted'
+                  ? 'deepLinkShipmentHighlighted'
+                  : 'deepLinkShipmentNotOnPage',
+              )}
+            </Alert>
+          )}
           <div
             hidden={activeTab !== 'ready'}
             role="tabpanel"
@@ -291,11 +393,16 @@ function WarehouseHandover({
                   {data.shipments.map((s) => {
                     const isChecked = selected.includes(s.id);
                     const isOtherCarrier = !!(account && s.carrierAccountId !== account);
+                    const isDeepLinked = highlightedFulfillmentId === s.fulfillmentOrderId;
                     return (
                       <div
                         key={s.id}
-                        className={`px-4 py-3 transition-colors ${
-                          isChecked
+                        data-handover-fulfillment-id={s.fulfillmentOrderId}
+                        tabIndex={-1}
+                        className={`px-4 py-3 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--sc-primary)] ${
+                          isDeepLinked ? 'ring-2 ring-inset ring-[var(--sc-primary)]' : ''
+                        } ${
+                          isChecked || isDeepLinked
                             ? 'bg-[var(--sc-primary-alpha-08)]'
                             : isOtherCarrier
                               ? 'bg-[var(--sc-bg-secondary)]/40 opacity-70'
@@ -850,7 +957,7 @@ function SignManifest({
     }
   }
   return (
-    <form className="space-y-4" onSubmit={form.handleSubmit(submit)}>
+    <form className="space-y-4" onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}>
       {error && <Alert variant="error">{error}</Alert>}
       <p className="rounded-lg bg-[var(--sc-bg-secondary)]/70 px-3 py-2 text-sm text-[var(--sc-text-secondary)]">
         {t('signChecklist')}
@@ -1080,7 +1187,10 @@ function PutbackForm({
     }
   }
   return (
-    <form className="grid gap-3 sm:grid-cols-2" onSubmit={form.handleSubmit(submit)}>
+    <form
+      className="grid gap-3 sm:grid-cols-2"
+      onSubmit={form.handleSubmit(submit, () => notifyInvalidForm())}
+    >
       {error && <Alert variant="error">{error}</Alert>}
       {(['binCode', 'sku', 'lotCode'] as const).map((name) => (
         <Input

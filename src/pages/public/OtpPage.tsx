@@ -6,7 +6,7 @@ import { ArrowLeft, CircleCheck, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/Common';
+import { Alert, Button } from '@/components/Common';
 import AuthPageShell from '@/components/layout/AuthPageShell';
 import { cn } from '@/lib/utils';
 
@@ -114,9 +114,9 @@ export default function OtpPage() {
             ))}
           </div>
           {error && (
-            <p role="alert" className="mb-0 mt-2 text-center text-xs text-[var(--sc-error-dark)]">
+            <Alert variant="error" compact className="mt-2">
               {error}
-            </p>
+            </Alert>
           )}
         </fieldset>
         <Button type="submit" className="w-full">

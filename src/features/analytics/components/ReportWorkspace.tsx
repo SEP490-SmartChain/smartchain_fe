@@ -21,6 +21,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, Input, Select, Tabs } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { ReportVisuals } from './ReportVisuals';
@@ -301,14 +302,17 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
           <form
             id={filterId}
             data-expanded={isFiltersExpanded}
-            onSubmit={form.handleSubmit((value) => {
-              setFiltersExpanded(false);
-              filterToggle.current?.focus();
-              setCursor(undefined);
-              setBack([]);
-              setFilters(value);
-              setRevision((value) => value + 1);
-            })}
+            onSubmit={form.handleSubmit(
+              (value) => {
+                setFiltersExpanded(false);
+                filterToggle.current?.focus();
+                setCursor(undefined);
+                setBack([]);
+                setFilters(value);
+                setRevision((value) => value + 1);
+              },
+              () => notifyInvalidForm(),
+            )}
             className={styles.filterForm + ' grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4'}
           >
             <Input
@@ -329,6 +333,7 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
                 placeholder={needsWarehouse ? t('chooseWarehouse') : t('allWarehouses')}
                 isPlaceholderDisabled={needsWarehouse}
                 {...form.register('warehouseId')}
+                error={form.formState.errors?.warehouseId?.message}
                 options={[
                   ...options.warehouses.map((row) => ({
                     value: row.id,
@@ -364,6 +369,7 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
                 placeholder={t('allKinds')}
                 isPlaceholderDisabled={false}
                 {...form.register('kind')}
+                error={form.formState.errors?.kind?.message}
                 options={[
                   { value: 'API', label: t('api') },
                   { value: 'SCAN', label: t('scan') },

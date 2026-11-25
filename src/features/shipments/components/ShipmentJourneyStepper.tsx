@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
+
 import {
-  AlertTriangle,
   Check,
   CheckCircle2,
   Navigation,
@@ -11,6 +11,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+
+import { Alert } from '@/components/Common/Alert/Alert';
 
 import { cn } from '@/lib/utils';
 
@@ -153,13 +155,9 @@ export function ShipmentJourneyStepper({
 
       {/* Exception Notices if any */}
       {isFailed && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
-          <AlertTriangle size={15} className="shrink-0 text-red-600" />
-          <span>
-            {t('steps.failed')}: Giao hàng chưa thành công. Bưu tá sẽ thử liên hệ lại người nhận
-            hoặc cập nhật lý do mới.
-          </span>
-        </div>
+        <Alert variant="error" title={t('steps.failed')} className="mt-4">
+          {t('deliveryFailedHint')}
+        </Alert>
       )}
 
       {isReturning && (

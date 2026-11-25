@@ -8,7 +8,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const html = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body><aside style="padding:12px;background:#fef3c7"><strong>DỮ LIỆU KIỂM THỬ — không thay đổi kho thực tế</strong>
 <form><label>Vai trò <select name="role"><option>WAREHOUSE_MANAGER</option><option>WAREHOUSE_STAFF</option></select></label>
-<label>Trạng thái <select name="scenario"><option>capacity</option><option>ready</option><option>assigned</option><option>paginated</option><option>revoked</option><option>scan-conflict</option><option>scan-validation</option><option>stale-confirmation</option><option>revoked-confirmation</option><option>lost-confirmation</option></select></label><button>Xem</button></form>
+<label>Trạng thái <select name="scenario"><option>capacity</option><option>ready</option><option>assigned</option><option>partial-placement</option><option>paginated</option><option>revoked</option><option>scan-conflict</option><option>scan-validation</option><option>stale-confirmation</option><option>revoked-confirmation</option><option>lost-confirmation</option></select></label><button>Xem</button></form>
 <output aria-label="Fixture commands">Chưa gửi thao tác</output></aside><main style="max-width:1300px;margin:auto;padding:24px"><div id="root"></div></main><script type="module">
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -23,7 +23,7 @@ const uuid=n=>'10260000-0000-4000-8000-'+String(n).padStart(12,'0');
 const warehouseId=uuid(1),workerId=uuid(9),zoneId=uuid(3),stamp='2026-10-16T03:00:00.000Z';
 const user={userId:role==='WAREHOUSE_STAFF'?workerId:uuid(8),tenantId:null,actorScope:'PLATFORM',roles:[role],permissions:[],warehouseIds:[warehouseId],email:'fixture@example.test',fullName:'Nhân viên kiểm thử',phone:null,avatarUrl:null};
 useAuthStore.getState().setSession({user,accessToken:'synthetic-local-token',expiresIn:900});
-let ready=['ready','assigned','scan-conflict','scan-validation','stale-confirmation','revoked-confirmation','lost-confirmation'].includes(scenario);
+let ready=['ready','assigned','partial-placement','scan-conflict','scan-validation','stale-confirmation','revoked-confirmation','lost-confirmation'].includes(scenario);
 const assigned=ready&&scenario!=='ready';let confirmationCount=0,lastConfirmation=null,accessRevoked=false;
 const warehouse={id:warehouseId,tenantId:null,region:'CENTRAL',timeZone:'Asia/Ho_Chi_Minh',cutoffMinute:840,operatingStartMinute:480,operatingEndMinute:1080,version:1,code:'WH-TEST',name:'Kho kiểm thử',address:'Kho kiểm thử',provinceCode:'48',districtCode:null,wardCode:'20194',latitude:16,longitude:108,dailyCapacity:100,priority:1,status:'ACTIVE',contactName:null,contactPhone:null,contactEmail:null,createdAt:stamp,updatedAt:stamp};
 let zones=[{id:uuid(2),warehouseId,code:'NHAN',zoneType:'RECEIVING',isActive:true,updatedAt:stamp},{id:zoneId,warehouseId,code:'LUU-TRU',zoneType:'STORAGE',isActive:true,updatedAt:stamp}];
@@ -42,7 +42,21 @@ window.fetch=async(input,init={})=>{
   document.querySelector('output').textContent=JSON.stringify({confirmationCount,body,replayMatches:lastConfirmation!==null&&JSON.stringify(body)===JSON.stringify(lastConfirmation)});
   if(scenario==='revoked-confirmation'){accessRevoked=true;return fail(403,'Đã thu hồi phân công kho.');}
   if(scenario==='stale-confirmation'){task={...task,version:task.version+1,assigneeId:uuid(10)};return fail(409,'Công việc đã được phân công lại.');}
-  if(body.toBinScan!=='KE-A01'||Object.keys(body).sort().join(',')!=='expectedVersion,operationKey,toBinScan')return fail(scenario==='scan-validation'?422:409,'Mã kệ không khớp công việc.');
+  if(scenario==='partial-placement'){
+   const remaining=task.qty-task.confirmedQty;
+   const expectedBin=task.confirmedQty===0?'QR-KE-A02':'QR-KE-A01';
+   const validQty=task.confirmedQty===0?body.qty===8:body.qty===remaining;
+   if(!validQty||body.expectedVersion!==task.version||body.toBinScan!==expectedBin||
+      (expectedBin==='QR-KE-A02'?!body.reason:body.reason!==undefined)||
+      body.operationKey===lastConfirmation?.operationKey){
+    return fail(409,'Mã kệ, số lượng hoặc phiên bản không khớp công việc.');
+   }
+   lastConfirmation=body;
+   const confirmedQty=task.confirmedQty+body.qty;
+   task={...task,status:confirmedQty===task.qty?'COMPLETED':'ASSIGNED',confirmedQty,version:task.version+1};
+   return ok({taskId:task.id,version:task.version,status:task.status,confirmedQty,assigneeId:workerId});
+  }
+  if(body.toBinScan!=='KE-A01'||(body.qty??10)!==10||body.reason!==undefined)return fail(scenario==='scan-validation'?422:409,'Mã kệ không khớp công việc.');
   if(scenario==='lost-confirmation'&&confirmationCount===1){lastConfirmation=body;throw new TypeError('Synthetic lost reply');}
   if(lastConfirmation!==null&&JSON.stringify(body)!==JSON.stringify(lastConfirmation))return fail(409,'Lần thử lại đã đổi thao tác.');
   task={...task,status:'COMPLETED',confirmedQty:10,version:body.expectedVersion+1};
@@ -54,6 +68,11 @@ window.fetch=async(input,init={})=>{
   return ok([warehouse],{limit:50,hasNext:false,nextCursor:null});
  }
  if(p.endsWith('/putaway/waiting'))return ok({items:ready?[]:[waiting],nextCursor:null});
+ if(p.endsWith('/placement-options'))return ok({taskId:task.id,version:task.version,suggestedBinBarcode:'QR-KE-A01',items:[
+  {code:'KE-A01',barcode:'QR-KE-A01',maxQty:10-task.confirmedQty},
+  ...(scenario==='partial-placement'&&task.confirmedQty===0?[{code:'KE-A02',barcode:'QR-KE-A02',maxQty:8}]:[]),
+ ]});
+ if(p.endsWith('/placements'))return ok([]);
  if(p.endsWith('/putaway/staff'))return ok([{id:workerId,fullName:'Nhân viên kho kiểm thử'}]);
  if(p.endsWith('/putaway'))return ok({items:ready?[task]:[],moreTasks:false,nextCursor:null});
  if(p.endsWith('/relocation'))return ok({items:[],nextCursor:null});

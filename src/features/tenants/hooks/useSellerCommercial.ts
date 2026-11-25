@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import {
+  subscribeUiSync,
+  useCommercialLiveSync,
+  useIsRealtimeConnected,
+} from '@/features/realtime-notifications';
 import { createUuid } from '@/lib/uuid';
-import { ApiError } from '@/services/apiClient';
+import { apiClient, ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import {
@@ -37,6 +42,7 @@ export function useSellerCommercial() {
   const operation = useRef<{ agreementId: string; key: string } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(false);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const closePdf = useCallback(() => setPdf(null), []);
   const isCurrent = useCallback(
     () => mounted.current && revision === useAuthStore.getState().revision,
@@ -79,12 +85,37 @@ export function useSellerCommercial() {
     [isCurrent],
   );
 
+  const handleSigningCompleted = useCallback(() => {
+    setSigningUrl(null);
+    setPopupBlocked(false);
+    setSigningNotice(null);
+  }, []);
+
+  const handleRefreshUser = useCallback(async () => {
+    await apiClient.currentUser();
+    await reload(controller.current?.signal);
+  }, [reload]);
+
+  const live = useCommercialLiveSync({
+    subscribeUiSync,
+    onRefetchCommercial: () => reload(controller.current?.signal),
+    onRefreshUser: handleRefreshUser,
+    onSigningCompleted: handleSigningCompleted,
+  });
+
   useEffect(() => {
     mounted.current = true;
     const abort = new AbortController();
     controller.current = abort;
     void reload(abort.signal);
-    // Recursive timeout avoids overlapping polls when the API or provider is slow.
+    if (isRealtimeConnected) {
+      return () => {
+        mounted.current = false;
+        abort.abort();
+        controller.current = null;
+      };
+    }
+    // Fallback poll runs only while realtime SSE is disconnected.
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
       await reload(abort.signal);
@@ -103,7 +134,7 @@ export function useSellerCommercial() {
       clearTimeout(timer);
       controller.current = null;
     };
-  }, [reload]);
+  }, [isRealtimeConnected, reload]);
 
   const start = async (
     plan: CommercialPlan,
@@ -136,7 +167,7 @@ export function useSellerCommercial() {
       if (isCurrent()) setBusy(false);
     }
   };
-  const open = async (id: string, separateWindow = false) => {
+  const open = async (id: string, separateWindow = true) => {
     if (busy) return;
     setBusy(true);
     setError(null);
@@ -229,5 +260,6 @@ export function useSellerCommercial() {
       setPopupBlocked(false);
     },
     reload: () => reload(controller.current?.signal),
+    live,
   };
 }

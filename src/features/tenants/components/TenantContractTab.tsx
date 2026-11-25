@@ -13,6 +13,8 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { CommercialAdminControls } from './CommercialAdminControls';
@@ -68,6 +70,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
   const [busy, setBusy] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const revision = useAuthStore((value) => value.revision);
+  const isRealtimeConnected = useIsRealtimeConnected();
   const custom = useForm<z.infer<typeof customSchema>>({
     resolver: zodResolver(customSchema),
     defaultValues: {
@@ -98,6 +101,9 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
     const result = await commercialApi.contracts(tenantId, controller.current?.signal);
     if (current()) setState(result);
   };
+  useRealtimeSync(['commercial.onboarding', 'commercial.billing'], () => {
+    void reload();
+  });
   useEffect(() => {
     const abort = new AbortController();
     controller.current = abort;
@@ -109,7 +115,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       } catch {
         // Keep the last visible contract and the explicit refresh action available.
       } finally {
-        if (!abort.signal.aborted) {
+        if (!abort.signal.aborted && !isRealtimeConnected) {
           timer = setTimeout(() => void pollContracts(), 10000);
         }
       }
@@ -129,14 +135,16 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
           setError(failure instanceof Error ? failure.message : t('loadError'));
         }
       } finally {
-        if (!abort.signal.aborted) timer = setTimeout(() => void pollContracts(), 10000);
+        if (!abort.signal.aborted && !isRealtimeConnected) {
+          timer = setTimeout(() => void pollContracts(), 10000);
+        }
       }
     })();
     return () => {
       abort.abort();
       clearTimeout(timer);
     };
-  }, [tenantId, revision, t]);
+  }, [tenantId, revision, isRealtimeConnected, t]);
   const contract = state?.contracts.find((item) => item.id === state.currentContractId);
   const isCustomDraft = contract?.contractKind === 'CUSTOM' && contract.status === 'DRAFT';
   const payableContractId =
@@ -154,7 +162,9 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
           (row) => row.contractId === payableContractId && row.documentType === 'ONBOARDING',
         );
         setPayment({ contractId: payableContractId, invoice });
-        if (invoice?.paymentStatus !== 'PAID') timer = setTimeout(() => void check(), 10000);
+        if (invoice?.paymentStatus !== 'PAID' && !isRealtimeConnected) {
+          timer = setTimeout(() => void check(), 10000);
+        }
       } catch {
         if (!abort.signal.aborted) setPayment({ contractId: payableContractId, failed: true });
       }
@@ -164,54 +174,60 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       abort.abort();
       clearTimeout(timer);
     };
-  }, [payableContractId, tenantId, revision]);
+  }, [payableContractId, tenantId, revision, isRealtimeConnected]);
   const selectedFile = isCustomDraft ? selectedFiles?.[0] : undefined;
   const enterprisePlans = terms?.plans.filter((item) => item.code === 'ENTERPRISE') ?? [];
   const selectedPlanId = useWatch({ control: custom.control, name: 'planVersionId' });
   const deposit = useWatch({ control: custom.control, name: 'depositRequiredVnd' });
   const selectedPlan = enterprisePlans.find((plan) => plan.id === selectedPlanId);
   const formatVnd = (value: bigint) => `${value.toLocaleString(locale)} VND`;
-  const create = custom.handleSubmit(async (input) => {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.createCustom(tenantId, input, controller.current?.signal);
-      if (current()) {
-        setNotice(t('customCreated'));
-        await reload();
+  const create = custom.handleSubmit(
+    async (input) => {
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.createCustom(tenantId, input, controller.current?.signal);
+        if (current()) {
+          setNotice(t('customCreated'));
+          await reload();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
-  const upload = evidence.handleSubmit(async (input) => {
-    const file = input.file[0];
-    if (!file || !contract) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.signedCustom(
-        tenantId,
-        contract.id,
-        file,
-        contract.version,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('uploaded'));
-        await reload();
-        evidence.reset();
+    },
+    () => notifyInvalidForm(),
+  );
+  const upload = evidence.handleSubmit(
+    async (input) => {
+      const file = input.file[0];
+      if (!file || !contract) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.signedCustom(
+          tenantId,
+          contract.id,
+          file,
+          contract.version,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('uploaded'));
+          await reload();
+          evidence.reset();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const viewSavedPdf = async () => {
     if (!contract?.hasSignedEvidence) return;
     setBusy(true);
@@ -236,29 +252,32 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       if (current()) setBusy(false);
     }
   };
-  const confirm = confirmation.handleSubmit(async (input) => {
-    if (!contract?.hasSignedEvidence || selectedFiles?.length) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.confirmCustom(
-        tenantId,
-        contract.id,
-        contract.version,
-        input.reason,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('confirmed'));
-        await reload();
+  const confirm = confirmation.handleSubmit(
+    async (input) => {
+      if (!contract?.hasSignedEvidence || selectedFiles?.length) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.confirmCustom(
+          tenantId,
+          contract.id,
+          contract.version,
+          input.reason,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('confirmed'));
+          await reload();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const invalid = (field: keyof z.infer<typeof customSchema>) =>
     custom.formState.errors[field] ? t('invalid') : undefined;
   const inquiryHistory = inquiries.map((inquiry) => (
@@ -535,9 +554,9 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
                   </div>
                 </div>
                 {evidence.formState.errors.file && (
-                  <p role="alert" className="text-xs text-[var(--sc-error)]">
+                  <Alert variant="error" compact>
                     {t('invalidPdf')}
-                  </p>
+                  </Alert>
                 )}
               </form>
             )}

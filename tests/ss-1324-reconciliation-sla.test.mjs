@@ -304,6 +304,30 @@ test('UC-104 SLA breach projection drops unexpected financial or recipient field
     }).canRetryLabel,
     true,
   );
+  assert.deepEqual(
+    shipment.slaExceptionSchema.parse({
+      ...breach,
+      reasonCode: 'SLA.HANDOVER_OVERDUE',
+      aggregateType: 'fulfillment_order',
+      trackingNumber: null,
+      fulfillmentOrderId: uuid(4),
+      orderCode: 'UC166-DEMO-06',
+      parcelNo: 1,
+      fulfillmentStatus: 'PACKED',
+      codAmount: '500000',
+      recipientName: 'Hidden',
+    }),
+    {
+      ...breach,
+      reasonCode: 'SLA.HANDOVER_OVERDUE',
+      aggregateType: 'fulfillment_order',
+      trackingNumber: null,
+      fulfillmentOrderId: uuid(4),
+      orderCode: 'UC166-DEMO-06',
+      parcelNo: 1,
+      fulfillmentStatus: 'PACKED',
+    },
+  );
 });
 
 test('UC-104 queue is visible to Admin/Ops/Manager; only Admin/Ops take ownership', () => {
