@@ -9,6 +9,7 @@ import { Alert, Badge, Button, Card, CardHeader, Checkbox, PageHeader } from '@/
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import {
@@ -44,7 +45,7 @@ function AssignmentEditor({ staff, onClose, onSaved }: AssignmentEditorProps) {
     defaultValues: { warehouseIds: staff.warehouseIds },
   });
 
-  const { field } = useController({ control, name: 'warehouseIds' });
+  const { field, fieldState } = useController({ control, name: 'warehouseIds' });
   const toggle = (id: string, checked: boolean) =>
     field.onChange(checked ? [...field.value, id] : field.value.filter((value) => value !== id));
   const load = useCallback(
@@ -73,16 +74,19 @@ function AssignmentEditor({ staff, onClose, onSaved }: AssignmentEditorProps) {
     return () => pending.abort();
   }, [load]);
 
-  const save = handleSubmit(async (values) => {
-    const signal = controller.current?.signal;
-    setError(null);
-    try {
-      const saved = await platformStaffApi.replace(staff.userId, values, signal);
-      if (!signal?.aborted) onSaved(saved);
-    } catch (failure) {
-      if (!signal?.aborted) setError(failure instanceof Error ? failure.message : t('saveError'));
-    }
-  });
+  const save = handleSubmit(
+    async (values) => {
+      const signal = controller.current?.signal;
+      setError(null);
+      try {
+        const saved = await platformStaffApi.replace(staff.userId, values, signal);
+        if (!signal?.aborted) onSaved(saved);
+      } catch (failure) {
+        if (!signal?.aborted) setError(failure instanceof Error ? failure.message : t('saveError'));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
   const missingIds = staff.warehouseIds.filter((id) => !options.some((option) => option.id === id));
   return (
     <Modal
@@ -94,6 +98,11 @@ function AssignmentEditor({ staff, onClose, onSaved }: AssignmentEditorProps) {
       width="600px"
     >
       <form onSubmit={save} className="space-y-4">
+        {fieldState.error?.message && (
+          <Alert variant="error" compact>
+            {fieldState.error.message}
+          </Alert>
+        )}
         <p className="m-0 text-sm leading-5 text-[var(--sc-text-secondary)]">{t('hint')}</p>
         {error && <Alert variant="error">{error}</Alert>}
         <fieldset

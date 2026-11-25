@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Button, Card, Input } from '@/components/Common';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -183,13 +184,15 @@ export function ReceiptCartonPanel({
           <form
             noValidate
             className="grid gap-4"
-            onSubmit={handleSubmit((values) =>
-              send({
-                operationKey: createUuid(),
-                expectedVersion: state.receiptVersion,
-                actualCartonCount: Number(values.actualCartonCount),
-                reason: values.reason,
-              }),
+            onSubmit={handleSubmit(
+              (values) =>
+                send({
+                  operationKey: createUuid(),
+                  expectedVersion: state.receiptVersion,
+                  actualCartonCount: Number(values.actualCartonCount),
+                  reason: values.reason,
+                }),
+              () => notifyInvalidForm(),
             )}
           >
             <Input

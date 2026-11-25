@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -114,7 +115,7 @@ export function ReturnRequestForm({
         if (!busy) onClose();
       }}
     >
-      <form className="space-y-4" onSubmit={handleSubmit(submit)}>
+      <form className="space-y-4" onSubmit={handleSubmit(submit, () => notifyInvalidForm())}>
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('requestHint')}</p>
         {error && <Alert variant="error" title={t('commandError')} />}
         {loading && <p role="status">{t('loading')}</p>}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { apiClient } from '@/services/apiClient';
+import { ApiError, apiClient } from '@/services/apiClient';
 
 interface PasswordResetRequestResponse {
   success: boolean;
@@ -18,19 +18,21 @@ interface PasswordResetRequestResponse {
 export function usePasswordResetRequest() {
   const [sent, setSent] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [requestError, setRequestError] = useState<{ message?: string }>();
 
   const requestReset = async (email: string): Promise<boolean> => {
+    setRequestError(undefined);
     try {
       await apiClient.post<PasswordResetRequestResponse>(
         '/v1/auth/password-reset-requests',
         { email },
-        { requiresAuth: false },
+        { requiresAuth: false, silent: true },
       );
       setSubmittedEmail(email);
       setSent(true);
       return true;
-    } catch {
-      // apiClient already surfaced a toast (rate limit / network / service unavailable).
+    } catch (error) {
+      setRequestError(error instanceof ApiError ? { message: error.message } : {});
       return false;
     }
   };
@@ -38,7 +40,8 @@ export function usePasswordResetRequest() {
   const reset = () => {
     setSent(false);
     setSubmittedEmail('');
+    setRequestError(undefined);
   };
 
-  return { sent, submittedEmail, requestReset, reset };
+  return { sent, submittedEmail, requestReset, reset, requestError };
 }

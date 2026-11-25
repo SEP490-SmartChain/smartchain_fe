@@ -1,10 +1,12 @@
+import { useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 
 import { Copy } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Badge, Button } from '@/components/Common';
+import { Alert, Badge, Button } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
 
@@ -27,6 +29,7 @@ const QUANTITIES = [
 ] as const;
 
 export function AsnDetail({ asn, statusTone, onClose }: AsnDetailProps) {
+  const [copyFailed, setCopyFailed] = useState(false);
   const t = useTranslations('Asns');
   const locale = useLocale();
   const navigate = useNavigate();
@@ -50,11 +53,12 @@ export function AsnDetail({ asn, statusTone, onClose }: AsnDetailProps) {
   }
 
   async function handleCopyCode() {
+    setCopyFailed(false);
     try {
       await navigator.clipboard.writeText(asn.asnCode);
       toast.success(t('codeCopied'));
     } catch {
-      toast.error(t('copyCodeError'));
+      setCopyFailed(true);
     }
   }
 
@@ -205,6 +209,11 @@ export function AsnDetail({ asn, statusTone, onClose }: AsnDetailProps) {
                   <Copy size={14} aria-hidden="true" />
                   {t('copyCode')}
                 </Button>
+                {copyFailed && (
+                  <Alert variant="error" compact>
+                    {t('copyCodeError')}
+                  </Alert>
+                )}
               </dd>
             </div>
             {referenceGroups.map(([label, references]) => (

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Avatar } from '@/components/Common';
+import { Alert, Avatar } from '@/components/Common';
 import {
   NotificationBellPopover,
   httpRealtimeNotificationClient,
@@ -58,7 +58,7 @@ export default function Topbar() {
   const nt = useTranslations('Notifications');
   const sidebar = useTranslations('Sidebar');
   const locale = useLocale();
-  const { logout, isLoggingOut } = useAuth();
+  const { logout, isLoggingOut, logoutError } = useAuth();
   const user = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.accessToken);
   const revision = useAuthStore((state) => state.revision);
@@ -394,6 +394,11 @@ export default function Topbar() {
                 {t('logout')}
                 <LogOut size={16} strokeWidth={1.5} />
               </button>
+              {logoutError && (
+                <Alert variant="error" compact className="mt-2">
+                  {logoutError.message ?? t('logoutFailed')}
+                </Alert>
+              )}
             </div>
           )}
         </div>

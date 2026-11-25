@@ -58,9 +58,9 @@ replace the provider before then; Xinvoice's successor API requires server-held 
 `POST /api/v1/auth/password-reset-requests`: `{ email }`, anonymous (`requiresAuth: false`).
 `ForgotPasswordForm` (`/forgot-password`) always renders the same generic "check your inbox"
 confirmation after a successful call — the API never reveals whether the email belongs to an
-eligible account, so the UI must not either. Errors (429 rate limit, 503 unavailable, network)
-surface through apiClient's default toast; the form simply stays on the input step so the user
-can retry. The email carries a one-time link, not an OTP code — do not route this flow through
+eligible account, so the UI must not either. Errors (rate limit, unavailable service, network)
+appear beside the request as an inline Alert and a dismissible notification. The form retains the
+email for retry. The email carries a one-time link, not an OTP code — do not route this flow through
 `/otp`, which belongs to registration's email-verification step.
 
 ## Password Reset Confirmation
@@ -80,8 +80,8 @@ API does not return session tokens, so the user signs in again with the new pass
 account's other sessions were revoked server-side). Any API error whose code is
 `AUTH.PASSWORD_RESET_TOKEN_INVALID` — covering unknown, expired, already-used, or no-longer-eligible
 tokens alike — switches the form to the same invalid-link state with a link to `/forgot-password`;
-other errors (same-as-current password, rate limit, network) surface through apiClient's default
-toast and leave the form on the input step for retry.
+other errors (same-as-current password, rate limit, network) appear in the form and as a dismissible
+notification. The form stays open for retry.
 
 ## Staff invitation acceptance (UC-06/15)
 

@@ -3,6 +3,8 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
 import { cn } from '@/lib/utils';
 
 export interface SearchableSelectOption {
@@ -199,6 +201,7 @@ export function SearchableSelect({
           aria-haspopup="listbox"
           aria-controls={`${selectId}-list`}
           aria-invalid={!!error}
+          aria-describedby={error ? `${selectId}-error` : undefined}
           disabled={disabled}
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           onKeyDown={handleKeyDown}
@@ -379,7 +382,11 @@ export function SearchableSelect({
         </div>
       )}
 
-      {error && <p className="mb-0 mt-1.5 text-xs text-[var(--sc-error-dark)]">{error}</p>}
+      {error && (
+        <Alert id={`${selectId}-error`} variant="error" compact className="mt-1.5">
+          {error}
+        </Alert>
+      )}
       {helperText && !error && (
         <p className="mb-0 mt-1.5 text-xs text-[var(--sc-text-secondary)]">{helperText}</p>
       )}

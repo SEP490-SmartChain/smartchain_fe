@@ -17,7 +17,6 @@ type PickLabelKind = 'all' | 'bin' | 'sku' | 'lot';
 
 interface PickQrEntry {
   key: string;
-  kind: Exclude<PickLabelKind, 'all'>;
   orderLabel: string;
   title: string;
   value: string;
@@ -38,8 +37,9 @@ export function PickLineLabels({
   const principal = useAuthStore((s) => s.user);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<PickLabelKind>('all');
+  const [index, setIndex] = useState(0);
   const [error, setError] = useState(false);
-  const [qrMap, setQrMap] = useState<Record<string, string>>({});
+  const [qrMap, setQrMap] = useState(() => new Map<string, string>());
 
   useEffect(() => {
     setOpen(false);
@@ -57,7 +57,6 @@ export function PickLineLabels({
       if (kind === 'all' || kind === 'bin') {
         items.push({
           key: `${line.id}:bin`,
-          kind: 'bin',
           orderLabel,
           title: `${t('labelBin')} · ${line.binCode}`,
           value: line.binCode,
@@ -66,7 +65,6 @@ export function PickLineLabels({
       if (kind === 'all' || kind === 'sku') {
         items.push({
           key: `${line.id}:sku`,
-          kind: 'sku',
           orderLabel,
           title: `${t('labelSku')} · ${line.productName}`,
           value: line.sku,
@@ -75,7 +73,6 @@ export function PickLineLabels({
       if (kind === 'all' || kind === 'lot') {
         items.push({
           key: `${line.id}:lot`,
-          kind: 'lot',
           orderLabel,
           title: `${t('labelLot')} · ${line.sku}`,
           value: line.lotCode,
@@ -95,12 +92,12 @@ export function PickLineLabels({
           margin: 2,
           errorCorrectionLevel: 'M',
         });
-        return [entry.key, url] as const;
+        return [entry.value, url] as const;
       }),
     )
       .then((pairs) => {
         if (!cancelled) {
-          setQrMap(Object.fromEntries(pairs));
+          setQrMap(new Map(pairs));
           setError(false);
         }
       })
@@ -114,6 +111,8 @@ export function PickLineLabels({
 
   if (!lines.length) return null;
 
+  const activeIndex = Math.min(index, entries.length - 1);
+  const active = entries[activeIndex];
   const content = (
     <div className="pick-label-grid">
       {entries.map((entry) => (
@@ -121,9 +120,9 @@ export function PickLineLabels({
           <figcaption className="pick-label-title">{entry.title}</figcaption>
           <p className="pick-label-meta">{entry.orderLabel}</p>
           <div className="pick-label-codes">
-            {qrMap[entry.key] && (
+            {qrMap.has(entry.value) && (
               <img
-                src={qrMap[entry.key]}
+                src={qrMap.get(entry.value)}
                 alt={`QR ${entry.value}`}
                 width={152}
                 height={152}
@@ -148,7 +147,16 @@ export function PickLineLabels({
 
   return (
     <>
-      <Button type="button" variant="outline" size={size} onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="outline"
+        size={size}
+        onClick={() => {
+          setKind('all');
+          setIndex(0);
+          setOpen(true);
+        }}
+      >
         <QrCode size={16} aria-hidden="true" />
         {label ?? t('viewQrLabels')}
       </Button>
@@ -157,10 +165,12 @@ export function PickLineLabels({
           isOpen
           onClose={() => setOpen(false)}
           title={`${t('pickLabelsTitle')} · ${waveCode}`}
-          width="840px"
+          width="520px"
         >
           <div className="space-y-4">
-            <p className="text-sm text-[var(--sc-text-secondary)]">{t('pickLabelsHint')}</p>
+            {entries.length > 1 && (
+              <p className="text-sm text-[var(--sc-text-secondary)]">{t('pickLabelsHint')}</p>
+            )}
             <div className="flex flex-wrap gap-2">
               {(['all', 'bin', 'sku', 'lot'] as const).map((option) => (
                 <Button
@@ -168,49 +178,81 @@ export function PickLineLabels({
                   type="button"
                   size="sm"
                   variant={kind === option ? 'primary' : 'outline'}
-                  onClick={() => setKind(option)}
+                  aria-pressed={kind === option}
+                  onClick={() => {
+                    setKind(option);
+                    setIndex(0);
+                  }}
                 >
                   {t(`labelFilter.${option}`)}
                 </Button>
               ))}
             </div>
             {error && <Alert variant="error" title={t('printError')} />}
-            <div className="max-h-[55vh] overflow-auto">
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                {entries.map((entry) => (
-                  <figure
-                    key={entry.key}
-                    className="flex flex-col items-center rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-3 text-center"
-                  >
-                    <figcaption className="text-xs font-semibold text-[var(--sc-text-primary)]">
-                      {entry.title}
-                    </figcaption>
-                    <p className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">
-                      {entry.orderLabel}
-                    </p>
-                    <div className="my-2 flex min-h-[152px] items-center justify-center">
-                      {qrMap[entry.key] && (
-                        <img
-                          src={qrMap[entry.key]}
-                          alt={`QR ${entry.value}`}
-                          width={152}
-                          height={152}
-                          className="rounded border border-[var(--sc-border-default)] bg-white p-1"
-                        />
-                      )}
-                    </div>
-                    <p className="break-all font-mono text-xs text-[var(--sc-text-primary)]">
-                      {entry.value}
-                    </p>
-                  </figure>
-                ))}
+            {active && (
+              <figure
+                key={active.key}
+                className="flex flex-col items-center rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-3 text-center"
+              >
+                <figcaption
+                  aria-live="polite"
+                  className="text-sm font-semibold text-[var(--sc-text-primary)]"
+                >
+                  {active.title}
+                </figcaption>
+                <p className="mt-0.5 text-xs text-[var(--sc-text-secondary)]">
+                  {active.orderLabel}
+                </p>
+                <div className="my-2 flex min-h-[152px] items-center justify-center">
+                  {qrMap.has(active.value) && (
+                    <img
+                      src={qrMap.get(active.value)}
+                      alt={`QR ${active.value}`}
+                      width={152}
+                      height={152}
+                      className="rounded border border-[var(--sc-border-default)] bg-white p-1"
+                    />
+                  )}
+                </div>
+                <p className="break-all font-mono text-xs text-[var(--sc-text-primary)]">
+                  {active.value}
+                </p>
+              </figure>
+            )}
+            {entries.length > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={activeIndex === 0}
+                  onClick={() => setIndex(activeIndex - 1)}
+                >
+                  {t('previousLabel')}
+                </Button>
+                <span className="text-xs text-[var(--sc-text-secondary)]">
+                  {t('labelProgress', { step: activeIndex + 1, total: entries.length })}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={activeIndex === entries.length - 1}
+                  onClick={() => setIndex(activeIndex + 1)}
+                >
+                  {t('nextLabel')}
+                </Button>
               </div>
-            </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 {t('closeLabels')}
               </Button>
-              <Button type="button" onClick={printLabels}>
+              <Button
+                type="button"
+                disabled={entries.some((entry) => !qrMap.has(entry.value))}
+                onClick={printLabels}
+              >
                 {t('printLabels')}
               </Button>
             </div>

@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import {
@@ -17,6 +18,7 @@ import {
 import { HttpGoogleOAuthApiClient } from '@/features/google-oauth/runtime';
 import type { GooglePublicConfigDto } from '@/features/google-oauth/shared';
 import { useAuth } from '@/hooks/useAuth';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
 import { getLoginSchema, type LoginFormData } from '../schemas/loginSchema';
@@ -151,7 +153,11 @@ export function LoginForm() {
   );
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
+    <form
+      onSubmit={handleSubmit(onSubmit, () => notifyInvalidForm())}
+      noValidate
+      className="flex flex-col gap-5"
+    >
       {googleConfig?.enabled && googleConfig.clientId && (
         <div className="flex flex-col gap-3">
           {workspaceMethod === 'google' && workspaceInput}
@@ -174,14 +180,7 @@ export function LoginForm() {
           </fieldset>
         </div>
       )}
-      {errors.root && (
-        <p
-          role="alert"
-          className="rounded-lg border border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] px-4 py-3 text-sm text-[var(--sc-error-dark)]"
-        >
-          {errors.root.message}
-        </p>
-      )}
+      {errors.root && <Alert variant="error">{errors.root.message}</Alert>}
       <Input
         id="login-email"
         type="email"

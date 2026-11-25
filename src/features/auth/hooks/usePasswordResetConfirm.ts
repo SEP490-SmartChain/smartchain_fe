@@ -31,6 +31,7 @@ export function usePasswordResetConfirm() {
   const [checking, setChecking] = useState(token !== null);
   const [tokenInvalid, setTokenInvalid] = useState(token === null);
   const [confirmed, setConfirmed] = useState(false);
+  const [submitError, setSubmitError] = useState<{ message?: string }>();
 
   useEffect(() => {
     if (!token) {
@@ -66,6 +67,7 @@ export function usePasswordResetConfirm() {
     newPassword: string,
     confirmNewPassword: string,
   ): Promise<boolean> => {
+    setSubmitError(undefined);
     if (!token) {
       setTokenInvalid(true);
       return false;
@@ -74,19 +76,19 @@ export function usePasswordResetConfirm() {
       await apiClient.post<ConfirmPasswordResetResponse>(
         '/v1/auth/reset-password',
         { token, newPassword, confirmNewPassword },
-        { requiresAuth: false },
+        { requiresAuth: false, silent: true },
       );
       setConfirmed(true);
       return true;
     } catch (error) {
       if (error instanceof ApiError && error.code === 'AUTH.PASSWORD_RESET_TOKEN_INVALID') {
         setTokenInvalid(true);
+      } else {
+        setSubmitError(error instanceof ApiError ? { message: error.message } : {});
       }
-      // Other errors (same-as-current, rate limit, network) already surfaced via
-      // apiClient's toast; the form stays on the input step so the user can retry.
       return false;
     }
   };
 
-  return { checking, tokenInvalid, confirmed, confirmReset };
+  return { checking, tokenInvalid, confirmed, confirmReset, submitError };
 }

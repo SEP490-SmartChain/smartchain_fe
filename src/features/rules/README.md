@@ -37,6 +37,14 @@ first, fallbacks in order. Rules show On/Off, Default and Unapplied-draft badges
 are text buttons while History, Disable and Delete are icon buttons. A service missing from the
 active target list shows as "Unavailable" (for example a paused carrier) once the list has loaded.
 
+A temporary frontend compatibility label identifies the confirmed legacy names
+`Hàng nhẹ` as `GHN · Hàng nhẹ` and `Đường bộ` as `GHTK · Đường bộ` in service
+chains, editor choices and generated title suffixes. Other names, including
+carrier-qualified names from newer APIs, are preserved. This only decorates the
+display: saved rule names, service IDs, fallback order and mutation payloads stay
+unchanged. Remove the aliases once the deployed target directory consistently
+includes carrier names.
+
 ## API and access
 
 All requests use `apiClient` and validate responses with Zod. Routes: `GET/POST

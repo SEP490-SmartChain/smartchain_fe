@@ -1,5 +1,8 @@
 import React from 'react';
 
+import { Alert } from '@/components/Common/Alert/Alert';
+
+import { useNativeFieldError } from '@/hooks/useNativeFieldError';
 import { cn } from '@/lib/utils';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -13,9 +16,28 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, isRequired, leftIcon, rightIcon, className, id, ...props }, ref) => {
+  (
+    {
+      label,
+      error: formError,
+      helperText,
+      isRequired,
+      leftIcon,
+      rightIcon,
+      className,
+      id,
+      'aria-describedby': describedBy,
+      onInvalid,
+      onInput,
+      ...props
+    },
+    ref,
+  ) => {
     const reactId = React.useId();
+    const { nativeError, handleInvalid, handleInput } = useNativeFieldError();
+    const error = formError || nativeError;
     const inputId = id || reactId;
+    const errorId = error ? `${inputId}-error` : undefined;
 
     return (
       <div className="w-full">
@@ -54,9 +76,18 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               rightIcon && 'pr-10',
               className,
             )}
-            aria-invalid={error ? true : props['aria-invalid']}
             aria-required={isRequired || props['aria-required']}
             {...props}
+            aria-invalid={error ? true : props['aria-invalid']}
+            onInvalid={(event) => {
+              handleInvalid(event);
+              onInvalid?.(event);
+            }}
+            onInput={(event) => {
+              handleInput(event);
+              onInput?.(event);
+            }}
+            aria-describedby={[describedBy, errorId].filter(Boolean).join(' ') || undefined}
           />
           {rightIcon && (
             <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center text-[var(--sc-text-secondary)]">
@@ -65,7 +96,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
 
-        {error && <p className="mb-0 mt-1.5 text-xs text-[var(--sc-error-dark)]">{error}</p>}
+        {error && (
+          <Alert id={errorId} variant="error" compact className="mt-1.5">
+            {error}
+          </Alert>
+        )}
         {helperText && !error && (
           <p className="mb-0 mt-1.5 text-xs text-[var(--sc-text-secondary)]">{helperText}</p>
         )}

@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { toast } from 'sonner';
-
 import { carrierCatalogApi } from '../api/carrierCatalogApi';
 
 import type {
@@ -46,14 +44,16 @@ export function useCarrierCatalog(initialQuery: CarrierListQuery = {}) {
     fetchCarriers(query);
   }, [query, fetchCarriers]);
 
+  const [detailErrorId, setDetailErrorId] = useState<string>();
   const selectCarrier = useCallback(async (id: string) => {
+    setDetailErrorId(undefined);
     setIsLoadingDetail(true);
     try {
       const detail = await carrierCatalogApi.getDetail(id);
       setSelectedCarrier(detail);
       return detail;
     } catch {
-      toast.error('Không thể tải chi tiết hãng vận chuyển');
+      setDetailErrorId(id);
       setSelectedCarrier(null);
       return null;
     } finally {
@@ -70,6 +70,7 @@ export function useCarrierCatalog(initialQuery: CarrierListQuery = {}) {
     selectCarrier,
     isLoading,
     isLoadingDetail,
+    detailErrorId,
     error,
     hasNextPage,
     nextCursor,

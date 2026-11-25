@@ -1,29 +1,29 @@
+import { AlertCircle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Toaster as Sonner } from 'sonner';
 
-type ToasterProps = React.ComponentProps<typeof Sonner>;
+import './Toaster.css';
 
-export function Toaster(props: ToasterProps) {
+export function Toaster() {
+  const t = useTranslations('Notifications');
+
   return (
     <Sonner
-      className="toaster group"
-      toastOptions={{
-        classNames: {
-          toast:
-            'group toast group-[.toaster]:bg-white group-[.toaster]:text-[var(--sc-text-primary)] group-[.toaster]:border-[var(--sc-border-default)] group-[.toaster]:rounded-xl group-[.toaster]:shadow-[var(--sc-shadow-popover)]',
-          description: 'group-[.toast]:text-[var(--sc-text-secondary)]',
-          actionButton: 'group-[.toast]:bg-[var(--sc-primary)] group-[.toast]:text-white',
-          cancelButton:
-            'group-[.toast]:bg-[var(--sc-bg-secondary)] group-[.toast]:text-[var(--sc-text-secondary)]',
-          success:
-            'group-[.toaster]:!bg-[var(--sc-success-bg)] group-[.toaster]:!border-[var(--sc-success-border)] group-[.toaster]:!text-[var(--sc-success-dark)]',
-          error:
-            'group-[.toaster]:!bg-[var(--sc-error-bg)] group-[.toaster]:!border-[var(--sc-error-border)] group-[.toaster]:!text-[var(--sc-error-dark)]',
-          warning:
-            'group-[.toaster]:!bg-[var(--sc-warning-bg)] group-[.toaster]:!border-[var(--sc-warning-border)] group-[.toaster]:!text-[var(--sc-warning-dark)]',
-          info: 'group-[.toaster]:!bg-[var(--sc-info-bg)] group-[.toaster]:!border-[var(--sc-info-border)] group-[.toaster]:!text-[var(--sc-info-dark)]',
-        },
+      className="sc-toaster"
+      position="top-right"
+      offset={20}
+      mobileOffset={12}
+      duration={6000}
+      closeButton
+      containerAriaLabel={t('label')}
+      toastOptions={{ closeButtonAriaLabel: t('dismiss') }}
+      icons={{
+        error: <XCircle aria-hidden="true" size={18} />,
+        warning: <AlertCircle aria-hidden="true" size={18} />,
+        success: <CheckCircle2 aria-hidden="true" size={18} />,
+        info: <Info aria-hidden="true" size={18} />,
+        close: <X aria-hidden="true" size={16} />,
       }}
-      {...props}
     />
   );
 }

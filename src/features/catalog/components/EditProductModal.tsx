@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { calculateVolumetricWeightKg } from '@/lib/volumetricWeight';
 import { ApiError } from '@/services/apiClient';
 
@@ -34,6 +36,7 @@ const HTTP_CONFLICT = 409;
 const HTTP_NOT_FOUND = 404;
 
 export function EditProductModal({ product, onClose, onChanged }: EditProductModalProps) {
+  const [submitError, setSubmitError] = useState('');
   const t = useTranslations('ProductCatalog');
   const tValidation = useTranslations('ProductCatalog.validation');
   const locale = useLocale();
@@ -77,28 +80,34 @@ export function EditProductModal({ product, onClose, onChanged }: EditProductMod
       onClose();
     } catch (failure) {
       if (failure instanceof ApiError && failure.status === HTTP_CONFLICT) {
-        toast.error(t('editConflict'));
+        setSubmitError(t('editConflict'));
         onChanged();
         onClose();
         return;
       }
       if (failure instanceof ApiError && failure.status === HTTP_NOT_FOUND) {
-        toast.error(failure.message);
+        setSubmitError(failure.message);
         onChanged();
         onClose();
         return;
       }
-      toast.error(t('editSaveError'));
+      setSubmitError(t('editSaveError'));
     }
   };
 
   return (
     <Modal isOpen={product !== null} onClose={onClose} title={t('editTitle')} width="560px">
       <form
+        onSubmitCapture={() => setSubmitError('')}
         noValidate
-        onSubmit={(event) => void handleSubmit(handleSave)(event)}
+        onSubmit={(event) => void handleSubmit(handleSave, () => notifyInvalidForm())(event)}
         className="space-y-4 p-5 sm:p-6"
       >
+        {submitError && (
+          <Alert variant="error" onClose={() => setSubmitError('')}>
+            {submitError}
+          </Alert>
+        )}
         <Input label={t('fieldSku')} value={product?.sku ?? ''} disabled readOnly />
 
         <Input

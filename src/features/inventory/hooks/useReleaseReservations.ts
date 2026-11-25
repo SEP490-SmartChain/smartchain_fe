@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { toast } from 'sonner';
-
 import {
   inventoryReservationApi,
   isReservationUnavailableError,
@@ -15,7 +13,7 @@ import type {
 export type ReleaseOutcome =
   | { status: 'released'; result: ReleaseReservationsResult }
   | { status: 'unavailable' }
-  | { status: 'failed' };
+  | { status: 'failed'; message?: string };
 
 /** Danh sách SKU đã tải xong, gắn với đúng đơn con mà nó được tải cho. */
 interface ReleasePreview {
@@ -79,8 +77,7 @@ export function useReleaseReservations(fulfillmentOrderId: string | null) {
         setUnavailableFulfillmentOrderId(fulfillmentOrderId);
         return { status: 'unavailable' };
       }
-      toast.error(failure instanceof Error ? failure.message : String(failure));
-      return { status: 'failed' };
+      return { status: 'failed', message: failure instanceof Error ? failure.message : undefined };
     } finally {
       setIsReleasing(false);
     }

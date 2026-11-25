@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, RequiredNote, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { carrierManagementApi } from '../api/carrierManagementApi';
@@ -52,19 +53,22 @@ export function CarrierEditor({
       isActive: false,
     },
   });
-  const submit = handleSubmit(async (values) => {
-    const actor = useAuthStore.getState().user;
-    if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
-    setError('');
-    try {
-      await carrierManagementApi.saveCarrier(values, current);
-      if (actor === useAuthStore.getState().user) onSaved();
-    } catch (e) {
-      if (actor === useAuthStore.getState().user) {
-        setError(e instanceof Error ? e.message : t('saveError'));
+  const submit = handleSubmit(
+    async (values) => {
+      const actor = useAuthStore.getState().user;
+      if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
+      setError('');
+      try {
+        await carrierManagementApi.saveCarrier(values, current);
+        if (actor === useAuthStore.getState().user) onSaved();
+      } catch (e) {
+        if (actor === useAuthStore.getState().user) {
+          setError(e instanceof Error ? e.message : t('saveError'));
+        }
       }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   return (
     <Modal
       isOpen
@@ -159,19 +163,22 @@ export function CarrierServiceEditor({
     },
   });
   const presets = carrierServicePresets(carrierCode);
-  const submit = handleSubmit(async (values) => {
-    const actor = useAuthStore.getState().user;
-    if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
-    setError('');
-    try {
-      await carrierManagementApi.saveService(carrierId, values, current);
-      if (actor === useAuthStore.getState().user) onSaved();
-    } catch (e) {
-      if (actor === useAuthStore.getState().user) {
-        setError(e instanceof Error ? e.message : t('saveError'));
+  const submit = handleSubmit(
+    async (values) => {
+      const actor = useAuthStore.getState().user;
+      if (actor?.actorScope !== 'PLATFORM' || !actor.roles.includes('ORCA_ADMIN')) return;
+      setError('');
+      try {
+        await carrierManagementApi.saveService(carrierId, values, current);
+        if (actor === useAuthStore.getState().user) onSaved();
+      } catch (e) {
+        if (actor === useAuthStore.getState().user) {
+          setError(e instanceof Error ? e.message : t('saveError'));
+        }
       }
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const limitFields = [
     'maxWeightG',
     'maxLengthCm',
@@ -232,6 +239,7 @@ export function CarrierServiceEditor({
           isRequired
           helperText={t('modeHint')}
           {...register('transportMode')}
+          error={errors?.transportMode?.message}
           options={['ROAD', 'AIR', 'SEA', 'MULTIMODAL'].map((value) => ({
             value,
             label: t(`mode_${value}`),

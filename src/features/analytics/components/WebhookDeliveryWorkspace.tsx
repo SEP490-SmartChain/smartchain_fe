@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Button, Card, Input, PageHeader, Select } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import {
@@ -70,27 +71,41 @@ function ScopedWebhookDeliveries() {
       <Card>
         <form
           className="grid items-end gap-3 p-4 sm:grid-cols-4"
-          onSubmit={form.handleSubmit((values) => {
-            setCursor(undefined);
-            setFilters(values);
-          })}
+          onSubmit={form.handleSubmit(
+            (values) => {
+              setCursor(undefined);
+              setFilters(values);
+            },
+            () => notifyInvalidForm(),
+          )}
         >
-          <Input type="date" label={t('from')} {...form.register('from')} />
-          <Input type="date" label={t('to')} {...form.register('to')} />
+          <Input
+            type="date"
+            label={t('from')}
+            {...form.register('from')}
+            error={form.formState.errors?.from?.message}
+          />
+          <Input
+            type="date"
+            label={t('to')}
+            {...form.register('to')}
+            error={form.formState.errors?.to?.message}
+          />
           <Select
             label={t('status')}
             placeholder={t('all')}
             isPlaceholderDisabled={false}
             {...form.register('status')}
+            error={form.formState.errors?.status?.message}
             options={[...webhookStatus.options.map((s) => ({ value: s, label: t(s) }))]}
           />
           <Button type="submit" disabled={state.loading}>
             {t('apply')}
           </Button>
           {Object.keys(form.formState.errors).length > 0 && (
-            <p role="alert" className="sm:col-span-4">
+            <Alert variant="error" className="sm:col-span-4">
               {t('invalidRange')}
-            </p>
+            </Alert>
           )}
         </form>
       </Card>

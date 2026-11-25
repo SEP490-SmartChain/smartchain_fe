@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
@@ -24,10 +24,12 @@ import {
 } from '@/features/orders/lib/fulfillmentPending';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { FulfillmentSlaRiskPanel, type PickingDeepLinkRequest } from './FulfillmentSlaRiskPanel';
 import { PickLineLabels } from './PickLineLabels';
 import { PickShortEvidence } from './PickShortEvidence';
 import {
@@ -54,6 +56,21 @@ import {
 } from '../schemas/pickingSchema';
 
 const CLAIM_WAVE_MAX_PARCELS = 20;
+const MAX_DEEP_LINK_LINE_PAGES = 10;
+const PICK_SCAN_FIELDS = ['binScan', 'skuScan', 'lotScan'] as const;
+const PICK_STEPS = [...PICK_SCAN_FIELDS, 'qty'] as const;
+const PICK_SCAN_ERRORS = {
+  binScan: 'WRONG_BIN',
+  skuScan: 'WRONG_SKU',
+  lotScan: 'WRONG_LOT',
+} as const;
+
+function preferredScrollBehavior(): ScrollBehavior {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'auto';
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
 
 /**
  * Local `datetime-local` value one minute in the past: the server rejects a cut-off in the future
@@ -73,22 +90,79 @@ export function PickingWorkspace() {
   useRealtimeSync(['outbound.picking', 'outbound.orders'], () => {
     setSyncRevision((n) => n + 1);
   });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handoffWarehouse = searchParams.get('warehouse');
+  const handoffWave = searchParams.get('wave');
+  const handoffLine = searchParams.get('line');
+  const handoffFulfillment = searchParams.get('fulfillment');
+  const handoffException = searchParams.get('exception');
+  const rawIntent = searchParams.get('intent');
+  const handoffIntent: 'shortage' | 'progress' | null =
+    rawIntent === 'shortage' || rawIntent === 'progress' ? rawIntent : null;
+  const clearHandoffParams = () => {
+    setSearchParams(
+      (previous) => {
+        const nextParams = new URLSearchParams(previous);
+        nextParams.delete('warehouse');
+        nextParams.delete('wave');
+        nextParams.delete('line');
+        nextParams.delete('fulfillment');
+        nextParams.delete('exception');
+        nextParams.delete('intent');
+        return nextParams;
+      },
+      { replace: true },
+    );
+  };
   return (
     <PickingScope
       key={`${user?.userId}:${revision}`}
+      handoffWarehouse={handoffWarehouse}
+      handoffWave={handoffWave}
+      handoffLine={handoffLine}
+      handoffFulfillment={handoffFulfillment}
+      handoffException={handoffException}
+      handoffIntent={handoffIntent}
+      clearHandoffParams={clearHandoffParams}
       syncRevision={syncRevision}
       realtimeConnected={isRealtimeConnected}
     />
   );
 }
+type PendingPickingDeepLink = {
+  readonly warehouseId: string;
+  readonly waveId: string;
+  readonly fulfillmentOrderId?: string;
+  readonly lineId?: string;
+  readonly exceptionId?: string;
+  readonly intent: 'shortage' | 'progress' | 'wave';
+  readonly pagesVisited: number;
+  readonly requiredFetchSeq: number;
+};
+
 function PickingScope({
+  handoffWarehouse = null,
+  handoffWave = null,
+  handoffLine = null,
+  handoffFulfillment = null,
+  handoffException = null,
+  handoffIntent = null,
+  clearHandoffParams,
   syncRevision = 0,
   realtimeConnected = false,
 }: {
+  handoffWarehouse?: string | null;
+  handoffWave?: string | null;
+  handoffLine?: string | null;
+  handoffFulfillment?: string | null;
+  handoffException?: string | null;
+  handoffIntent?: 'shortage' | 'progress' | null;
+  clearHandoffParams?: () => void;
   syncRevision?: number;
   realtimeConnected?: boolean;
 } = {}) {
   const actorId = useAuthStore((s) => s.user?.userId) ?? '';
+  const revision = useAuthStore((s) => s.revision) ?? 0;
   const locale = useLocale();
   const t = useTranslations('Picking'),
     { can } = useAccess();
@@ -110,10 +184,84 @@ function PickingScope({
     [pending, setPending] = useState<PickPending | null>(null),
     [waveRequest, setWaveRequest] = useState<string | null>(null),
     [busy, setBusy] = useState(false);
+  const [pendingDeepLink, setPendingDeepLink] = useState<PendingPickingDeepLink | null>(null);
+  const [highlightedLineId, setHighlightedLineId] = useState<string | null>(null);
+  const [deepLinkFetchSeq, setDeepLinkFetchSeq] = useState(0);
   const mounted = useRef(true),
-    abort = useRef(new AbortController());
+    abort = useRef(new AbortController()),
+    backlogRef = useRef<HTMLDivElement>(null),
+    wavesRef = useRef<HTMLDivElement>(null),
+    pickListHeadingRef = useRef<HTMLDivElement>(null),
+    pendingDeepLinkRef = useRef<PendingPickingDeepLink | null>(null),
+    detailFetchSeqRef = useRef(0),
+    loadedDetailSeqRef = useRef(0),
+    handoffWarehouseRef = useRef(handoffWarehouse),
+    clearHandoffParamsRef = useRef(clearHandoffParams);
+  handoffWarehouseRef.current = handoffWarehouse;
+  clearHandoffParamsRef.current = clearHandoffParams;
+  const updatePendingDeepLink = (nextLink: PendingPickingDeepLink | null) => {
+    pendingDeepLinkRef.current = nextLink;
+    setPendingDeepLink(nextLink);
+  };
   const manager = can('warehouse.picking.manage');
   const navigate = useNavigate();
+  const focusBacklog = () => {
+    backlogRef.current?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'start' });
+    backlogRef.current?.focus();
+  };
+  const focusWaves = () => {
+    wavesRef.current?.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'start' });
+    wavesRef.current?.focus();
+  };
+  const focusPickListHeading = () => {
+    window.requestAnimationFrame(() => {
+      pickListHeadingRef.current?.scrollIntoView({
+        behavior: preferredScrollBehavior(),
+        block: 'start',
+      });
+      pickListHeadingRef.current?.focus();
+    });
+  };
+  const focusLineById = (targetId: string) => {
+    window.requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`[data-pick-line-id="${targetId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: preferredScrollBehavior(), block: 'center' });
+        el.focus();
+      } else {
+        pickListHeadingRef.current?.focus();
+      }
+    });
+  };
+  const handleOpenPickingTarget = (target: PickingDeepLinkRequest) => {
+    setError('');
+    setNotice('');
+    setHighlightedLineId(null);
+    const lineId = target.kind === 'open_picking_line' ? target.lineId : undefined;
+    // High #3: Always force a live detail re-fetch on click so stale rendered lines are never trusted.
+    const nextFetchSeq = detailFetchSeqRef.current + 1;
+    detailFetchSeqRef.current = nextFetchSeq;
+    updatePendingDeepLink({
+      warehouseId: warehouse,
+      waveId: target.waveId,
+      fulfillmentOrderId: target.fulfillmentOrderId,
+      lineId,
+      exceptionId: target.kind === 'open_picking_line' ? target.exceptionId : undefined,
+      intent: target.kind === 'open_picking_line' ? target.intent : 'wave',
+      pagesVisited: 0,
+      requiredFetchSeq: nextFetchSeq,
+    });
+    if (waveId !== target.waveId) {
+      setWaveId(target.waveId);
+      setLineCursor(null);
+    } else if (
+      lineCursor !== null &&
+      (!detail || !lineId || !detail.lines.some((l) => l.id === lineId))
+    ) {
+      setLineCursor(null);
+    }
+    setDeepLinkFetchSeq(nextFetchSeq);
+  };
   // One operator holding both warehouse roles assigns the wave to themself (UC-80/81 then UC-82).
   const canClaim =
     manager && can('warehouse.picking.confirm') && staff.some((person) => person.id === actorId);
@@ -135,32 +283,92 @@ function PickingScope({
       abort.current.abort();
     };
   }, []);
+  // Fetch authorized warehouses once per session; clearing URL handoff params must never re-fetch (M1).
   useEffect(() => {
     const c = new AbortController();
+    let active = true;
     setLoading(true);
-    void pickingApi
-      .warehouses(c.signal)
-      .then((data) => {
-        if (!c.signal.aborted) {
-          setWarehouses(data);
-          if (data.length === 1 && data[0]) setWarehouse(data[0].id);
-        }
-      })
-      .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
+    const startTimer = window.setTimeout(() => {
+      if (!active) return;
+      void pickingApi
+        .warehouses(c.signal)
+        .then((data) => {
+          if (active && !c.signal.aborted) {
+            setWarehouses(data);
+            if (!handoffWarehouseRef.current && data.length === 1 && data[0]) {
+              setWarehouse(data[0].id);
+            }
+          }
+        })
+        .catch(() => {
+          if (active && !c.signal.aborted) setError(t('loadError'));
+        })
+        .finally(() => {
+          if (active && !c.signal.aborted) setLoading(false);
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(startTimer);
+      c.abort();
+    };
   }, [t]);
+  // Apply URL deep-link handoff (?warehouse=&wave=&line=&exception=&intent=) after warehouses resolve (M1 + M2).
   useEffect(() => {
-    setWaveId('');
+    if (!warehouses.length || !handoffWarehouse) return;
+    const authorizedTarget = warehouses.find((item) => item.id === handoffWarehouse);
+    if (authorizedTarget) {
+      if (handoffWave) {
+        const resolvedIntent: PendingPickingDeepLink['intent'] =
+          handoffIntent ?? (handoffException ? 'shortage' : handoffLine ? 'progress' : 'wave');
+        const nextFetchSeq = detailFetchSeqRef.current + 1;
+        detailFetchSeqRef.current = nextFetchSeq;
+        updatePendingDeepLink({
+          warehouseId: authorizedTarget.id,
+          waveId: handoffWave,
+          fulfillmentOrderId: handoffFulfillment ?? undefined,
+          lineId: handoffLine ?? undefined,
+          exceptionId: handoffException ?? undefined,
+          intent: resolvedIntent,
+          pagesVisited: 0,
+          requiredFetchSeq: nextFetchSeq,
+        });
+        setWaveId(handoffWave);
+        setLineCursor(null);
+        setDeepLinkFetchSeq(nextFetchSeq);
+      }
+      setWarehouse(authorizedTarget.id);
+    } else if (!warehouse && warehouses.length === 1 && warehouses[0]) {
+      setWarehouse(warehouses[0].id);
+    }
+    clearHandoffParamsRef.current?.();
+  }, [
+    warehouses,
+    handoffWarehouse,
+    handoffWave,
+    handoffLine,
+    handoffFulfillment,
+    handoffException,
+    handoffIntent,
+    warehouse,
+  ]);
+  useEffect(() => {
+    // M1: Preserve an active deep-link intent that specifically targets THIS warehouse scope;
+    // reset wave & intent whenever switching away to a different warehouse or actor.
+    const activeDeepLink = pendingDeepLinkRef.current;
+    const preserveDeepLink = Boolean(
+      warehouse && activeDeepLink && activeDeepLink.warehouseId === warehouse,
+    );
+    if (!preserveDeepLink) {
+      setWaveId('');
+      updatePendingDeepLink(null);
+    }
     setDetail(null);
     setWaves([]);
     setBacklog(null);
     setBacklogCursor(null);
     setCursor(null);
+    setHighlightedLineId(null);
     setPending(
       actorId && warehouse
         ? loadFulfillmentPending(
@@ -176,46 +384,181 @@ function PickingScope({
   useEffect(() => {
     if (!warehouse) return;
     const c = new AbortController();
+    let active = true;
     setLoading(true);
     setError('');
-    void Promise.all([
-      pickingApi.waves(warehouse, cursor, c.signal),
-      manager ? pickingApi.staff(warehouse, c.signal) : Promise.resolve([]),
-      manager ? pickingApi.backlog(warehouse, backlogCursor, c.signal) : Promise.resolve(null),
-    ])
-      .then(([page, options, backlogPage]) => {
-        if (!c.signal.aborted) {
-          setWaves(page.items);
-          setNext(page.nextCursor);
-          setStaff(options);
-          if (backlogPage) setBacklog(backlogPage);
-        }
-      })
-      .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
+    const startTimer = window.setTimeout(() => {
+      if (!active) return;
+      void Promise.all([
+        pickingApi.waves(warehouse, cursor, c.signal),
+        manager ? pickingApi.staff(warehouse, c.signal) : Promise.resolve([]),
+        manager ? pickingApi.backlog(warehouse, backlogCursor, c.signal) : Promise.resolve(null),
+      ])
+        .then(([page, options, backlogPage]) => {
+          if (active && !c.signal.aborted) {
+            setWaves(page.items);
+            setNext(page.nextCursor);
+            setStaff(options);
+            if (backlogPage) setBacklog(backlogPage);
+          }
+        })
+        .catch(() => {
+          if (active && !c.signal.aborted) setError(t('loadError'));
+        })
+        .finally(() => {
+          if (active && !c.signal.aborted) setLoading(false);
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(startTimer);
+      c.abort();
+    };
   }, [warehouse, cursor, backlogCursor, manager, refresh, syncRevision, t]);
   useEffect(() => {
     setLineCursor(null);
   }, [warehouse, waveId]);
+  // M1 + High #3: Keep deep-link intent out of detail fetch deps so clearing intent after locating a line
+  // NEVER re-fetches detail or unmounts the focused line, while deepLinkFetchSeq forces a fresh live read on CTA click.
   useEffect(() => {
     setDetail(null);
     if (!warehouse || !waveId) return;
     const c = new AbortController();
+    const fetchSeqAtStart = detailFetchSeqRef.current;
     void pickingApi
       .detail(warehouse, waveId, c.signal, lineCursor)
       .then((data) => {
-        if (!c.signal.aborted) setDetail(data);
+        if (!c.signal.aborted) {
+          loadedDetailSeqRef.current = fetchSeqAtStart;
+          setDetail(data);
+        }
       })
       .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
+        if (!c.signal.aborted) {
+          if (pendingDeepLinkRef.current?.waveId === waveId) {
+            updatePendingDeepLink(null);
+            setWaveId('');
+            setNotice(t('deepLinkWaveUnavailable'));
+            focusWaves();
+          } else {
+            setError(t('loadError'));
+          }
+        }
       });
     return () => c.abort();
-  }, [warehouse, waveId, refresh, syncRevision, lineCursor, t]);
+  }, [warehouse, waveId, refresh, syncRevision, lineCursor, deepLinkFetchSeq, t]);
+  // Resolve verified deep-link wave/line focus across line pagination pages with live intent/exceptionId
+  // and strict same-parcel fallback only (M1 + M2 + High #3).
+  useEffect(() => {
+    if (!pendingDeepLink || !detail || detail.id !== pendingDeepLink.waveId) return;
+    if (loadedDetailSeqRef.current < pendingDeepLink.requiredFetchSeq) return;
+    if (!pendingDeepLink.lineId) {
+      updatePendingDeepLink(null);
+      focusPickListHeading();
+      return;
+    }
+    const isSameParcelLine = (candidate: PickLine, referenceLine?: PickLine): boolean => {
+      // Medium #3: Strictly require UUID parity (never fall back to display orderCode + parcelNo,
+      // which could collide across sellers when legacy rows omit fulfillmentOrderId).
+      const expectedOrderId =
+        pendingDeepLink.fulfillmentOrderId ?? referenceLine?.fulfillmentOrderId;
+      if (!expectedOrderId || !candidate.fulfillmentOrderId) {
+        return false;
+      }
+      return candidate.fulfillmentOrderId === expectedOrderId;
+    };
+    const findSameParcelFallback = (referenceLine?: PickLine): PickLine | undefined =>
+      detail.lines.find(
+        (l) =>
+          l.id !== referenceLine?.id && isSameParcelLine(l, referenceLine) && Boolean(l.shortage),
+      ) ??
+      detail.lines.find(
+        (l) =>
+          l.id !== referenceLine?.id && isSameParcelLine(l, referenceLine) && l.remainingQty > 0,
+      );
+
+    const targetLine = detail.lines.find((line) => line.id === pendingDeepLink.lineId);
+    if (targetLine) {
+      updatePendingDeepLink(null);
+      // Medium #3: Verify parcel UUID parity even on direct lineId hit; if identity is missing
+      // or belongs to another parcel, never highlight another seller's line — focus pick-list heading.
+      if (
+        pendingDeepLink.fulfillmentOrderId &&
+        (!targetLine.fulfillmentOrderId ||
+          targetLine.fulfillmentOrderId !== pendingDeepLink.fulfillmentOrderId)
+      ) {
+        setNotice(t('deepLinkLineUnavailable'));
+        setHighlightedLineId(null);
+        focusPickListHeading();
+        return;
+      }
+
+      if (pendingDeepLink.intent === 'shortage') {
+        const liveShortageMatches =
+          targetLine.shortage !== null &&
+          (!pendingDeepLink.exceptionId || targetLine.shortage.id === pendingDeepLink.exceptionId);
+        if (!liveShortageMatches) {
+          const fallbackLine = findSameParcelFallback(targetLine);
+          setNotice(t('deepLinkShortageResolved'));
+          if (fallbackLine) {
+            setHighlightedLineId(fallbackLine.id);
+            focusLineById(fallbackLine.id);
+          } else {
+            setHighlightedLineId(null);
+            focusPickListHeading();
+          }
+          return;
+        }
+      } else if (pendingDeepLink.intent === 'progress') {
+        if (targetLine.remainingQty <= 0) {
+          const fallbackLine = findSameParcelFallback(targetLine);
+          setNotice(t('deepLinkLineCompleted'));
+          if (fallbackLine) {
+            setHighlightedLineId(fallbackLine.id);
+            focusLineById(fallbackLine.id);
+          } else {
+            setHighlightedLineId(null);
+            focusPickListHeading();
+          }
+          return;
+        }
+        if (targetLine.shortage !== null) {
+          setNotice(t('deepLinkLineNowShortage'));
+        }
+      }
+
+      setHighlightedLineId(targetLine.id);
+      focusLineById(targetLine.id);
+      return;
+    }
+    if (detail.nextCursor && pendingDeepLink.pagesVisited < MAX_DEEP_LINK_LINE_PAGES) {
+      const nextPageLink: PendingPickingDeepLink = {
+        ...pendingDeepLink,
+        pagesVisited: pendingDeepLink.pagesVisited + 1,
+      };
+      pendingDeepLinkRef.current = nextPageLink;
+      setPendingDeepLink(nextPageLink);
+      setLineCursor(detail.nextCursor);
+      return;
+    }
+    const sameParcelReplacement = pendingDeepLink.fulfillmentOrderId
+      ? findSameParcelFallback(undefined)
+      : undefined;
+    updatePendingDeepLink(null);
+    if (sameParcelReplacement) {
+      setNotice(
+        pendingDeepLink.intent === 'shortage'
+          ? t('deepLinkShortageResolved')
+          : t('deepLinkLineUnavailable'),
+      );
+      setHighlightedLineId(sameParcelReplacement.id);
+      focusLineById(sameParcelReplacement.id);
+      return;
+    }
+    setHighlightedLineId(null);
+    setNotice(t('deepLinkLineUnavailable'));
+    focusPickListHeading();
+  }, [detail, pendingDeepLink, t]);
   useEffect(() => {
     if (!waveRequest || !warehouse) return;
     const c = new AbortController();
@@ -312,6 +655,7 @@ function PickingScope({
               ? t(`errors.${code}`)
               : t('rejected'),
         );
+        if (code === 'LOT_SCAN_REQUIRED') return code;
       } else setError(t('unknown'));
     } finally {
       if (mounted.current) setBusy(false);
@@ -319,14 +663,25 @@ function PickingScope({
   }
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/60 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sc-border-default)] pb-3.5">
         {warehouses.length === 1 && warehouses[0] ? (
-          <p className="min-w-0 flex-1 text-sm text-[var(--sc-text-primary)]">
-            <span className="text-[var(--sc-text-secondary)]">{t('warehouse')}: </span>
-            <strong className="font-semibold">{`${warehouses[0].code} · ${warehouses[0].name}`}</strong>
-          </p>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm text-[var(--sc-text-primary)]">
+            <span
+              aria-hidden="true"
+              className="h-2 w-2 shrink-0 rounded-full bg-[var(--sc-primary)]"
+            />
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--sc-text-secondary)]">
+              {t('warehouse')}
+            </span>
+            <span className="rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs font-semibold text-[var(--sc-primary-dark)] tabular-nums">
+              {warehouses[0].code}
+            </span>
+            <strong className="font-semibold text-[var(--sc-text-primary)]">
+              {warehouses[0].name}
+            </strong>
+          </div>
         ) : (
-          <div className="min-w-64 flex-1">
+          <div className="min-w-64 max-w-md flex-1">
             <Select
               label={t('warehouse')}
               value={warehouse}
@@ -339,6 +694,7 @@ function PickingScope({
         )}
         <Button
           variant="outline"
+          size="sm"
           disabled={!!pending || busy || !!waveRequest}
           onClick={() => {
             setCursor(null);
@@ -381,9 +737,25 @@ function PickingScope({
           </Button>
         </div>
       )}
+      {warehouse && can('warehouse.fulfillmentSlaRisk.view') && (
+        <FulfillmentSlaRiskPanel
+          key={`${actorId}:${revision}:${warehouse}`}
+          warehouseId={warehouse}
+          warehouseName={warehouses.find((item) => item.id === warehouse)?.name}
+          showWarehouseName={false}
+          canManagePicking={manager}
+          onFocusBacklog={focusBacklog}
+          onFocusWaves={focusWaves}
+          onOpenPickingTarget={handleOpenPickingTarget}
+        />
+      )}
       {warehouse && manager && (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(20rem,0.9fr)]">
-          <Card>
+          <Card
+            ref={backlogRef}
+            tabIndex={-1}
+            className="outline-none focus:ring-2 focus:ring-[var(--sc-primary)] focus:ring-offset-2"
+          >
             <CardContent>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-base font-semibold">{t('backlog')}</h2>
@@ -483,7 +855,11 @@ function PickingScope({
       )}
       {warehouse && (
         <div className="grid items-start gap-5 lg:grid-cols-[300px_1fr]">
-          <Card>
+          <Card
+            ref={wavesRef}
+            tabIndex={-1}
+            className="outline-none focus:ring-2 focus:ring-[var(--sc-primary)] focus:ring-offset-2"
+          >
             <CardContent>
               <div className="mb-3 flex items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-2.5">
                 <h2 className="text-base font-semibold text-[var(--sc-text-primary)]">
@@ -600,7 +976,11 @@ function PickingScope({
                 </p>
               ) : (
                 <>
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-3">
+                  <div
+                    ref={pickListHeadingRef}
+                    tabIndex={-1}
+                    className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sc-border-default)] pb-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)]"
+                  >
                     <h2
                       className="min-w-0 break-words text-base font-semibold text-[var(--sc-text-primary)]"
                       title={detail.waveCode}
@@ -649,6 +1029,7 @@ function PickingScope({
                         disabled={!!pending || busy}
                         manager={manager}
                         execute={execute}
+                        highlighted={highlightedLineId === line.id}
                         canConfirm={
                           can('warehouse.picking.confirm') &&
                           line.id ===
@@ -716,7 +1097,10 @@ function WaveForm({
     setPreviewError(null);
   }, [cutoffAt, maxParcels, warehouseId]);
   const requestPreview = async () => {
-    if (!(await f.trigger(['cutoffAt', 'maxParcels']))) return;
+    if (!(await f.trigger(['cutoffAt', 'maxParcels']))) {
+      notifyInvalidForm();
+      return;
+    }
     const values = f.getValues();
     setPreviewBusy(true);
     setPreviewError(null);
@@ -739,7 +1123,7 @@ function WaveForm({
     <Card>
       <CardContent>
         <h2 className="mb-4 font-semibold">{t('waveSetup')}</h2>
-        <form onSubmit={f.handleSubmit(onSubmit)} className="space-y-3">
+        <form onSubmit={f.handleSubmit(onSubmit, () => notifyInvalidForm())} className="space-y-3">
           <Input
             type="datetime-local"
             label={t('cutoff')}
@@ -780,7 +1164,7 @@ function WaveForm({
               {preview.candidateScanLimitReached && <p className="mt-1">{t('previewScanLimit')}</p>}
             </div>
           )}
-          {previewError && <Alert variant="warning">{previewError}</Alert>}
+          {previewError && <Alert variant="error">{previewError}</Alert>}
           <div className="grid gap-2">
             <Button
               className="w-full"
@@ -826,6 +1210,7 @@ function PickLineCard({
   disabled,
   manager,
   canConfirm,
+  highlighted = false,
   execute,
 }: {
   warehouseId: string;
@@ -833,17 +1218,19 @@ function PickLineCard({
   disabled: boolean;
   manager: boolean;
   canConfirm: boolean;
-  execute: (c: PickPending) => Promise<void>;
+  highlighted?: boolean;
+  execute: (c: PickPending) => Promise<'LOT_SCAN_REQUIRED' | void>;
 }) {
   const t = useTranslations('Picking'),
     [mode, setMode] = useState<'scan' | 'short'>('scan'),
+    [step, setStep] = useState<(typeof PICK_STEPS)[number]>('binScan'),
     [uploadBusy, setUploadBusy] = useState(false),
     [resolvingBin, setResolvingBin] = useState(false);
   const binLookupSeq = useRef(0),
     binLookupAbort = useRef<AbortController | null>(null);
   const f = useForm<z.infer<typeof pickScanSchema>>({
     resolver: zodResolver(pickScanSchema),
-    defaultValues: { qty: 1 },
+    defaultValues: { binScan: '', skuScan: '', lotScan: '', qty: 1 },
   });
   const shortage = useForm<z.infer<typeof pickShortFormSchema>>({
     resolver: zodResolver(pickShortFormSchema),
@@ -853,68 +1240,73 @@ function PickLineCard({
     resolver: zodResolver(pickApprovalSchema),
   });
   useEffect(() => {
-    if (canConfirm && !disabled && line.remainingQty > 0 && !line.shortage) f.setFocus('binScan');
-  }, [f, canConfirm, disabled, line.remainingQty, line.shortage]);
+    if (
+      canConfirm &&
+      !disabled &&
+      !resolvingBin &&
+      mode === 'scan' &&
+      line.remainingQty > 0 &&
+      !line.shortage
+    ) {
+      f.setFocus(step);
+    }
+  }, [f, canConfirm, disabled, resolvingBin, mode, step, line.remainingQty, line.shortage]);
   useEffect(() => {
     return () => {
       binLookupSeq.current += 1;
       binLookupAbort.current?.abort();
     };
   }, []);
-  const [binValue, skuValue, lotValue] = f.watch(['binScan', 'skuScan', 'lotScan']);
-  async function resolveScannedBinIfNeeded(scanned: string): Promise<string> {
-    const normalized = normalizeScannedCode(scanned);
-    if (!normalized || normalized === line.binCode) return normalized;
+  async function resolveScannedBinIfNeeded(code: string): Promise<string | null> {
+    if (code === line.binCode) return code;
     binLookupAbort.current?.abort();
     const controller = new AbortController();
     binLookupAbort.current = controller;
     const seq = ++binLookupSeq.current;
     setResolvingBin(true);
     try {
-      const resolved = await pickingApi.resolveBinCode(warehouseId, normalized, controller.signal);
-      if (seq !== binLookupSeq.current || controller.signal.aborted) return normalized;
-      if (resolved && normalizeScannedCode(f.getValues('binScan') ?? '') === normalized) {
-        const cleanResolved = normalizeScannedCode(resolved);
-        f.setValue('binScan', cleanResolved, { shouldValidate: true, shouldDirty: true });
-        return cleanResolved;
-      }
-      return normalized;
+      const resolved = await pickingApi.resolveBinCode(warehouseId, code, controller.signal);
+      if (seq !== binLookupSeq.current || controller.signal.aborted) return null;
+      return resolved ? normalizeScannedCode(resolved) : code;
     } finally {
       if (seq === binLookupSeq.current) setResolvingBin(false);
     }
   }
-  function applyCameraScan(field: PickScanField, rawCode: string) {
+  async function acceptScan(field: PickScanField, rawCode: string) {
+    if (disabled || resolvingBin) return;
     const structured = parsePickQrPayload(rawCode);
-    if (structured) {
-      if (structured.bin) {
-        f.setValue('binScan', structured.bin, { shouldValidate: true, shouldDirty: true });
-        void resolveScannedBinIfNeeded(structured.bin);
+    const scanned: Partial<Record<PickScanField, string>> = structured
+      ? { binScan: structured.bin, skuScan: structured.sku, lotScan: structured.lot }
+      : { [field]: normalizeScannedCode(rawCode) };
+    const expected = { binScan: line.binCode, skuScan: line.sku, lotScan: line.lotCode };
+    let next: (typeof PICK_STEPS)[number] = field;
+    for (const name of PICK_SCAN_FIELDS.slice(PICK_SCAN_FIELDS.indexOf(field))) {
+      const code = scanned[name];
+      if (!code && name !== field) break;
+      const actual = name === 'binScan' && code ? await resolveScannedBinIfNeeded(code) : code;
+      if (actual === null) return;
+      f.setValue(name, actual ?? '', { shouldDirty: true });
+      if (!actual || actual !== expected[name]) {
+        setStep(name);
+        f.setError(name, { message: t(`errors.${PICK_SCAN_ERRORS[name]}`) }, { shouldFocus: true });
+        return;
       }
-      if (structured.sku) {
-        f.setValue('skuScan', structured.sku, { shouldValidate: true, shouldDirty: true });
-      }
-      if (structured.lot) {
-        f.setValue('lotScan', structured.lot, { shouldValidate: true, shouldDirty: true });
-      }
-      f.setFocus('qty');
-      return;
+      f.clearErrors(name);
+      next = getNextPickScanField(name);
     }
-    const normalized = normalizeScannedCode(rawCode);
-    if (!normalized) return;
-    f.setValue(field, normalized, { shouldValidate: true, shouldDirty: true });
-    if (field === 'binScan') void resolveScannedBinIfNeeded(normalized);
-    f.setFocus(getNextPickScanField(field));
+    setStep(next);
   }
-  const matchedByField: Record<PickScanField, boolean> = {
-    binScan: normalizeScannedCode(binValue ?? '') === line.binCode,
-    skuScan: normalizeScannedCode(skuValue ?? '') === line.sku,
-    lotScan: normalizeScannedCode(lotValue ?? '') === line.lotCode,
-  };
+  const stepIndex = PICK_STEPS.indexOf(step);
+  const backStep = PICK_STEPS[stepIndex - 1];
   const isCompleted = line.remainingQty === 0;
   const isActivePick = line.remainingQty > 0 && canConfirm && !line.shortage;
   return (
     <section
-      className={`space-y-3 rounded-xl border p-4 transition-colors ${
+      data-pick-line-id={line.id}
+      tabIndex={-1}
+      className={`space-y-3 rounded-xl border p-4 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--sc-primary)] ${
+        highlighted ? 'ring-2 ring-[var(--sc-primary)] ring-offset-2' : ''
+      } ${
         line.shortage
           ? 'border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)]/20'
           : isCompleted
@@ -992,12 +1384,14 @@ function PickLineCard({
                     path: `pick-shortages/${line.shortage?.id}/replacement`,
                     payload: { ...v, clientScanId: createUuid() },
                   }),
+                () => notifyInvalidForm(),
               )}
             >
               <div className="min-w-52 flex-1">
                 <Input
                   label={t('approvalReason')}
                   {...approval.register('reason')}
+                  error={approval.formState.errors?.reason?.message}
                   required
                   disabled={disabled}
                 />
@@ -1022,7 +1416,7 @@ function PickLineCard({
             <Button
               size="sm"
               variant={mode === 'short' ? 'primary' : 'ghost'}
-              disabled={disabled}
+              disabled={disabled || resolvingBin}
               onClick={() => setMode('short')}
             >
               {t('reportShort')}
@@ -1030,112 +1424,129 @@ function PickLineCard({
           </div>
           {mode === 'scan' ? (
             <form
-              className="grid gap-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/45 p-3.5 sm:grid-cols-2"
+              className="space-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]/45 p-3.5"
               autoComplete="off"
-              onSubmit={f.handleSubmit(async (v) => {
-                const resolvedBin =
-                  v.binScan !== line.binCode
-                    ? await resolveScannedBinIfNeeded(v.binScan)
-                    : v.binScan;
-                const lotScan = v.lotScan ? normalizeScannedCode(v.lotScan) : '';
-                await execute({
-                  path: `pick-lines/${line.id}/confirm`,
-                  payload: {
-                    binScan: resolvedBin,
-                    skuScan: v.skuScan,
-                    ...(lotScan ? { lotScan } : {}),
-                    qty: v.qty,
-                    expectedVersion: line.version,
-                    clientScanId: createUuid(),
-                  },
-                });
-              })}
+              onSubmit={
+                step === 'qty'
+                  ? f.handleSubmit(
+                      async (v) => {
+                        const result = await execute({
+                          path: `pick-lines/${line.id}/confirm`,
+                          payload: {
+                            binScan: v.binScan,
+                            skuScan: v.skuScan,
+                            ...(v.lotScan ? { lotScan: v.lotScan } : {}),
+                            qty: v.qty,
+                            expectedVersion: line.version,
+                            clientScanId: createUuid(),
+                          },
+                        });
+                        if (result === 'LOT_SCAN_REQUIRED') setStep('lotScan');
+                      },
+                      () => notifyInvalidForm(),
+                    )
+                  : (event) => {
+                      event.preventDefault();
+                      void acceptScan(step, f.getValues(step));
+                    }
+              }
             >
-              {(['binScan', 'skuScan', 'lotScan'] as const).map((name) => {
-                const isLot = name === 'lotScan';
-                return (
-                  <div key={name} className="space-y-1">
-                    <div className="flex items-end gap-2">
-                      <div className="min-w-0 flex-1">
-                        <Input
-                          label={isLot ? t('lotOptional') : t(name)}
-                          {...f.register(name, {
-                            setValueAs: (value: string) =>
-                              normalizeScannedCode(String(value ?? '')),
-                            onChange: () => {
-                              if (name === 'binScan') {
-                                binLookupSeq.current += 1;
-                                binLookupAbort.current?.abort();
-                                setResolvingBin(false);
-                              }
-                            },
-                          })}
-                          disabled={disabled}
-                          required={!isLot}
-                          onKeyDown={(event) => {
-                            if (event.key !== 'Enter') return;
-                            event.preventDefault();
-                            if (name === 'binScan') {
-                              void resolveScannedBinIfNeeded(f.getValues('binScan') ?? '');
-                            }
-                            f.setFocus(getNextPickScanField(name));
-                          }}
-                          error={f.formState.errors[name] ? t('required') : undefined}
-                        />
-                      </div>
-                      <BarcodeScanButton
-                        label={t(`scanCamera.${name}`)}
-                        disabled={disabled}
-                        iconOnly
-                        onScan={(code) => applyCameraScan(name, code)}
-                      />
-                    </div>
-                    {name === 'binScan' && resolvingBin && (
-                      <p className="text-xs text-[var(--sc-text-secondary)]" role="status">
-                        {t('resolvingBin')}
-                      </p>
-                    )}
-                    {matchedByField[name] && (
-                      <p className="text-xs font-medium text-[var(--sc-success-dark)]">
-                        {t('matchedCode')}
-                      </p>
-                    )}
+              <p className="text-xs text-[var(--sc-text-secondary)]" aria-live="polite">
+                {t('scanProgress', { step: stepIndex + 1, total: PICK_STEPS.length })}
+              </p>
+              {step === 'qty' ? (
+                <Input
+                  key={step}
+                  type="number"
+                  label={t('qty')}
+                  {...f.register('qty', { valueAsNumber: true })}
+                  onFocus={(event) => event.currentTarget.select()}
+                  disabled={disabled}
+                  required
+                  min={1}
+                  max={line.remainingQty}
+                  error={f.formState.errors.qty ? t('invalidQty') : undefined}
+                />
+              ) : (
+                <div key={step} className="flex flex-wrap items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      label={t(step)}
+                      {...f.register(step, {
+                        onChange: () => f.clearErrors(step),
+                      })}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+                        event.preventDefault();
+                        void acceptScan(step, event.currentTarget.value);
+                      }}
+                      readOnly={resolvingBin}
+                      disabled={disabled}
+                      required
+                      helperText={step === 'lotScan' ? t('lotOptional') : undefined}
+                      error={f.formState.errors[step]?.message}
+                    />
                   </div>
-                );
-              })}
-              <Input
-                type="number"
-                label={t('qty')}
-                {...f.register('qty', { valueAsNumber: true })}
-                onFocus={(event) => event.currentTarget.select()}
-                disabled={disabled}
-                required
-                min={1}
-                max={line.remainingQty}
-                error={f.formState.errors.qty ? t('invalidQty') : undefined}
-              />
-              <Button
-                type="submit"
-                className="min-h-11 sm:col-span-2"
-                disabled={disabled || resolvingBin}
-              >
-                {t('confirmScan')}
-              </Button>
+                  <BarcodeScanButton
+                    label={t(`scanCamera.${step}`)}
+                    className="mt-6"
+                    disabled={disabled || resolvingBin}
+                    onScan={(code) => void acceptScan(step, code)}
+                  />
+                </div>
+              )}
+              {resolvingBin && (
+                <p className="text-xs text-[var(--sc-text-secondary)]" role="status">
+                  {t('resolvingBin')}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-end gap-2">
+                {backStep && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled || resolvingBin}
+                    onClick={() => setStep(backStep)}
+                  >
+                    {t('previousStep')}
+                  </Button>
+                )}
+                {step === 'lotScan' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={disabled}
+                    onClick={() => {
+                      f.setValue('lotScan', '');
+                      f.clearErrors('lotScan');
+                      setStep('qty');
+                    }}
+                  >
+                    {t('skipLot')}
+                  </Button>
+                )}
+                <Button type="submit" className="min-h-11" disabled={disabled || resolvingBin}>
+                  {t(step === 'qty' ? 'confirmScan' : 'continueScan')}
+                </Button>
+              </div>
             </form>
           ) : (
             <form
               className="grid gap-3 rounded-xl border border-[var(--sc-warning-border)] bg-[var(--sc-warning-bg)]/20 p-3.5 sm:grid-cols-2"
-              onSubmit={shortage.handleSubmit((v) =>
-                execute({
-                  path: `pick-lines/${line.id}/shortages`,
-                  payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
-                }),
+              onSubmit={shortage.handleSubmit(
+                (v) =>
+                  execute({
+                    path: `pick-lines/${line.id}/shortages`,
+                    payload: { ...v, expectedVersion: line.version, clientScanId: createUuid() },
+                  }),
+                () => notifyInvalidForm(),
               )}
             >
               <Input
                 type="number"
                 label={t('observed')}
                 {...shortage.register('observedQty', { valueAsNumber: true })}
+                error={shortage.formState.errors?.observedQty?.message}
                 disabled={disabled}
                 required
                 min={0}
@@ -1152,17 +1563,15 @@ function PickLineCard({
                 }
               />
               {shortage.formState.errors.evidenceKey && (
-                <p
-                  role="alert"
-                  className="text-xs font-medium text-[var(--sc-error-dark)] sm:col-span-2"
-                >
+                <Alert variant="error" compact className="sm:col-span-2">
                   {t('evidenceRequired')}
-                </p>
+                </Alert>
               )}
               <div className="sm:col-span-2">
                 <Input
                   label={t('reason')}
                   {...shortage.register('reason')}
+                  error={shortage.formState.errors?.reason?.message}
                   disabled={disabled}
                   required
                 />

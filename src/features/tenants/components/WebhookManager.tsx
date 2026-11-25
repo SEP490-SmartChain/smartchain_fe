@@ -1,19 +1,10 @@
 import { useState } from 'react';
 
-import {
-  AlertCircle,
-  Code2,
-  Info,
-  Loader2,
-  Plus,
-  Radio,
-  RefreshCw,
-  ShieldCheck,
-} from 'lucide-react';
+import { Code2, Info, Loader2, Plus, Radio, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Button, Card, CardHeader } from '@/components/Common';
+import { Alert, Button, Card, CardHeader } from '@/components/Common';
 
 import { WebhookCard } from './WebhookCard';
 import { WebhookFormModal } from './WebhookFormModal';
@@ -48,6 +39,8 @@ export function WebhookManager() {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookEndpoint | null>(null);
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [failedActionId, setFailedActionId] = useState<string>();
   const [showInfoStrip, setShowInfoStrip] = useState(false);
 
   // Secret Reveal Modal state
@@ -72,6 +65,7 @@ export function WebhookManager() {
     secret?: string;
     isActive?: boolean;
   }) => {
+    setSubmitError('');
     setIsSubmittingForm(true);
     try {
       if (editingWebhook) {
@@ -107,25 +101,31 @@ export function WebhookManager() {
           setRevealedSecret({ secret: created.secret, url: created.url });
         }
       }
-    } catch {
-      // apiClient already surfaces error via toast if not silent
+    } catch (failure) {
+      setSubmitError(failure instanceof Error ? failure.message : t('saveFailed'));
     } finally {
       setIsSubmittingForm(false);
     }
   };
 
   const handleDelete = async (id: string): Promise<boolean> => {
+    setFailedActionId(undefined);
     const success = await deleteWebhook(id);
     if (success) {
       toast.success(t('deleteSuccess'));
+    } else {
+      setFailedActionId(id);
     }
     return success;
   };
 
   const handleToggleStatus = async (id: string, currentStatus: boolean): Promise<boolean> => {
+    setFailedActionId(undefined);
     const success = await toggleStatus(id, currentStatus);
     if (success) {
       toast.success(currentStatus ? t('deactivatedToast') : t('activatedToast'));
+    } else {
+      setFailedActionId(id);
     }
     return success;
   };
@@ -137,12 +137,6 @@ export function WebhookManager() {
         t('testPingSuccessToast', {
           status: result.statusCode ?? 200,
           latency: result.responseTimeMs ?? 0,
-        }),
-      );
-    } else {
-      toast.error(
-        t('testPingFailedToast', {
-          reason: result.error || result.message || 'Error',
         }),
       );
     }
@@ -244,16 +238,18 @@ export function WebhookManager() {
           </p>
         </Card>
       ) : error ? (
-        <Card className="border-[var(--sc-error-border)] bg-[var(--sc-error-bg)] py-8 text-center">
-          <AlertCircle size={32} className="mx-auto text-[var(--sc-error)]" />
-          <h3 className="mb-1 mt-3 text-base font-medium text-[var(--sc-error-dark)]">
-            {t('loadErrorTitle')}
-          </h3>
-          <p className="mb-4 text-xs text-[var(--sc-error-dark)] opacity-90">{error.message}</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+        <Alert variant="error" title={t('loadErrorTitle')}>
+          <p className="m-0">{error.message}</p>
+          <Button
+            className="mt-3"
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void refetch()}
+          >
             {t('retry')}
           </Button>
-        </Card>
+        </Alert>
       ) : webhooks.length === 0 ? (
         /* Empty State */
         <Card className="border-dashed py-12 text-center">
@@ -286,6 +282,7 @@ export function WebhookManager() {
               isToggling={togglingId === webhook.id}
               isDeleting={deletingId === webhook.id}
               testResult={testResults[webhook.id]}
+              actionError={failedActionId === webhook.id ? t('actionFailed') : undefined}
             />
           ))}
         </div>
@@ -294,10 +291,14 @@ export function WebhookManager() {
       {/* Form Modal (Create / Edit) */}
       <WebhookFormModal
         isOpen={isFormModalOpen}
-        onClose={() => setIsFormModalOpen(false)}
+        onClose={() => {
+          setSubmitError('');
+          setIsFormModalOpen(false);
+        }}
         onSubmit={handleFormSubmit}
         initialData={editingWebhook}
         isSubmitting={isSubmittingForm}
+        submitError={submitError}
       />
 
       {/* Secret Reveal Modal (1-time copy) */}

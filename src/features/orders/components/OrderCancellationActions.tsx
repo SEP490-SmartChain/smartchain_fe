@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { orderCancellationApi } from '../api/orderCancellationApi';
@@ -118,9 +119,12 @@ function CancellationActionsSession({
       {canStart && !state.review && (
         <form
           className="space-y-3"
-          onSubmit={reason.handleSubmit((values) => {
-            session.review(values.reason, order.version);
-          })}
+          onSubmit={reason.handleSubmit(
+            (values) => {
+              session.review(values.reason, order.version);
+            },
+            () => notifyInvalidForm(),
+          )}
         >
           <Input
             label={t('cancelReason')}

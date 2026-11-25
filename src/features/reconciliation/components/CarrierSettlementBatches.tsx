@@ -11,6 +11,7 @@ import { Button } from '@/components/Common/Button/Button';
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -56,27 +57,30 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
     return () => abort.abort();
   }, []);
 
-  const handleUpload = handleSubmit(async ({ carrierCode, file }) => {
-    const selected = file[0];
-    if (!selected) return;
-    setError(null);
-    const isCurrent = () =>
-      !controller.current?.signal.aborted && authRevision === useAuthStore.getState().revision;
-    try {
-      const result = await carrierSettlementApi.upload(
-        carrierCode,
-        selected,
-        controller.current?.signal,
-      );
-      if (!isCurrent()) return;
-      reset({ carrierCode });
-      await onUploaded(
-        result.duplicate ? t('duplicate') : t('uploaded', { rows: result.totalRows }),
-      );
-    } catch (failure) {
-      if (isCurrent()) setError(failure instanceof Error ? failure.message : t('uploadError'));
-    }
-  });
+  const handleUpload = handleSubmit(
+    async ({ carrierCode, file }) => {
+      const selected = file[0];
+      if (!selected) return;
+      setError(null);
+      const isCurrent = () =>
+        !controller.current?.signal.aborted && authRevision === useAuthStore.getState().revision;
+      try {
+        const result = await carrierSettlementApi.upload(
+          carrierCode,
+          selected,
+          controller.current?.signal,
+        );
+        if (!isCurrent()) return;
+        reset({ carrierCode });
+        await onUploaded(
+          result.duplicate ? t('duplicate') : t('uploaded', { rows: result.totalRows }),
+        );
+      } catch (failure) {
+        if (isCurrent()) setError(failure instanceof Error ? failure.message : t('uploadError'));
+      }
+    },
+    () => notifyInvalidForm(),
+  );
 
   return (
     <form
@@ -88,6 +92,7 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
         label={t('carrier')}
         options={SETTLEMENT_CARRIERS.map((code) => ({ value: code, label: code }))}
         {...register('carrierCode')}
+        error={errors?.carrierCode?.message}
       />
       <div>
         <label htmlFor="settlement-file" className="mb-1 block text-sm font-medium">
@@ -102,12 +107,15 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
           aria-describedby="settlement-file-help"
           {...register('file')}
         />
-        <p
-          id="settlement-file-help"
-          className={`mt-1 text-xs ${errors.file ? 'text-[var(--sc-error)]' : 'text-[var(--sc-text-secondary)]'}`}
-        >
-          {errors.file ? t('fileInvalid') : t('fileHelp')}
-        </p>
+        {errors.file ? (
+          <Alert id="settlement-file-help" variant="error" compact className="mt-1">
+            {t('fileInvalid')}
+          </Alert>
+        ) : (
+          <p id="settlement-file-help" className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+            {t('fileHelp')}
+          </p>
+        )}
       </div>
       <Button type="submit" isLoading={isSubmitting}>
         {t('upload')}

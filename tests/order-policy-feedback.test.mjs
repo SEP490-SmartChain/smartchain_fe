@@ -47,6 +47,7 @@ function mount({ dirty = true, enabled = true, fail = false } = {}) {
         ];
       },
     },
+    '@/lib/errorNotifications': { notifyInvalidForm: () => assert.fail('Unexpected invalid form') },
     'react-hook-form': { useForm: () => form },
     '@hookform/resolvers/zod': { zodResolver: () => ({}) },
     'next-intl': { useTranslations: () => (key) => key },

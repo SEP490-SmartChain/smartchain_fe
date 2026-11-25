@@ -42,7 +42,7 @@ export default function SettingsPage() {
         tabs={tabs}
         activeId={activeTab}
         onChange={(id) => navigate(`/settings/${id}`)}
-        className="gap-7 border-b-0 sm:gap-8"
+        className={activeTab === 'profile' ? 'gap-7 border-b-0 sm:gap-8' : 'sr-only'}
       />
 
       {activeTab === 'profile' && (

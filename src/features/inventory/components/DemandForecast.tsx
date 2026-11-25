@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Button, Card, PageHeader, Select } from '@/components/Common';
 import { useProducts } from '@/features/catalog';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/services/apiClient';
 
@@ -172,7 +173,11 @@ export function DemandForecast() {
       <PageHeader title={t('title')} description={t('description')} />
 
       <Card>
-        <form onSubmit={handleSubmit(runForecast)} className="space-y-4" noValidate>
+        <form
+          onSubmit={handleSubmit(runForecast, () => notifyInvalidForm())}
+          className="space-y-4"
+          noValidate
+        >
           <h2 className="text-base leading-6 font-semibold">{t('formTitle')}</h2>
           <div className="grid items-start gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
             <Select
@@ -193,6 +198,7 @@ export function DemandForecast() {
                 label: t(value),
               }))}
               {...register('region')}
+              error={errors?.region?.message}
               disabled={busy}
             />
             <Button
@@ -280,11 +286,7 @@ export function DemandForecast() {
           <h2 className="border-b border-[var(--sc-border-default)] px-5 py-4 text-base leading-6 font-semibold">
             {t('recent')}
           </h2>
-          {listError && (
-            <p role="alert" className="px-5 py-4 text-sm text-[var(--sc-error)]">
-              {t('loadError')}
-            </p>
-          )}
+          {listError && <Alert variant="error">{t('loadError')}</Alert>}
           {!listError && !runs.length && (
             <p className="px-5 py-4 text-sm text-[var(--sc-text-secondary)]">{t('noRuns')}</p>
           )}

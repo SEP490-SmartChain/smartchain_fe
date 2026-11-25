@@ -4,7 +4,7 @@ import { Camera, CheckCircle2, Key, Save, Shield, ShieldCheck, Trash2, User } fr
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { Avatar, Button, Card, Input, Select } from '@/components/Common';
+import { Alert, Avatar, Button, Card, Input, Select } from '@/components/Common';
 import { usePasswordResetRequest } from '@/features/auth';
 import { GoogleProfileLinkCard } from '@/features/google-oauth/features/google-profile-link';
 import { HttpGoogleOAuthApiClient } from '@/features/google-oauth/runtime';
@@ -12,6 +12,7 @@ import { staffAccountApi } from '@/features/tenants/api/staffAccountApi';
 import { useAccess } from '@/hooks/useAccess';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 import type { OrcaRole } from '@/lib/accessPolicy';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { cn } from '@/lib/utils';
 import { uploadApi, UploadStorageConnectionError } from '@/services/uploadApi';
 import { useAuthStore, useLocaleStore } from '@/stores';
@@ -57,7 +58,8 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
   const { roles } = useAccess();
   const locale = useLocaleStore((state) => state.locale);
   const setLocale = useLocaleStore((state) => state.setLocale);
-  const { requestReset } = usePasswordResetRequest();
+  const { requestReset, requestError } = usePasswordResetRequest();
+  const tAuth = useTranslations('Auth');
 
   const roleConfig: Record<
     OrcaRole,
@@ -119,6 +121,9 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
   const [fullNameInput, setFullNameInput] = useState(user?.fullName || '');
   const [phoneInput, setPhoneInput] = useState(user?.phone || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ fullName: '', phone: '' });
 
   // Sync state when the signed-in account changes.
   useEffect(() => {
@@ -134,7 +139,7 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Kích thước ảnh tối đa là 5MB');
+      setPhotoError(t('photoTooLarge'));
       return;
     }
 
@@ -187,13 +192,14 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
           : err instanceof Error
             ? err.message
             : t('photoSaveFailed');
-      toast.error(message);
+      setPhotoError(message);
     } finally {
       setIsUploadingPhoto(false);
     }
   };
 
   const removePhoto = async () => {
+    setPhotoError('');
     if (!photoSrc || isRemovingPhoto) return;
 
     setIsRemovingPhoto(true);
@@ -212,7 +218,7 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
       if (photoInputRef.current) photoInputRef.current.value = '';
       toast.success(t('photoRemoved'));
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : t('photoRemoveFailed'));
+      setPhotoError(error instanceof Error ? error.message : t('photoRemoveFailed'));
     } finally {
       setIsRemovingPhoto(false);
     }
@@ -238,15 +244,16 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setProfileError('');
     const trimmedFullName = fullNameInput.trim();
-    if (trimmedFullName.length < 2) {
-      toast.error('Họ và tên phải có tối thiểu 2 ký tự');
-      return;
-    }
-
     const trimmedPhone = phoneInput.trim();
-    if (trimmedPhone && !/^0[0-9]{9}$/.test(trimmedPhone)) {
-      toast.error('Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0 (VD: 0901234567)');
+    const nextErrors = {
+      fullName: trimmedFullName.length < 2 ? t('fullNameInvalid') : '',
+      phone: trimmedPhone && !/^0[0-9]{9}$/.test(trimmedPhone) ? t('phoneInvalid') : '',
+    };
+    setFieldErrors(nextErrors);
+    if (nextErrors.fullName || nextErrors.phone) {
+      notifyInvalidForm();
       return;
     }
 
@@ -268,7 +275,7 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
       toast.success('Cập nhật thông tin cá nhân thành công');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Cập nhật thông tin thất bại';
-      toast.error(message);
+      setProfileError(message);
     } finally {
       setIsSavingProfile(false);
     }
@@ -317,11 +324,19 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 className="sr-only"
-                onChange={handlePhotoChange}
+                onChange={(event) => {
+                  setPhotoError('');
+                  void handlePhotoChange(event);
+                }}
               />
             </div>
 
             <div className="min-w-0 flex-1 space-y-1.5">
+              {photoError && (
+                <Alert variant="error" compact>
+                  {photoError}
+                </Alert>
+              )}
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                 <h1 className="m-0 max-w-full break-words text-lg font-bold leading-6 text-[var(--sc-text-primary)] sm:text-xl sm:leading-7">
                   {displayName}
@@ -379,12 +394,21 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
         />
 
         <form onSubmit={handleSaveProfile} className="p-3.5 sm:p-4 sm:px-6">
+          {profileError && (
+            <Alert variant="error" className="mb-3">
+              {profileError}
+            </Alert>
+          )}
           <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3.5">
             <Input
               label={t('fullName')}
               value={fullNameInput}
               placeholder="Nguyễn Văn A"
-              onChange={(e) => setFullNameInput(e.target.value)}
+              error={fieldErrors.fullName}
+              onChange={(e) => {
+                setFullNameInput(e.target.value);
+                setFieldErrors((current) => ({ ...current, fullName: '' }));
+              }}
               helperText={t('fullNameHint')}
             />
 
@@ -392,7 +416,11 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
               label={t('phone')}
               value={phoneInput}
               placeholder="0901234567"
-              onChange={(e) => setPhoneInput(e.target.value)}
+              error={fieldErrors.phone}
+              onChange={(e) => {
+                setPhoneInput(e.target.value);
+                setFieldErrors((current) => ({ ...current, phone: '' }));
+              }}
               helperText={t('phoneHint')}
             />
           </div>
@@ -471,6 +499,11 @@ export default function ProfileSettings({ children }: ProfileSettingsProps) {
               {t('sendPasswordReset')}
             </Button>
           </div>
+          {requestError && (
+            <Alert variant="error" compact className="mt-2">
+              {requestError.message ?? tAuth('reset_action_failed')}
+            </Alert>
+          )}
         </div>
       </Card>
 

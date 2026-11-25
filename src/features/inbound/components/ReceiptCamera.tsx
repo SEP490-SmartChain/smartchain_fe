@@ -144,7 +144,7 @@ export function ReceiptCamera({ mode, onCaptured, onClose }: Props) {
 
   return (
     <div className="space-y-3 rounded-lg border border-[var(--sc-border-default)] p-3">
-      {error && <Alert variant="warning" title={error} />}
+      {error && <Alert variant="error" title={error} />}
       <video
         ref={preview}
         autoPlay

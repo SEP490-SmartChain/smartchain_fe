@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Card, CardHeader } from '@/components/Common/Card/Card';
 
@@ -52,9 +53,9 @@ export function RateUpdateHistory({ jobs }: RateUpdateHistoryProps) {
                     : t('historyKindQuote')}
                 </p>
                 {job.errorCode ? (
-                  <p className="mt-1 text-xs text-[var(--sc-error-dark)]">
+                  <Alert variant="error" compact className="mt-1">
                     {t(`jobError_${jobErrorKey(job.errorCode)}`)}
-                  </p>
+                  </Alert>
                 ) : null}
               </div>
               <div className="flex items-center gap-2">

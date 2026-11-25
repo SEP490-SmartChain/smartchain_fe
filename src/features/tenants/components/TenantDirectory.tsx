@@ -35,6 +35,8 @@ import type { TenantStatus, TenantSummary } from '../types/tenant.types';
 
 export function TenantDirectory() {
   const t = useTranslations('AdminTenants');
+  const notifications = useTranslations('Notifications');
+  const [copyErrorSlug, setCopyErrorSlug] = useState('');
   const { can } = useAccess();
   const {
     query,
@@ -44,6 +46,7 @@ export function TenantDirectory() {
     selectedTenant,
     setSelectedTenant,
     selectTenant,
+    detailErrorRef,
     updateStatus,
     isLoading,
     isUpdatingStatus,
@@ -71,9 +74,16 @@ export function TenantDirectory() {
     setQuery((prev) => ({ ...prev, status }));
   };
 
-  const copyToClipboard = (text: string, e: React.MouseEvent) => {
+  const copyToClipboard = async (text: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
+    setCopyErrorSlug('');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      setCopiedSlug(null);
+      setCopyErrorSlug(text);
+      return;
+    }
     setCopiedSlug(text);
     toast.success(`Đã sao chép mã: ${text}`);
     setTimeout(() => setCopiedSlug(null), 2000);
@@ -83,16 +93,20 @@ export function TenantDirectory() {
     if (selectedPlan === 'ALL') return true;
     return (tn.subscription.planCode ?? 'UNASSIGNED') === selectedPlan;
   });
+  const matchesFailedDetail = (tenant: (typeof tenants)[number]) =>
+    detailErrorRef === tenant.id || detailErrorRef === tenant.slug;
 
+  const [exportError, setExportError] = useState('');
   const handleExportCSV = () => {
+    setExportError('');
     // Recheck the current principal at click time, including a just-revoked role.
     const user = useAuthStore.getState().user;
     if (!can('platform.tenants.manage') || !user) {
-      toast.error(t('exportDenied'));
+      setExportError(t('exportDenied'));
       return;
     }
     if (displayedTenants.length === 0) {
-      toast.error(t('exportEmpty'));
+      setExportError(t('exportEmpty'));
       return;
     }
     const headers = [
@@ -110,7 +124,7 @@ export function TenantDirectory() {
     try {
       csvContent = tenantCsvExport(displayedTenants, user, headers);
     } catch {
-      toast.error(t('exportDenied'));
+      setExportError(t('exportDenied'));
       return;
     }
     const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
@@ -145,10 +159,15 @@ export function TenantDirectory() {
             >
               {tenant.name}
             </div>
+            {matchesFailedDetail(tenant) && (
+              <Alert variant="error" compact>
+                {t('detailLoadFailed')}
+              </Alert>
+            )}
             <div className="mt-1 flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={(e) => copyToClipboard(tenant.slug, e)}
+                onClick={(e) => void copyToClipboard(tenant.slug, e)}
                 title={`Sao chép mã: ${tenant.slug}`}
                 className="inline-flex max-w-[190px] items-center gap-1 rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--sc-text-secondary)] transition-colors hover:border-[var(--sc-primary)] hover:text-[var(--sc-primary)]"
               >
@@ -161,6 +180,11 @@ export function TenantDirectory() {
                   )}
                 </span>
               </button>
+              {copyErrorSlug === tenant.slug && (
+                <Alert variant="error" compact>
+                  {notifications('copyFailed')}
+                </Alert>
+              )}
             </div>
           </div>
         </div>
@@ -335,6 +359,10 @@ export function TenantDirectory() {
         }
       />
 
+      {exportError && <Alert variant="error">{exportError}</Alert>}
+      {detailErrorRef && !displayedTenants.some(matchesFailedDetail) && (
+        <Alert variant="error">{t('detailLoadFailed')}</Alert>
+      )}
       {error && (
         <Alert variant="error" title="Lỗi tải dữ liệu">
           {error.message}

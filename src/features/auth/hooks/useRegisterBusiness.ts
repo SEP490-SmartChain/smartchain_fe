@@ -47,6 +47,7 @@ export function useRegisterBusiness() {
 
     const response = await apiClient.post<RegisterBusinessResponse>('/v1/auth/register', payload, {
       requiresAuth: false,
+      silent: true,
     });
 
     if (response.success) {

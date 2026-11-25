@@ -7,11 +7,13 @@ import { MapPin, Building, Phone, User, Mail, Hash, Activity } from 'lucide-reac
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
+import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { WarehouseAddressFields } from './WarehouseAddressFields';
@@ -40,6 +42,7 @@ interface Props {
 }
 
 export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null }: Props) {
+  const [submitError, setSubmitError] = useState('');
   const t = useTranslations('Warehouses');
   const { can } = useAccess();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,7 +159,7 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
     } catch (err: unknown) {
       if (principal !== useAuthStore.getState().user) return;
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg || t('createError'));
+      setSubmitError(msg || t('createError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -176,7 +179,16 @@ export function AddWarehouseModal({ isOpen, onClose, onSuccess, warehouse = null
       title={t(warehouse ? 'editTitle' : 'createTitle')}
       width="760px"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-5">
+      <form
+        onSubmitCapture={() => setSubmitError('')}
+        onSubmit={handleSubmit(onSubmit, () => notifyInvalidForm())}
+        className="mt-4 flex flex-col gap-5"
+      >
+        {submitError && (
+          <Alert variant="error" onClose={() => setSubmitError('')}>
+            {submitError}
+          </Alert>
+        )}
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label

@@ -14,6 +14,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { CommercialAdminControls } from './CommercialAdminControls';
@@ -180,47 +181,53 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
   const deposit = useWatch({ control: custom.control, name: 'depositRequiredVnd' });
   const selectedPlan = enterprisePlans.find((plan) => plan.id === selectedPlanId);
   const formatVnd = (value: bigint) => `${value.toLocaleString(locale)} VND`;
-  const create = custom.handleSubmit(async (input) => {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.createCustom(tenantId, input, controller.current?.signal);
-      if (current()) {
-        setNotice(t('customCreated'));
-        await reload();
+  const create = custom.handleSubmit(
+    async (input) => {
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.createCustom(tenantId, input, controller.current?.signal);
+        if (current()) {
+          setNotice(t('customCreated'));
+          await reload();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
-  const upload = evidence.handleSubmit(async (input) => {
-    const file = input.file[0];
-    if (!file || !contract) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.signedCustom(
-        tenantId,
-        contract.id,
-        file,
-        contract.version,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('uploaded'));
-        await reload();
-        evidence.reset();
+    },
+    () => notifyInvalidForm(),
+  );
+  const upload = evidence.handleSubmit(
+    async (input) => {
+      const file = input.file[0];
+      if (!file || !contract) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.signedCustom(
+          tenantId,
+          contract.id,
+          file,
+          contract.version,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('uploaded'));
+          await reload();
+          evidence.reset();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const viewSavedPdf = async () => {
     if (!contract?.hasSignedEvidence) return;
     setBusy(true);
@@ -245,29 +252,32 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       if (current()) setBusy(false);
     }
   };
-  const confirm = confirmation.handleSubmit(async (input) => {
-    if (!contract?.hasSignedEvidence || selectedFiles?.length) return;
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await commercialApi.confirmCustom(
-        tenantId,
-        contract.id,
-        contract.version,
-        input.reason,
-        controller.current?.signal,
-      );
-      if (current()) {
-        setNotice(t('confirmed'));
-        await reload();
+  const confirm = confirmation.handleSubmit(
+    async (input) => {
+      if (!contract?.hasSignedEvidence || selectedFiles?.length) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await commercialApi.confirmCustom(
+          tenantId,
+          contract.id,
+          contract.version,
+          input.reason,
+          controller.current?.signal,
+        );
+        if (current()) {
+          setNotice(t('confirmed'));
+          await reload();
+        }
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const invalid = (field: keyof z.infer<typeof customSchema>) =>
     custom.formState.errors[field] ? t('invalid') : undefined;
   const inquiryHistory = inquiries.map((inquiry) => (
@@ -544,9 +554,9 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
                   </div>
                 </div>
                 {evidence.formState.errors.file && (
-                  <p role="alert" className="text-xs text-[var(--sc-error)]">
+                  <Alert variant="error" compact>
                     {t('invalidPdf')}
-                  </p>
+                  </Alert>
                 )}
               </form>
             )}

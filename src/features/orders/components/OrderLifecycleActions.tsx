@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
 import { orderLifecycleApi } from '../api/orderLifecycleApi';
@@ -124,20 +125,22 @@ export function OrderLifecycleActions({
       {showCorrection && invalid && (
         <form
           className="grid gap-3 sm:grid-cols-2"
-          onSubmit={correction.handleSubmit((values) =>
-            run(async () => {
-              await orderLifecycleApi.correct(
-                order.id,
-                { ...values, expectedVersion: order.version },
-                abort.current.signal,
-              );
-              if (!abort.current.signal.aborted) {
-                correction.reset(values);
-                setSaved(true);
-                setShowCorrection(false);
-                onChanged();
-              }
-            }),
+          onSubmit={correction.handleSubmit(
+            (values) =>
+              run(async () => {
+                await orderLifecycleApi.correct(
+                  order.id,
+                  { ...values, expectedVersion: order.version },
+                  abort.current.signal,
+                );
+                if (!abort.current.signal.aborted) {
+                  correction.reset(values);
+                  setSaved(true);
+                  setShowCorrection(false);
+                  onChanged();
+                }
+              }),
+            () => notifyInvalidForm(),
           )}
         >
           <CorrectionFields

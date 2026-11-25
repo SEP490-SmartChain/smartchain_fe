@@ -513,7 +513,9 @@
     },
     "purpose": {
       "PLAN_FEE": "First month fee",
-      "DEPOSIT": "Deposit"
+      "DEPOSIT": "Deposit",
+      "DEBT": "Service debt",
+      "CLOSEOUT": "Contract closeout settlement"
     },
     "samplePdfTitle": "ORCA service agreement template",
     "preparedPdfTitle": "ORCA service agreement — Ready for signature",
@@ -1101,6 +1103,7 @@
     "title_staff_accounts": "Staff Accounts",
     "title_admin": "Platform Admin",
     "logout": "Log out",
+    "logoutFailed": "Could not log out. Try again.",
     "default_title": "ORCA",
     "workspace_label": "Workspace",
     "home": "Home",
@@ -1155,6 +1158,10 @@
     "noNotifications": "No warehouse assignment notifications."
   },
   "Auth": {
+    "otp_send_failed": "Could not send a verification code. Try again.",
+    "otp_verify_failed": "Could not verify the code. Check it and try again.",
+    "register_failed": "Could not complete registration. Try again.",
+    "reset_action_failed": "Could not complete the password reset request. Try again.",
     "inviteHeading": "Join your store",
     "inviteSubheading": "Set a password to accept your staff invitation.",
     "inviteSuccess": "Your staff account is active. Sign in with the invitation email and your new password.",
@@ -1390,6 +1397,9 @@
     "removePhoto": "Remove profile photo",
     "photoRemoved": "Profile photo removed.",
     "photoRemoveFailed": "Could not remove the profile photo. Please try again.",
+    "photoTooLarge": "The profile photo must be 5 MB or smaller.",
+    "fullNameInvalid": "Enter at least 2 characters for the full name.",
+    "phoneInvalid": "Enter a 10-digit phone number starting with 0.",
     "firstName": "First name",
     "lastName": "Last name",
     "nameHint": "Use your first and last name as they appear on your official documents.",
@@ -1671,11 +1681,421 @@
     "centralHub": "Central distribution hub",
     "southHub": "Southern distribution hub"
   },
+  "Notifications": {
+    "copyFailed": "Could not copy. Select the text and copy it manually.",
+    "label": "Notifications",
+    "dismiss": "Dismiss notification",
+    "validationTitle": "Check the information entered",
+    "validationHint": "Correct the highlighted fields and try again.",
+    "errorHint": "An error occurred. Check the details on this page.",
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications yet",
+    "allTab": "All",
+    "unreadTab": "Unread",
+    "live": "Live",
+    "offline": "Offline",
+    "allCategories": "All categories",
+    "viewDetail": "View details",
+    "banner": {
+      "activatedBadge": "Service Activated",
+      "activatedTitle": "Payment succeeded — Service activated automatically",
+      "activatedDescription": "Your transfer is confirmed and workspace features are unlocked immediately without reloading.",
+      "activatedContinue": "Continue to workspace",
+      "postedBadge": "Payment Confirmed",
+      "postedTitle": "Payment confirmed — Completing service activation",
+      "postedDescription": "Your SePay transfer has been reconciled automatically. Service access will unlock shortly.",
+      "postedContinue": "View invoice details"
+    },
+    "events": {
+      "asn_submitted": {
+        "title": "New ASN submitted",
+        "body": "A new inbound ASN has been submitted to the warehouse."
+      },
+      "asn_cancelled": {
+        "title": "ASN cancelled",
+        "body": "The inbound ASN has been cancelled."
+      },
+      "asn_arrived": {
+        "title": "Inbound shipment arrived",
+        "body": "The inbound shipment has arrived at the warehouse dock for receiving."
+      },
+      "inbound_discrepancy_seller_notified": {
+        "title": "Inbound discrepancy reported",
+        "body": "An inbound receipt discrepancy requires seller review."
+      },
+      "receipt_discrepancy_reported": {
+        "title": "Receipt discrepancy awaiting approval",
+        "body": "Warehouse staff reported an inbound discrepancy awaiting manager review."
+      },
+      "receipt_reviewed_approved": {
+        "title": "Inbound receipt approved",
+        "body": "The inbound receipt review was approved."
+      },
+      "receipt_reviewed_returned": {
+        "title": "Inbound receipt returned for recount",
+        "body": "Warehouse manager returned the inbound receipt for physical recount."
+      },
+      "asn_received": {
+        "title": "Inbound receiving completed",
+        "body": "Physical inbound receiving has finished for the shipment."
+      },
+      "putaway_completed": {
+        "title": "Putaway completed — Stock available",
+        "body": "Received inventory has been placed into storage bins and made sellable."
+      },
+      "pick_wave_ready": {
+        "title": "New pick wave ready",
+        "body": "A new pick wave has been prepared and assigned for warehouse picking."
+      },
+      "pick_short_reported": {
+        "title": "Pick shortage reported",
+        "body": "A stock shortage was encountered while picking; replacement is required."
+      },
+      "pick_short_replaced": {
+        "title": "Pick shortage replacement assigned",
+        "body": "Replacement bin stock has been assigned for the reported pick shortage."
+      },
+      "order_cancellation_requested": {
+        "title": "Urgent order cancellation",
+        "body": "An order cancellation was requested — halt picking/packing immediately."
+      },
+      "order_picked_ready_for_packing": {
+        "title": "Order ready for packing",
+        "body": "All picked items are complete and the order is ready at packing."
+      },
+      "shipment_label_ready": {
+        "title": "Shipping label ready",
+        "body": "Carrier label generation succeeded and the parcel is ready for handover."
+      },
+      "shipment_label_failed": {
+        "title": "Shipping label generation failed",
+        "body": "Carrier label generation failed and requires retry or inspection."
+      },
+      "parcel_handed_over": {
+        "title": "Parcel handed over to carrier",
+        "body": "The parcel has been handed over to the shipping carrier."
+      },
+      "shipment_status_delivered": {
+        "title": "Shipment delivered",
+        "body": "The shipment has been successfully delivered to the recipient."
+      },
+      "shipment_status_delivery_failed": {
+        "title": "Shipment delivery failed",
+        "body": "Delivery attempt failed; check shipment tracking for next steps."
+      },
+      "shipment_status_returning": {
+        "title": "Shipment returning to warehouse",
+        "body": "The shipment is in return transit back to the warehouse."
+      },
+      "shipment_status_lost": {
+        "title": "Shipment lost alert",
+        "body": "Carrier reported the shipment as lost; investigate and open a claim if needed."
+      },
+      "shipment_returned": {
+        "title": "Shipment returned to warehouse",
+        "body": "The returned shipment has arrived back at the warehouse."
+      },
+      "sla_handover_overdue": {
+        "title": "Handover SLA overdue",
+        "body": "An order has exceeded its carrier handover SLA deadline."
+      },
+      "sla_tracking_stalled": {
+        "title": "Tracking progress stalled",
+        "body": "No new carrier tracking movement has been received within the SLA window."
+      },
+      "handover_carrier_pickup_mismatch": {
+        "title": "Carrier pickup mismatch",
+        "body": "A parcel count mismatch occurred during carrier handover."
+      },
+      "stock_low": {
+        "title": "Low stock alert",
+        "body": "Available inventory dropped below the safety threshold."
+      },
+      "inventory_low_stock": {
+        "title": "Inventory below minimum level",
+        "body": "Product stock dropped below the configured minimum threshold."
+      },
+      "lot_near_expiry": {
+        "title": "Lot near expiry alert",
+        "body": "An inventory lot entered near-expiry, locked, or expired status."
+      },
+      "orders_sheet_sync_failed": {
+        "title": "Google Sheet sync failed",
+        "body": "Order Google Sheet connection or sync encountered an error."
+      },
+      "order_on_hold": {
+        "title": "Order placed on hold",
+        "body": "An order has been placed on hold pending verification."
+      },
+      "order_backorder": {
+        "title": "Order in backorder",
+        "body": "An order is waiting on backorder due to insufficient available stock."
+      },
+      "order_exception_corrected": {
+        "title": "Order exception corrected",
+        "body": "The blocked order issue was corrected and re-queued for fulfillment."
+      },
+      "webhook_endpoint_exhausted": {
+        "title": "Webhook endpoint exhausted",
+        "body": "Webhook delivery exhausted all retry attempts and needs attention."
+      },
+      "putaway_plan_ready": {
+        "title": "Putaway plan ready",
+        "body": "Putaway tasks have been generated and are ready for execution."
+      },
+      "putaway_capacity_required": {
+        "title": "Storage bin capacity required",
+        "body": "No eligible storage bin has sufficient capacity for putaway."
+      },
+      "putaway_bin_overridden": {
+        "title": "Putaway bin overridden",
+        "body": "A warehouse manager updated the target bin for a putaway task."
+      },
+      "putback_retargeted": {
+        "title": "Putback bin retargeted",
+        "body": "A cancelled-pick putback task was assigned a new destination bin."
+      },
+      "withdrawal_created": {
+        "title": "New withdrawal request",
+        "body": "A new seller inventory withdrawal request is pending processing."
+      },
+      "withdrawal_dispatched": {
+        "title": "Withdrawal dispatched",
+        "body": "The inventory withdrawal request has been dispatched from the warehouse."
+      },
+      "carrier_health_changed": {
+        "title": "Carrier health changed",
+        "body": "A carrier endpoint connectivity status transition was detected."
+      },
+      "rate_collection_completed": {
+        "title": "Rate collection completed",
+        "body": "Scheduled carrier freight rate collection has finished."
+      },
+      "rate_change_alert_created": {
+        "title": "Freight rate change alert",
+        "body": "A carrier freight rate change alert was raised for review."
+      },
+      "ai_forecast_completed": {
+        "title": "AI demand forecast completed",
+        "body": "Your AI demand forecast results are ready to inspect."
+      },
+      "ai_forecast_failed": {
+        "title": "AI demand forecast failed",
+        "body": "An AI demand forecast run failed; please review or retry."
+      },
+      "commercial_custom_inquiry_submitted": {
+        "title": "New enterprise inquiry",
+        "body": "A new custom enterprise plan inquiry has been submitted."
+      },
+      "commercial_custom_contract_offered": {
+        "title": "Custom contract offer ready",
+        "body": "A custom service contract proposal has been issued for review."
+      },
+      "commercial_signing_requested": {
+        "title": "Contract signing requested",
+        "body": "Your service contract is ready for e-signature on SignNow."
+      },
+      "commercial_contract_signed": {
+        "title": "Contract signed successfully",
+        "body": "Your contract signature is complete. Onboarding invoice will appear shortly."
+      },
+      "commercial_signing_declined": {
+        "title": "Contract signing declined",
+        "body": "The e-signature request was declined or cancelled."
+      },
+      "commercial_payment_posted": {
+        "title": "Payment confirmed live",
+        "body": "Your SePay bank transfer payment has been posted and reconciled."
+      },
+      "commercial_bank_receipt_posted": {
+        "title": "Bank receipt recorded",
+        "body": "Verified bank transfer evidence has been posted to the invoice."
+      },
+      "commercial_mock_payment_posted": {
+        "title": "Sandbox payment recorded",
+        "body": "A sandbox onboarding payment has been recorded."
+      },
+      "commercial_service_activated": {
+        "title": "Service activated",
+        "body": "Your ORCA commercial service is now ACTIVE and all workspace menus are unlocked."
+      },
+      "sepay_unmatched_received": {
+        "title": "Unmatched SePay transfer received",
+        "body": "A new verified SePay transfer requires manual invoice matching."
+      },
+      "commercial_plan_change_requested": {
+        "title": "Plan change requested",
+        "body": "A commercial plan change request was submitted."
+      },
+      "commercial_plan_change_scheduled": {
+        "title": "Plan change scheduled",
+        "body": "Your commercial plan change is scheduled for the upcoming billing period."
+      },
+      "commercial_plan_change_rejected": {
+        "title": "Plan change rejected",
+        "body": "Your commercial plan change request was not approved."
+      },
+      "commercial_plan_change_applied": {
+        "title": "New commercial plan applied",
+        "body": "Your updated commercial service plan is now active."
+      },
+      "commercial_service_status_changed": {
+        "title": "Service status changed",
+        "body": "Your account commercial service status was updated."
+      },
+      "tenant_status_changed": {
+        "title": "Tenant status updated",
+        "body": "Tenant operational account status was updated by an administrator."
+      },
+      "commercial_closure_requested": {
+        "title": "Contract closure requested",
+        "body": "A request to close the active commercial contract has been logged."
+      },
+      "commercial_contract_closed": {
+        "title": "Contract closed",
+        "body": "The commercial contract closeout process is complete."
+      },
+      "invoice_issued": {
+        "title": "New invoice issued",
+        "body": "A new commercial or billing invoice has been issued."
+      },
+      "invoice_due_soon": {
+        "title": "Invoice due soon",
+        "body": "An open invoice is approaching its payment due date."
+      },
+      "payout_sent": {
+        "title": "COD payout statement sent",
+        "body": "A COD payout statement has been sent for seller confirmation."
+      },
+      "payout_confirmed": {
+        "title": "COD payout confirmed",
+        "body": "The seller confirmed the COD payout statement."
+      },
+      "payout_disputed": {
+        "title": "COD payout disputed",
+        "body": "A COD payout statement dispute has been opened for review."
+      },
+      "payout_line_disputed": {
+        "title": "COD payout line disputed",
+        "body": "A specific line item on the COD payout statement was disputed."
+      },
+      "payout_resolved": {
+        "title": "COD payout dispute resolved",
+        "body": "The dispute on the COD payout statement has been resolved."
+      },
+      "payout_reviewed": {
+        "title": "COD payout reviewed",
+        "body": "A COD payout statement review action has been recorded."
+      },
+      "payout_approved": {
+        "title": "COD payout approved",
+        "body": "The COD payout statement has been approved for disbursement."
+      },
+      "payout_paid": {
+        "title": "COD payout paid",
+        "body": "COD payout funds have been disbursed."
+      },
+      "return_requested": {
+        "title": "Return request created",
+        "body": "A new customer return request was submitted."
+      },
+      "return_reverse_requested": {
+        "title": "Reverse pickup requested",
+        "body": "Reverse logistics pickup was requested for a return order."
+      },
+      "return_reverse_authorized": {
+        "title": "Reverse pickup authorized",
+        "body": "Reverse logistics pickup authorization is complete."
+      },
+      "return_authorized": {
+        "title": "Return authorized",
+        "body": "The return order has been authorized by operations."
+      },
+      "return_arrived": {
+        "title": "Returned parcel arrived",
+        "body": "The returned parcel arrived at the warehouse for inspection."
+      },
+      "return_inspected": {
+        "title": "Return inspection completed",
+        "body": "Warehouse staff completed quality inspection on the returned items."
+      },
+      "return_reviewed": {
+        "title": "Return disposition reviewed",
+        "body": "Warehouse manager reviewed the return inspection decision."
+      },
+      "return_restocked": {
+        "title": "Return stock restocked",
+        "body": "Approved return inventory has been returned to sellable stock."
+      },
+      "claim_opened": {
+        "title": "New claim opened",
+        "body": "A new compensation claim was opened and awaits evidence."
+      },
+      "claim_evidence_submitted": {
+        "title": "Claim evidence submitted",
+        "body": "Warehouse evidence was uploaded and verified for the claim."
+      },
+      "claim_investigated": {
+        "title": "Claim investigation completed",
+        "body": "Operations completed the responsibility investigation for the claim."
+      },
+      "claim_decided": {
+        "title": "Claim decision issued",
+        "body": "A final compensation decision has been recorded on the claim."
+      },
+      "claim_credit_posted": {
+        "title": "Claim credit posted",
+        "body": "The approved claim credit has been posted to the seller ledger."
+      },
+      "count_assigned": {
+        "title": "Cycle count assigned",
+        "body": "A warehouse cycle count task has been assigned to you."
+      },
+      "count_observed": {
+        "title": "Cycle count observation submitted",
+        "body": "Physical count results were submitted for manager review."
+      },
+      "count_recount_requested": {
+        "title": "Cycle count recount requested",
+        "body": "Warehouse manager requested a physical recount."
+      },
+      "disposal_requested": {
+        "title": "Inventory disposal requested",
+        "body": "A seller stock disposal request requires warehouse approval."
+      },
+      "disposal_reviewed": {
+        "title": "Disposal request reviewed",
+        "body": "Warehouse manager reviewed the stock disposal request."
+      },
+      "disposal_revoked": {
+        "title": "Disposal request revoked",
+        "body": "The seller revoked the pending disposal authorization."
+      },
+      "disposal_executed": {
+        "title": "Inventory disposal executed",
+        "body": "Warehouse staff executed the approved stock disposal."
+      },
+      "lot_recalled": {
+        "title": "Lot recall triggered",
+        "body": "An inventory lot was quarantined and recalled due to safety policy."
+      },
+      "recall_customer_notification": {
+        "title": "Recall customer notification required",
+        "body": "Customer recall notices were queued for affected delivered parcels."
+      },
+      "platform_user_warehouses_assigned": {
+        "title": "Warehouse assignments updated",
+        "body": "Your assigned warehouse scope was updated by an administrator."
+      }
+    }
+  },
   "Error": {
     "not_found_heading": "Page Not Found",
     "not_found_message": "Sorry, the page you are looking for does not exist, has been removed, or is temporarily unavailable.",
     "back_to_home": "Back to Home",
     "error_heading": "An error occurred",
+    "reload_hint": "Reload the page to try again.",
     "reload_page": "Reload Page",
     "forbidden_heading": "Access denied",
     "forbidden_message": "Your account does not have permission to access this page. Please return to an area you are allowed to access.",
@@ -1694,6 +2114,7 @@
     "only_letters_spaces": "Only letters and spaces are allowed"
   },
   "AdminTenants": {
+    "detailLoadFailed": "Could not load workspace details. Try again.",
     "customInbox": "Custom plan requests awaiting review",
     "inboxRequested": "Awaiting consultation",
     "inboxDraft": "Awaiting contract completion",
@@ -2005,6 +2426,8 @@
     }
   },
   "Webhooks": {
+    "saveFailed": "Could not save the webhook. Try again.",
+    "actionFailed": "Could not update this webhook. Try again.",
     "categoryOrders": "Order Management",
     "categoryShipping": "Shipping & Logistics",
     "categoryInventoryFinance": "Inventory & Finance",
@@ -2281,6 +2704,7 @@
     "releaseItemsLabel": "SKUs to release",
     "releaseItemQty": "{qty, number} units",
     "releaseItemsLoadError": "Could not load the SKUs held by this order.",
+    "releaseFailed": "Could not release the reservation. Try again.",
     "releaseConfirm": "Confirm release",
     "cancel": "Cancel",
     "releaseSuccess": "Released {count, number} reservations of {order}.",
@@ -3248,6 +3672,7 @@
     "timelineTitle": "Shipment journey",
     "timelineSubtitle": "Detailed scan events and checkpoint updates",
     "journeyUnknown": "Status requires review",
+    "deliveryFailedHint": "The courier may contact the recipient again or update the reason for the failed delivery.",
     "timelineEmpty": "No tracking updates yet.",
     "journey": "Delivery Journey",
     "trackOnCarrier": "Track on {carrier}",
@@ -3598,7 +4023,8 @@
     "firstPage": "First page",
     "nextPage": "Next page",
     "taskTitle": "Putaway {sku} · {lot}",
-    "expected": "Move {qty} units from {from} to {to}.",
+    "suggestedRoute": "From {from} · suggested bin {to}",
+    "expected": "{qty} units remain at {from}. Suggested bin: {to}.",
     "assignee": "Assigned Staff",
     "assign": "Assign Staff",
     "claim": "Claim this task",
@@ -3622,6 +4048,28 @@
     "assignedToOther": "Another worker has claimed this task.",
     "fromScan": "Scan receiving bin",
     "toScan": "Scan storage bin",
+    "placementOptions": "Storage bins with free capacity",
+    "placementOption": "{bin} · up to {qty} units",
+    "noPlacementOptions": "No compatible storage bin has free space. Report this to the warehouse manager.",
+    "placementDetailsError": "Could not load placement details. You can reload the task to try again.",
+    "placementQuantity": "Units stored in this bin",
+    "placementPartial": "Put away part of the task",
+    "placementCapacity": "This bin has room for up to {qty} units.",
+    "placementQuantityError": "Enter a whole number between 1 and {remaining}.",
+    "placementReason": "Reason for using a different bin",
+    "placementChooseReason": "Choose a reason",
+    "placementReasonRequired": "Choose a reason for using a different bin.",
+    "placementOtherReason": "Enter a reason",
+    "placementReasons": {
+      "full": "Suggested bin is full",
+      "damaged": "Suggested bin is damaged",
+      "blocked": "Aisle is blocked",
+      "other": "Other reason"
+    },
+    "placementReasonError": "Enter between 3 and 500 characters.",
+    "partialConfirmed": "Putaway recorded. {remaining} units remain at receiving.",
+    "placementHistory": "Confirmed placements",
+    "placementEntry": "{from} → {to} · {qty} units · {actor} · {time}",
     "placementBin": "Actual storage bin code",
     "placementBinRequired": "Enter or scan the storage bin code.",
     "skuScan": "Scan SKU",
@@ -3630,6 +4078,7 @@
     "scanRequired": "Scan a valid code.",
     "quantityRequired": "Enter the full task quantity.",
     "confirm": "Confirm physical putaway",
+    "confirmAll": "Confirm {qty} units",
     "assignmentSuccess": "Task assigned.",
     "confirmSuccess": "Putaway confirmed. Goods are now sellable.",
     "saveError": "The result is uncertain. Preserve the attempted operation and retry.",
@@ -4222,12 +4671,18 @@
       "skuScan": "Scan product QR code",
       "lotScan": "Scan lot QR code"
     },
-    "matchedCode": "Matches assigned pick line.",
+    "scanProgress": "Step {step}/{total}",
+    "continueScan": "Continue",
+    "previousStep": "Back",
+    "skipLot": "Skip lot code",
     "resolvingBin": "Resolving bin code…",
     "viewQrLabels": "View QR labels",
     "lineQr": "QR code",
     "pickLabelsTitle": "Picking QR labels",
-    "pickLabelsHint": "Each label renders a single QR code for camera scanning on Web or Mobile.",
+    "pickLabelsHint": "Scan the code on screen, then select Next code.",
+    "previousLabel": "Previous code",
+    "nextLabel": "Next code",
+    "labelProgress": "Code {step}/{total}",
     "labelBin": "Bin",
     "labelSku": "Product",
     "labelLot": "Lot",
@@ -4247,8 +4702,13 @@
     "claimHint": "Batch eligible parcels into one wave for you.",
     "claimWork": "Take work",
     "assignOthers": "Or assign a wave to another staff member",
-    "lotOptional": "Scan lot (leave blank when the bin holds one lot)",
-    "packNext": "This parcel is fully picked. Opening packing…"
+    "lotOptional": "Skip only for products without expiry tracking when the bin holds a single lot.",
+    "packNext": "This parcel is fully picked. Opening packing…",
+    "deepLinkLineUnavailable": "This pick line already changed status or completed; showing its pick wave instead.",
+    "deepLinkWaveUnavailable": "This pick wave changed or is no longer open; select the latest wave from the list.",
+    "deepLinkShortageResolved": "The shortage on this pick line was already resolved or replaced; check the remaining open lines in this wave.",
+    "deepLinkLineCompleted": "This pick line is already completed; check the remaining open lines in this wave.",
+    "deepLinkLineNowShortage": "This pick line now has an open shortage; opened the line for inspection."
   },
   "Withdrawal": {
     "title": "Request stock withdrawal",
@@ -4497,7 +4957,9 @@
       "ADJUST": "Adjustment",
       "COMBO": "Bundle",
       "UNIT": "Unit",
-      "CLAIM": "claim"
+      "CLAIM": "claim",
+      "CONTRACT": "Contract",
+      "BATCH": "Reconciled batch"
     }
   },
   "ReceiptCartons": {
@@ -4614,7 +5076,7 @@
     "approve": "Approve eligible payout",
     "dispute": "Dispute line",
     "resolve": "Resolve dispute",
-    "reason": "Reason and supporting explanation",
+    "reason": "Settlement note / reason",
     "adjustment": "Signed correction amount (VND; 0 to reject)",
     "invalidReason": "Enter a reason between 5 and 1,000 characters.",
     "invalidAmount": "Enter an exact whole VND amount.",
@@ -4622,13 +5084,13 @@
     "wednesday": "Approval follows the Wednesday schedule in Vietnam. Record only an actual Wednesday manual transfer after approval.",
     "recordTransfer": "Record completed manual transfer",
     "transferHelp": "Transfer funds outside ORCA first. Then upload private PDF evidence and record the exact approved amount. ORCA does not send money.",
-    "bankReference": "Actual bank transaction reference",
-    "transferredAt": "Actual transfer time (ISO 8601 with timezone)",
-    "evidence": "Private bank evidence PDF (maximum 20 MB)",
-    "evidenceReady": "Private evidence uploaded",
-    "pdfRequired": "Upload a bank evidence PDF up to 20 MB.",
-    "invalidReference": "Enter the actual bank reference (3–200 characters).",
-    "invalidTime": "Enter a timestamp including seconds and timezone, for example 2026-11-04T02:00:00Z.",
+    "bankReference": "Bank transaction reference",
+    "transferredAt": "Transfer date & time",
+    "evidence": "Bank receipt PDF (max 20 MB)",
+    "evidenceReady": "Receipt PDF attached",
+    "pdfRequired": "Attach bank receipt PDF (up to 20 MB)",
+    "invalidReference": "Enter a bank transaction reference (3–200 characters).",
+    "invalidTime": "Select a valid transfer date and time.",
     "uncertain": "The result is not confirmed yet. Refresh to check; if needed, retry the same request.",
     "retrySame": "Retry same command",
     "forbidden": "You do not have access to financial records.",
@@ -4687,6 +5149,23 @@
       "material": "Packing materials fee",
       "returnHandling": "Return handling fee",
       "combo": "Product bundling fee"
+    },
+    "sourceType": {
+      "BILLABLE_EVENT": "Billable event",
+      "BANK_RECEIPT": "Bank receipt",
+      "ONLINE_RECEIPT": "Online receipt",
+      "PAYMENT_TRANSACTION": "Payment transaction",
+      "ONBOARDING_PLAN_FEE": "Onboarding plan fee",
+      "SUBSCRIPTION": "Subscription cycle",
+      "RECONCILIATION_POSTING": "Reconciliation posting",
+      "RECONCILED_COD_BATCH": "Reconciled COD batch",
+      "APPROVED_CLAIM": "Approved claim",
+      "APPROVED_FEE_CORRECTION": "Approved fee correction",
+      "PAYOUT_DISPUTE": "Statement dispute resolution",
+      "PAYOUT_TRANSFER": "Weekly payout transfer",
+      "CLOSEOUT_OFFSET": "Closeout deposit offset",
+      "CLOSEOUT_TRANSFER": "Closeout refund transfer",
+      "MOCK_ONBOARDING": "Demo onboarding payment"
     }
   },
   "Reports": {
@@ -5368,6 +5847,8 @@
     "signedTab": "Warehouse handed over",
     "continueHandover": "Continue handover",
     "viewManifest": "View details",
+    "deepLinkShipmentHighlighted": "Highlighted the parcel to review for handover in the ready list.",
+    "deepLinkShipmentNotOnPage": "The requested parcel is not on the first ready page; check the next page or awaiting confirmation manifests.",
     "noManifestsOnPage": "No manifests in this category on the current page.",
     "pageCountsHint": "Counts cover this page only; more records may be on later pages.",
     "packingQueue": "Packing queue",
@@ -5698,7 +6179,6 @@
     "reference": "Waybill / order",
     "clock": "Deadline / last update",
     "state": "Status",
-    "detectedAt": "Detected at",
     "actions": "Actions",
     "reasonCode": {
       "HANDOVER": "Handover overdue",
@@ -5721,7 +6201,40 @@
     "handoverDescription": "The warehouse missed the handover time.",
     "trackingTitle": "Tracking update delayed",
     "trackingDescription": "The carrier missed its update deadline.",
-    "emptyTitle": "No open alerts"
+    "emptyTitle": "No open alerts",
+    "filteredContext": "Filtered from selected warehouse context",
+    "filteredReasonHandover": "Handover overdue",
+    "filteredWarehouseLabel": "Warehouse {code}",
+    "clearFilter": "Show all",
+    "filteredEmpty": "No alerts match the current warehouse and alert filter.",
+    "parcelTitle": "{orderCode} · Parcel {parcelNo}",
+    "trackingShort": "Waybill {code}",
+    "selectedTag": "Selected",
+    "focusedParcelLabel": "Highlighted: {label}",
+    "overdueCountSummary": "{count} overdue handover parcel(s)",
+    "overdueCountSummaryMore": "At least {count} overdue handover parcel(s)",
+    "overdueElapsedDaysHours": "Overdue by {days}d {hours}h",
+    "overdueElapsedDays": "Overdue by {days}d",
+    "overdueElapsedHoursMinutes": "Overdue by {hours}h {minutes}m",
+    "overdueElapsedHours": "Overdue by {hours}h",
+    "overdueElapsedMinutes": "Overdue by {minutes}m",
+    "overdueElapsedUnderMinute": "Just overdue",
+    "backToOutbound": "Back to Outbound",
+    "actionOpenHandover": "Open handover",
+    "actionOpenPacking": "Open packing",
+    "actionOpenPicking": "Open picking",
+    "actionOpenShipments": "View shipments",
+    "stages": {
+      "WAITING_PICK": "Awaiting pick",
+      "PICKING": "Picking",
+      "WAITING_PACK": "Awaiting pack",
+      "WAITING_LABEL": "Awaiting label",
+      "WAITING_LABEL_VERIFYING": "Awaiting label verification",
+      "WAITING_HANDOVER": "Awaiting handover",
+      "DISPATCH_FAILED": "Dispatch failed",
+      "HANDED_OVER": "Handed over",
+      "OTHER": "In progress"
+    }
   },
   "RateIntelligence": {
     "loading": "Loading data…",
@@ -6022,411 +6535,199 @@
     "tableBaseline": "From sales",
     "tableAi": "With AI adjustment"
   },
+  "FulfillmentSlaRisk": {
+    "title": "Shift priorities",
+    "updatedAt": "{time}",
+    "sourceEmpirical": "Historical",
+    "sourceCalibrated": "Probabilistic",
+    "refresh": "Refresh",
+    "loading": "Updating shift priorities…",
+    "forbidden": "Your manager assignment for this warehouse changed; the priority list has been cleared.",
+    "loadError": "Could not load shift priorities. The picking list below remains available.",
+    "loadMoreError": "Could not load more parcels.",
+    "retry": "Retry",
+    "warmingUp": "Updating initial risk data for this warehouse.",
+    "insufficientData": "Insufficient historical data to evaluate this warehouse yet.",
+    "modelUnavailable": "Risk evaluation is temporarily unavailable for this warehouse.",
+    "stale": "Assessment expired. Click Refresh to update.",
+    "staleAllPastDeadline": "Previously shown parcels passed cutoff. Check Delivery Alerts or click Refresh.",
+    "staleAllPastDeadlineNoLink": "Previously shown parcels passed cutoff. Click Refresh for the next shift.",
+    "staleInvalidated": "Parcels from the previous run changed status or passed cutoff; waiting for the next scan.",
+    "partialExpiredByDeadline": "{count} parcel(s) passed cutoff and left this list.",
+    "overdueSystemBanner": "{count} overdue for handover",
+    "overdueSystemBannerAtLeast": "{count}+ overdue for handover",
+    "overdueSystemBannerMorePages": "Overdue parcels need review",
+    "overdueElapsedDaysHours": "{days}d {hours}h late",
+    "overdueElapsedDays": "{days}d late",
+    "overdueElapsedHoursMinutes": "{hours}h {minutes}m late",
+    "overdueElapsedHours": "{hours}h late",
+    "overdueElapsedMinutes": "{minutes}m late",
+    "overdueElapsedUnderMinute": "Just overdue",
+    "overdueMoreParcels": "+{count} more",
+    "overdueMoreParcelsAtLeast": "View more",
+    "overdueParcelAriaLabel": "View overdue parcel {label}",
+    "empty": "No priority parcels",
+    "emptyOverdueHint": "Overdue parcels are tracked under Delivery Alerts.",
+    "emptyOverdueHintNoLink": "Overdue parcels are excluded from pre-deadline priorities.",
+    "excludedInlineButton": "{count} excluded",
+    "excludedMissingCalendar": "Missing cutoff calendar: {count}",
+    "excludedBlocked": "On hold: {count}",
+    "excludedOver30Days": "Open over 30 days: {count}",
+    "excludedUnsupported": "Unsupported status: {count}",
+    "whyButton": "Details",
+    "modalClose": "Close",
+    "modalNoFacts": "No additional warehouse facts recorded at this step.",
+    "signalShortageConcise": "Open pick shortage",
+    "signalStageAgeConcise": "Waiting {duration}",
+    "systemEvidenceHeading": "Warehouse data",
+    "orcaForecastLabel": "ORCA forecast",
+    "geminiSuggestionBadge": "Gemini suggestion",
+    "geminiUnavailable": "Unable to load Gemini suggestion.",
+    "rephraseAction": "Rephrase",
+    "rephraseAriaLabel": "Rephrase Gemini suggestion for {orderCode}, parcel {parcelNo}",
+    "kpiRiskLabel": "High risk",
+    "kpiRiskBreakdown": "{mediumCount} Medium · {lowCount} Low",
+    "kpiRiskHealthy": "No high-risk parcels",
+    "kpiBottleneckLabel": "Bottleneck",
+    "kpiBottleneckCount": "{count} high-risk parcels",
+    "kpiBottleneckNone": "Clear",
+    "kpiBottleneckNoneHint": "All stages flowing",
+    "kpiCoverageLabel": "Monitored",
+    "pipelineLabel": "Outbound progress",
+    "geminiCtaCue": "Gemini",
+    "geminiCtaCueAria": "Next step suggested by Gemini",
+    "geminiResultAnnounced": "Updated Gemini suggestion for {orderCode}, parcel {parcelNo}.",
+    "snapshotUpdatedAnnounced": "Shift priorities updated at {time}.",
+    "headlineHigh": "{highCount} high-risk parcels",
+    "headlineDisplayedHigh": "{highCount} of {displayedCount} displayed at high risk",
+    "headlineMediumOnly": "{mediumCount} medium-risk parcels",
+    "headlineDisplayedMediumOnly": "{mediumCount} of {displayedCount} displayed at medium risk",
+    "headlineLowOnly": "On track · {lowCount} low-risk",
+    "coverageShort": "Eligible ({scored}/{eligible})",
+    "coverageValidOfScored": "{validTotal} active ({scored}/{eligible})",
+    "coverageTopK": "Top {limit} ({scored}/{eligible})",
+    "parcelTitle": "{orderCode} · Parcel {parcelNo}",
+    "deadlineToday": "Cutoff {time} today",
+    "deadlineTomorrow": "Cutoff {time} tomorrow",
+    "deadlineDate": "Cutoff {time}, {date}",
+    "remainingMinutes": "{minutes}m left",
+    "remainingHoursMinutes": "{hours}h {minutes}m left",
+    "remainingUnderMinute": "< 1m left",
+    "probabilityValue": "Late risk {value}",
+    "refiningExplanation": "Generating Gemini suggestion…",
+    "showMore": "Show more",
+    "showMoreRemaining": "Show more ({remaining})",
+    "showingPriorityCount": "Showing {shown}",
+    "showingPriorityOfTotal": "{shown}/{total} priority",
+    "showingPriorityOfTotalBreakdown": "{shown}/{total} priority · {highCount} High, {mediumCount} Medium",
+    "topCapScope": "Showing the top {count} highest-priority parcels.",
+    "showLowTier": "+ {count} low-risk",
+    "hideLowTier": "Hide low-risk ({count})",
+    "expandAriaLabel": "View priority details for {orderCode}, parcel {parcelNo}",
+    "actionOpenShortageLine": "Open shortage line",
+    "actionOpenPickLine": "Open pick line",
+    "actionOpenWave": "Open wave",
+    "actionViewBacklog": "Picking backlog",
+    "actionViewWaves": "Pick waves",
+    "actionCheckPacking": "Check packing",
+    "actionCheckLabel": "Check label",
+    "actionViewShipments": "Shipments",
+    "actionViewExceptions": "View alerts",
+    "actionViewOverdueParcels": "View all",
+    "actionViewHandover": "Handover",
+    "columns": {
+      "parcel": "Order / parcel",
+      "riskAndDeadline": "Risk & cutoff",
+      "signal": "Signal",
+      "nextStep": "Action"
+    },
+    "stages": {
+      "WAITING_PICK": "Awaiting pick",
+      "PICKING": "Picking",
+      "WAITING_PACK": "Awaiting pack",
+      "WAITING_LABEL": "Awaiting label",
+      "WAITING_HANDOVER": "Awaiting handover"
+    },
+    "tiers": {
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low"
+    },
+    "signals": {
+      "OPEN_PICK_SHORTAGE": "{stage} · Open pick shortage",
+      "RESERVATION_ISSUE": "Stock reservation issue",
+      "DISPATCH_FAILURE": "Label creation failed",
+      "WAITING_LABEL_VERIFYING": "Awaiting label verification",
+      "WAITING_LABEL": "Awaiting shipping label",
+      "PICK_REMAINING": "{qty} units left to pick",
+      "STAGE_AGE_ELEVATED": "{stage} for {duration}",
+      "PICK_BACKLOG_HIGH": "{count} other parcels in stage",
+      "WAREHOUSE_CONGESTION": "{count} active parcels in warehouse",
+      "STAGE_ONLY": "{stage}"
+    },
+    "facts": {
+      "OPEN_PICK_SHORTAGE": "Open pick shortage · {qty} units left to pick.",
+      "OPEN_PICK_SHORTAGE_SIMPLE": "Open pick shortage in the picking wave.",
+      "RESERVATION_ISSUE": "Stock reservation issue · {qty} units unpicked.",
+      "RESERVATION_ISSUE_SIMPLE": "Stock reservation issue detected at scan time.",
+      "DISPATCH_FAILURE": "Carrier dispatch failed · Waiting {duration}.",
+      "DISPATCH_FAILURE_AT": "Carrier dispatch failed · Waiting {duration} (as of {asOf}).",
+      "WAITING_FOR_LABEL_VERIFYING": "Waiting on label verification for {duration}.",
+      "WAITING_FOR_LABEL_VERIFYING_AT": "Waiting on label verification for {duration} (as of {asOf}).",
+      "WAITING_FOR_LABEL": "Waiting for shipping label for {duration}.",
+      "WAITING_FOR_LABEL_AT": "Waiting for shipping label for {duration} (as of {asOf}).",
+      "TIME_REMAINING": "{minutes} min left until handover cutoff.",
+      "TIME_REMAINING_AT": "{minutes} min left until cutoff (as of {asOf}).",
+      "TIME_REMAINING_UNDER_MINUTE": "Under 1 min left until handover cutoff.",
+      "TIME_REMAINING_UNDER_MINUTE_AT": "Under 1 min left until cutoff (as of {asOf}).",
+      "COHORT_BENCHMARK_BOTH": "Similar parcels: {p50Minutes}m median · 80% done in {p80Minutes}m.",
+      "COHORT_BENCHMARK_P80": "Similar parcels: 80% complete within {p80Minutes}m.",
+      "COHORT_BENCHMARK_P50": "Similar parcels: {p50Minutes}m median completion.",
+      "BENCHMARK_MISSING": "No historical benchmark for this group yet.",
+      "STAGE_AGE_ELEVATED": "{stage} for {duration}.",
+      "STAGE_AGE_ELEVATED_AT": "{stage} for {duration} (as of {asOf}).",
+      "PICK_REMAINING": "{qty} units left · {skuCount} SKUs.",
+      "STAGE_QUEUE_LOAD": "In stage: {stageCount} other · Warehouse: {warehouseCount} active.",
+      "WAREHOUSE_THROUGHPUT_LOAD": "Warehouse: {warehouseCount} active · {handoverCount} handed over in 60m."
+    },
+    "adviceActions": {
+      "VIEW_OPEN_SHORTAGE_LINE": "open the shortage line",
+      "VIEW_OPEN_SHORTAGE_WAVE": "check the open shortage in the picking wave",
+      "CHECK_PICK_PROGRESS_LINE": "open the active pick line",
+      "CHECK_PICK_PROGRESS_WAVE": "open the pick wave",
+      "CHECK_PICK_PROGRESS_LIST": "review the pick waves",
+      "CHECK_RESERVATION": "review the picking backlog",
+      "CHECK_DISPATCH_FAILURE": "review the shipments list",
+      "CHECK_LABEL_VERIFICATION": "check the shipping label",
+      "REVIEW_PICK_BACKLOG": "review the picking backlog",
+      "REVIEW_PACK_QUEUE": "check packing",
+      "REVIEW_HANDOVER_QUEUE": "review the handover list"
+    },
+    "adviceReasons": {
+      "SHORTAGE_OPEN": "An open shortage exception is active in this wave.",
+      "SHORTAGE_WITH_REMAINING_PICK": "A shortage exception is open while this parcel still has unpicked units in the wave.",
+      "SHORTAGE_WITH_BENCHMARK_TIGHT": "A shortage exception is open and remaining time is shorter than the typical handling time for similar parcels.",
+      "PICK_REMAINING_UNBLOCKED": "This parcel still has unblocked units left to pick in this wave.",
+      "PICK_TIME_VS_BENCHMARK": "Remaining time is shorter than the typical handling time for similar parcels.",
+      "PICK_QUEUE_AND_AGE": "This parcel has been in picking a while during a busy stage queue.",
+      "PICK_NO_BENCHMARK": "No historical duration benchmark is available for this group yet.",
+      "PICK_TIME_ONLY": "Picking progress should be checked before the handover cutoff.",
+      "RESERVATION_OPEN": "A stock reservation issue needs attention before wave release.",
+      "DISPATCH_FAILURE_OPEN": "Carrier label creation encountered an error.",
+      "LABEL_VERIFYING_OPEN": "Shipping label verification is still pending.",
+      "PACK_TIME_VS_BENCHMARK": "Remaining time is shorter than the typical handling time for similar parcels.",
+      "PACK_WAITING_LABEL_DELAY": "This parcel is packed and still waiting for its shipping label.",
+      "PACK_QUEUE_AND_AGE": "This parcel has waited in packing during a busy queue.",
+      "PACK_NO_BENCHMARK": "No historical packing benchmark is available for this group yet.",
+      "PACK_TIME_ONLY": "Packing progress should be checked before handover cutoff.",
+      "HANDOVER_TIME_VS_BENCHMARK": "Remaining time is shorter than the typical handling time for similar parcels.",
+      "HANDOVER_QUEUE_AND_CONGESTION": "This parcel is awaiting handover during elevated outbound volume.",
+      "HANDOVER_NO_BENCHMARK": "No historical handover benchmark is available for this group yet.",
+      "HANDOVER_TIME_ONLY": "This parcel should be checked on the handover list before cutoff."
+    }
+  },
   "WarehouseOutbound": {
     "description": "Pick, pack and hand parcels to the carrier on one screen.",
     "loading": "Loading…"
-  },
-  "Notifications": {
-    "title": "Notifications",
-    "markAllRead": "Mark all as read",
-    "empty": "No notifications yet",
-    "allTab": "All",
-    "unreadTab": "Unread",
-    "live": "Live",
-    "offline": "Offline",
-    "allCategories": "All categories",
-    "viewDetail": "View details",
-    "banner": {
-      "activatedBadge": "Service Activated",
-      "activatedTitle": "Payment succeeded — Service activated automatically",
-      "activatedDescription": "Your transfer is confirmed and workspace features are unlocked immediately without reloading.",
-      "activatedContinue": "Continue to workspace",
-      "postedBadge": "Payment Confirmed",
-      "postedTitle": "Payment confirmed — Completing service activation",
-      "postedDescription": "Your SePay transfer has been reconciled automatically. Service access will unlock shortly.",
-      "postedContinue": "View invoice details"
-    },
-    "events": {
-      "asn_submitted": {
-        "title": "New ASN submitted",
-        "body": "A new inbound ASN has been submitted to the warehouse."
-      },
-      "asn_cancelled": {
-        "title": "ASN cancelled",
-        "body": "The inbound ASN has been cancelled."
-      },
-      "asn_arrived": {
-        "title": "Inbound shipment arrived",
-        "body": "The inbound shipment has arrived at the warehouse dock for receiving."
-      },
-      "inbound_discrepancy_seller_notified": {
-        "title": "Inbound discrepancy reported",
-        "body": "An inbound receipt discrepancy requires seller review."
-      },
-      "receipt_discrepancy_reported": {
-        "title": "Receipt discrepancy awaiting approval",
-        "body": "Warehouse staff reported an inbound discrepancy awaiting manager review."
-      },
-      "receipt_reviewed_approved": {
-        "title": "Inbound receipt approved",
-        "body": "The inbound receipt review was approved."
-      },
-      "receipt_reviewed_returned": {
-        "title": "Inbound receipt returned for recount",
-        "body": "Warehouse manager returned the inbound receipt for physical recount."
-      },
-      "asn_received": {
-        "title": "Inbound receiving completed",
-        "body": "Physical inbound receiving has finished for the shipment."
-      },
-      "putaway_completed": {
-        "title": "Putaway completed — Stock available",
-        "body": "Received inventory has been placed into storage bins and made sellable."
-      },
-      "pick_wave_ready": {
-        "title": "New pick wave ready",
-        "body": "A new pick wave has been prepared and assigned for warehouse picking."
-      },
-      "pick_short_reported": {
-        "title": "Pick shortage reported",
-        "body": "A stock shortage was encountered while picking; replacement is required."
-      },
-      "pick_short_replaced": {
-        "title": "Pick shortage replacement assigned",
-        "body": "Replacement bin stock has been assigned for the reported pick shortage."
-      },
-      "order_cancellation_requested": {
-        "title": "Urgent order cancellation",
-        "body": "An order cancellation was requested — halt picking/packing immediately."
-      },
-      "order_picked_ready_for_packing": {
-        "title": "Order ready for packing",
-        "body": "All picked items are complete and the order is ready at packing."
-      },
-      "shipment_label_ready": {
-        "title": "Shipping label ready",
-        "body": "Carrier label generation succeeded and the parcel is ready for handover."
-      },
-      "shipment_label_failed": {
-        "title": "Shipping label generation failed",
-        "body": "Carrier label generation failed and requires retry or inspection."
-      },
-      "parcel_handed_over": {
-        "title": "Parcel handed over to carrier",
-        "body": "The parcel has been handed over to the shipping carrier."
-      },
-      "shipment_status_delivered": {
-        "title": "Shipment delivered",
-        "body": "The shipment has been successfully delivered to the recipient."
-      },
-      "shipment_status_delivery_failed": {
-        "title": "Shipment delivery failed",
-        "body": "Delivery attempt failed; check shipment tracking for next steps."
-      },
-      "shipment_status_returning": {
-        "title": "Shipment returning to warehouse",
-        "body": "The shipment is in return transit back to the warehouse."
-      },
-      "shipment_status_lost": {
-        "title": "Shipment lost alert",
-        "body": "Carrier reported the shipment as lost; investigate and open a claim if needed."
-      },
-      "shipment_returned": {
-        "title": "Shipment returned to warehouse",
-        "body": "The returned shipment has arrived back at the warehouse."
-      },
-      "sla_handover_overdue": {
-        "title": "Handover SLA overdue",
-        "body": "An order has exceeded its carrier handover SLA deadline."
-      },
-      "sla_tracking_stalled": {
-        "title": "Tracking progress stalled",
-        "body": "No new carrier tracking movement has been received within the SLA window."
-      },
-      "handover_carrier_pickup_mismatch": {
-        "title": "Carrier pickup mismatch",
-        "body": "A parcel count mismatch occurred during carrier handover."
-      },
-      "stock_low": {
-        "title": "Low stock alert",
-        "body": "Available inventory dropped below the safety threshold."
-      },
-      "inventory_low_stock": {
-        "title": "Inventory below minimum level",
-        "body": "Product stock dropped below the configured minimum threshold."
-      },
-      "lot_near_expiry": {
-        "title": "Lot near expiry alert",
-        "body": "An inventory lot entered near-expiry, locked, or expired status."
-      },
-      "orders_sheet_sync_failed": {
-        "title": "Google Sheet sync failed",
-        "body": "Order Google Sheet connection or sync encountered an error."
-      },
-      "order_on_hold": {
-        "title": "Order placed on hold",
-        "body": "An order has been placed on hold pending verification."
-      },
-      "order_backorder": {
-        "title": "Order in backorder",
-        "body": "An order is waiting on backorder due to insufficient available stock."
-      },
-      "order_exception_corrected": {
-        "title": "Order exception corrected",
-        "body": "The blocked order issue was corrected and re-queued for fulfillment."
-      },
-      "webhook_endpoint_exhausted": {
-        "title": "Webhook endpoint exhausted",
-        "body": "Webhook delivery exhausted all retry attempts and needs attention."
-      },
-      "putaway_plan_ready": {
-        "title": "Putaway plan ready",
-        "body": "Putaway tasks have been generated and are ready for execution."
-      },
-      "putaway_capacity_required": {
-        "title": "Storage bin capacity required",
-        "body": "No eligible storage bin has sufficient capacity for putaway."
-      },
-      "putaway_bin_overridden": {
-        "title": "Putaway bin overridden",
-        "body": "A warehouse manager updated the target bin for a putaway task."
-      },
-      "putback_retargeted": {
-        "title": "Putback bin retargeted",
-        "body": "A cancelled-pick putback task was assigned a new destination bin."
-      },
-      "withdrawal_created": {
-        "title": "New withdrawal request",
-        "body": "A new seller inventory withdrawal request is pending processing."
-      },
-      "withdrawal_dispatched": {
-        "title": "Withdrawal dispatched",
-        "body": "The inventory withdrawal request has been dispatched from the warehouse."
-      },
-      "carrier_health_changed": {
-        "title": "Carrier health changed",
-        "body": "A carrier endpoint connectivity status transition was detected."
-      },
-      "rate_collection_completed": {
-        "title": "Rate collection completed",
-        "body": "Scheduled carrier freight rate collection has finished."
-      },
-      "rate_change_alert_created": {
-        "title": "Freight rate change alert",
-        "body": "A carrier freight rate change alert was raised for review."
-      },
-      "ai_forecast_completed": {
-        "title": "AI demand forecast completed",
-        "body": "Your AI demand forecast results are ready to inspect."
-      },
-      "ai_forecast_failed": {
-        "title": "AI demand forecast failed",
-        "body": "An AI demand forecast run failed; please review or retry."
-      },
-      "commercial_custom_inquiry_submitted": {
-        "title": "New enterprise inquiry",
-        "body": "A new custom enterprise plan inquiry has been submitted."
-      },
-      "commercial_custom_contract_offered": {
-        "title": "Custom contract offer ready",
-        "body": "A custom service contract proposal has been issued for review."
-      },
-      "commercial_signing_requested": {
-        "title": "Contract signing requested",
-        "body": "Your service contract is ready for e-signature on SignNow."
-      },
-      "commercial_contract_signed": {
-        "title": "Contract signed successfully",
-        "body": "Your contract signature is complete. Onboarding invoice will appear shortly."
-      },
-      "commercial_signing_declined": {
-        "title": "Contract signing declined",
-        "body": "The e-signature request was declined or cancelled."
-      },
-      "commercial_payment_posted": {
-        "title": "Payment confirmed live",
-        "body": "Your SePay bank transfer payment has been posted and reconciled."
-      },
-      "commercial_bank_receipt_posted": {
-        "title": "Bank receipt recorded",
-        "body": "Verified bank transfer evidence has been posted to the invoice."
-      },
-      "commercial_mock_payment_posted": {
-        "title": "Sandbox payment recorded",
-        "body": "A sandbox onboarding payment has been recorded."
-      },
-      "commercial_service_activated": {
-        "title": "Service activated",
-        "body": "Your ORCA commercial service is now ACTIVE and all workspace menus are unlocked."
-      },
-      "sepay_unmatched_received": {
-        "title": "Unmatched SePay transfer received",
-        "body": "A new verified SePay transfer requires manual invoice matching."
-      },
-      "commercial_plan_change_requested": {
-        "title": "Plan change requested",
-        "body": "A commercial plan change request was submitted."
-      },
-      "commercial_plan_change_scheduled": {
-        "title": "Plan change scheduled",
-        "body": "Your commercial plan change is scheduled for the upcoming billing period."
-      },
-      "commercial_plan_change_rejected": {
-        "title": "Plan change rejected",
-        "body": "Your commercial plan change request was not approved."
-      },
-      "commercial_plan_change_applied": {
-        "title": "New commercial plan applied",
-        "body": "Your updated commercial service plan is now active."
-      },
-      "commercial_service_status_changed": {
-        "title": "Service status changed",
-        "body": "Your account commercial service status was updated."
-      },
-      "tenant_status_changed": {
-        "title": "Tenant status updated",
-        "body": "Tenant operational account status was updated by an administrator."
-      },
-      "commercial_closure_requested": {
-        "title": "Contract closure requested",
-        "body": "A request to close the active commercial contract has been logged."
-      },
-      "commercial_contract_closed": {
-        "title": "Contract closed",
-        "body": "The commercial contract closeout process is complete."
-      },
-      "invoice_issued": {
-        "title": "New invoice issued",
-        "body": "A new commercial or billing invoice has been issued."
-      },
-      "invoice_due_soon": {
-        "title": "Invoice due soon",
-        "body": "An open invoice is approaching its payment due date."
-      },
-      "payout_sent": {
-        "title": "COD payout statement sent",
-        "body": "A COD payout statement has been sent for seller confirmation."
-      },
-      "payout_confirmed": {
-        "title": "COD payout confirmed",
-        "body": "The seller confirmed the COD payout statement."
-      },
-      "payout_disputed": {
-        "title": "COD payout disputed",
-        "body": "A COD payout statement dispute has been opened for review."
-      },
-      "payout_line_disputed": {
-        "title": "COD payout line disputed",
-        "body": "A specific line item on the COD payout statement was disputed."
-      },
-      "payout_resolved": {
-        "title": "COD payout dispute resolved",
-        "body": "The dispute on the COD payout statement has been resolved."
-      },
-      "payout_reviewed": {
-        "title": "COD payout reviewed",
-        "body": "A COD payout statement review action has been recorded."
-      },
-      "payout_approved": {
-        "title": "COD payout approved",
-        "body": "The COD payout statement has been approved for disbursement."
-      },
-      "payout_paid": {
-        "title": "COD payout paid",
-        "body": "COD payout funds have been disbursed."
-      },
-      "return_requested": {
-        "title": "Return request created",
-        "body": "A new customer return request was submitted."
-      },
-      "return_reverse_requested": {
-        "title": "Reverse pickup requested",
-        "body": "Reverse logistics pickup was requested for a return order."
-      },
-      "return_reverse_authorized": {
-        "title": "Reverse pickup authorized",
-        "body": "Reverse logistics pickup authorization is complete."
-      },
-      "return_authorized": {
-        "title": "Return authorized",
-        "body": "The return order has been authorized by operations."
-      },
-      "return_arrived": {
-        "title": "Returned parcel arrived",
-        "body": "The returned parcel arrived at the warehouse for inspection."
-      },
-      "return_inspected": {
-        "title": "Return inspection completed",
-        "body": "Warehouse staff completed quality inspection on the returned items."
-      },
-      "return_reviewed": {
-        "title": "Return disposition reviewed",
-        "body": "Warehouse manager reviewed the return inspection decision."
-      },
-      "return_restocked": {
-        "title": "Return stock restocked",
-        "body": "Approved return inventory has been returned to sellable stock."
-      },
-      "claim_opened": {
-        "title": "New claim opened",
-        "body": "A new compensation claim was opened and awaits evidence."
-      },
-      "claim_evidence_submitted": {
-        "title": "Claim evidence submitted",
-        "body": "Warehouse evidence was uploaded and verified for the claim."
-      },
-      "claim_investigated": {
-        "title": "Claim investigation completed",
-        "body": "Operations completed the responsibility investigation for the claim."
-      },
-      "claim_decided": {
-        "title": "Claim decision issued",
-        "body": "A final compensation decision has been recorded on the claim."
-      },
-      "claim_credit_posted": {
-        "title": "Claim credit posted",
-        "body": "The approved claim credit has been posted to the seller ledger."
-      },
-      "count_assigned": {
-        "title": "Cycle count assigned",
-        "body": "A warehouse cycle count task has been assigned to you."
-      },
-      "count_observed": {
-        "title": "Cycle count observation submitted",
-        "body": "Physical count results were submitted for manager review."
-      },
-      "count_recount_requested": {
-        "title": "Cycle count recount requested",
-        "body": "Warehouse manager requested a physical recount."
-      },
-      "disposal_requested": {
-        "title": "Inventory disposal requested",
-        "body": "A seller stock disposal request requires warehouse approval."
-      },
-      "disposal_reviewed": {
-        "title": "Disposal request reviewed",
-        "body": "Warehouse manager reviewed the stock disposal request."
-      },
-      "disposal_revoked": {
-        "title": "Disposal request revoked",
-        "body": "The seller revoked the pending disposal authorization."
-      },
-      "disposal_executed": {
-        "title": "Inventory disposal executed",
-        "body": "Warehouse staff executed the approved stock disposal."
-      },
-      "lot_recalled": {
-        "title": "Lot recall triggered",
-        "body": "An inventory lot was quarantined and recalled due to safety policy."
-      },
-      "recall_customer_notification": {
-        "title": "Recall customer notification required",
-        "body": "Customer recall notices were queued for affected delivered parcels."
-      },
-      "platform_user_warehouses_assigned": {
-        "title": "Warehouse assignments updated",
-        "body": "Your assigned warehouse scope was updated by an administrator."
-      }
-    }
   }
 }

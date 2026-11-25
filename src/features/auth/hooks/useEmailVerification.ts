@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { apiClient } from '@/services/apiClient';
+import { ApiError, apiClient } from '@/services/apiClient';
 
 interface SendVerificationResponse {
   success: boolean;
@@ -18,35 +18,47 @@ export function useEmailVerification() {
   const [otpStatus, setOtpStatus] = useState<OtpStatus>('idle');
   /** Unix ms timestamp of last OTP send — used to render the 60s resend cooldown */
   const [sentAt, setSentAt] = useState<number | null>(null);
+  const [error, setError] = useState<{ action: 'send' | 'verify'; message?: string }>();
+  const clearError = () => setError(undefined);
 
   const sendOtp = async (email: string): Promise<boolean> => {
+    clearError();
     try {
       setOtpStatus('sending');
       await apiClient.post<SendVerificationResponse>(
         '/v1/auth/send-verification',
         { email },
-        { requiresAuth: false },
+        { requiresAuth: false, silent: true },
       );
       setOtpStatus('sent');
       setSentAt(Date.now());
       return true;
-    } catch {
+    } catch (failure) {
+      setError({
+        action: 'send',
+        message: failure instanceof ApiError ? failure.message : undefined,
+      });
       setOtpStatus('idle');
       return false;
     }
   };
 
   const verifyOtp = async (email: string, otp: string): Promise<boolean> => {
+    clearError();
     try {
       setOtpStatus('verifying');
       await apiClient.post<VerifyEmailResponse>(
         '/v1/auth/verify-email',
         { email, otp },
-        { requiresAuth: false },
+        { requiresAuth: false, silent: true },
       );
       setOtpStatus('verified');
       return true;
-    } catch {
+    } catch (failure) {
+      setError({
+        action: 'verify',
+        message: failure instanceof ApiError ? failure.message : undefined,
+      });
       setOtpStatus('sent');
       return false;
     }
@@ -55,7 +67,8 @@ export function useEmailVerification() {
   const resetOtpStatus = () => {
     setOtpStatus('idle');
     setSentAt(null);
+    clearError();
   };
 
-  return { otpStatus, sentAt, sendOtp, verifyOtp, resetOtpStatus };
+  return { otpStatus, sentAt, sendOtp, verifyOtp, resetOtpStatus, error, clearError };
 }

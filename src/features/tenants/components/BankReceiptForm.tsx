@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -66,53 +67,56 @@ export function BankReceiptForm({
       abort.abort();
     };
   }, []);
-  const submit = form.handleSubmit(async (input) => {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    const file = input.file[0];
-    if (!file) {
-      setBusy(false);
-      return;
-    }
-    const current = () =>
-      !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
-    try {
-      if (evidence.current?.file !== file) {
-        const uploaded = await commercialApi.bankEvidence(
+  const submit = form.handleSubmit(
+    async (input) => {
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      const file = input.file[0];
+      if (!file) {
+        setBusy(false);
+        return;
+      }
+      const current = () =>
+        !controller.current?.signal.aborted && revision === useAuthStore.getState().revision;
+      try {
+        if (evidence.current?.file !== file) {
+          const uploaded = await commercialApi.bankEvidence(
+            tenantId,
+            invoice.id,
+            file,
+            controller.current?.signal,
+          );
+          if (!current()) return;
+          evidence.current = { file, key: uploaded.evidenceKey };
+        }
+        if (!evidence.current) return;
+        const posted = await commercialApi.postBank(
           tenantId,
           invoice.id,
-          file,
+          {
+            operationKey: operation.current,
+            bankReference: input.bankReference,
+            amountVnd: input.amountVnd,
+            receivedAt: new Date(input.receivedAt).toISOString(),
+            evidenceKey: evidence.current.key,
+          },
           controller.current?.signal,
         );
         if (!current()) return;
-        evidence.current = { file, key: uploaded.evidenceKey };
+        setNotice(`${t('receiptSaved')} ${t('unallocated', { amount: posted.unallocatedVnd })}`);
+        form.reset();
+        operation.current = createUuid();
+        evidence.current = null;
+        await onPosted();
+      } catch (failure) {
+        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+      } finally {
+        if (current()) setBusy(false);
       }
-      if (!evidence.current) return;
-      const posted = await commercialApi.postBank(
-        tenantId,
-        invoice.id,
-        {
-          operationKey: operation.current,
-          bankReference: input.bankReference,
-          amountVnd: input.amountVnd,
-          receivedAt: new Date(input.receivedAt).toISOString(),
-          evidenceKey: evidence.current.key,
-        },
-        controller.current?.signal,
-      );
-      if (!current()) return;
-      setNotice(`${t('receiptSaved')} ${t('unallocated', { amount: posted.unallocatedVnd })}`);
-      form.reset();
-      operation.current = createUuid();
-      evidence.current = null;
-      await onPosted();
-    } catch (failure) {
-      if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
-    } finally {
-      if (current()) setBusy(false);
-    }
-  });
+    },
+    () => notifyInvalidForm(),
+  );
   const invalid = (key: keyof z.infer<typeof receiptSchema>) =>
     form.formState.errors[key] ? t('invalid') : undefined;
   return (
@@ -154,7 +158,9 @@ export function BankReceiptForm({
         {t('verifyBank')}
       </label>
       {form.formState.errors.verified && (
-        <p className="text-sm text-[var(--sc-error)]">{t('invalid')}</p>
+        <Alert variant="error" compact>
+          {t('invalid')}
+        </Alert>
       )}
       <Button type="submit" isLoading={busy}>
         {t('postReceipt')}

@@ -16,6 +16,7 @@ export const pickLineSchema = z
   .object({
     id: z.uuid(),
     version: z.number().int(),
+    fulfillmentOrderId: z.uuid().optional(),
     orderCode: z.string(),
     parcelNo: z.number().int().positive(),
     sku: z.string(),
