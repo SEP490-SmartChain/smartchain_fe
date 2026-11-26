@@ -43,3 +43,6 @@ export { CommercialBilling } from './components/CommercialBilling';
 export { CommercialQuotaAdmin } from './components/CommercialQuotaPanel';
 
 export { SellerPayoutWorkspace } from './components/SellerPayoutWorkspace';
+export { PayoutApprovalQueue } from './components/PayoutApprovalQueue';
+export { PeriodCloseWorkspace } from './components/PeriodCloseWorkspace';
+export { PayoutStatementDetail } from './components/PayoutStatementDetail';

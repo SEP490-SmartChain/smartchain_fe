@@ -1072,6 +1072,8 @@ export const ROUTE_POLICY: readonly RoutePolicy[] = [
   { path: '/returns', capability: 'returns.view' },
   { path: '/warehouse/returns', capability: 'returns.operations.view' },
   { path: '/billing', capability: 'workspace.billing.view' },
+  { path: '/payouts', capability: 'payout.manage' },
+  { path: '/period-close', capability: 'payout.manage' },
   { path: '/statements', capability: 'statements.view' },
   { path: '/warehouses', capability: 'warehouses.view' },
   { path: '/inventory', capability: 'inventory.view' },
@@ -1324,6 +1326,8 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { key: 'reconciliation', href: '/reconciliation', capability: 'reconciliation.view' },
       { key: 'subscription_plans', href: '/admin/plans', capability: 'platform.plans.manage' },
       { key: 'billing', href: '/billing', capability: 'workspace.billing.view' },
+      { key: 'payout_approvals', href: '/payouts', capability: 'payout.manage' },
+      { key: 'period_close', href: '/period-close', capability: 'payout.manage' },
     ],
   },
   {
