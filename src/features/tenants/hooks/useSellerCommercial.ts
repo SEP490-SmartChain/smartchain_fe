@@ -17,6 +17,10 @@ import {
   type SellerCommercialState,
 } from '../api/commercialApi';
 import { launchSigningSession, shouldUseSigningWindow } from '../lib/signingPresentation';
+import {
+  buildWarehouseSelectionFingerprint,
+  normalizeWarehouseIds,
+} from '../lib/warehouseSelection';
 
 export function useSellerCommercial() {
   const revision = useAuthStore((state) => state.revision);
@@ -24,6 +28,7 @@ export function useSellerCommercial() {
   const [state, setState] = useState<SellerCommercialState | null>(null);
   const [invoices, setInvoices] = useState<OnboardingInvoice[]>([]);
   const [configured, setConfigured] = useState(false);
+  const [warehouseSelectionEnabled, setWarehouseSelectionEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -39,7 +44,7 @@ export function useSellerCommercial() {
     revision: number;
     kind: 'sample' | 'prepared';
   } | null>(null);
-  const operation = useRef<{ agreementId: string; key: string } | null>(null);
+  const operation = useRef<{ fingerprint: string; key: string; uncertain: boolean } | null>(null);
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(false);
   const isRealtimeConnected = useIsRealtimeConnected();
@@ -58,6 +63,7 @@ export function useSellerCommercial() {
         if (!isCurrent() || signal?.aborted) return;
         setPlans(catalog.plans);
         setConfigured(catalog.signingConfigured);
+        setWarehouseSelectionEnabled(catalog.warehouseSelectionEnabled);
         setState(next);
         const user = useAuthStore.getState().user;
         if (user && user.serviceStatus !== next.serviceStatus) {
@@ -139,13 +145,27 @@ export function useSellerCommercial() {
   const start = async (
     plan: CommercialPlan,
     businessProfile?: ContractBusinessProfile,
+    warehouseIds?: string[],
   ): Promise<boolean> => {
     if (busy || !plan.agreementId || !plan.agreementVersionRef) return false;
     setBusy(true);
     setError(null);
     const previousContractId = state?.currentContractId;
-    if (operation.current?.agreementId !== plan.agreementId) {
-      operation.current = { agreementId: plan.agreementId, key: createUuid() };
+    const normalizedWarehouseIds =
+      warehouseIds === undefined ? undefined : normalizeWarehouseIds(warehouseIds);
+    const fingerprint = buildWarehouseSelectionFingerprint(
+      plan.agreementId,
+      normalizedWarehouseIds,
+    );
+    if (operation.current?.uncertain && operation.current.fingerprint !== fingerprint) {
+      try {
+        await commercialApi.contracts(undefined, controller.current?.signal);
+      } catch {
+        // Proceed with fresh key if pre-check itself cannot reach backend.
+      }
+    }
+    if (operation.current?.fingerprint !== fingerprint) {
+      operation.current = { fingerprint, key: createUuid(), uncertain: false };
     }
     try {
       const request = await commercialApi.start(
@@ -154,11 +174,21 @@ export function useSellerCommercial() {
         operation.current.key,
         controller.current?.signal,
         businessProfile,
+        normalizedWarehouseIds,
       );
-      if (request.contractId !== previousContractId) operation.current = null;
+      if (request.contractId !== previousContractId) {
+        operation.current = null;
+      } else if (operation.current) {
+        operation.current.uncertain = false;
+      }
       await reload(controller.current?.signal);
       return true;
     } catch (failure) {
+      if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500) {
+        operation.current = null;
+      } else if (operation.current) {
+        operation.current.uncertain = true;
+      }
       if (isCurrent()) {
         setError(failure instanceof Error ? failure : new Error('COMMERCIAL.START_FAILED'));
       }
@@ -232,6 +262,7 @@ export function useSellerCommercial() {
     state,
     invoices,
     configured,
+    warehouseSelectionEnabled,
     loading,
     busy,
     error,

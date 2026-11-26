@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { formatCapacityDecimal } from '@/lib/volumeValidation';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -20,16 +21,6 @@ import { warehouseLayoutApi, type Bin, type Zone } from '../api/warehouseLayoutA
 
 import type { BinFormValues, ZoneFormValues } from '../schemas/warehouseLayoutSchema';
 import type { Warehouse } from '../types/warehouse';
-
-function formatCapacity(value: string, locale: string, decimalSeparator: string): string {
-  const [integerPart, fractionPart] = value.split('.');
-  if (!/^\d+$/.test(integerPart) || (fractionPart !== undefined && !/^\d+$/.test(fractionPart))) {
-    return value;
-  }
-  const integer = BigInt(integerPart).toLocaleString(locale);
-  const fraction = fractionPart?.replace(/0+$/, '');
-  return fraction ? `${integer}${decimalSeparator}${fraction}` : integer;
-}
 
 export function WarehouseLayoutPanel({
   warehouse,
@@ -44,9 +35,6 @@ export function WarehouseLayoutPanel({
 }) {
   const t = useTranslations('WarehouseLayout');
   const locale = useLocale();
-  const decimalSeparator =
-    new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === 'decimal')
-      ?.value ?? '.';
   const { can } = useAccess();
   const principal = useAuthStore((state) => state.user);
   const canManage = can('warehouses.layout.manage');
@@ -379,10 +367,10 @@ export function WarehouseLayoutPanel({
                     </div>
                   </td>
                   <td className={styles.numeric}>
-                    {formatCapacity(bin.maxWeightG, locale, decimalSeparator)}
+                    {formatCapacityDecimal(bin.maxWeightG, locale)}
                   </td>
                   <td className={styles.numeric}>
-                    {formatCapacity(bin.maxVolumeM3, locale, decimalSeparator)}
+                    {formatCapacityDecimal(bin.maxVolumeM3, locale)}
                   </td>
                   <td className="px-3 py-2">
                     <Badge

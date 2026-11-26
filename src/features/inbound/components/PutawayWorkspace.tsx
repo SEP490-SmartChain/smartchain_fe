@@ -7,10 +7,6 @@ import { RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-<<<<<<< HEAD
-import { Alert, Badge, Button, Card, CardContent, Input, Select } from '@/components/Common';
-import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
-=======
 import {
   Alert,
   Badge,
@@ -21,7 +17,6 @@ import {
   Input,
   Select,
 } from '@/components/Common';
->>>>>>> origin/develop
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';

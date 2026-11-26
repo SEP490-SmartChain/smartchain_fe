@@ -15,7 +15,8 @@ let server,
   profileSchema,
   shouldUseSigningWindow,
   launchSigningSession,
-  PreparationForm;
+  PreparationForm,
+  warehouseSelection;
 const originalFetch = globalThis.fetch;
 const id = '00000000-0000-4000-8000-000000000001';
 const agreementId = '00000000-0000-4000-8000-000000000002';
@@ -56,6 +57,9 @@ before(async () => {
   ({ CommercialPreparationForm: PreparationForm } = await server.ssrLoadModule(
     '/src/features/tenants/components/CommercialPreparationForm.tsx',
   ));
+  warehouseSelection = await server.ssrLoadModule(
+    '/src/features/tenants/lib/warehouseSelection.ts',
+  );
 });
 
 test('reading sample terms never submits the contract preparation form', () => {
@@ -372,4 +376,135 @@ test('mock payment cannot confirm a malformed backend status or survive an auth 
   store.getState().clear();
   finish(ok({ contractId: id, serviceStatus: 'ACTIVE', serviceVersion: 2 }));
   await assert.rejects(pending, (error) => error.code === 'AUTH.SCOPE_CHANGED');
+});
+
+test('warehouseSelection validates Basic exact-1 and Standard 1..3 canonically sorted IDs', () => {
+  const whA = '00000400-0000-0000-0000-000000000001';
+  const whB = '00000400-0000-0000-0000-000000000002';
+  const whC = '00000400-0000-0000-0000-000000000003';
+  const whD = '00000400-0000-0000-0000-000000000004';
+
+  assert.deepEqual(warehouseSelection.normalizeWarehouseIds([whB, whA, whB]), [whA, whB]);
+  assert.equal(
+    warehouseSelection.validatePlanWarehouseSelection({ code: 'BASIC', warehouseAllowance: 1 }, [])
+      .valid,
+    false,
+  );
+  assert.equal(
+    warehouseSelection.validatePlanWarehouseSelection({ code: 'BASIC', warehouseAllowance: 1 }, [
+      whA,
+      whB,
+    ]).reason,
+    'exactOne',
+  );
+  assert.equal(
+    warehouseSelection.validatePlanWarehouseSelection({ code: 'BASIC', warehouseAllowance: 1 }, [
+      whA,
+    ]).valid,
+    true,
+  );
+  assert.equal(
+    warehouseSelection.validatePlanWarehouseSelection({ code: 'STANDARD', warehouseAllowance: 3 }, [
+      whC,
+      whA,
+      whB,
+    ]).valid,
+    true,
+  );
+  assert.equal(
+    warehouseSelection.validatePlanWarehouseSelection({ code: 'STANDARD', warehouseAllowance: 3 }, [
+      whA,
+      whB,
+      whC,
+      whD,
+    ]).reason,
+    'maxLimit',
+  );
+});
+
+test('CommercialPreparationForm renders warehouse picker when warehouseSelectionEnabled is true', () => {
+  const messages = JSON.parse(
+    readFileSync(new URL('../messages/vi.json', import.meta.url), 'utf8'),
+  );
+  const html = renderToStaticMarkup(
+    createElement(
+      NextIntlClientProvider,
+      { locale: 'vi', timeZone: 'Asia/Ho_Chi_Minh', messages },
+      createElement(PreparationForm, {
+        plan: {
+          code: 'STANDARD',
+          warehouseAllowance: 3,
+          requiresBusinessProfile: false,
+        },
+        busy: false,
+        warehouseSelectionEnabled: true,
+        onPreview: () => {},
+        onSubmit: async () => {},
+      }),
+    ),
+  );
+  assert.ok(html.includes(messages.Commercial.warehouseSelectionTitle));
+  assert.ok(
+    html.includes(messages.Commercial.warehouseSelectionStandardRule.replace('{max}', '3')),
+  );
+});
+
+test('commercialApi plans, start, and contracts support warehouseSelectionEnabled and warehouseIds', async () => {
+  const whA = '00000400-0000-4000-8000-000000000001';
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), method: options.method, body: options.body });
+    if (String(url).endsWith('/v1/commercial/plans')) {
+      return ok({ plans: [], signingConfigured: true, warehouseSelectionEnabled: true });
+    }
+    if (String(url).endsWith('/v1/commercial/signing-requests')) {
+      return ok(request);
+    }
+    return ok({
+      currentContractId: id,
+      contracts: [
+        {
+          id,
+          tenantId: id,
+          contractKind: 'STANDARD',
+          status: 'CONFIRMED',
+          agreementVersionRef: 'AG-1',
+          planVersionId: id,
+          depositRequiredVnd: '3000000',
+          creditLimitVnd: '5000000',
+          effectiveFrom: '2026-10-01',
+          version: 1,
+          acceptedAt: null,
+          confirmedAt: null,
+          selectedWarehouses: [{ id: whA, code: 'WH-HN', name: 'Kho Hà Nội' }],
+        },
+      ],
+      signingRequests: [],
+      serviceStatus: 'ACTIVE',
+      serviceVersion: 1,
+    });
+  };
+
+  const catalog = await api.plans();
+  assert.equal(catalog.warehouseSelectionEnabled, true);
+
+  await api.start(agreementId, 'AG-1', id, undefined, undefined, [whA]);
+  assert.deepEqual(JSON.parse(calls[1].body), {
+    agreementId,
+    agreementVersionRef: 'AG-1',
+    operationKey: id,
+    warehouseIds: [whA],
+  });
+
+  await api.start(agreementId, 'AG-1', id);
+  assert.deepEqual(JSON.parse(calls[2].body), {
+    agreementId,
+    agreementVersionRef: 'AG-1',
+    operationKey: id,
+  });
+
+  const contractState = await api.contracts();
+  assert.deepEqual(contractState.contracts[0].selectedWarehouses, [
+    { id: whA, code: 'WH-HN', name: 'Kho Hà Nội' },
+  ]);
 });

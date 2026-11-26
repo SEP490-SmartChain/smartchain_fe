@@ -21,6 +21,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, Input, Select, Tabs } from '@/components/Common';
+import { DAY_MS, vietnamToday } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -158,9 +159,10 @@ function ScopedReports({ initialView }: { initialView?: ReportKind }) {
 function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptions }) {
   const t = useTranslations('Reports'),
     locale = useLocale();
-  const today = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
+  const dateText = useTranslations('DateValidation');
+  const today = vietnamToday();
   const defaults: ReportFilters = {
-    from: new Date(Date.parse(today) - 29 * 86400000).toISOString().slice(0, 10),
+    from: new Date(Date.parse(today) - 29 * DAY_MS).toISOString().slice(0, 10),
     to: today,
     warehouseId: options.warehouseRequiredViews.includes(view)
       ? (options.warehouses[0]?.id ?? '')
@@ -318,14 +320,20 @@ function ReportPanel({ view, options }: { view: ReportKind; options: ReportOptio
             <Input
               type="date"
               label={t('from')}
-              {...form.register('from')}
-              error={form.formState.errors.from ? t('invalidRange') : undefined}
+              {...form.register('from', { deps: ['to'] })}
+              error={form.formState.errors.from ? dateText('reportDate') : undefined}
             />
             <Input
               type="date"
               label={t('to')}
               {...form.register('to')}
-              error={form.formState.errors.to ? t('invalidRange') : undefined}
+              error={
+                form.formState.errors.to
+                  ? form.formState.errors.to.message === 'range'
+                    ? t('invalidRange')
+                    : dateText('reportDate')
+                  : undefined
+              }
             />
             {view !== 'audit' && (
               <Select

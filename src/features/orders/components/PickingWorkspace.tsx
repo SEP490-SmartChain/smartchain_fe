@@ -24,6 +24,7 @@ import {
 } from '@/features/orders/lib/fulfillmentPending';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { localDateTimeInput } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -77,35 +78,17 @@ function preferredScrollBehavior(): ScrollBehavior {
  * (PICK.INVALID_CUTOFF), and "now" is what an operator taking work means.
  */
 function currentCutoffInput(): string {
-  const at = new Date(Date.now() - 60_000);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  return localDateTimeInput(new Date(Date.now() - 60_000));
 }
 
 export function PickingWorkspace() {
   const user = useAuthStore((s) => s.user),
     revision = useAuthStore((s) => s.revision);
-<<<<<<< HEAD
   const isRealtimeConnected = useIsRealtimeConnected();
   const [syncRevision, setSyncRevision] = useState(0);
   useRealtimeSync(['outbound.picking', 'outbound.orders'], () => {
     setSyncRevision((n) => n + 1);
   });
-  return (
-    <PickingScope
-      key={`${user?.userId}:${revision}`}
-      syncRevision={syncRevision}
-      realtimeConnected={isRealtimeConnected}
-    />
-  );
-}
-function PickingScope({
-  syncRevision = 0,
-  realtimeConnected = false,
-}: {
-  syncRevision?: number;
-  realtimeConnected?: boolean;
-=======
   const [searchParams, setSearchParams] = useSearchParams();
   const handoffWarehouse = searchParams.get('warehouse');
   const handoffWave = searchParams.get('wave');
@@ -174,7 +157,6 @@ function PickingScope({
   handoffException?: string | null;
   handoffIntent?: 'shortage' | 'progress' | null;
   clearHandoffParams?: () => void;
->>>>>>> origin/develop
   syncRevision?: number;
   realtimeConnected?: boolean;
 } = {}) {
@@ -404,29 +386,6 @@ function PickingScope({
     let active = true;
     setLoading(true);
     setError('');
-<<<<<<< HEAD
-    void Promise.all([
-      pickingApi.waves(warehouse, cursor, c.signal),
-      manager ? pickingApi.staff(warehouse, c.signal) : Promise.resolve([]),
-      manager ? pickingApi.backlog(warehouse, backlogCursor, c.signal) : Promise.resolve(null),
-    ])
-      .then(([page, options, backlogPage]) => {
-        if (!c.signal.aborted) {
-          setWaves(page.items);
-          setNext(page.nextCursor);
-          setStaff(options);
-          if (backlogPage) setBacklog(backlogPage);
-        }
-      })
-      .catch(() => {
-        if (!c.signal.aborted) setError(t('loadError'));
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setLoading(false);
-      });
-    return () => c.abort();
-  }, [warehouse, cursor, backlogCursor, manager, refresh, syncRevision, t]);
-=======
     const startTimer = window.setTimeout(() => {
       if (!active) return;
       void Promise.all([
@@ -454,8 +413,6 @@ function PickingScope({
       window.clearTimeout(startTimer);
       c.abort();
     };
-  }, [warehouse, cursor, backlogCursor, manager, refresh, t]);
->>>>>>> origin/develop
   }, [warehouse, cursor, backlogCursor, manager, refresh, syncRevision, t]);
   useEffect(() => {
     setLineCursor(null);
@@ -488,10 +445,6 @@ function PickingScope({
         }
       });
     return () => c.abort();
-<<<<<<< HEAD
-  }, [warehouse, waveId, refresh, syncRevision, lineCursor, t]);
-=======
-  }, [warehouse, waveId, refresh, lineCursor, deepLinkFetchSeq, t]);
   }, [warehouse, waveId, refresh, syncRevision, lineCursor, deepLinkFetchSeq, t]);
   // Resolve verified deep-link wave/line focus across line pagination pages with live intent/exceptionId
   // and strict same-parcel fallback only (M1 + M2 + High #3).
@@ -605,7 +558,6 @@ function PickingScope({
     setNotice(t('deepLinkLineUnavailable'));
     focusPickListHeading();
   }, [detail, pendingDeepLink, t]);
->>>>>>> origin/develop
   useEffect(() => {
     if (!waveRequest || !warehouse) return;
     const c = new AbortController();
@@ -1128,6 +1080,7 @@ function WaveForm({
   onSubmit: (v: z.infer<typeof pickWaveFormSchema>) => void;
 }) {
   const t = useTranslations('Picking');
+  const dateText = useTranslations('DateValidation');
   const f = useForm<z.infer<typeof pickWaveFormSchema>>({
     resolver: zodResolver(pickWaveFormSchema),
     defaultValues: { assigneeId: '', cutoffAt: currentCutoffInput(), maxParcels: 20 },
@@ -1149,17 +1102,21 @@ function WaveForm({
       return;
     }
     const values = f.getValues();
+    const staysCurrent = () => {
+      const current = f.getValues();
+      return current.cutoffAt === values.cutoffAt && current.maxParcels === values.maxParcels;
+    };
     setPreviewBusy(true);
     setPreviewError(null);
     try {
-      setPreview(
-        await pickingApi.previewWave(
-          warehouseId,
-          new Date(values.cutoffAt).toISOString(),
-          values.maxParcels,
-        ),
+      const result = await pickingApi.previewWave(
+        warehouseId,
+        new Date(values.cutoffAt).toISOString(),
+        values.maxParcels,
       );
+      if (staysCurrent()) setPreview(result);
     } catch (cause) {
+      if (!staysCurrent()) return;
       const code = cause instanceof ApiError ? (cause.code.split('.').at(-1) ?? '') : '';
       setPreviewError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('previewError'));
     } finally {
@@ -1170,14 +1127,18 @@ function WaveForm({
     <Card>
       <CardContent>
         <h2 className="mb-4 font-semibold">{t('waveSetup')}</h2>
-        <form onSubmit={f.handleSubmit(onSubmit, () => notifyInvalidForm())} className="space-y-3">
+        <form
+          onSubmit={f.handleSubmit(onSubmit, () => notifyInvalidForm())}
+          className="space-y-3"
+          noValidate
+        >
           <Input
             type="datetime-local"
             label={t('cutoff')}
             required
             {...f.register('cutoffAt')}
             disabled={disabled}
-            error={f.formState.errors.cutoffAt ? t('required') : undefined}
+            error={f.formState.errors.cutoffAt ? dateText('pickCutoff') : undefined}
           />
           <Select
             label={t('assignee')}

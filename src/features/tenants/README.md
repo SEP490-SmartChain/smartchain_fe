@@ -1,5 +1,13 @@
 # features/tenants
 
+## ORCA-PLAN-SERVICES-001 included services
+
+The plan editor loads the approved codes and bilingual names from commercial published
+terms. Publishing requires that catalog and sends an array of codes. The latest version
+of the selected plan provides the initial selection. Legacy descriptions remain visible
+for reference. Each Seller view uses names from its own displayed plan version, including
+an applied change in the quota panel. Selection only affects the displayed list.
+
 ## SS-1301 line disputes and immutable evidence
 
 Statement detail reads full-statement open-dispute totals and the allowlisted
@@ -235,7 +243,7 @@ The Seller UI does not offer mock payment. Verified backend transaction status s
 authoritative; use Check payment status after transferring. Fully paid invoices do
 not offer another payment QR. Missing bank setup keeps manual instructions available.
 
-## Seller staff invitation (UC-06/15)
+Seller staff invitation (UC-06/15)
 
 Owner /iam/users exposes Invite staff using POST /v1/iam/users with fullName,
 email and fixed SELLER_STAFF. The form validates with RHF/Zod and sends no tenant,
@@ -244,3 +252,17 @@ worker sends the password-setup email. Creation does not claim email delivery or
 activate the staff account. Server errors retain the draft; closing is disabled
 during submission and auth changes discard pending responses. Existing central
 iam.users.manage capability remains Owner-only. No schema migration is required.
+
+## ORCA-SELLER-WH-001 Seller warehouse selection
+
+When the backend exposes `warehouseSelectionEnabled` on `GET /v1/commercial/plans`
+(or the seller already has a configured warehouse list on their contract),
+`CommercialPreparationForm` and `CommercialQuotaPanel` load active platform ORCA
+warehouses and require an explicit confirmation checkbox before calling
+`POST /v1/commercial/signing-requests` or `POST /v1/commercial/plan-changes` with a
+sorted `warehouseIds` array: Basic requires exactly 1 active warehouse (`Radio`), and
+Standard allows 1 to 3 (`Checkbox`). Enterprise (`CUSTOM`) and legacy contracts with
+`selectedWarehouses === null` remain unrestricted. Uncertain 5xx/network retries
+retain the `operationKey` and pre-check contract/quota state; 4xx rejections release
+the retry key. Backend enforces role/stock/open-ASN validation and worker re-checks at
+the `00:00 Asia/Ho_Chi_Minh` cycle boundary.

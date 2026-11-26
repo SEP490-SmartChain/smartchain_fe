@@ -88,7 +88,6 @@ export function InvoiceDetail({
     void load();
   }, [load]);
 
-<<<<<<< HEAD
   const syncCommercial = useCallback(async () => {
     await load();
     await onChanged();
@@ -112,8 +111,6 @@ export function InvoiceDetail({
     live.isPaymentLiveConfirmed &&
     (!live.state.lastInvoiceNumber || live.state.lastInvoiceNumber === invoice.invoiceNo),
   );
-=======
->>>>>>> origin/develop
 
   const perform = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -294,9 +291,6 @@ export function InvoiceDetail({
                   {t('ledgerHelp')}
                 </div>
               )}
-<<<<<<< HEAD
-            </div>
-            {invoice.paymentStatus === 'LEDGER' && <Alert variant="info">{t('ledgerHelp')}</Alert>}
               {invoice.documentStatus === 'ISSUED' &&
                 invoice.paymentStatus === 'UNPAID' &&
                 !invoice.paymentRequired &&
@@ -333,10 +327,6 @@ export function InvoiceDetail({
                 onContinue={onClose}
               />
             )}
-            {invoice.documentStatus === 'ISSUED' &&
-              invoice.paymentStatus === 'UNPAID' &&
-              !invoice.paymentRequired &&
-              !liveMatchesThisInvoice && <Alert variant="info">{t('noActiveObligation')}</Alert>}
 
             {payment &&
               invoice.paymentRequired &&
@@ -353,32 +343,6 @@ export function InvoiceDetail({
                   }}
                 />
               )}
-            <div>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h4 className="font-semibold">{t('lineTitle')}</h4>
-                <span className="inline-flex items-center gap-1.5 text-xs text-[var(--sc-text-secondary)]">
-=======
-              {invoice.documentStatus === 'ISSUED' &&
-                invoice.paymentStatus === 'UNPAID' &&
-                !invoice.paymentRequired && (
-                  <div className="border-t border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/40 px-5 py-2.5 text-xs text-[var(--sc-text-secondary)]">
-                    {t('noActiveObligation')}
-                  </div>
-                )}
-            </Card>
-
-            {payment && invoice.paymentRequired && (
-              <InvoiceBankTransfer
-                payment={payment}
-                busy={busy}
-                onRefresh={() => {
-                  void perform(async () => {
-                    await load();
-                    await onChanged();
-                  });
-                }}
-              />
-            )}
 
             {/* Unified Card 2: Fee Lines Table */}
             <Card
@@ -390,7 +354,6 @@ export function InvoiceDetail({
                   {t('lineTitle')}
                 </h4>
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--sc-primary-alpha-08)] px-2.5 py-1 text-xs font-medium text-[var(--sc-primary)]">
->>>>>>> origin/develop
                   <ShieldCheck size={14} aria-hidden />
                   {t('sourceTraceable')}
                 </span>

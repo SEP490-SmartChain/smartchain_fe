@@ -8,11 +8,8 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, PageHeader, Select } from '@/components/Common';
 import { useProducts } from '@/features/catalog';
-<<<<<<< HEAD
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
-=======
 import { notifyInvalidForm } from '@/lib/errorNotifications';
->>>>>>> origin/develop
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/services/apiClient';
 

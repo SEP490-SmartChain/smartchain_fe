@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { calendarDateSchema, DAY_MS } from '@/lib/dateValidation';
+
 export const reportKindSchema = z.enum([
   'seller',
   'warehouse',
@@ -54,25 +56,33 @@ export const reportSchema = z.object({
   ),
 });
 export type ReportView = z.infer<typeof reportSchema>;
-export const reportFilterSchema = z
+const reportBusinessDate = calendarDateSchema.refine(
+  (date) => date >= '2000-01-01' && date <= '2100-12-31',
+);
+
+export const reportDateRangeSchema = z
   .object({
-    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    warehouseId: z.union([z.literal(''), z.string().uuid()]),
-    actorId: z.union([z.literal(''), z.string().uuid()]),
-    action: z
-      .string()
-      .max(80)
-      .regex(/^[A-Za-z0-9_.:-]*$/),
-    entityId: z.union([z.literal(''), z.string().uuid()]),
-    kind: z.enum(['', 'API', 'SCAN']),
+    from: reportBusinessDate,
+    to: reportBusinessDate,
   })
   .refine(
-    (row) =>
-      Date.parse(row.from) <= Date.parse(row.to) &&
-      Date.parse(row.to) - Date.parse(row.from) < 92 * 86400000,
+    ({ from, to }) =>
+      !reportBusinessDate.safeParse(from).success ||
+      !reportBusinessDate.safeParse(to).success ||
+      (from <= to && Date.parse(to) - Date.parse(from) < 92 * DAY_MS),
     { message: 'range', path: ['to'] },
   );
+
+export const reportFilterSchema = reportDateRangeSchema.safeExtend({
+  warehouseId: z.union([z.literal(''), z.string().uuid()]),
+  actorId: z.union([z.literal(''), z.string().uuid()]),
+  action: z
+    .string()
+    .max(80)
+    .regex(/^[A-Za-z0-9_.:-]*$/),
+  entityId: z.union([z.literal(''), z.string().uuid()]),
+  kind: z.enum(['', 'API', 'SCAN']),
+});
 export type ReportFilters = z.infer<typeof reportFilterSchema>;
 export const optionsSchema = z.object({
   views: z.array(reportKindSchema),

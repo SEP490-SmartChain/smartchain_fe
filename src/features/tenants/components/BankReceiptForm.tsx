@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
+import { localDateTimeInput, recordedLocalDateTimeSchema } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { useAuthStore } from '@/stores/authStore';
@@ -26,10 +27,7 @@ const pdfFiles = z.custom<FileList>(
 const receiptSchema = z.object({
   bankReference: z.string().trim().min(3).max(120),
   amountVnd: z.string().regex(/^[1-9]\d{0,19}$/),
-  receivedAt: z
-    .string()
-    .min(1)
-    .refine((value) => Number.isFinite(new Date(value).getTime())),
+  receivedAt: recordedLocalDateTimeSchema,
   file: pdfFiles,
   verified: z.boolean().refine((value) => value === true),
 });
@@ -44,6 +42,7 @@ export function BankReceiptForm({
   onPosted: () => Promise<void>;
 }) {
   const t = useTranslations('CommercialAdmin');
+  const dateText = useTranslations('DateValidation');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -122,6 +121,7 @@ export function BankReceiptForm({
   return (
     <form
       onSubmit={submit}
+      noValidate
       className="mt-5 space-y-4 border-t border-[var(--sc-border-default)] pt-4"
     >
       <h3 className="text-base font-semibold">{t('bankReceipt')}</h3>
@@ -142,7 +142,8 @@ export function BankReceiptForm({
         <Input
           label={t('receivedAt')}
           type="datetime-local"
-          error={invalid('receivedAt')}
+          max={localDateTimeInput(new Date())}
+          error={form.formState.errors.receivedAt ? dateText('recordedTime') : undefined}
           {...form.register('receivedAt')}
         />
         <Input

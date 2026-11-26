@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
+import { parseLocalDateTime } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -41,20 +42,41 @@ export type WorkflowAction = {
   stockId?: string;
   maxQty?: number;
 };
-const schema = z.object({
-  qty: z.number().int().min(0).max(1000000),
-  reason: z.string().max(1000),
-  decision: z.enum(['APPROVE', 'REJECT']),
-  binScan: z.string().max(160),
-  skuScan: z.string().max(160),
-  lotScan: z.string().max(160),
-  pickConfirmationId: z.string(),
-  toBinId: z.string(),
-  assigneeId: z.string(),
-  skuCodes: z.string().max(2000),
-  windowStart: z.string().max(32),
-  windowEnd: z.string().max(32),
-});
+const schema = z
+  .object({
+    qty: z.number().int().min(0).max(1000000),
+    reason: z.string().max(1000),
+    decision: z.enum(['APPROVE', 'REJECT']),
+    binScan: z.string().max(160),
+    skuScan: z.string().max(160),
+    lotScan: z.string().max(160),
+    pickConfirmationId: z.string(),
+    toBinId: z.string(),
+    assigneeId: z.string(),
+    skuCodes: z.string().max(2000),
+    windowStart: z.string(),
+    windowEnd: z.string(),
+  })
+  .superRefine(({ windowStart, windowEnd }, context) => {
+    if (!windowStart && !windowEnd) return;
+    if (!windowStart || !windowEnd) {
+      context.addIssue({
+        code: 'custom',
+        path: [windowStart ? 'windowEnd' : 'windowStart'],
+        message: 'timePair',
+      });
+      return;
+    }
+    const from = parseLocalDateTime(windowStart);
+    const to = parseLocalDateTime(windowEnd);
+    if (!from) {
+      context.addIssue({ code: 'custom', path: ['windowStart'], message: 'invalidDateTime' });
+    }
+    if (!to) context.addIssue({ code: 'custom', path: ['windowEnd'], message: 'invalidDateTime' });
+    if (from && to && to <= from) {
+      context.addIssue({ code: 'custom', path: ['windowEnd'], message: 'timeOrder' });
+    }
+  });
 type Form = z.infer<typeof schema>;
 
 type WorkflowCommand = { path: string; body: InventoryWorkflowCommandInput };
@@ -85,6 +107,7 @@ export function InventoryWorkflowAction({
   onAccepted: () => void;
 }) {
   const t = useTranslations('InventoryWorkflows');
+  const dateText = useTranslations('DateValidation');
   const revision = useAuthStore((state) => state.revision);
   const [operationId] = useState(createUuid);
   const [busy, setBusy] = useState(false),
@@ -135,6 +158,12 @@ export function InventoryWorkflowAction({
       windowEnd: '',
     },
   });
+  function windowError(message?: string): string | undefined {
+    if (!message) return undefined;
+    return dateText(
+      message === 'timePair' || message === 'timeOrder' ? message : 'invalidDateTime',
+    );
+  }
   const review = ['countReview', 'disposalReview', 'resnapshot'].includes(action.kind),
     scans = ['execute', 'putbackConfirm', 'observe'].includes(action.kind),
     quantity = ['observe', 'disposalRequest', 'putbackRequest'].includes(action.kind),
@@ -185,7 +214,6 @@ export function InventoryWorkflowAction({
               .map((v) => v.trim())
               .filter(Boolean);
             if (!bins.length && !skuCodes.length) throw new Error('SELECTION_REQUIRED');
-            if (!!values.windowStart !== !!values.windowEnd) throw new Error('INVALID_WINDOW');
             command = {
               path: 'counts',
               body: {
@@ -426,14 +454,14 @@ export function InventoryWorkflowAction({
               <Input
                 type="datetime-local"
                 label={t('windowStart')}
-                {...register('windowStart')}
-                error={errors?.windowStart?.message}
+                {...register('windowStart', { deps: ['windowEnd'] })}
+                error={windowError(errors.windowStart?.message)}
               />
               <Input
                 type="datetime-local"
                 label={t('windowEnd')}
-                {...register('windowEnd')}
-                error={errors?.windowEnd?.message}
+                {...register('windowEnd', { deps: ['windowStart'] })}
+                error={windowError(errors.windowEnd?.message)}
               />
               <Select
                 label={t('assigneeId')}

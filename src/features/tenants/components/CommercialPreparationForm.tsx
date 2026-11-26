@@ -9,14 +9,20 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+import type { Warehouse } from '@/features/catalog';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 
+import { PlanWarehousePicker } from './PlanWarehousePicker';
 import {
   commercialApi,
   type AgreementRates,
   type CommercialPlan,
   type ContractBusinessProfile,
 } from '../api/commercialApi';
+import {
+  loadActivePlatformWarehouses,
+  validatePlanWarehouseSelection,
+} from '../lib/warehouseSelection';
 import { contractBusinessProfileSchema } from '../schemas/contractBusinessProfileSchema';
 
 import type { z } from 'zod';
@@ -24,7 +30,8 @@ import type { z } from 'zod';
 interface PreparationProps {
   plan: CommercialPlan;
   busy: boolean;
-  onSubmit: (profile?: ContractBusinessProfile) => Promise<void>;
+  warehouseSelectionEnabled?: boolean;
+  onSubmit: (profile?: ContractBusinessProfile, warehouseIds?: string[]) => Promise<void>;
   onPreview: () => void;
 }
 
@@ -38,13 +45,25 @@ const PROFILE_FIELDS = [
   'phone',
 ] as const;
 
-export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: PreparationProps) {
+export function CommercialPreparationForm({
+  plan,
+  busy,
+  warehouseSelectionEnabled = false,
+  onSubmit,
+  onPreview,
+}: PreparationProps) {
   const t = useTranslations('Commercial');
   const locale = useLocale();
   const tariffText = useTranslations('ServiceTariffs');
   const [rates, setRates] = useState<AgreementRates | null>(null);
   const [ratesError, setRatesError] = useState(false);
   const [ratesRevision, setRatesRevision] = useState(0);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(false);
+  const [warehousesError, setWarehousesError] = useState<string | null>(null);
+  const [warehousesRevision, setWarehousesRevision] = useState(0);
+  const [selectedWarehouseIds, setSelectedWarehouseIds] = useState<string[]>([]);
+  const [warehousesConfirmed, setWarehousesConfirmed] = useState(false);
   const agreementId = plan.agreementId;
   useEffect(() => {
     if (!agreementId) return;
@@ -59,6 +78,35 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
     );
     return () => controller.abort();
   }, [agreementId, ratesRevision]);
+  useEffect(() => {
+    if (!warehouseSelectionEnabled) return;
+    const controller = new AbortController();
+    setWarehousesLoading(true);
+    setWarehousesError(null);
+    void loadActivePlatformWarehouses(controller.signal).then(
+      (result) => {
+        if (controller.signal.aborted) return;
+        setWarehouses(result);
+        setWarehousesLoading(false);
+      },
+      (failure: unknown) => {
+        if (controller.signal.aborted) return;
+        setWarehousesLoading(false);
+        setWarehousesError(failure instanceof Error ? failure.message : t('warehouseLoadError'));
+      },
+    );
+    return () => controller.abort();
+  }, [warehouseSelectionEnabled, warehousesRevision, t]);
+  const warehousePlanRule = {
+    code: plan.code ?? 'BASIC',
+    warehouseAllowance: plan.warehouseAllowance ?? 1,
+  };
+  const warehouseValidation = validatePlanWarehouseSelection(
+    warehousePlanRule,
+    selectedWarehouseIds,
+  );
+  const warehousesReady =
+    !warehouseSelectionEnabled || (warehouseValidation.valid && warehousesConfirmed);
   const money = new Intl.NumberFormat(locale, { style: 'currency', currency: 'VND' });
   const range = (from: number | string, to: number | string | null) =>
     to === null ? t('unboundedRate', { from }) : t('boundedRate', { from, to });
@@ -79,10 +127,15 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
   const submit = form.handleSubmit(
     async ({ hasReviewedTerms: _reviewed, registrationNumber, ...profile }) => {
       if (!rates) return;
+      if (warehouseSelectionEnabled && (!warehouseValidation.valid || !warehousesConfirmed)) {
+        notifyInvalidForm();
+        return;
+      }
       await onSubmit(
         plan.requiresBusinessProfile
           ? { ...profile, ...(registrationNumber ? { registrationNumber } : {}) }
           : undefined,
+        warehouseSelectionEnabled ? warehouseValidation.normalizedIds : undefined,
       );
     },
     () => notifyInvalidForm(),
@@ -264,6 +317,21 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
           ))}
         </div>
       )}
+      {warehouseSelectionEnabled ? (
+        <PlanWarehousePicker
+          plan={warehousePlanRule}
+          warehouses={warehouses}
+          loading={warehousesLoading}
+          errorMessage={warehousesError}
+          selectedIds={selectedWarehouseIds}
+          confirmed={warehousesConfirmed}
+          disabled={busy}
+          onChangeIds={setSelectedWarehouseIds}
+          onChangeConfirmed={setWarehousesConfirmed}
+          onRetry={() => setWarehousesRevision((count) => count + 1)}
+        />
+      ) : null}
+
       <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 p-3.5">
         <Checkbox
           {...form.register('hasReviewedTerms')}
@@ -278,7 +346,11 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
         <Button type="button" variant="outline" size="sm" onClick={onPreview} disabled={busy}>
           {t('preview')}
         </Button>
-        <Button type="submit" disabled={!rates} isLoading={busy || form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={!rates || !warehousesReady}
+          isLoading={busy || form.formState.isSubmitting}
+        >
           {t('confirmPrepare')}
         </Button>
       </div>

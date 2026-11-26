@@ -13,6 +13,7 @@ import { Card } from '@/components/Common/Card/Card';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { useAccess } from '@/hooks/useAccess';
+import { localDateTimeInput, parseLocalDateTime } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -21,7 +22,8 @@ import {
   payoutReasonSchema,
   payoutResolutionSchema,
   payoutReviewOpen,
-  payoutTransferSchema,
+  payoutTransferFormSchema,
+  isPayoutTransferInWindow,
   payoutApprovalOpen,
   shortReference,
   type PayoutLine,
@@ -32,11 +34,6 @@ import type { z } from 'zod';
 
 type Action = Parameters<typeof payoutApi.command>[1];
 
-/** Value for `<input type="datetime-local">` in the browser's own timezone. */
-function localDateTimeValue(value: Date): string {
-  const shifted = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
-  return shifted.toISOString().slice(0, 16);
-}
 interface Pending {
   action: Action;
   payload: Record<string, unknown>;
@@ -55,6 +52,7 @@ export function PayoutStatementDetail({
   onChanged: () => void;
 }) {
   const t = useTranslations('Payouts');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocaleStore((s) => s.locale);
   const { can } = useAccess();
   const [row, setRow] = useState<PayoutStatementDetail | null>(null),
@@ -67,11 +65,7 @@ export function PayoutStatementDetail({
     [reasonTarget, setReasonTarget] = useState<{ lineId: string; disputeId?: string } | null>(null),
     [hasPending, setHasPending] = useState(false),
     [now, setNow] = useState(() => new Date()),
-    [localTransferTime, setLocalTransferTime] = useState(() => {
-      const d = new Date();
-      const pad = (n: number) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    });
+    [localTransferTime, setLocalTransferTime] = useState(() => localDateTimeInput(now, 'second'));
   const request = useRef<AbortController | null>(null),
     pending = useRef<Pending | null>(null),
     busyRef = useRef(false),
@@ -84,11 +78,11 @@ export function PayoutStatementDetail({
     resolver: zodResolver(payoutResolutionSchema),
     defaultValues: { reason: '', adjustmentVnd: '0' },
   });
-  const transfer = useForm<z.infer<typeof payoutTransferSchema>>({
-    resolver: zodResolver(payoutTransferSchema),
+  const transfer = useForm<z.infer<typeof payoutTransferFormSchema>>({
+    resolver: zodResolver(payoutTransferFormSchema),
     defaultValues: {
       bankReference: '',
-      transferredAt: new Date().toISOString(),
+      transferredAt: new Date(Math.floor(now.getTime() / 1000) * 1000).toISOString(),
       evidenceKey: '',
     },
   });
@@ -614,9 +608,18 @@ export function PayoutStatementDetail({
                   </p>
                   <form
                     className="grid gap-3 sm:grid-cols-2"
+                    noValidate
                     onSubmit={transfer.handleSubmit(
-                      (values) =>
-                        perform('transfers', { ...values, amountVnd: row.approvedAmountVnd }),
+                      (values) => {
+                        if (!isPayoutTransferInWindow(values.transferredAt, row)) {
+                          transfer.setError('transferredAt', { type: 'transferWindow' });
+                          return;
+                        }
+                        return perform('transfers', {
+                          ...values,
+                          amountVnd: row.approvedAmountVnd,
+                        });
+                      },
                       () => notifyInvalidForm(),
                     )}
                   >
@@ -633,19 +636,27 @@ export function PayoutStatementDetail({
                       type="datetime-local"
                       label={t('transferredAt')}
                       value={localTransferTime}
-                      max={localDateTimeValue(now)}
+                      step={1}
+                      max={localDateTimeInput(now, 'second')}
+                      onFocus={() => setNow(new Date())}
                       disabled={busy || hasPending}
                       onChange={(e) => {
                         const raw = e.target.value;
                         setLocalTransferTime(raw);
-                        const parsed = raw ? new Date(raw) : null;
-                        transfer.setValue(
-                          'transferredAt',
-                          parsed && !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : '',
-                          { shouldValidate: true },
-                        );
+                        const parsed = parseLocalDateTime(raw);
+                        transfer.setValue('transferredAt', parsed?.toISOString() ?? '', {
+                          shouldValidate: true,
+                        });
                       }}
-                      error={transfer.formState.errors.transferredAt ? t('invalidTime') : undefined}
+                      error={
+                        transfer.formState.errors.transferredAt
+                          ? dateText(
+                              transfer.formState.errors.transferredAt.type === 'transferWindow'
+                                ? 'transferWindow'
+                                : 'recordedTime',
+                            )
+                          : undefined
+                      }
                     />
                     <Input
                       type="file"

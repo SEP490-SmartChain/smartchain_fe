@@ -46,6 +46,7 @@ function InvoiceList({
   filterBar?: React.ReactNode;
 }) {
   const t = useTranslations('Invoices');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocaleStore((s) => s.locale);
   const { can } = useAccess();
   const [items, setItems] = useState<FeeInvoice[]>([]),
@@ -86,13 +87,10 @@ function InvoiceList({
       abort.abort();
     };
   }, [tenantId, filters, revision, t]);
-<<<<<<< HEAD
   useRealtimeSync(['commercial.billing', 'commercial.onboarding'], () => {
     setRevision((value) => value + 1);
   });
-=======
 
->>>>>>> origin/develop
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const date = (value: string) =>
@@ -256,7 +254,7 @@ function InvoiceList({
                     placeholder={t('chooseMonth')}
                     value={field.value}
                     onChange={field.onChange}
-                    error={fieldState.error ? t('invalidMonth') : undefined}
+                    error={fieldState.error ? dateText('closedMonth') : undefined}
                   />
                 )}
               />

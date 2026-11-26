@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { positiveStorageVolumeSchema } from '@/lib/volumeValidation';
+
 export const zoneFormSchema = z.object({
   code: z
     .string()
@@ -17,10 +19,7 @@ export const binFormSchema = z
       .max(100)
       .regex(/^[A-Z0-9_-]*$/),
     maxWeightG: z.string().regex(/^[1-9]\d{0,17}$/),
-    maxVolumeM3: z
-      .string()
-      .regex(/^(?:0|[1-9]\d{0,13})(?:\.\d{1,6})?$/)
-      .refine((value) => Number(value) > 0),
+    maxVolumeM3: positiveStorageVolumeSchema,
     isActive: z.boolean(),
     mode: z.enum(['single', 'bulk']),
     aisleStart: z.number().int().min(1).max(99),

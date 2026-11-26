@@ -81,6 +81,56 @@ after(async () => {
   await server?.close();
 });
 
+test('reads current storage capacity only for the selected warehouse', async () => {
+  const signal = new AbortController().signal;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(
+      new URL(url, 'https://example.test').pathname,
+      `/api/v1/asns/warehouses/${asn.warehouseId}/storage-capacity`,
+    );
+    assert.equal(options.signal, signal);
+    assert.equal(options.cache, 'no-store');
+    return ok({ warehouseId: asn.warehouseId, availableVolumeM3: '0.125000' });
+  };
+  assert.equal(await api.warehouseStorageCapacity(asn.warehouseId, signal), '0.125000');
+});
+
+test('distinguishes unknown capacity from an empty warehouse', async () => {
+  for (const availableVolumeM3 of [null, '0.000000']) {
+    globalThis.fetch = async () => ok({ warehouseId: asn.warehouseId, availableVolumeM3 });
+    assert.equal(await api.warehouseStorageCapacity(asn.warehouseId), availableVolumeM3);
+  }
+});
+
+test('rejects mismatched capacity, invalid volume and unexpected seller fields', async () => {
+  for (const response of [
+    { warehouseId: id, availableVolumeM3: '1.125' },
+    { warehouseId: asn.warehouseId, availableVolumeM3: '-1' },
+    { warehouseId: asn.warehouseId, availableVolumeM3: '1', tenantId: id },
+  ]) {
+    globalThis.fetch = async () => ok(response);
+    await assert.rejects(api.warehouseStorageCapacity(asn.warehouseId));
+  }
+});
+
+test('loads the draft warehouse quota and volume comparison for the submit dialog', async () => {
+  const check = {
+    warehouseId: asn.warehouseId,
+    warehouseAllowance: 1,
+    occupiedWarehouseCount: 1,
+    projectedWarehouseCount: 2,
+    declaredVolumeM3: '12.000000',
+    availableVolumeM3: '8.000000',
+    volumeFits: false,
+  };
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(url, 'https://example.test').pathname, `/api/v1/asns/${id}/submit-check`);
+    return ok(check);
+  };
+  assert.deepEqual(await api.submitCheck(id, asn.warehouseId), check);
+  await assert.rejects(api.submitCheck(id, id));
+});
+
 test('list trims search, sends status and parses the envelope', async () => {
   globalThis.fetch = async (url, options) => {
     const request = new URL(url, 'https://example.test');
@@ -214,11 +264,17 @@ test('ASN form covers quantity/carton/date boundaries and cancellation reason', 
   const valid = {
     warehouseId: asn.warehouseId,
     cartonCount: 1,
-    externalReference: '',
+    externalReference: 'PO-1001',
     expectedArrivalAt: '',
     lines: [{ productId: id, declaredQty: 1, declaredLotCode: '', declaredExpiryOn: '' }],
   };
   assert.equal(asnFormSchema.safeParse(valid).success, true);
+  assert.deepEqual(
+    asnFormSchema.parse({ ...valid, externalReference: '  PO-1001  ' }).externalReference,
+    'PO-1001',
+  );
+  for (const externalReference of ['', '   ', 'a'.repeat(101)])
+    assert.equal(asnFormSchema.safeParse({ ...valid, externalReference }).success, false);
   assert.equal(
     asnFormSchema.safeParse({
       ...valid,
@@ -380,4 +436,17 @@ test('allocation accepts a no-expiry baseline without inventing an expiry cap', 
     await api.getAllocationSuggestion({ productId: id, totalQuantity: 400 }),
     baseline,
   );
+});
+
+test('warehouseOptions calls /v1/asns/warehouse-options with no-store and parses slim warehouse options', async () => {
+  const signal = new AbortController().signal;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url, 'https://example.test').pathname, '/api/v1/asns/warehouse-options');
+    assert.equal(options.cache, 'no-store');
+    assert.equal(options.signal, signal);
+    return ok([{ id: asn.warehouseId, code: 'WH-HN', name: 'Kho Hà Nội' }]);
+  };
+
+  const page = await api.warehouseOptions('', undefined, signal);
+  assert.deepEqual(page.items, [{ id: asn.warehouseId, code: 'WH-HN', name: 'Kho Hà Nội' }]);
 });

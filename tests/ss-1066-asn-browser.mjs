@@ -8,13 +8,13 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const html = `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body><aside style="padding:8px;background:#e0f2fe"><strong>SS-1066 — synthetic local transport</strong>
 <form><label>Role <select name="role"><option>SELLER_OWNER</option><option>SELLER_STAFF</option><option>ORCA_ADMIN</option></select></label>
-<label>Scenario <select name="scenario"><option>valid</option><option>bad-sku</option><option>bad-quantity</option><option>bad-expiry</option><option>bad-total</option><option>empty</option><option>expired</option><option>error</option></select></label><button>Review screen</button></form>
+<label>Scenario <select name="scenario"><option>valid</option><option>bad-sku</option><option>bad-quantity</option><option>bad-expiry</option><option>bad-total</option><option>empty</option><option>expired</option><option>error</option><option>capacity-unknown</option><option>capacity-error</option><option>capacity-delay</option><option>warehouse-limit</option></select></label><button>Review screen</button></form>
 <output aria-label="Fixture command evidence">No commands</output></aside><div id="root"></div><script type="module">
 import { useAuthStore } from '/src/stores/authStore.ts';
 import { useLocaleStore } from '/src/stores/localeStore.ts';
 const query=new URLSearchParams(location.search),role=query.get('role')||'SELLER_OWNER',scenario=query.get('scenario')||'valid';
 document.querySelector('[name=role]').value=role;document.querySelector('[name=scenario]').value=scenario;
-useLocaleStore.getState().setLocale('vi');
+useLocaleStore.getState().setLocale(query.get('locale')==='en'?'en':'vi');
 const uuid=n=>'10660000-0000-4000-8000-'+String(n).padStart(12,'0'),stamp='2026-10-23T03:00:00.000Z';
 const user={userId:uuid(1),tenantId:role==='ORCA_ADMIN'?null:uuid(2),actorScope:role==='ORCA_ADMIN'?'PLATFORM':'TENANT',roles:[role],permissions:[],warehouseIds:[],serviceStatus:'ACTIVE',email:'synthetic@example.test',fullName:'Synthetic '+role,phone:null,avatarUrl:null};
 const session={user,accessToken:'synthetic-local-token',expiresIn:900};useAuthStore.getState().setSession(session);
@@ -28,7 +28,15 @@ window.fetch=async(input,init={})=>{
  const url=new URL(typeof input==='string'?input:input.url,location.origin),p=url.pathname,method=init.method||'GET',page={limit:100,hasNext:false,nextCursor:null};
  if(p.endsWith('/auth/refresh'))return ok(session);if(p.endsWith('/auth/me'))return ok(user);
  if(p.endsWith('/asns/sku-options'))return ok(products,page);
+ if(p.endsWith('/asns/warehouse-options'))return ok(warehouses.map(({id,code,name})=>({id,code,name})),page);
  if(p.endsWith('/warehouses'))return ok(warehouses,page);
+ if(p.includes('/asns/warehouses/')&&p.endsWith('/storage-capacity')){
+  const warehouseId=p.split('/').at(-2);
+  if(!warehouses.some(w=>w.id===warehouseId))return fail(404,'INBOUND.ASN_WAREHOUSE_NOT_FOUND','Warehouse unavailable');
+  if(scenario==='capacity-error')return fail(503,'INVENTORY.UNAVAILABLE','Storage capacity unavailable');
+  if(scenario==='capacity-delay'&&warehouseId===uuid(10))await new Promise(resolve=>setTimeout(resolve,500));
+  return ok({warehouseId,availableVolumeM3:scenario==='capacity-unknown'?null:warehouseId===uuid(10)?'12.500000':'0.000000'});
+ }
  if(p.endsWith('/asns/allocation-suggestion')){
   if(scenario==='error')return fail(503,'INVENTORY.UNAVAILABLE','Không tải được gợi ý. Hãy thử lại.');
   const quantity=Number(url.searchParams.get('totalQuantity')),productId=url.searchParams.get('productId'),expiry=url.searchParams.get('declaredExpiryOn');
@@ -43,12 +51,17 @@ window.fetch=async(input,init={})=>{
  if(p.endsWith('/asns')){
   if(method==='GET')return ok(items,page);
   const command=JSON.parse(init.body);commands.push(command);document.querySelector('output').textContent='Created drafts='+commands.length+'; warehouse='+command.warehouseId+'; quantities='+command.lines.map(l=>l.declaredQty).join(',');
-  const asn={id:uuid(30+items.length),tenantId:user.tenantId,warehouseId:command.warehouseId,asnCode:'ASN-LOCAL-'+(items.length+1),externalReference:command.externalReference||null,status:'DRAFT',expectedArrivalAt:command.expectedArrivalAt||null,arrivedAt:null,submittedAt:null,cartonLabelRefs:[],cartonCount:command.cartonCount,cancellationReason:null,cancelledAt:null,receiptIds:[],discrepancyIds:[],createdByUserId:user.userId,version:1,createdAt:stamp,updatedAt:stamp,lines:command.lines.map((line,i)=>({...line,id:uuid(50+i),lineNo:i+1,sku:products.find(p=>p.id===line.productId).sku,productName:products.find(p=>p.id===line.productId).name,receivedQty:0,acceptedQty:0,quarantinedQty:0,rejectedQty:0,declaredLotCode:line.declaredLotCode||null,declaredExpiryOn:line.declaredExpiryOn?line.declaredExpiryOn+'T00:00:00.000Z':null}))};
+  const asn={id:uuid(30+items.length),tenantId:user.tenantId,warehouseId:command.warehouseId,asnCode:'ASN-20261126-'+uuid(30+items.length).replaceAll('-',''),externalReference:command.externalReference||null,status:'DRAFT',expectedArrivalAt:command.expectedArrivalAt||null,arrivedAt:null,submittedAt:null,cartonLabelRefs:[],cartonCount:command.cartonCount,cancellationReason:null,cancelledAt:null,receiptIds:[],discrepancyIds:[],createdByUserId:user.userId,version:1,createdAt:stamp,updatedAt:stamp,lines:command.lines.map((line,i)=>({...line,id:uuid(50+i),lineNo:i+1,sku:products.find(p=>p.id===line.productId).sku,productName:products.find(p=>p.id===line.productId).name,receivedQty:0,acceptedQty:0,quarantinedQty:0,rejectedQty:0,declaredLotCode:line.declaredLotCode||null,declaredExpiryOn:line.declaredExpiryOn?line.declaredExpiryOn+'T00:00:00.000Z':null}))};
   items.push(asn);return ok(asn);
  }
  const asn=items.find(a=>p.includes('/asns/'+a.id));
  if(asn){
-  if(method==='POST'){const command=JSON.parse(init.body);asn.version++;if(p.endsWith('/submit')){asn.status='SUBMITTED';asn.submittedAt=stamp;asn.cartonLabelRefs=['ASN-LOCAL-CARTON-1'];}else if(p.endsWith('/cancel')){asn.status='CANCELLED';asn.cancellationReason=command.reason;asn.cancelledAt=stamp;}}
+  if(method==='GET'&&p.endsWith('/submit-check'))return ok({
+    warehouseId:asn.warehouseId,warehouseAllowance:1,occupiedWarehouseCount:scenario==='warehouse-limit'?1:0,
+    projectedWarehouseCount:scenario==='warehouse-limit'?2:1,declaredVolumeM3:'15',availableVolumeM3:'12.5',volumeFits:false
+  });
+  if(method==='POST'&&p.endsWith('/submit')&&scenario==='warehouse-limit')return fail(409,'INBOUND.ASN_WAREHOUSE_LIMIT_EXCEEDED','Gói đang dùng cho phép tối đa 1 kho. Gửi phiếu này sẽ nâng tổng số kho lên 2.');
+  if(method==='POST'){const command=JSON.parse(init.body);asn.version++;if(p.endsWith('/submit')){asn.status='SUBMITTED';asn.submittedAt=stamp;asn.cartonLabelRefs=Array.from({length:asn.cartonCount},(_,i)=>asn.asnCode+'-C'+String(i+1).padStart(4,'0'));}else if(p.endsWith('/cancel')){asn.status='CANCELLED';asn.cancellationReason=command.reason;asn.cancelledAt=stamp;}}
   return ok(asn);
  }
  return fail(403,'AUTH.FORBIDDEN','Local fixture: endpoint not enabled');
