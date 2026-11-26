@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
@@ -30,6 +30,8 @@ interface Props {
 export function AsnForm({ draft, onClose, onSaved }: Props) {
   const [submitError, setSubmitError] = useState('');
   const t = useTranslations('Asns');
+  const locale = useLocale();
+  const capacityId = useId();
   const creationKey = useRef(createUuid());
   const user = useAuthStore((state) => state.user);
   const [products, setProducts] = useState<AsnSkuOption[]>([]);
@@ -39,6 +41,11 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reload, setReload] = useState(0);
+  const [capacity, setCapacity] = useState<{
+    warehouseId: string;
+    owner: typeof user;
+    volume: string | null;
+  }>();
   const {
     register,
     control,
@@ -69,6 +76,15 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         },
   });
   const lines = useWatch({ control, name: 'lines' });
+  const selectedWarehouseId = useWatch({ control, name: 'warehouseId' });
+  const capacityWarehouseId =
+    !draft && warehouses.some((warehouse) => warehouse.id === selectedWarehouseId)
+      ? selectedWarehouseId
+      : undefined;
+  const currentCapacity =
+    capacity?.warehouseId === capacityWarehouseId && capacity?.owner === user
+      ? capacity
+      : undefined;
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   useEffect(() => {
     const controller = new AbortController();
@@ -108,6 +124,32 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
       controller.abort();
     };
   }, [user, reload]);
+  useEffect(() => {
+    setCapacity(undefined);
+    if (!capacityWarehouseId) return;
+
+    const warehouseId = capacityWarehouseId;
+    const controller = new AbortController();
+    function showCapacity(volume: string | null) {
+      if (!controller.signal.aborted && user === useAuthStore.getState().user) {
+        setCapacity({ warehouseId, owner: user, volume });
+      }
+    }
+    void asnApi
+      .warehouseStorageCapacity(warehouseId, controller.signal)
+      .then(showCapacity)
+      .catch(() => showCapacity(null));
+    return () => controller.abort();
+  }, [capacityWarehouseId, user]);
+
+  const capacityText = !currentCapacity
+    ? t('warehouseVolumeLoading')
+    : currentCapacity.volume === null
+      ? t('warehouseVolumeUnavailable')
+      : t('warehouseAvailableVolume', {
+          volume: formatCapacityDecimal(currentCapacity.volume, locale),
+        });
+
   const save = async (values: AsnFormValues) => {
     const principal = useAuthStore.getState().user;
     if (!draft && !canStartSellerIntake(principal)) return;
@@ -174,18 +216,30 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           </Alert>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label={t('warehouse')}
-            placeholder={t('selectWarehouse')}
-            required
-            options={warehouses.map((warehouse) => ({
-              value: warehouse.id,
-              label: `${warehouse.code} — ${warehouse.name}`,
-            }))}
-            disabled={Boolean(draft) || loading}
-            {...register('warehouseId')}
-            error={errors.warehouseId ? t('invalidForm') : undefined}
-          />
+          <div>
+            <Select
+              label={t('warehouse')}
+              placeholder={t('selectWarehouse')}
+              required
+              options={warehouses.map((warehouse) => ({
+                value: warehouse.id,
+                label: `${warehouse.code} — ${warehouse.name}`,
+              }))}
+              disabled={Boolean(draft) || loading}
+              {...register('warehouseId')}
+              error={errors.warehouseId ? t('invalidForm') : undefined}
+              aria-describedby={capacityWarehouseId ? capacityId : undefined}
+            />
+            {capacityWarehouseId && (
+              <p
+                id={capacityId}
+                role="status"
+                className="mt-1.5 text-xs text-[var(--sc-text-secondary)]"
+              >
+                {capacityText}
+              </p>
+            )}
+          </div>
           <Input
             label={t('reference')}
             {...register('externalReference')}
@@ -314,4 +368,17 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
 function localDateTime(value: string) {
   const date = new Date(value);
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function formatCapacityDecimal(value: string, locale: string): string {
+  if (!/^\d+(?:\.\d+)?$/.test(value)) return value;
+
+  const [whole, fraction] = value.split('.');
+  const formatter = new Intl.NumberFormat(locale);
+  const integer = formatter.format(BigInt(whole));
+  const significantFraction = fraction?.replace(/0+$/, '');
+  if (!significantFraction) return integer;
+
+  const separator = formatter.formatToParts(1.1).find((part) => part.type === 'decimal');
+  return `${integer}${separator?.value ?? '.'}${significantFraction}`;
 }

@@ -78,6 +78,23 @@ const skuPageSchema = z.object({
   pagination: pageSchema.shape.pagination,
 });
 
+const storageVolumeSchema = z
+  .string()
+  .regex(/^(0|[1-9]\d{0,23})(\.\d{1,6})?$/)
+  .nullable();
+const warehouseStorageCapacitySchema = z.strictObject({
+  warehouseId: z.string().uuid(),
+  availableVolumeM3: storageVolumeSchema,
+});
+
+const submitCheckSchema = warehouseStorageCapacitySchema.extend({
+  warehouseAllowance: z.number().int().positive(),
+  occupiedWarehouseCount: z.number().int().nonnegative(),
+  projectedWarehouseCount: z.number().int().positive(),
+  declaredVolumeM3: storageVolumeSchema,
+  volumeFits: z.boolean().nullable(),
+});
+
 const warehouseAllocationSchema = z.object({
   warehouseId: z.string().uuid(),
   warehouseCode: z.string(),
@@ -119,6 +136,37 @@ const allocationSuggestionSchema = z
   }, 'Allocation quantities must conserve the requested total and respect each expiry cap.');
 
 export const asnApi = {
+  async submitCheck(id: string, warehouseId: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `/v1/asns/${encodeURIComponent(id)}/submit-check`,
+      { signal, silent: true, cache: 'no-store' },
+    );
+    return submitCheckSchema
+      .refine(
+        (check) =>
+          check.warehouseId.toLowerCase() === warehouseId.toLowerCase() &&
+          check.projectedWarehouseCount >= check.occupiedWarehouseCount &&
+          check.projectedWarehouseCount <= check.occupiedWarehouseCount + 1,
+        'ASN submit check must match the selected warehouse and projected warehouse count.',
+      )
+      .parse(data);
+  },
+  async warehouseStorageCapacity(
+    warehouseId: string,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `/v1/asns/warehouses/${encodeURIComponent(warehouseId)}/storage-capacity`,
+      { signal, silent: true, cache: 'no-store' },
+    );
+    return warehouseStorageCapacitySchema
+      .refine(
+        (result) => result.warehouseId.toLowerCase() === warehouseId.toLowerCase(),
+        'Storage capacity must match the selected warehouse.',
+      )
+      .parse(data).availableVolumeM3;
+  },
+
   async getAllocationSuggestion(
     params: { productId: string; totalQuantity: number; declaredExpiryOn?: string },
     signal?: AbortSignal,
