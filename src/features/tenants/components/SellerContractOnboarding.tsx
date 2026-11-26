@@ -510,6 +510,7 @@ export function SellerContractOnboarding() {
             request?.errorCode ||
             (request?.status === 'COMPLETED' &&
               !flow.invoices.some((invoice) => invoice.contractId === contract.id)) ||
+            flow.signingUrl) && (
             (flow.signingUrl && !flow.live?.shouldCloseSigningModal)) && (
             <div className="space-y-3 border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
               {request?.status === 'PREPARING' && (
@@ -526,10 +527,80 @@ export function SellerContractOnboarding() {
                   )}
                 </Alert>
               )}
+<<<<<<< HEAD
+            </Alert>
+          )}
+          {contract.contractKind === 'CUSTOM' && contract.status === 'CONFIRMED' && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                void flow.contractPdf(contract.tenantId, contract.id);
+              }}
+            >
+              {t('download')}
+            </Button>
+          )}
+          {request?.status === 'UNKNOWN' && <Alert variant="warning">{t('unknownHelp')}</Alert>}
+          {request?.errorCode && <p className="mt-2 text-xs">{request.errorCode}</p>}
+          {request?.status === 'COMPLETED' && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  void flow.download(request.id);
+                }}
+              >
+                {t('download')}
+              </Button>
+            </>
+          )}
+          <details className="group mt-4 border-t border-[var(--sc-border-light)] pt-3 text-xs text-[var(--sc-text-secondary)]">
+            <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 rounded font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)] [&::-webkit-details-marker]:hidden">
+              {t('planDetails')}
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className="transition-transform group-open:rotate-180 motion-reduce:transition-none"
+              />
+            </summary>
+            <p className="mt-2 max-w-3xl leading-5">{t('creditHelp')}</p>
+            <p className="mt-2 break-all">
+              {t('version')}: {contract.agreementVersionRef}
+            </p>
+          </details>
+        </article>
+      )}
+      {flow.signingUrl && !flow.live?.shouldCloseSigningModal && (
+        <div className={style}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[var(--sc-bg-secondary)] p-3 text-[var(--sc-primary)]">
+                <FileSignature size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold">
+                  {t(
+                    signingInWindow
+                      ? flow.popupBlocked
+                        ? 'popupBlocked'
+                        : 'windowOpened'
+                      : 'signWithSignNow',
+                  )}
+                </h3>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-[var(--sc-text-secondary)]">
+                  {t(
+                    signingInWindow
+                      ? flow.popupBlocked
+                        ? 'popupBlockedHint'
+                        : 'signingWindowHint'
+                      : 'signingHint',
+                  )}
+=======
               {request?.status === 'UNKNOWN' && <Alert variant="warning">{t('unknownHelp')}</Alert>}
               {request?.errorCode && (
                 <p className="m-0 font-mono text-xs text-[var(--sc-text-secondary)]">
                   {request.errorCode}
+>>>>>>> origin/develop
                 </p>
               )}
               {request?.status === 'COMPLETED' &&
@@ -537,6 +608,7 @@ export function SellerContractOnboarding() {
                   <Alert variant="info">{t('invoicePendingAfterSigning')}</Alert>
                 )}
 
+              {flow.signingUrl && (
               {flow.signingUrl && !flow.live?.shouldCloseSigningModal && (
                 <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">

@@ -86,10 +86,13 @@ function InvoiceList({
       abort.abort();
     };
   }, [tenantId, filters, revision, t]);
+<<<<<<< HEAD
   useRealtimeSync(['commercial.billing', 'commercial.onboarding'], () => {
     setRevision((value) => value + 1);
   });
+=======
 
+>>>>>>> origin/develop
   const money = (value: string) =>
     `${BigInt(value).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')} VND`;
   const date = (value: string) =>

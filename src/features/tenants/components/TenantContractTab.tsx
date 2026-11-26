@@ -13,8 +13,11 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+<<<<<<< HEAD
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+=======
 import { notifyInvalidForm } from '@/lib/errorNotifications';
+>>>>>>> origin/develop
 import { useAuthStore } from '@/stores/authStore';
 
 import { CommercialAdminControls } from './CommercialAdminControls';

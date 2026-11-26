@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
+<<<<<<< HEAD
+import { Avatar } from '@/components/Common';
 import { Alert, Avatar } from '@/components/Common';
 import {
   NotificationBellPopover,
@@ -24,6 +26,9 @@ import {
   type InAppNotificationDto,
   type RealtimeParams,
 } from '@/features/realtime-notifications';
+=======
+import { Alert, Avatar, Button } from '@/components/Common';
+>>>>>>> origin/develop
 import { useAccess } from '@/hooks/useAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';

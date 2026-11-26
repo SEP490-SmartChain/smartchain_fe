@@ -239,7 +239,10 @@ function WarehouseHandover({
         if (!c.signal.aborted) setError(t('loadError'));
       });
     return () => c.abort();
+<<<<<<< HEAD
   }, [warehouse, reload, syncRevision, t, cursors]);
+=======
+  }, [warehouse, reload, t, cursors]);
   useEffect(() => {
     if (!targetFulfillmentId || !data) return;
     const match = data.shipments.find((item) => item.fulfillmentOrderId === targetFulfillmentId);
@@ -268,6 +271,7 @@ function WarehouseHandover({
     }
     return undefined;
   }, [cursors.shipments, data, targetFulfillmentId]);
+>>>>>>> origin/develop
   async function manifest() {
     if (running.current || !create || (!selected.length && !pending.current)) return;
     running.current = true;

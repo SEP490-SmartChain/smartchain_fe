@@ -393,9 +393,11 @@ export function SlaExceptionsPanel() {
     return () => controller.current?.abort();
   }, [load, authRevision]);
 
+<<<<<<< HEAD
   useRealtimeSync(['sla.exceptions', 'shipments.tracking'], () => {
     void load(null);
   });
+=======
 
   // Smoothly scroll a specifically requested parcel row into view once loaded.
   useEffect(() => {
@@ -412,6 +414,7 @@ export function SlaExceptionsPanel() {
       block: 'center',
     });
   }, [highlightFilter, highlightedRow, isLoading]);
+>>>>>>> origin/develop
 
   const handleAssign = async (row: SlaException) => {
     setAssigningId(row.id);
