@@ -47,11 +47,14 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SettlementUploadValues>({
     resolver: zodResolver(settlementUploadSchema),
     defaultValues: { carrierCode: 'GHN' },
   });
+
+  const chosenFile = watch('file')?.[0];
 
   useEffect(() => {
     const abort = new AbortController();
@@ -97,18 +100,33 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
         error={errors?.carrierCode?.message}
       />
       <div>
-        <label htmlFor="settlement-file" className="mb-1 block text-sm font-medium">
+        <span id="settlement-file-label" className="mb-1 block text-sm font-medium">
           {t('file')}
-        </label>
-        <input
-          id="settlement-file"
-          type="file"
-          accept=".csv,text/csv"
-          className="block w-full text-sm"
-          aria-invalid={errors.file ? true : undefined}
-          aria-describedby="settlement-file-help"
-          {...register('file')}
-        />
+        </span>
+        <div className="flex min-w-0 items-center gap-3">
+          <input
+            id="settlement-file"
+            type="file"
+            accept=".csv,text/csv"
+            className="peer sr-only"
+            aria-labelledby="settlement-file-label"
+            aria-invalid={errors.file ? true : undefined}
+            aria-describedby="settlement-file-help"
+            {...register('file')}
+          />
+          <label
+            htmlFor="settlement-file"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-3 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sc-bg-secondary)] peer-focus-visible:outline-2 peer-focus-visible:outline-[var(--sc-primary)]"
+          >
+            {t('chooseFile')}
+          </label>
+          <span
+            className={`min-w-0 truncate text-sm ${chosenFile ? '' : 'text-[var(--sc-text-secondary)]'}`}
+            title={chosenFile?.name}
+          >
+            {chosenFile?.name ?? t('noFile')}
+          </span>
+        </div>
         {errors.file ? (
           <Alert id="settlement-file-help" variant="error" compact className="mt-1">
             {t('fileInvalid')}

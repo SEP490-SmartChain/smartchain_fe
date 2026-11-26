@@ -44,6 +44,7 @@ export default function RouteBreadcrumbs() {
     '/catalog': sidebar('skus'),
     '/asns': sidebar('asns'),
     '/returns': sidebar('returns'),
+    '/claims': sidebar('claims'),
     '/statements': sidebar('statements'),
     '/exceptions': sidebar('exceptions'),
     '/rules': sidebar('rules'),
