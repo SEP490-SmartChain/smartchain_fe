@@ -26,6 +26,7 @@ export { ProductCatalogTable } from './components/ProductCatalogTable';
 export { useProducts } from './hooks/useProducts';
 export type { Product, ProductFilters, ProductPage } from './types/product.types';
 export { warehouseApi } from './api/warehouseApi';
+export { adminDivisionApi, type AdminDivision } from './api/adminDivisionApi';
 export type { Warehouse, WarehouseFilters } from './types/warehouse';
 
 export { WarehouseDirectory } from './components/WarehouseDirectory';

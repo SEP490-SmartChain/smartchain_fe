@@ -61,6 +61,15 @@ export type DisputeOpenOutput = z.output<typeof disputeOpenSchema>;
 
 export const disputeUpdateSchema = z
   .object({
+    codResolutions: z
+      .array(
+        z.object({
+          rowNumber: z.number().int().positive(),
+          amountVnd: z.string().regex(/^(|0|[1-9]\d{0,17})$/),
+        }),
+      )
+      .max(500)
+      .optional(),
     status: z.union([z.enum(DISPUTE_STATUSES), z.literal('')]),
     externalTicketRef: optionalText(100),
     resolvedAmountVnd: z
@@ -72,7 +81,12 @@ export const disputeUpdateSchema = z
   .refine((value) => value.status !== '' || value.note !== undefined, { path: ['note'] })
   .refine((value) => value.status !== 'RESOLVED' || value.resolvedAmountVnd !== '', {
     path: ['resolvedAmountVnd'],
-  });
+  })
+  .refine(
+    (value) =>
+      value.status !== 'RESOLVED' || !value.codResolutions?.some((row) => row.amountVnd === ''),
+    { path: ['codResolutions'] },
+  );
 export type DisputeUpdateValues = z.input<typeof disputeUpdateSchema>;
 export type DisputeUpdateOutput = z.output<typeof disputeUpdateSchema>;
 
@@ -102,6 +116,8 @@ export const disputeDetailSchema = disputeSchema.extend({
       matchStatus: z.string(),
       discrepancies: z.array(z.string()),
       claimedAmountVnd: money,
+      resolvedCodVnd: money.nullable().optional(),
+      codResolutionRequired: z.boolean().optional().default(false),
     }),
   ),
   events: z.array(

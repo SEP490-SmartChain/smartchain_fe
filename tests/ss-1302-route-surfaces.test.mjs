@@ -54,6 +54,8 @@ const routes = {
   ],
   '/exceptions': ['ORCA_ADMIN', 'OPS_DISPATCHER', 'WAREHOUSE_MANAGER'],
   '/reconciliation': ['ORCA_ADMIN', 'ORCA_ACCOUNTANT'],
+  '/payouts': ['ORCA_ACCOUNTANT'],
+  '/period-close': ['ORCA_ACCOUNTANT'],
   '/analytics': reporting,
   '/iam/users': ['ORCA_ADMIN', 'SELLER_OWNER'],
   '/settings/profile': roles,

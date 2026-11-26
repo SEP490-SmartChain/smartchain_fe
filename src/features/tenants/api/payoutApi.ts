@@ -107,6 +107,14 @@ export const payoutApi = {
         .parse(response.meta?.pagination),
     };
   },
+  /** Accountant queue across sellers: frozen statements waiting for manual approval. */
+  async awaitingApproval(signal?: AbortSignal) {
+    const response = await apiClient.get<ApiResponse<unknown>>(
+      `${root}/statements/awaiting-approval`,
+      { signal, silent: true },
+    );
+    return { items: z.array(payoutStatementSchema).parse(response.data) };
+  },
   async list(filters: Omit<Filters, 'accountKind'>, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>(
       `${root}/statements${query(filters)}`,
@@ -157,6 +165,24 @@ export const payoutApi = {
           : action;
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `${statementPath(id)}/${suffix}${query({ tenantId })}`,
+      payload,
+      { signal, silent: true },
+    );
+    return mutationSchema.parse(data);
+  },
+  /** Accountant: freeze and send a statement for a chosen period without waiting for Monday. */
+  async createOnDemand(
+    payload: { operationKey: string; periodFrom: string; periodTo: string },
+    tenantId: string,
+    signal?: AbortSignal,
+  ) {
+    z.object({
+      operationKey: z.string().uuid(),
+      periodFrom: z.string().datetime({ offset: true }),
+      periodTo: z.string().datetime({ offset: true }),
+    }).parse(payload);
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `${root}/statements/on-demand${query({ tenantId: z.string().uuid().parse(tenantId) })}`,
       payload,
       { signal, silent: true },
     );

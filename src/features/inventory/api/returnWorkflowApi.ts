@@ -46,7 +46,11 @@ const eligible = z
   .object({
     id: z.uuid(),
     fulfillmentOrderId: z.uuid(),
+    orderCode: z.string(),
+    parcelSequenceNo: z.number().int().positive(),
+    deliveredAt: z.iso.datetime().nullable(),
     sku: z.string(),
+    productName: z.string(),
     lotCode: z.string(),
     remainingQty: z.number().int(),
   })

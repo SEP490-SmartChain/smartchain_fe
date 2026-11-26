@@ -15,7 +15,9 @@ import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
+import { CodAgingReport } from './CodAgingReport';
 import { SettlementExceptionsModal } from './SettlementExceptionsModal';
+import { SettlementRemittancesModal } from './SettlementRemittancesModal';
 import { carrierSettlementApi } from '../api/carrierSettlementApi';
 import { useSettlementBatches } from '../hooks/useSettlementBatches';
 import {
@@ -45,11 +47,14 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SettlementUploadValues>({
     resolver: zodResolver(settlementUploadSchema),
     defaultValues: { carrierCode: 'GHN' },
   });
+
+  const chosenFile = watch('file')?.[0];
 
   useEffect(() => {
     const abort = new AbortController();
@@ -95,18 +100,33 @@ function SettlementUploadForm({ onUploaded }: UploadFormProps) {
         error={errors?.carrierCode?.message}
       />
       <div>
-        <label htmlFor="settlement-file" className="mb-1 block text-sm font-medium">
+        <span id="settlement-file-label" className="mb-1 block text-sm font-medium">
           {t('file')}
-        </label>
-        <input
-          id="settlement-file"
-          type="file"
-          accept=".csv,text/csv"
-          className="block w-full text-sm"
-          aria-invalid={errors.file ? true : undefined}
-          aria-describedby="settlement-file-help"
-          {...register('file')}
-        />
+        </span>
+        <div className="flex min-w-0 items-center gap-3">
+          <input
+            id="settlement-file"
+            type="file"
+            accept=".csv,text/csv"
+            className="peer sr-only"
+            aria-labelledby="settlement-file-label"
+            aria-invalid={errors.file ? true : undefined}
+            aria-describedby="settlement-file-help"
+            {...register('file')}
+          />
+          <label
+            htmlFor="settlement-file"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] px-3 text-sm font-medium transition-colors duration-150 hover:bg-[var(--sc-bg-secondary)] peer-focus-visible:outline-2 peer-focus-visible:outline-[var(--sc-primary)]"
+          >
+            {t('chooseFile')}
+          </label>
+          <span
+            className={`min-w-0 truncate text-sm ${chosenFile ? '' : 'text-[var(--sc-text-secondary)]'}`}
+            title={chosenFile?.name}
+          >
+            {chosenFile?.name ?? t('noFile')}
+          </span>
+        </div>
         {errors.file ? (
           <Alert id="settlement-file-help" variant="error" compact className="mt-1">
             {t('fileInvalid')}
@@ -139,6 +159,7 @@ export function CarrierSettlementBatches() {
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<SettlementBatch | null>(null);
+  const [moneyBatch, setMoneyBatch] = useState<SettlementBatch | null>(null);
   const [confirming, setConfirming] = useState<SettlementBatch | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -203,6 +224,19 @@ export function CarrierSettlementBatches() {
     { key: 'carrierCode', label: t('carrier') },
     { key: 'fileName', label: t('file') },
     {
+      key: 'deadline',
+      label: t('deadline'),
+      render: (row) =>
+        row.reconDeadlineAt ? (
+          <div>
+            {formatTime(row.reconDeadlineAt)}
+            {row.isLate && <Badge status="warning" label={t('late')} />}
+          </div>
+        ) : (
+          '—'
+        ),
+    },
+    {
       key: 'progress',
       label: t('progress'),
       render: (row) => `${row.processedRows}/${row.totalRows}`,
@@ -234,6 +268,9 @@ export function CarrierSettlementBatches() {
       label: t('actions'),
       render: (row) => (
         <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setMoneyBatch(row)}>
+            {t('bankEvidence')}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setReviewing(row)}>
             {t('viewExceptions')}
           </Button>
@@ -278,11 +315,16 @@ export function CarrierSettlementBatches() {
         </Button>
       </div>
       <SettlementUploadForm onUploaded={handleUploaded} />
+      <CodAgingReport key={authRevision} />
+      {batches.some((row) => row.status === 'PROCESSING' || row.exceptionRows > 0) && (
+        <Alert variant="warning">{t('batchDueReminder')}</Alert>
+      )}
       {notice && (
         <Alert variant="success" onClose={() => setNotice(null)}>
           {notice}
         </Alert>
       )}
+      {actionError && !confirming && <Alert variant="error">{actionError}</Alert>}
       {error ? (
         <Alert variant="error" title={t('loadError')}>
           <Button size="sm" variant="outline" onClick={() => void refetch()}>
@@ -316,6 +358,14 @@ export function CarrierSettlementBatches() {
             setNotice(message);
             void refetch();
           }}
+        />
+      )}
+      {moneyBatch && (
+        <SettlementRemittancesModal
+          key={`${moneyBatch.id}:${authRevision}`}
+          batchId={moneyBatch.id}
+          onClose={() => setMoneyBatch(null)}
+          onChanged={() => void refetch()}
         />
       )}
       <Modal

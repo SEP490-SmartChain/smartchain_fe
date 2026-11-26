@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Alert, Badge, Button, Card, PageHeader, Select } from '@/components/Common';
 import { claimsApi, type Claim } from '@/features/claims/api/claimsApi';
@@ -106,7 +106,12 @@ function ClaimsQueue({
 }) {
   const t = useTranslations('Claims'),
     navigate = useNavigate(),
+    locale = useLocale(),
     { claimId } = useParams();
+  const dateFormat = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
   const [items, setItems] = useState<Claim[]>([]),
     [status, setStatus] = useState(''),
     [cursor, setCursor] = useState<string | null>(null),
@@ -202,10 +207,10 @@ function ClaimsQueue({
           }}
         />
       )}
-      <div className="grid gap-5 xl:grid-cols-[minmax(300px,0.9fr)_minmax(0,1.6fr)]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.6fr)]">
         <Card className="self-start overflow-hidden">
           <div className="border-b border-[var(--sc-border-default)] p-4">
-            <h2 className="font-semibold">{t('queue')}</h2>
+            <h2 className="m-0 text-base font-semibold leading-6">{t('queue')}</h2>
           </div>
           {loading ? (
             <p className="p-5 text-sm" role="status">
@@ -227,32 +232,36 @@ function ClaimsQueue({
                     onClick={() => open(claim.id)}
                     aria-pressed={claim.id === claimId}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-medium">
-                        {claim.orderReference} · #{claim.sequenceNo}
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 font-medium break-words">
+                        {claim.orderReference}
+                        <span className="ml-1 text-xs font-normal text-[var(--sc-text-tertiary)]">
+                          #{claim.sequenceNo}
+                        </span>
                       </span>
-                      <Badge
-                        status={
-                          claim.status === 'CREDITED'
-                            ? 'success'
-                            : claim.status === 'REJECTED'
-                              ? 'error'
-                              : 'warning'
-                        }
-                        label={t(`statuses.${claim.status}`)}
-                      />
+                      <span className="shrink-0 whitespace-nowrap">
+                        <Badge
+                          status={
+                            claim.status === 'CREDITED'
+                              ? 'success'
+                              : claim.status === 'REJECTED'
+                                ? 'error'
+                                : 'warning'
+                          }
+                          label={t(`statuses.${claim.status}`)}
+                        />
+                      </span>
                     </div>
-                    <p className="text-sm text-[var(--sc-text-secondary)]">
-                      {claim.warehouseName} · {claim.sku ?? claim.productName ?? t('item')}
+                    <p className="m-0 text-sm">
+                      {claim.sku ?? claim.productName ?? t('item')} ·{' '}
+                      {t('affected', { qty: claim.affectedQty })}
                     </p>
-                    <p className="text-xs text-[var(--sc-text-secondary)]">
+                    <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
                       {claim.responsibility
-                        ? t(`liability.${claim.responsibility}`)
+                        ? t('liabilityShort', { party: t(`liability.${claim.responsibility}`) })
                         : t('unclassified')}{' '}
-                      · {t('affected', { qty: claim.affectedQty })}
-                    </p>
-                    <p className="font-mono text-[11px] text-[var(--sc-text-tertiary)] truncate">
-                      {t('fulfillmentOrder')}: {claim.fulfillmentOrderId}
+                      · {claim.warehouseName} ·{' '}
+                      {t('openedOn', { date: dateFormat.format(new Date(claim.createdAt)) })}
                     </p>
                   </button>
                 </li>
@@ -296,7 +305,9 @@ function ClaimsQueue({
             refreshKey={tick}
           />
         ) : (
-          <Card className="p-6 text-sm text-[var(--sc-text-secondary)]">{t('selectClaim')}</Card>
+          <Card className="flex min-h-40 items-center justify-center p-6 text-center text-sm text-[var(--sc-text-secondary)]">
+            {t('selectClaim')}
+          </Card>
         )}
       </div>
     </>

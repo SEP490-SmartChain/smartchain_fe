@@ -65,6 +65,7 @@ function DisputeDetailModal({
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<DisputeUpdateValues, unknown, DisputeUpdateOutput>({
@@ -80,11 +81,19 @@ function DisputeDetailModal({
     setError(null);
     try {
       const result = await carrierSettlementApi.dispute(disputeId, abort.signal);
-      if (!abort.signal.aborted) setDetail(result);
+      if (!abort.signal.aborted) {
+        setDetail(result);
+        setValue(
+          'codResolutions',
+          result.items
+            .filter((row) => row.codResolutionRequired)
+            .map((row) => ({ rowNumber: row.rowNumber, amountVnd: row.resolvedCodVnd ?? '' })),
+        );
+      }
     } catch (failure) {
       if (!abort.signal.aborted) setError(errorMessage(failure, loadErrorMessage));
     }
-  }, [disputeId, loadErrorMessage]);
+  }, [disputeId, loadErrorMessage, setValue]);
 
   useEffect(() => {
     void load();
@@ -103,6 +112,9 @@ function DisputeDetailModal({
           ...(values.status ? { status: values.status } : {}),
           ...(values.externalTicketRef ? { externalTicketRef: values.externalTicketRef } : {}),
           ...(values.status === 'RESOLVED' ? { resolvedAmountVnd: values.resolvedAmountVnd } : {}),
+          ...(values.status === 'RESOLVED' && values.codResolutions?.length
+            ? { codResolutions: values.codResolutions }
+            : {}),
           ...(values.note ? { note: values.note } : {}),
         });
         if (revision !== useAuthStore.getState().revision) return;
@@ -201,6 +213,24 @@ function DisputeDetailModal({
                 {...register('resolvedAmountVnd')}
               />
             )}
+            {chosenStatus === 'RESOLVED' &&
+              detail.items
+                .filter((row) => row.codResolutionRequired)
+                .map((row, index) => (
+                  <Input
+                    key={row.rowNumber}
+                    label={t('codAllocation', { row: row.rowNumber, waybill: row.trackingNumber })}
+                    inputMode="numeric"
+                    {...register(`codResolutions.${index}.amountVnd`)}
+                    error={errors.codResolutions ? t('codInvalid') : undefined}
+                  />
+                ))}
+            {chosenStatus === 'RESOLVED' &&
+              detail.items.some((row) => row.codResolutionRequired) && (
+                <Alert variant="info" className="md:col-span-2">
+                  {t('codHelp')}
+                </Alert>
+              )}
             <Input
               label={t('note')}
               autoComplete="off"
@@ -224,7 +254,7 @@ function DisputeDetailModal({
   );
 }
 
-/** UC-143: carrier settlement disputes; resolution records the outcome, it never posts money. */
+/** UC-143: the API resolves and posts funded COD with explicit row allocations. */
 export function CarrierDisputes() {
   const t = useTranslations('CarrierDisputes');
   const locale = useLocaleStore((state) => state.locale);

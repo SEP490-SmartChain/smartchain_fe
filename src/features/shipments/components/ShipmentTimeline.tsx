@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+
 import { RotateCw, Truck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -124,9 +125,11 @@ export function ShipmentTimeline({
                   <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-subtle)] p-3 text-sm">
                     <div className="space-y-0.5">
                       <p className="m-0 font-medium text-[var(--sc-text-primary)]">
-                        {t.has(`journeyStatuses.${event.standardStatus}`)
-                          ? t(`journeyStatuses.${event.standardStatus}`)
-                          : t('journeyUnknown')}
+                        {t.has(`deliveryEvents.${event.eventCode}`)
+                          ? t(`deliveryEvents.${event.eventCode}`)
+                          : t.has(`journeyStatuses.${event.standardStatus}`)
+                            ? t(`journeyStatuses.${event.standardStatus}`)
+                            : t('journeyUnknown')}
                       </p>
                       <time
                         dateTime={event.eventTime}
@@ -137,6 +140,37 @@ export function ShipmentTimeline({
                       {event.eventCode && (
                         <p className="m-0 font-mono text-[11px] text-[var(--sc-text-tertiary)]">
                           {event.eventCode}
+                        </p>
+                      )}
+                      {event.hubName && (
+                        <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                          {t('timelineHub', { hub: event.hubName })}
+                        </p>
+                      )}
+                      {event.courier && (
+                        <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                          {t('timelineCourier', {
+                            name: event.courier.displayName,
+                            phone: event.courier.phoneMasked,
+                            plate: event.courier.vehiclePlate,
+                          })}
+                        </p>
+                      )}
+                      {typeof event.attemptNo === 'number' && (
+                        <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                          {t('timelineAttempt', { attempt: event.attemptNo })}
+                        </p>
+                      )}
+                      {typeof event.weightGram === 'number' && (
+                        <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                          {t('timelineWeight', { weight: event.weightGram.toLocaleString(locale) })}
+                        </p>
+                      )}
+                      {event.reasonCode && (
+                        <p className="m-0 text-xs text-[var(--sc-warning-dark)]">
+                          {t.has(`deliveryReasons.${event.reasonCode}`)
+                            ? t(`deliveryReasons.${event.reasonCode}`)
+                            : t('timelineReason', { reason: event.reasonCode })}
                         </p>
                       )}
                     </div>
