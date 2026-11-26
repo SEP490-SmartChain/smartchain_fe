@@ -3198,6 +3198,10 @@
     "printError": "Unable to print labels. Retry from the preview.",
     "loadedLabels": "Print QR labels for the {count} bins currently loaded.",
     "binFilter": "Filter bin code or QR code",
+    "binQrTitle": "Bin {code}",
+    "viewBinQr": "View QR",
+    "viewBinQrFor": "View QR for bin {code}",
+    "binQrLocation": "Warehouse {warehouse} · Zone {zone}",
     "view3D": "Warehouse 3D"
   },
   "WarehouseInbound": {
