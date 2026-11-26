@@ -24,6 +24,8 @@ export type ReturnAction = {
   id: string;
   version: number;
   line?: ReturnLine;
+  /** Human-readable code printed on the parcel (waybill), shown instead of the internal id. */
+  label?: string;
 };
 export function ReturnActionForm({
   warehouseId,
@@ -160,7 +162,7 @@ export function ReturnActionForm({
     >
       <form className="space-y-4" onSubmit={handleSubmit(submit, () => notifyInvalidForm())}>
         <p className="break-all text-sm">
-          {action.id}
+          {action.label ?? (action.kind === 'arrival' ? t('noWaybillYet') : '')}
           {action.line ? ` · ${action.line.sku} · ${action.line.lotCode}` : ''}
         </p>
         {error && <Alert variant="error" title={t('commandError')} />}
