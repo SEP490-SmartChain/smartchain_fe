@@ -3198,6 +3198,10 @@
     "printError": "Không thể in nhãn. Thử lại từ bản xem trước.",
     "loadedLabels": "In nhãn QR cho {count} vị trí đang hiển thị.",
     "binFilter": "Lọc mã vị trí hoặc mã QR",
+    "binQrTitle": "Vị trí kệ {code}",
+    "viewBinQr": "Xem mã",
+    "viewBinQrFor": "Xem mã QR ô kệ {code}",
+    "binQrLocation": "Kho {warehouse} · Khu {zone}",
     "view3D": "Kho 3D"
   },
   "WarehouseInbound": {
