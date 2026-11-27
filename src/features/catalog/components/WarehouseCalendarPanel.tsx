@@ -13,6 +13,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import { useAccess } from '@/hooks/useAccess';
+import { parseLocalDateTime } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -38,6 +39,7 @@ export function WarehouseCalendarPanel({
   readonly onEdit: () => void;
 }) {
   const t = useTranslations('Warehouses');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocale();
   const { can } = useAccess();
   const principal = useAuthStore((s) => s.user);
@@ -117,9 +119,9 @@ export function WarehouseCalendarPanel({
   const needsCheck =
     !!calendar && at !== `${calendar.localDate}T${minuteToTime(calendar.localMinute)}`;
   const checkAvailability = () => {
-    const instant = new Date(`${at}:00+07:00`);
-    if (!at || !Number.isFinite(instant.getTime())) {
-      setCheckError(t('checkTimeRequired'));
+    const instant = parseLocalDateTime(at, 'vietnam');
+    if (!instant) {
+      setCheckError(at ? dateText('invalidDateTime') : t('checkTimeRequired'));
       return;
     }
     setCheckError(null);

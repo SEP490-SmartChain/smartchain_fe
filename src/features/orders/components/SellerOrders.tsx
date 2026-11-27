@@ -19,6 +19,7 @@ import {
 import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTable';
 import Modal from '@/components/Common/Modal/Modal';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+import { calendarRangeIssue, reportIncompleteDateInput } from '@/lib/dateValidation';
 import { notificationTarget } from '@/lib/notificationTarget';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -70,6 +71,7 @@ function SellerOrdersSession({
 }) {
   const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
   const t = useTranslations('Orders');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocale();
   const [draftFilters, setDraftFilters] = useState<OrderFilters>({
     status: '',
@@ -78,6 +80,7 @@ function SellerOrdersSession({
     to: '',
   });
   const [filters, setFilters] = useState(draftFilters);
+  const dateIssue = calendarRangeIssue(draftFilters.from, draftFilters.to);
   const orders = useOrders(scope, filters, owner);
   const [modal, setModal] = useState<
     'manual' | 'import' | 'detail' | 'sheet' | 'withdrawal' | null
@@ -375,8 +378,10 @@ function SellerOrdersSession({
         <form
           onSubmit={(event) => {
             event.preventDefault();
+            if (dateIssue || reportIncompleteDateInput(event.currentTarget)) return;
             setFilters({ ...draftFilters });
           }}
+          noValidate
           className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-5 @[68rem]:grid-cols-[repeat(5,minmax(0,1fr))_max-content] @[68rem]:gap-3"
         >
           <Input
@@ -408,6 +413,7 @@ function SellerOrdersSession({
             type="date"
             value={draftFilters.from}
             max={draftFilters.to || undefined}
+            error={dateIssue?.field === 'from' ? dateText(dateIssue.message) : undefined}
             onChange={(event) => setDraftFilters({ ...draftFilters, from: event.target.value })}
           />
           <Input
@@ -415,6 +421,7 @@ function SellerOrdersSession({
             type="date"
             value={draftFilters.to}
             min={draftFilters.from || undefined}
+            error={dateIssue?.field === 'to' ? dateText(dateIssue.message) : undefined}
             onChange={(event) => setDraftFilters({ ...draftFilters, to: event.target.value })}
           />
           <div className="col-span-full flex flex-wrap items-end gap-2 @[68rem]:col-span-1 @[68rem]:flex-nowrap">

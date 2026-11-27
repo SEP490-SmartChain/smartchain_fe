@@ -1,6 +1,23 @@
 import { z } from 'zod';
 
-const physicalDate = z.union([z.literal(''), z.iso.date()]);
+import { calendarDateSchema, DAY_MS, vietnamToday } from '@/lib/dateValidation';
+
+const physicalDate = z.union([z.literal(''), calendarDateSchema]);
+
+export function receiptLotDateIssue(
+  manufacturedOn: string | undefined,
+  expiresOn: string | undefined,
+  today = vietnamToday(),
+) {
+  if (!manufacturedOn || !calendarDateSchema.safeParse(manufacturedOn).success) return null;
+  if (manufacturedOn > today) {
+    return { field: 'manufacturedOn', message: 'manufactureFuture' } as const;
+  }
+  if (expiresOn && calendarDateSchema.safeParse(expiresOn).success && expiresOn <= manufacturedOn) {
+    return { field: 'expiresOn', message: 'expiryAfterManufacture' } as const;
+  }
+  return null;
+}
 export interface ReceiptSkuPolicy {
   trackLot: boolean;
   trackExpiry: boolean;
@@ -11,12 +28,12 @@ export function derivedReceiptExpiry(
   manufacturedOn: string,
   shelfLifeDays: number | null,
 ): string | null {
-  if (!z.iso.date().safeParse(manufacturedOn).success || !shelfLifeDays) return null;
-  const expiry = new Date(Date.parse(manufacturedOn) + shelfLifeDays * 86_400_000);
+  if (!calendarDateSchema.safeParse(manufacturedOn).success || !shelfLifeDays) return null;
+  const expiry = new Date(Date.parse(manufacturedOn) + shelfLifeDays * DAY_MS);
   if (!Number.isFinite(expiry.getTime()) || expiry.getUTCFullYear() > 9999) return null;
   return expiry.toISOString().slice(0, 10);
 }
-export function receiptCountSchemaFor(policy?: ReceiptSkuPolicy) {
+export function receiptCountSchemaFor(policy?: ReceiptSkuPolicy, now = () => new Date()) {
   return z
     .object({
       inboundLineId: z.string().uuid(),
@@ -61,6 +78,7 @@ export function receiptCountSchemaFor(policy?: ReceiptSkuPolicy) {
       if (new Set(lotCodes).size !== lotCodes.length) {
         context.addIssue({ code: 'custom', path: ['lots'], message: 'duplicateLot' });
       }
+      const today = vietnamToday(now());
       value.lots.forEach((lot, index) => {
         const requireManufacture =
           policy?.manufactureRequired || (policy?.trackExpiry && !policy.shelfLifeDays);
@@ -82,11 +100,12 @@ export function receiptCountSchemaFor(policy?: ReceiptSkuPolicy) {
             message: 'countExpiryRequired',
           });
         }
-        if (lot.manufacturedOn && lot.expiresOn && lot.expiresOn <= lot.manufacturedOn) {
+        const issue = receiptLotDateIssue(lot.manufacturedOn, lot.expiresOn, today);
+        if (issue) {
           context.addIssue({
             code: 'custom',
-            path: ['lots', index, 'expiresOn'],
-            message: 'countDate',
+            path: ['lots', index, issue.field],
+            message: issue.message,
           });
         }
       });

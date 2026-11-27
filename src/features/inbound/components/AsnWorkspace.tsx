@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import {
@@ -302,6 +302,39 @@ function AsnCommand({
   const t = useTranslations('Asns');
   const [busy, setBusy] = useState(false);
   const [commandError, setCommandError] = useState('');
+  const format = useFormatter();
+  const user = useAuthStore((state) => state.user);
+  const [preview, setPreview] = useState<{
+    owner: typeof user;
+    value: Awaited<ReturnType<typeof asnApi.submitCheck>> | null;
+    errorCode?: string;
+    errorMessage?: string;
+  }>();
+  const check = preview?.owner === user ? preview?.value : undefined;
+  const previewBlockedByWarehouse =
+    preview?.owner === user && preview?.errorCode === 'INBOUND.ASN_WAREHOUSE_NOT_SELECTED';
+  useEffect(() => {
+    if (action !== 'submit') return;
+    const controller = new AbortController();
+    void asnApi
+      .submitCheck(asn.id, asn.warehouseId, controller.signal)
+      .then((value) => {
+        if (!controller.signal.aborted && user === useAuthStore.getState().user) {
+          setPreview({ owner: user, value });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted && user === useAuthStore.getState().user) {
+          setPreview({
+            owner: user,
+            value: null,
+            errorCode: error instanceof ApiError ? error.code : undefined,
+            errorMessage: error instanceof ApiError ? error.message : undefined,
+          });
+        }
+      });
+    return () => controller.abort();
+  }, [action, asn.id, asn.warehouseId, user]);
   const {
     register,
     handleSubmit,
@@ -358,6 +391,49 @@ function AsnCommand({
         <p className="break-all font-medium">{asn.asnCode}</p>
         {commandError && <Alert variant="error">{commandError}</Alert>}
         <p className="text-sm">{t(action === 'submit' ? 'submitConfirm' : 'cancelConfirm')}</p>
+        {action === 'submit' && (
+          <div className="space-y-2 text-sm" role="status">
+            {check ? (
+              <>
+                <p>
+                  {t('submitQuota', {
+                    used: check.occupiedWarehouseCount,
+                    limit: check.warehouseAllowance,
+                    remaining: Math.max(0, check.warehouseAllowance - check.occupiedWarehouseCount),
+                    projected: check.projectedWarehouseCount,
+                  })}
+                </p>
+                <p>
+                  {t('submitVolume', {
+                    requested:
+                      check.declaredVolumeM3 === null
+                        ? t('unknownVolume')
+                        : `${format.number(Number(check.declaredVolumeM3), { maximumFractionDigits: 6 })} m³`,
+                    available:
+                      check.availableVolumeM3 === null
+                        ? t('unknownVolume')
+                        : `${format.number(Number(check.availableVolumeM3), { maximumFractionDigits: 6 })} m³`,
+                  })}
+                </p>
+                {check.projectedWarehouseCount > check.warehouseAllowance && (
+                  <Alert variant="warning">{t('submitQuotaExceeded')}</Alert>
+                )}
+                {check.volumeFits === false && (
+                  <Alert variant="warning">{t('submitVolumeExceeded')}</Alert>
+                )}
+              </>
+            ) : previewBlockedByWarehouse ? (
+              <Alert variant="error" notify={false}>
+                <p className="m-0 font-medium">
+                  {preview?.errorMessage || t('submitWarehouseNotSelected')}
+                </p>
+                <p className="mt-1 mb-0 text-xs">{t('submitWarehouseNotSelectedGuidance')}</p>
+              </Alert>
+            ) : (
+              <p>{t(check === null ? 'submitCheckUnavailable' : 'submitCheckLoading')}</p>
+            )}
+          </div>
+        )}
         {action === 'cancel' && (
           <Input
             label={t('cancelReason')}
@@ -369,7 +445,7 @@ function AsnCommand({
           <Button type="button" variant="ghost" disabled={busy} onClick={onClose}>
             {t('close')}
           </Button>
-          <Button type="submit" isLoading={busy}>
+          <Button type="submit" isLoading={busy} disabled={previewBlockedByWarehouse}>
             {t(action)}
           </Button>
         </div>

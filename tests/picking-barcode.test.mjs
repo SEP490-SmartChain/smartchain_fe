@@ -79,8 +79,8 @@ test('All operational warehouse labels and scan controls are unified on QR', () 
     new URL('../src/components/Common/BarcodeScanButton/BarcodeScanButton.tsx', import.meta.url),
     'utf8',
   );
-  assert.match(asnLabelsSource, /QRCode\.toDataURL/);
-  assert.doesNotMatch(asnLabelsSource, /encodeCode128/);
+  assert.match(asnLabelsSource, /QRCode\.toDataURL\(asnCode\b/);
+  assert.doesNotMatch(asnLabelsSource, /encodeCode128|cartonLabelRefs/);
   assert.match(packingSource, /QrCodeImage/);
   assert.doesNotMatch(packingSource, /encodeLabelBarcode/);
   assert.match(scanButtonSource, /QrCode/);

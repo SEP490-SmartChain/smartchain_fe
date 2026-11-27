@@ -4,6 +4,23 @@ import { apiClient, type ApiResponse } from '@/services/apiClient';
 
 const money = z.string().regex(/^(0|[1-9]\d{0,19})$/);
 const serviceStatusSchema = z.enum(['PENDING_ACTIVATION', 'ACTIVE', 'SUSPENDED', 'CLOSED']);
+const planServiceLabelsSchema = z.object({ labelVi: z.string(), labelEn: z.string() });
+const planServiceSelectionSchema = planServiceLabelsSchema.extend({
+  code: z.string().min(1).max(200),
+  labelVi: z.string().min(1),
+  labelEn: z.string().min(1),
+});
+const planServiceOptionsSchema = z
+  .array(planServiceSelectionSchema)
+  .refine((options) => new Set(options.map(({ code }) => code)).size === options.length);
+export type PlanServiceLabels = z.infer<typeof planServiceLabelsSchema>;
+const selectedWarehouseSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  name: z.string(),
+});
+export type SelectedWarehouse = z.infer<typeof selectedWarehouseSchema>;
+
 const planSchema = z.object({
   id: z.string().uuid(),
   planId: z.string().uuid(),
@@ -14,6 +31,7 @@ const planSchema = z.object({
   salesOrderAllowance: z.number().int().nonnegative(),
   warehouseAllowance: z.number().int().positive(),
   storageAllowanceM3: z.string(),
+  includedServiceLabels: z.array(planServiceLabelsSchema).optional(),
   agreementId: z.string().uuid().nullable(),
   agreementVersionRef: z.string().nullable(),
   requiresBusinessProfile: z.boolean().optional().default(false),
@@ -47,6 +65,7 @@ const contractSchema = z.object({
   agreementVersionRef: z.string(),
   planVersionId: z.string().uuid(),
   planName: z.string().nullable().optional(),
+  includedServiceLabels: z.array(planServiceLabelsSchema).optional(),
   monthlyFeeVnd: money.nullable().optional(),
   depositRequiredVnd: money,
   creditLimitVnd: money,
@@ -55,6 +74,7 @@ const contractSchema = z.object({
   acceptedAt: z.string().datetime().nullable(),
   hasSignedEvidence: z.boolean().optional(),
   confirmedAt: z.string().datetime().nullable(),
+  selectedWarehouses: z.array(selectedWarehouseSchema).nullable().optional(),
 });
 const contractsSchema = z.object({
   currentContractId: z.string().uuid().nullable(),
@@ -91,6 +111,7 @@ const catalogSchema = z.object({
   plans: z.array(planSchema),
   signingConfigured: z.boolean(),
   mockPaymentsEnabled: z.boolean().optional().default(false),
+  warehouseSelectionEnabled: z.boolean().optional().default(false),
 });
 
 export type CommercialPlan = z.infer<typeof planSchema>;
@@ -138,6 +159,7 @@ const tariffSchema = z.object({
   effectiveTo: z.string().nullable(),
 });
 const termsSchema = z.object({
+  includedServiceOptions: planServiceOptionsSchema.optional(),
   plans: z.array(
     z.object({
       id: z.string().uuid(),
@@ -149,6 +171,7 @@ const termsSchema = z.object({
       salesOrderAllowance: z.number().int().nonnegative().optional(),
       storageAllowanceM3: z.string().optional(),
       includedServices: z.array(z.string()).optional(),
+      includedServiceSelections: planServiceOptionsSchema.optional(),
       publishedAgreementVersionRef: z.string().nullable().optional(),
       availableAgreementVersionRef: z.string().nullable().optional(),
       supersededByPlanVersionNo: z.number().int().positive().nullable().optional(),
@@ -191,6 +214,7 @@ const quotaSchema = z.object({
       warehouseAllowance: z.number().int().positive(),
       salesOrderAllowance: z.number().int().nonnegative(),
       storageAllowanceM3: z.string(),
+      includedServiceLabels: z.array(planServiceLabelsSchema).optional(),
     })
     .nullable(),
   usage: z
@@ -209,8 +233,10 @@ const quotaSchema = z.object({
       planVersionId: z.string().uuid(),
       status: z.string(),
       effectiveOn: z.string(),
+      selectedWarehouseIds: z.array(z.string().uuid()).nullable().optional(),
     }),
   ),
+  selectedWarehouses: z.array(selectedWarehouseSchema).nullable().optional(),
 });
 export type CommercialQuota = z.infer<typeof quotaSchema>;
 export interface PlanVersionInput {
@@ -392,10 +418,16 @@ export const commercialApi = {
     expectedVersion: number,
     operationKey: string,
     signal?: AbortSignal,
+    warehouseIds?: string[],
   ) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       '/v1/commercial/plan-changes',
-      { planVersionId, expectedVersion, operationKey },
+      {
+        planVersionId,
+        expectedVersion,
+        operationKey,
+        ...(warehouseIds !== undefined ? { warehouseIds } : {}),
+      },
       { signal, silent: true },
     );
     return z
@@ -479,6 +511,7 @@ export const commercialApi = {
     operationKey: string,
     signal?: AbortSignal,
     businessProfile?: ContractBusinessProfile,
+    warehouseIds?: string[],
   ) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       '/v1/commercial/signing-requests',
@@ -487,6 +520,7 @@ export const commercialApi = {
         agreementVersionRef,
         operationKey,
         ...(businessProfile ? { businessProfile } : {}),
+        ...(warehouseIds !== undefined ? { warehouseIds } : {}),
       },
       { signal, silent: true },
     );

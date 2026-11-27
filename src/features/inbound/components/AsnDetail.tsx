@@ -41,6 +41,7 @@ export function AsnDetail({ asn, statusTone, onClose }: AsnDetailProps) {
     timeZone: 'Asia/Ho_Chi_Minh',
   });
   const canViewInventory = can('inventory.positions.view') || can('inventory.view');
+  const canPrintQr = asn.status !== 'DRAFT' && asn.status !== 'CANCELLED';
   const referenceGroups = [
     ['labels', asn.cartonLabelRefs],
     ['receipts', asn.receiptIds],
@@ -166,16 +167,15 @@ export function AsnDetail({ asn, statusTone, onClose }: AsnDetailProps) {
         <section className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold leading-6">{t('cartonLabelsTitle')}</h3>
+              <h3 className="text-base font-semibold leading-6">{t('asnQrTitle')}</h3>
               <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
-                {asn.cartonLabelRefs.length
-                  ? t('cartonLabelsHint', { count: asn.cartonLabelRefs.length })
-                  : t('labelsPending')}
+                {t('declaredCartons', { count: asn.cartonCount })}
               </p>
+              {asn.status === 'DRAFT' && (
+                <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">{t('asnQrPending')}</p>
+              )}
             </div>
-            {asn.cartonLabelRefs.length > 0 && asn.status !== 'CANCELLED' && (
-              <AsnLabels asn={asn} />
-            )}
+            {canPrintQr && <AsnLabels asnCode={asn.asnCode} cartonCount={asn.cartonCount} />}
           </div>
         </section>
 

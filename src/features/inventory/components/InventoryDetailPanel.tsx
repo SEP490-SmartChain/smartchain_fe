@@ -9,6 +9,7 @@ import DataTable, { type ColumnDef } from '@/components/Common/DataTable/DataTab
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useDebounce } from '@/hooks/useDebounce';
+import { calendarRangeIssue } from '@/lib/dateValidation';
 
 import { InventoryPositionsTable } from './InventoryPositionsTable';
 import { InventoryReadError } from './InventoryReadError';
@@ -73,6 +74,7 @@ export function InventoryDetailPanel({
   warehouseId: string;
 }) {
   const t = useTranslations('InventoryDetail');
+  const dateText = useTranslations('DateValidation');
   const common = useTranslations('Inventory');
   const locale = useLocale();
   const filterId = useId();
@@ -82,10 +84,9 @@ export function InventoryDetailPanel({
   const dateFilters =
     kind === 'positions' ? (['expiresAfter', 'expiresBefore'] as const) : (['from', 'to'] as const);
   const [start, end] = dateFilters;
-  const invalidDates = Boolean(input[start] && input[end] && input[start] > input[end]);
-  const queryInvalid = Boolean(
-    debounced[start] && debounced[end] && debounced[start] > debounced[end],
-  );
+  const dateIssue = calendarRangeIssue(input[start], input[end]);
+  const invalidDates = dateIssue !== null;
+  const queryInvalid = calendarRangeIssue(debounced[start], debounced[end]) !== null;
   const filters = useMemo(() => ({ ...debounced, warehouseId }), [debounced, warehouseId]);
   const { items, error, isLoading, isLoadingMore, hasNext, refetch, loadMore } = useInventoryDetail(
     kind,
@@ -338,7 +339,11 @@ export function InventoryDetailPanel({
                 value={input[key]}
                 min={key === end ? input[start] || undefined : undefined}
                 max={key === start ? input[end] || undefined : undefined}
-                error={invalidDates && key === end ? t('invalidDateRange') : undefined}
+                error={
+                  dateIssue && key === (dateIssue.field === 'from' ? start : end)
+                    ? dateText(dateIssue.message)
+                    : undefined
+                }
                 onChange={(event) => change(key, event.target.value)}
               />
             ))}
@@ -356,7 +361,10 @@ export function InventoryDetailPanel({
         )}
       </div>
       {invalidDates || queryInvalid ? (
-        <InventoryState title={t('invalidDateRange')} description={t('invalidDateHint')} />
+        <InventoryState
+          title={dateIssue ? dateText(dateIssue.message) : t('invalidDateRange')}
+          description={t('invalidDateHint')}
+        />
       ) : (
         <>
           {error && (

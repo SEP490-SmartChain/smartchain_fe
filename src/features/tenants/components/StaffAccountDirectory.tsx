@@ -41,6 +41,7 @@ import Modal from '@/components/Common/Modal/Modal';
 import Pagination from '@/components/Common/Pagination/Pagination';
 import { Select } from '@/components/Common/Select/Select';
 import { useAvatarUrl } from '@/hooks/useAvatarUrl';
+import { calendarRangeIssue } from '@/lib/dateValidation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -93,6 +94,7 @@ function relativeTime(timestamp: string | null, locale: string, fallback: string
 
 export function StaffAccountDirectory() {
   const t = useTranslations('StaffAccounts');
+  const dateText = useTranslations('DateValidation');
   const notifications = useTranslations('Notifications');
   const [copyErrorId, setCopyErrorId] = useState('');
   const locale = useLocale();
@@ -151,15 +153,19 @@ export function StaffAccountDirectory() {
     return { total, active, pending, locked };
   }, [accounts]);
 
+  const dateIssue = calendarRangeIssue(fromDate, toDate);
+  const invalidDates = dateIssue !== null;
   const sortedAccounts = useMemo(() => {
+    if (invalidDates) return [];
     const fromTimestamp = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : null;
-    const toTimestamp = toDate ? new Date(`${toDate}T23:59:59`).getTime() : null;
+    const toTimestamp = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : null;
     const withinDateRange = accounts.filter((account) => {
-      if (!fromTimestamp && !toTimestamp) return true;
+      if (fromTimestamp === null && toTimestamp === null) return true;
       if (!account.lastSessionAt) return false;
       const timestamp = new Date(account.lastSessionAt).getTime();
       return (
-        (!fromTimestamp || timestamp >= fromTimestamp) && (!toTimestamp || timestamp <= toTimestamp)
+        (fromTimestamp === null || timestamp >= fromTimestamp) &&
+        (toTimestamp === null || timestamp <= toTimestamp)
       );
     });
 
@@ -172,10 +178,10 @@ export function StaffAccountDirectory() {
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [accounts, fromDate, locale, sortDirection, sortKey, toDate]);
+  }, [accounts, fromDate, invalidDates, locale, sortDirection, sortKey, toDate]);
 
   const loadedPageCount = Math.max(1, Math.ceil(sortedAccounts.length / PAGE_SIZE));
-  const totalPages = loadedPageCount + (hasNextPage ? 1 : 0);
+  const totalPages = loadedPageCount + (!invalidDates && hasNextPage ? 1 : 0);
   const visibleAccounts = sortedAccounts.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
@@ -444,6 +450,8 @@ export function StaffAccountDirectory() {
                     type="date"
                     aria-label={t('fromDate')}
                     value={fromDate}
+                    max={toDate || undefined}
+                    error={dateIssue?.field === 'from' ? dateText(dateIssue.message) : undefined}
                     onChange={(event) => {
                       setFromDate(event.target.value);
                       setCurrentPage(1);
@@ -459,6 +467,8 @@ export function StaffAccountDirectory() {
                     type="date"
                     aria-label={t('toDate')}
                     value={toDate}
+                    min={fromDate || undefined}
+                    error={dateIssue?.field === 'to' ? dateText(dateIssue.message) : undefined}
                     onChange={(event) => {
                       setToDate(event.target.value);
                       setCurrentPage(1);

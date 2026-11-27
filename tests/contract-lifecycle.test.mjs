@@ -79,3 +79,59 @@ test('surfaces stale version failures without losing the authenticated session',
   );
   assert.equal(store.getState().user.userId, id);
 });
+
+test('requestPlanChange forwards warehouseIds only when supplied and quotas parses warehouse selections', async () => {
+  const whA = '00000400-0000-4000-8000-000000000001';
+  const whB = '00000400-0000-4000-8000-000000000002';
+  const requests = [];
+  globalThis.fetch = async (url, options) => {
+    requests.push({ url: String(url), method: options.method, body: options.body });
+    if (String(url).includes('/v1/commercial/plan-changes')) {
+      return ok({ id, status: 'REQUESTED', effectiveOn: '2026-12-01' });
+    }
+    return ok({
+      tenantId: id,
+      serviceStatus: 'ACTIVE',
+      plan: {
+        id,
+        name: 'Standard',
+        code: 'STANDARD',
+        versionNo: 1,
+        monthlyFeeVnd: '12000000',
+        warehouseAllowance: 3,
+        salesOrderAllowance: 1500,
+        storageAllowanceM3: '30',
+      },
+      usage: null,
+      changes: [
+        {
+          id,
+          planVersionId: id,
+          status: 'REQUESTED',
+          effectiveOn: '2026-12-01',
+          selectedWarehouseIds: [whA, whB],
+        },
+      ],
+      selectedWarehouses: [{ id: whA, code: 'WH-HN', name: 'Kho Hà Nội' }],
+    });
+  };
+
+  await api.requestPlanChange(id, 2, id, undefined, [whA, whB]);
+  assert.deepEqual(JSON.parse(requests[0].body), {
+    planVersionId: id,
+    expectedVersion: 2,
+    operationKey: id,
+    warehouseIds: [whA, whB],
+  });
+
+  await api.requestPlanChange(id, 2, id);
+  assert.deepEqual(JSON.parse(requests[1].body), {
+    planVersionId: id,
+    expectedVersion: 2,
+    operationKey: id,
+  });
+
+  const quota = await api.quotas();
+  assert.deepEqual(quota.selectedWarehouses, [{ id: whA, code: 'WH-HN', name: 'Kho Hà Nội' }]);
+  assert.deepEqual(quota.changes[0].selectedWarehouseIds, [whA, whB]);
+});

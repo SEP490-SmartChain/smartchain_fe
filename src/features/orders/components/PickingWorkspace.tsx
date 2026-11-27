@@ -24,6 +24,7 @@ import {
 } from '@/features/orders/lib/fulfillmentPending';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { localDateTimeInput } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -77,9 +78,7 @@ function preferredScrollBehavior(): ScrollBehavior {
  * (PICK.INVALID_CUTOFF), and "now" is what an operator taking work means.
  */
 function currentCutoffInput(): string {
-  const at = new Date(Date.now() - 60_000);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  return localDateTimeInput(new Date(Date.now() - 60_000));
 }
 
 export function PickingWorkspace() {
@@ -1081,6 +1080,7 @@ function WaveForm({
   onSubmit: (v: z.infer<typeof pickWaveFormSchema>) => void;
 }) {
   const t = useTranslations('Picking');
+  const dateText = useTranslations('DateValidation');
   const f = useForm<z.infer<typeof pickWaveFormSchema>>({
     resolver: zodResolver(pickWaveFormSchema),
     defaultValues: { assigneeId: '', cutoffAt: currentCutoffInput(), maxParcels: 20 },
@@ -1102,17 +1102,21 @@ function WaveForm({
       return;
     }
     const values = f.getValues();
+    const staysCurrent = () => {
+      const current = f.getValues();
+      return current.cutoffAt === values.cutoffAt && current.maxParcels === values.maxParcels;
+    };
     setPreviewBusy(true);
     setPreviewError(null);
     try {
-      setPreview(
-        await pickingApi.previewWave(
-          warehouseId,
-          new Date(values.cutoffAt).toISOString(),
-          values.maxParcels,
-        ),
+      const result = await pickingApi.previewWave(
+        warehouseId,
+        new Date(values.cutoffAt).toISOString(),
+        values.maxParcels,
       );
+      if (staysCurrent()) setPreview(result);
     } catch (cause) {
+      if (!staysCurrent()) return;
       const code = cause instanceof ApiError ? (cause.code.split('.').at(-1) ?? '') : '';
       setPreviewError(t.has(`errors.${code}`) ? t(`errors.${code}`) : t('previewError'));
     } finally {
@@ -1123,14 +1127,18 @@ function WaveForm({
     <Card>
       <CardContent>
         <h2 className="mb-4 font-semibold">{t('waveSetup')}</h2>
-        <form onSubmit={f.handleSubmit(onSubmit, () => notifyInvalidForm())} className="space-y-3">
+        <form
+          onSubmit={f.handleSubmit(onSubmit, () => notifyInvalidForm())}
+          className="space-y-3"
+          noValidate
+        >
           <Input
             type="datetime-local"
             label={t('cutoff')}
             required
             {...f.register('cutoffAt')}
             disabled={disabled}
-            error={f.formState.errors.cutoffAt ? t('required') : undefined}
+            error={f.formState.errors.cutoffAt ? dateText('pickCutoff') : undefined}
           />
           <Select
             label={t('assignee')}

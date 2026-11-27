@@ -46,6 +46,7 @@ function InvoiceList({
   filterBar?: React.ReactNode;
 }) {
   const t = useTranslations('Invoices');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocaleStore((s) => s.locale);
   const { can } = useAccess();
   const [items, setItems] = useState<FeeInvoice[]>([]),
@@ -253,7 +254,7 @@ function InvoiceList({
                     placeholder={t('chooseMonth')}
                     value={field.value}
                     onChange={field.onChange}
-                    error={fieldState.error ? t('invalidMonth') : undefined}
+                    error={fieldState.error ? dateText('closedMonth') : undefined}
                   />
                 )}
               />

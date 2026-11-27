@@ -284,10 +284,7 @@ export function sanitizeRealtimeTargetPath(path: string): string {
   return trimmed.slice(0, 400);
 }
 
-export function interpolateNotificationTemplate(
-  template: string,
-  params: RealtimeParams,
-): string {
+export function interpolateNotificationTemplate(template: string, params: RealtimeParams): string {
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => {
     const val = params[key];
     return val === undefined || val === null ? '' : String(val);
