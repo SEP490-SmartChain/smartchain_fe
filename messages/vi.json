@@ -537,7 +537,21 @@
     "prepareTitle": "Chuẩn bị hợp đồng — Gói {plan}",
     "profileHelp": "Thông tin bên ký và giá của gói được khóa trong bản hợp đồng. Các điều kiện chung do ORCA công bố; bạn cần kiểm tra toàn bộ nội dung trước khi ký.",
     "registeredProfileHelp": "Tên doanh nghiệp, mã số thuế (nếu đã đăng ký) và số liên hệ phải khớp hồ sơ cửa hàng.",
-    "profileInvalid": "Kiểm tra nội dung, độ dài và định dạng; không dùng xuống dòng.",
+    "selectAuthority": "Chọn căn cứ đại diện",
+    "authorityOptions": {
+      "owner": "Chủ hộ / chủ doanh nghiệp tư nhân / cá nhân tự ký",
+      "legalRepresentative": "Người đại diện theo pháp luật",
+      "authorized": "Người được ủy quyền"
+    },
+    "authorizationReference": "Thông tin giấy ủy quyền (ví dụ số và ngày lập)",
+    "profileErrors": {
+      "legalName": "Nhập tên pháp lý đã đăng ký, từ 2 đến 150 ký tự.",
+      "address": "Nhập địa chỉ bên ký, từ 5 đến 250 ký tự và có chữ cái.",
+      "registrationNumber": "Nhập từ 3 đến 30 ký tự, chỉ dùng chữ cái, số và dấu gạch ngang.",
+      "representativeName": "Nhập họ tên người ký từ 2 đến 100 ký tự, không nhập số.",
+      "phone": "Nhập số điện thoại có từ 7 đến 15 chữ số.",
+      "authorizationReference": "Nhập thông tin giấy ủy quyền từ 5 đến 150 ký tự, có số văn bản hoặc ngày lập."
+    },
     "reviewedTerms": "Tôi đã đọc điều khoản của gói này và xác nhận thông tin bên ký, căn cứ đại diện là đúng.",
     "reviewRequired": "Bạn cần đọc điều khoản và xác nhận trước khi chuẩn bị hợp đồng.",
     "confirmPrepare": "Xác nhận thông tin và tạo bản chờ ký",
@@ -546,7 +560,7 @@
       "address": "Địa chỉ bên ký",
       "registrationNumber": "Mã số doanh nghiệp / mã số thuế (nếu có)",
       "representativeName": "Họ tên người đại diện ký",
-      "representativeTitle": "Chức vụ / tư cách ký",
+      "representativeTitle": "Tư cách ký",
       "authorityBasis": "Căn cứ đại diện hoặc ủy quyền",
       "phone": "Điện thoại liên hệ"
     },
