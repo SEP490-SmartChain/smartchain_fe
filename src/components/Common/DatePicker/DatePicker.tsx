@@ -18,6 +18,12 @@ export interface DatePickerProps {
   label?: string;
   error?: string;
   disabled?: boolean;
+  /** date-fns pattern for the selected value; defaults to the localized long date `PPP`. */
+  displayFormat?: string;
+  /** Days before this date cannot be selected. */
+  minDate?: Date;
+  /** Render the calendar in the content flow, e.g. inside a scrolling modal that would clip a floating popover. */
+  inline?: boolean;
 }
 
 export function DatePicker({
@@ -27,6 +33,9 @@ export function DatePicker({
   label,
   error,
   disabled,
+  displayFormat = 'PPP',
+  minDate,
+  inline = false,
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
@@ -59,7 +68,7 @@ export function DatePicker({
           !date && 'text-[var(--sc-text-tertiary)]',
         )}
       >
-        <span>{date ? format(date, 'PPP') : placeholder}</span>
+        <span>{date ? format(date, displayFormat) : placeholder}</span>
         <CalendarIcon
           className={cn(
             'h-4 w-4',
@@ -75,7 +84,12 @@ export function DatePicker({
 
       {isOpen && (
         <div
-          className="sc-popover-enter absolute left-0 top-[calc(100%+4px)] z-50 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-3 shadow-[var(--sc-shadow-popover)]"
+          className={cn(
+            'sc-popover-enter rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] p-3',
+            inline
+              ? 'w-fit'
+              : 'absolute left-0 top-[calc(100%+4px)] z-50 shadow-[var(--sc-shadow-popover)]',
+          )}
           style={
             {
               '--rdp-accent-color': 'var(--sc-primary)',
@@ -90,6 +104,7 @@ export function DatePicker({
           <DayPicker
             mode="single"
             selected={date}
+            disabled={minDate ? { before: minDate } : undefined}
             onSelect={(selectedDate) => {
               onChange?.(selectedDate);
               setIsOpen(false);
