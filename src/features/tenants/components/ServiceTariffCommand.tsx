@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 
-import { Alert, Button, Input } from '@/components/Common';
+import { Alert, Button, DatePicker, Input } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 
 import { notifyInvalidForm } from '@/lib/errorNotifications';
@@ -14,6 +14,22 @@ import { serviceTariffApi } from '../api/serviceTariffApi';
 import { serviceTariffCommandSchema, type ServiceTariff } from '../schemas/serviceTariffSchema';
 
 import type { z } from 'zod';
+
+const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/** The chosen calendar day starts at 00:00 Vietnam time; the API stores that instant in UTC. */
+function vietnamDayStartIso(day: Date): string {
+  return new Date(
+    Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()) - VIETNAM_OFFSET_MS,
+  ).toISOString();
+}
+
+function tomorrow(): Date {
+  const day = new Date();
+  day.setHours(0, 0, 0, 0);
+  day.setDate(day.getDate() + 1);
+  return day;
+}
 
 export function ServiceTariffCommand({
   row,
@@ -29,6 +45,8 @@ export function ServiceTariffCommand({
   const t = useTranslations('ServiceTariffs');
   const abort = useRef(new AbortController());
   const [error, setError] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [minEndDate] = useState(tomorrow);
   useEffect(() => {
     const controller = new AbortController();
     abort.current = controller;
@@ -83,11 +101,20 @@ export function ServiceTariffCommand({
         </p>
         {error && <Alert variant="error">{error}</Alert>}
         {mode === 'close' && (
-          <Input
-            label={t('toUtc')}
-            required
-            error={form.formState.errors.effectiveTo ? t('invalid') : undefined}
-            {...form.register('effectiveTo')}
+          <DatePicker
+            label={t('closeDate')}
+            placeholder={t('closeDatePlaceholder')}
+            date={endDate}
+            minDate={minEndDate}
+            displayFormat="dd/MM/yyyy"
+            inline
+            error={form.formState.errors.effectiveTo ? t('closeDateInvalid') : undefined}
+            onChange={(day) => {
+              setEndDate(day);
+              form.setValue('effectiveTo', day ? vietnamDayStartIso(day) : '', {
+                shouldValidate: form.formState.isSubmitted,
+              });
+            }}
           />
         )}
         <Input

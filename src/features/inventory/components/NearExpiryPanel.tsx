@@ -1,8 +1,15 @@
 import { useMemo, useState } from 'react';
 
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-import { CalendarClock, RefreshCw, Search, Settings2, ShieldAlert } from 'lucide-react';
+import {
+  CalendarClock,
+  ClipboardList,
+  RefreshCw,
+  Search,
+  Settings2,
+  ShieldAlert,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/Common/Badge/Badge';
@@ -26,6 +33,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
   const common = useTranslations('Inventory');
   const detail = useTranslations('InventoryDetail');
   const locale = useLocale();
+  const navigate = useNavigate();
   const { can } = useAccess();
   const [selectedAction, setSelectedAction] = useState<{
     kind: 'withdrawal' | 'disposal';
@@ -60,7 +68,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
       key: 'sku',
       label: common('product'),
       render: (row) => (
-        <div className="min-w-40">
+        <div className="min-w-0">
           <span className="font-medium">{row.sku}</span>
           <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">{row.productName}</p>
         </div>
@@ -70,7 +78,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
       key: 'lotCode',
       label: t('lotLocation'),
       render: (row) => (
-        <div className="min-w-32">
+        <div className="min-w-0">
           <span className="font-medium">{row.lotCode}</span>
           <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">
             {row.warehouseCode} · {row.binCode}
@@ -82,7 +90,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
       key: 'expiresOn',
       label: t('expiry'),
       render: (row) => (
-        <div className="min-w-32">
+        <div className="min-w-0 whitespace-nowrap">
           <span>{row.expiresOn ? date.format(new Date(row.expiresOn)) : t('missingExpiry')}</span>
           <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">
             {row.remainingDays === null
@@ -100,7 +108,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
       key: 'isBlocked',
       label: t('eligibility'),
       render: (row) => (
-        <div className="min-w-40 space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Badge
             status={row.isBlocked ? 'error' : 'warning'}
             label={t(row.isBlocked ? 'blocked' : 'saleable')}
@@ -140,9 +148,10 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
             key: 'actions' as const,
             label: workflow('actions'),
             render: (row: NearExpiryPosition) => (
-              <div className="flex gap-2">
+              <div className="flex flex-col items-stretch gap-1.5">
                 <Button
                   size="sm"
+                  className="whitespace-nowrap"
                   disabled={row.availableQty === 0 || row.isBlocked}
                   onClick={() => setSelectedAction({ kind: 'withdrawal', row })}
                 >
@@ -151,6 +160,7 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="whitespace-nowrap"
                   disabled={row.availableQty === 0}
                   onClick={() => setSelectedAction({ kind: 'disposal', row })}
                 >
@@ -164,9 +174,6 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
   ];
   return (
     <div className="space-y-4">
-      {can('inventory.workflows.view') && (
-        <Link to="/inventory/workflows">{workflow('title')}</Link>
-      )}
       {selectedAction?.kind === 'withdrawal' && (
         <SellerWithdrawalForm
           scope={orderScope()}
@@ -200,6 +207,12 @@ export function NearExpiryPanel({ warehouseId }: { warehouseId: string }) {
           <p className="mb-0 mt-1 text-sm text-[var(--sc-text-secondary)]">{t('subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {can('inventory.workflows.view') && (
+            <Button variant="outline" size="sm" onClick={() => navigate('/inventory/workflows')}>
+              <ClipboardList size={15} aria-hidden="true" />
+              {workflow('title')}
+            </Button>
+          )}
           {can('inventory.notifications.manage') && (
             <Button
               variant="outline"

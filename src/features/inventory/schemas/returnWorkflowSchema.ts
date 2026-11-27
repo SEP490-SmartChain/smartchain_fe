@@ -28,8 +28,6 @@ export const returnActionSchema = z.object({
   toBinId: z.string(),
   destination: z.enum(['SELLABLE', 'QUARANTINE']),
   binScan: z.string().max(160),
-  skuScan: z.string().max(160),
-  lotScan: z.string().max(160),
 });
 export type ReturnRequestForm = z.infer<typeof returnRequestSchema>;
 export type ReturnActionForm = z.infer<typeof returnActionSchema>;
