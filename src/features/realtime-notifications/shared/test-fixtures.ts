@@ -43,9 +43,7 @@ export function makeNotificationDto(
   };
 }
 
-export function makeSseUiSyncEvent(
-  overrides: Partial<RealtimeUiSyncPayload> = {},
-): SseUiSyncEvent {
+export function makeSseUiSyncEvent(overrides: Partial<RealtimeUiSyncPayload> = {}): SseUiSyncEvent {
   return {
     type: 'ui_sync',
     uiSync: {
@@ -102,7 +100,10 @@ export function makeCommercialContractSignedEvent(
     },
     {
       topic: REALTIME_TOPICS.COMMERCIAL_CONTRACT_SIGNED,
-      syncAreas: [REALTIME_SYNC_AREAS.COMMERCIAL_ONBOARDING, REALTIME_SYNC_AREAS.COMMERCIAL_BILLING],
+      syncAreas: [
+        REALTIME_SYNC_AREAS.COMMERCIAL_ONBOARDING,
+        REALTIME_SYNC_AREAS.COMMERCIAL_BILLING,
+      ],
       resourceType: 'contract',
       resourceId: CANONICAL_FE_CONTRACT_ID,
       status: 'SIGNED',

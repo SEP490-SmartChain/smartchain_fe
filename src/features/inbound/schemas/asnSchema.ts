@@ -1,9 +1,11 @@
 import { z } from 'zod';
 
+import { calendarDateSchema, optionalLocalDateTimeSchema } from '@/lib/dateValidation';
+
 export const asnFormSchema = z.object({
   warehouseId: z.string().uuid(),
-  externalReference: z.string().trim().max(100),
-  expectedArrivalAt: z.string().refine((value) => !value || Number.isFinite(Date.parse(value))),
+  externalReference: z.string().trim().min(1).max(100),
+  expectedArrivalAt: optionalLocalDateTimeSchema,
   cartonCount: z.number().int().min(1).max(1000),
   lines: z
     .array(
@@ -11,7 +13,7 @@ export const asnFormSchema = z.object({
         productId: z.string().uuid(),
         declaredQty: z.number().int().min(1).max(1000000),
         declaredLotCode: z.string().trim().max(100),
-        declaredExpiryOn: z.union([z.literal(''), z.iso.date()]),
+        declaredExpiryOn: z.union([z.literal(''), calendarDateSchema]),
       }),
     )
     .min(1)

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Alert, Button, Checkbox, Input, Select } from '@/components/Common';
+import { vietnamToday } from '@/lib/dateValidation';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,6 +40,8 @@ export function ReceiptPackagingPanel({
   onAccepted,
 }: Props) {
   const t = useTranslations('PackagingAI');
+  const dateText = useTranslations('DateValidation');
+  const [dateErrors, setDateErrors] = useState<{ manufacturedOn?: string; expiresOn?: string }>({});
   const owner = useAuthStore((state) => state.user);
   const [images, setImages] = useState<
     Array<{ id: string; createdAt: string; note: string | null }>
@@ -88,6 +91,7 @@ export function ReceiptPackagingPanel({
     if (value.state === 'READY') {
       setLot(value.lotText ?? '');
       setExpiry('');
+      setDateErrors({});
       setConfirmed(false);
     }
     if (value.state === 'ACCEPTED' && acceptance) {
@@ -248,7 +252,23 @@ export function ReceiptPackagingPanel({
                   ...(expiry ? { expiresOn: expiry } : {}),
                 });
                 if (!result.success) {
-                  setError(t('invalid'));
+                  const fieldErrors: typeof dateErrors = {};
+                  let hasOtherError = false;
+                  for (const issue of result.error.issues) {
+                    const field = issue.path[0];
+                    if (field === 'manufacturedOn' || field === 'expiresOn') {
+                      const message = issue.message;
+                      fieldErrors[field] = dateText(
+                        message === 'manufactureFuture' || message === 'expiryAfterManufacture'
+                          ? message
+                          : 'invalidDate',
+                      );
+                    } else {
+                      hasOtherError = true;
+                    }
+                  }
+                  setDateErrors(fieldErrors);
+                  setError(hasOtherError ? t('invalid') : '');
                   return;
                 }
                 void run('accept', result.data);
@@ -286,8 +306,19 @@ export function ReceiptPackagingPanel({
                       policy.manufactureRequired || (policy.trackExpiry && !policy.shelfLifeDays)
                     }
                     value={manufacture}
+                    max={vietnamToday()}
+                    error={dateErrors.manufacturedOn}
+                    onInvalid={(event) => {
+                      if (event.currentTarget.validity.rangeOverflow) {
+                        setDateErrors((current) => ({
+                          ...current,
+                          manufacturedOn: dateText('manufactureFuture'),
+                        }));
+                      }
+                    }}
                     onChange={(event) => {
                       setManufacture(event.target.value);
+                      setDateErrors({});
                       setConfirmed(false);
                     }}
                   />
@@ -298,8 +329,10 @@ export function ReceiptPackagingPanel({
                     type="date"
                     required={!manufacture || !policy.shelfLifeDays}
                     value={expiry}
+                    error={dateErrors.expiresOn}
                     onChange={(event) => {
                       setExpiry(event.target.value);
+                      setDateErrors((current) => ({ manufacturedOn: current.manufacturedOn }));
                       setConfirmed(false);
                     }}
                   />

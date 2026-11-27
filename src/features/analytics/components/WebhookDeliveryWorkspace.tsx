@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Button, Card, Input, PageHeader, Select } from '@/components/Common';
 import DataTable from '@/components/Common/DataTable/DataTable';
 import { useAccess } from '@/hooks/useAccess';
+import { vietnamToday } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -25,8 +26,9 @@ export function WebhookDeliveryWorkspace() {
 }
 function ScopedWebhookDeliveries() {
   const t = useTranslations('WebhookReports');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocale();
-  const today = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
+  const today = vietnamToday();
   const [filters, setFilters] = useState<WebhookFilters>({ from: today, to: today, status: '' });
   const [cursor, setCursor] = useState<string>();
   const [refresh, setRefresh] = useState(0);
@@ -82,14 +84,20 @@ function ScopedWebhookDeliveries() {
           <Input
             type="date"
             label={t('from')}
-            {...form.register('from')}
-            error={form.formState.errors?.from?.message}
+            {...form.register('from', { deps: ['to'] })}
+            error={form.formState.errors.from ? dateText('reportDate') : undefined}
           />
           <Input
             type="date"
             label={t('to')}
             {...form.register('to')}
-            error={form.formState.errors?.to?.message}
+            error={
+              form.formState.errors.to
+                ? form.formState.errors.to.message === 'range'
+                  ? t('invalidRange')
+                  : dateText('reportDate')
+                : undefined
+            }
           />
           <Select
             label={t('status')}
@@ -102,11 +110,6 @@ function ScopedWebhookDeliveries() {
           <Button type="submit" disabled={state.loading}>
             {t('apply')}
           </Button>
-          {Object.keys(form.formState.errors).length > 0 && (
-            <Alert variant="error" className="sm:col-span-4">
-              {t('invalidRange')}
-            </Alert>
-          )}
         </form>
       </Card>
       {state.error && (

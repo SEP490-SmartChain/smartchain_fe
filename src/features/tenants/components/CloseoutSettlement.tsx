@@ -11,13 +11,14 @@ import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { useAccess } from '@/hooks/useAccess';
+import { localDateTimeInput, parseLocalDateTime } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useLocaleStore } from '@/stores/localeStore';
 
 import { payoutApi } from '../api/payoutApi';
 import {
   closeoutOffsetSchema,
-  closeoutRefundSchema,
+  closeoutRefundFormSchema,
   type CloseoutSummary,
 } from '../schemas/payoutSchema';
 
@@ -25,11 +26,6 @@ import type { z } from 'zod';
 
 type Action = 'offsets' | 'refunds';
 type Pending = { action: Action; payload: Record<string, unknown> };
-
-function toLocalDateTimeValue(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 export function CloseoutSettlement({
   tenantId,
@@ -40,6 +36,7 @@ export function CloseoutSettlement({
 }) {
   const t = useTranslations('Payouts'),
     { can } = useAccess();
+  const dateText = useTranslations('DateValidation');
   const locale = useLocaleStore((s) => s.locale);
   const [state, setState] = useState<CloseoutSummary | null>(null),
     [error, setError] = useState<string | null>(null),
@@ -47,7 +44,7 @@ export function CloseoutSettlement({
     [action, setAction] = useState<Action>('offsets'),
     [hasPending, setHasPending] = useState(false),
     [revision, setRevision] = useState(0),
-    [localTransferTime, setLocalTransferTime] = useState(() => toLocalDateTimeValue(new Date()));
+    [localTransferTime, setLocalTransferTime] = useState(() => localDateTimeInput(new Date()));
   const request = useRef<AbortController | null>(null),
     pending = useRef<Pending | null>(null),
     busyRef = useRef(false);
@@ -55,8 +52,8 @@ export function CloseoutSettlement({
     resolver: zodResolver(closeoutOffsetSchema),
     defaultValues: { amountVnd: '', evidenceKey: '', reason: '' },
   });
-  const refund = useForm<z.infer<typeof closeoutRefundSchema>>({
-    resolver: zodResolver(closeoutRefundSchema),
+  const refund = useForm<z.infer<typeof closeoutRefundFormSchema>>({
+    resolver: zodResolver(closeoutRefundFormSchema),
     defaultValues: {
       amountVnd: '',
       evidenceKey: '',
@@ -283,6 +280,7 @@ export function CloseoutSettlement({
 
               <form
                 className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                noValidate={action === 'refunds'}
                 onSubmit={
                   action === 'offsets'
                     ? offset.handleSubmit(
@@ -337,18 +335,19 @@ export function CloseoutSettlement({
                       type="datetime-local"
                       label={t('transferredAt')}
                       value={localTransferTime}
+                      max={localDateTimeInput(new Date())}
                       disabled={disabled}
                       onChange={(e) => {
                         const raw = e.target.value;
                         setLocalTransferTime(raw);
-                        const parsed = raw ? new Date(raw) : null;
-                        refund.setValue(
-                          'transferredAt',
-                          parsed && !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : '',
-                          { shouldValidate: true },
-                        );
+                        const parsed = parseLocalDateTime(raw);
+                        refund.setValue('transferredAt', parsed?.toISOString() ?? '', {
+                          shouldValidate: true,
+                        });
                       }}
-                      error={refund.formState.errors.transferredAt ? t('invalidTime') : undefined}
+                      error={
+                        refund.formState.errors.transferredAt ? dateText('recordedTime') : undefined
+                      }
                     />
                   </>
                 )}

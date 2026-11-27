@@ -1,22 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Alert, Button, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
-import { warehouseApi } from '@/features/catalog';
+import { localDateTimeInput, reportIncompleteDateInput } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { canStartSellerIntake } from '@/lib/sellerService';
 import { createUuid } from '@/lib/uuid';
+import { formatCapacityDecimal } from '@/lib/volumeValidation';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
-import { AsnAllocationSuggestion } from './AsnAllocationSuggestion';
-import { asnApi } from '../api/asnApi';
+import { asnApi, type AsnWarehouseOption } from '../api/asnApi';
 import { asnFormSchema, type AsnFormValues } from '../schemas/asnSchema';
 
 import type { Asn, AsnSkuOption } from '../types/asn.types';
@@ -30,15 +30,25 @@ interface Props {
 export function AsnForm({ draft, onClose, onSaved }: Props) {
   const [submitError, setSubmitError] = useState('');
   const t = useTranslations('Asns');
+  const dateText = useTranslations('DateValidation');
+  const locale = useLocale();
+  const capacityId = useId();
   const creationKey = useRef(createUuid());
   const user = useAuthStore((state) => state.user);
   const [products, setProducts] = useState<AsnSkuOption[]>([]);
-  const [warehouses, setWarehouses] = useState<Array<{ id: string; code: string; name: string }>>(
-    [],
-  );
+  const [warehouses, setWarehouses] = useState<AsnWarehouseOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loadErrorMessage, setLoadErrorMessage] = useState('');
   const [reload, setReload] = useState(0);
+  const [capacity, setCapacity] = useState<{
+    warehouseId: string;
+    owner: typeof user;
+    volume: string | null;
+  }>();
+  const savedArrivalInput = draft?.expectedArrivalAt
+    ? localDateTimeInput(new Date(draft.expectedArrivalAt))
+    : '';
   const {
     register,
     control,
@@ -52,7 +62,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           warehouseId: draft.warehouseId,
           externalReference: draft.externalReference ?? '',
           cartonCount: draft.cartonCount,
-          expectedArrivalAt: draft.expectedArrivalAt ? localDateTime(draft.expectedArrivalAt) : '',
+          expectedArrivalAt: savedArrivalInput,
           lines: draft.lines.map((line) => ({
             productId: line.productId,
             declaredQty: line.declaredQty,
@@ -69,6 +79,15 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         },
   });
   const lines = useWatch({ control, name: 'lines' });
+  const selectedWarehouseId = useWatch({ control, name: 'warehouseId' });
+  const capacityWarehouseId =
+    !draft && warehouses.some((warehouse) => warehouse.id === selectedWarehouseId)
+      ? selectedWarehouseId
+      : undefined;
+  const currentCapacity =
+    capacity?.warehouseId === capacityWarehouseId && capacity?.owner === user
+      ? capacity
+      : undefined;
   const { fields, append, remove } = useFieldArray({ control, name: 'lines' });
   useEffect(() => {
     const controller = new AbortController();
@@ -77,10 +96,11 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
     setProducts([]);
     setWarehouses([]);
     setLoadFailed(false);
+    setLoadErrorMessage('');
     async function load() {
       try {
         const skus: AsnSkuOption[] = [],
-          destinations: Array<{ id: string; code: string; name: string }> = [];
+          destinations: AsnWarehouseOption[] = [];
         let cursor: string | undefined;
         do {
           const page = await asnApi.skuOptions('', cursor, controller.signal);
@@ -88,16 +108,28 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           skus.push(...page.items);
           cursor = page.pagination.hasNext ? (page.pagination.nextCursor ?? undefined) : undefined;
         } while (cursor);
+        let warehouseCursor: string | undefined;
+        const seenWarehouseCursors = new Set<string>();
         do {
-          const page = await warehouseApi.list({ search: '', status: 'ACTIVE' }, cursor);
+          const page = await asnApi.warehouseOptions('', warehouseCursor, controller.signal);
           if (!current || user !== useAuthStore.getState().user) return;
-          destinations.push(...page.items.filter((warehouse) => warehouse.tenantId === null));
-          cursor = page.pagination.hasNext ? (page.pagination.nextCursor ?? undefined) : undefined;
-        } while (cursor);
+          destinations.push(...page.items);
+          const nextCursor = page.pagination.hasNext
+            ? (page.pagination.nextCursor ?? undefined)
+            : undefined;
+          if (nextCursor && seenWarehouseCursors.has(nextCursor)) {
+            throw new Error('Invalid warehouse option pagination');
+          }
+          if (nextCursor) seenWarehouseCursors.add(nextCursor);
+          warehouseCursor = nextCursor;
+        } while (warehouseCursor);
         setProducts(skus);
         setWarehouses(destinations);
-      } catch {
-        if (current && user === useAuthStore.getState().user) setLoadFailed(true);
+      } catch (failure) {
+        if (current && user === useAuthStore.getState().user) {
+          setLoadFailed(true);
+          setLoadErrorMessage(failure instanceof ApiError ? failure.message : '');
+        }
       } finally {
         if (current) setLoading(false);
       }
@@ -108,16 +140,52 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
       controller.abort();
     };
   }, [user, reload]);
+  useEffect(() => {
+    if (draft || loading || loadFailed || warehouses.length !== 1) return;
+    const onlyWarehouse = warehouses[0];
+    if (selectedWarehouseId !== onlyWarehouse.id) {
+      setValue('warehouseId', onlyWarehouse.id, { shouldValidate: true });
+    }
+  }, [draft, loading, loadFailed, warehouses, selectedWarehouseId, setValue]);
+  useEffect(() => {
+    setCapacity(undefined);
+    if (!capacityWarehouseId) return;
+
+    const warehouseId = capacityWarehouseId;
+    const controller = new AbortController();
+    function showCapacity(volume: string | null) {
+      if (!controller.signal.aborted && user === useAuthStore.getState().user) {
+        setCapacity({ warehouseId, owner: user, volume });
+      }
+    }
+    void asnApi
+      .warehouseStorageCapacity(warehouseId, controller.signal)
+      .then(showCapacity)
+      .catch(() => showCapacity(null));
+    return () => controller.abort();
+  }, [capacityWarehouseId, user]);
+
+  const capacityText = !currentCapacity
+    ? t('warehouseVolumeLoading')
+    : currentCapacity.volume === null
+      ? t('warehouseVolumeUnavailable')
+      : t('warehouseAvailableVolume', {
+          volume: formatCapacityDecimal(currentCapacity.volume, locale),
+        });
   const save = async (values: AsnFormValues) => {
     const principal = useAuthStore.getState().user;
     if (!draft && !canStartSellerIntake(principal)) return;
+    const expectedArrivalAt =
+      values.expectedArrivalAt === savedArrivalInput && draft?.expectedArrivalAt
+        ? draft.expectedArrivalAt
+        : values.expectedArrivalAt
+          ? new Date(values.expectedArrivalAt).toISOString()
+          : undefined;
     const payload = {
       warehouseId: values.warehouseId,
       cartonCount: values.cartonCount,
       externalReference: values.externalReference,
-      expectedArrivalAt: values.expectedArrivalAt
-        ? new Date(values.expectedArrivalAt).toISOString()
-        : undefined,
+      expectedArrivalAt,
       lines: values.lines.map((line) => ({
         productId: line.productId,
         declaredQty: line.declaredQty,
@@ -158,7 +226,13 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         onSubmitCapture={() => setSubmitError('')}
         noValidate
         className="space-y-5"
-        onSubmit={(event) => void handleSubmit(save, () => notifyInvalidForm())(event)}
+        onSubmit={(event) => {
+          if (reportIncompleteDateInput(event.currentTarget)) {
+            event.preventDefault();
+            return;
+          }
+          void handleSubmit(save, () => notifyInvalidForm())(event);
+        }}
       >
         {submitError && (
           <Alert variant="error" onClose={() => setSubmitError('')}>
@@ -167,35 +241,99 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         )}
         <p className="text-sm text-[var(--sc-text-secondary)]">{t('createDescription')}</p>
         {loadFailed && (
-          <Alert variant="error" title={t('loadError')}>
+          <Alert variant="error" title={loadErrorMessage || t('loadError')}>
             <Button type="button" onClick={() => setReload((value) => value + 1)}>
               {t('retry')}
             </Button>
           </Alert>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select
-            label={t('warehouse')}
-            placeholder={t('selectWarehouse')}
-            required
-            options={warehouses.map((warehouse) => ({
-              value: warehouse.id,
-              label: `${warehouse.code} — ${warehouse.name}`,
-            }))}
-            disabled={Boolean(draft) || loading}
-            {...register('warehouseId')}
-            error={errors.warehouseId ? t('invalidForm') : undefined}
-          />
+          <div>
+            {!draft && !loading && !loadFailed && warehouses.length === 1 ? (
+              <div className="flex flex-col gap-1.5">
+                <input type="hidden" {...register('warehouseId')} />
+                <span className="text-[13px] leading-[1.35] font-medium text-[var(--sc-text-primary)]">
+                  {t('warehouse')}
+                </span>
+                <div
+                  className="rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-3 py-2 text-sm text-[var(--sc-text-primary)]"
+                  aria-describedby={capacityWarehouseId ? capacityId : undefined}
+                >
+                  {warehouses[0].code} — {warehouses[0].name}
+                </div>
+                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                  {t('singleWarehouseAutoSelected')}
+                </p>
+              </div>
+            ) : !draft && !loading && !loadFailed && warehouses.length === 0 ? (
+              <div className="space-y-1.5">
+                <span className="block text-[13px] leading-[1.35] font-medium text-[var(--sc-text-primary)]">
+                  {t('warehouse')}
+                </span>
+                <Alert variant="warning" compact notify={false}>
+                  {t('noEligibleWarehouses')}
+                </Alert>
+              </div>
+            ) : (
+              <>
+                <Select
+                  label={t('warehouse')}
+                  placeholder={t('selectWarehouse')}
+                  required
+                  options={
+                    draft &&
+                    !loading &&
+                    !loadFailed &&
+                    !warehouses.some((warehouse) => warehouse.id === draft.warehouseId)
+                      ? [
+                          { value: draft.warehouseId, label: draft.warehouseId },
+                          ...warehouses.map((warehouse) => ({
+                            value: warehouse.id,
+                            label: `${warehouse.code} — ${warehouse.name}`,
+                          })),
+                        ]
+                      : warehouses.map((warehouse) => ({
+                          value: warehouse.id,
+                          label: `${warehouse.code} — ${warehouse.name}`,
+                        }))
+                  }
+                  disabled={Boolean(draft) || loading}
+                  {...register('warehouseId')}
+                  error={errors.warehouseId ? t('invalidForm') : undefined}
+                  aria-describedby={capacityWarehouseId ? capacityId : undefined}
+                />
+                {draft &&
+                  !loading &&
+                  !loadFailed &&
+                  !warehouses.some((warehouse) => warehouse.id === draft.warehouseId) && (
+                    <Alert variant="warning" compact notify={false} className="mt-2">
+                      {t('draftWarehouseUnselected')}
+                    </Alert>
+                  )}
+              </>
+            )}
+            {capacityWarehouseId && (
+              <p
+                id={capacityId}
+                role="status"
+                className="mt-1.5 text-xs text-[var(--sc-text-secondary)]"
+              >
+                {capacityText}
+              </p>
+            )}
+          </div>
           <Input
             label={t('reference')}
+            required
+            maxLength={100}
             {...register('externalReference')}
-            error={errors.externalReference ? t('invalidForm') : undefined}
+            error={errors.externalReference ? t('invalidReference') : undefined}
           />
           <Input
             label={t('arrival')}
             type="datetime-local"
             {...register('expectedArrivalAt')}
-            error={errors.expectedArrivalAt ? t('invalidForm') : undefined}
+            error={errors.expectedArrivalAt ? dateText('invalidDateTime') : undefined}
           />
           <Input
             label={t('cartons')}
@@ -210,7 +348,7 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
         {fields.map((field, index) => (
           <fieldset
             key={field.id}
-            className="rounded-lg border border-[var(--sc-border-default)] p-4"
+            className="space-y-3 rounded-lg border border-[var(--sc-border-default)] p-4"
           >
             <legend className="px-2 text-sm font-medium">
               {t('lineNumber', { number: index + 1 })}
@@ -245,6 +383,8 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
               />
               <Input
                 label={t('lot')}
+                placeholder={t('lotPlaceholder')}
+                helperText={t('lotHelp')}
                 {...register(`lines.${index}.declaredLotCode`)}
                 error={errors.lines?.[index]?.declaredLotCode ? t('invalidForm') : undefined}
               />
@@ -252,30 +392,14 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
                 <Input
                   label={t('expiry')}
                   type="date"
+                  helperText={t('expiryHelp')}
                   {...register(`lines.${index}.declaredExpiryOn`)}
-                  error={errors.lines?.[index]?.declaredExpiryOn ? t('invalidForm') : undefined}
+                  error={
+                    errors.lines?.[index]?.declaredExpiryOn ? dateText('invalidDate') : undefined
+                  }
                 />
               )}
             </div>
-            {!draft && (
-              <AsnAllocationSuggestion
-                productId={lines[index]?.productId ?? ''}
-                quantity={lines[index]?.declaredQty ?? 0}
-                expiry={
-                  products.find((product) => product.id === lines[index]?.productId)?.trackExpiry
-                    ? lines[index]?.declaredExpiryOn
-                    : undefined
-                }
-                disabled={isSubmitting || loading}
-                onChoose={(warehouseId, quantity) => {
-                  setValue('warehouseId', warehouseId, { shouldDirty: true, shouldValidate: true });
-                  setValue(`lines.${index}.declaredQty`, quantity, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                }}
-              />
-            )}
             <Button
               type="button"
               variant="ghost"
@@ -301,7 +425,11 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
           </Button>
           <Button
             type="submit"
-            disabled={loading || loadFailed || (!draft && !canStartSellerIntake(user))}
+            disabled={
+              loading ||
+              loadFailed ||
+              (!draft && (!canStartSellerIntake(user) || warehouses.length === 0))
+            }
             isLoading={isSubmitting}
           >
             {t('saveDraft')}
@@ -310,8 +438,4 @@ export function AsnForm({ draft, onClose, onSaved }: Props) {
       </form>
     </Modal>
   );
-}
-function localDateTime(value: string) {
-  const date = new Date(value);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }

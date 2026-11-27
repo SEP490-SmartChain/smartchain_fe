@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { calendarDateSchema, DAY_MS, vietnamToday } from '@/lib/dateValidation';
+
 const money = z.string().regex(/^-?\d{1,20}$/);
 const timestamp = z.string().datetime({ offset: true });
 // Posted PostgreSQL UUIDs may predate RFC version/variant normalization.
@@ -131,6 +133,33 @@ export const payoutTransferSchema = z.object({
   transferredAt: timestamp,
   evidenceKey: z.string().min(1).max(500),
 });
+const recordedTransferTime = timestamp.refine((value) => Date.parse(value) <= Date.now());
+export const payoutTransferFormSchema = payoutTransferSchema.extend({
+  transferredAt: recordedTransferTime,
+});
+
+export function isPayoutTransferInWindow(
+  value: string,
+  statement: Pick<
+    PayoutStatementDetail,
+    'approvedAt' | 'cycleKind' | 'cutoffAt' | 'reviewDeadlineAt'
+  >,
+): boolean {
+  const instant = Date.parse(value);
+  if (
+    !Number.isFinite(instant) ||
+    !statement.approvedAt ||
+    instant < Date.parse(statement.approvedAt)
+  ) {
+    return false;
+  }
+  if (statement.cycleKind !== 'WEEKLY') return true;
+  return (
+    instant >= Date.parse(statement.reviewDeadlineAt) &&
+    (!statement.cutoffAt || instant < Date.parse(statement.cutoffAt) + 7 * DAY_MS)
+  );
+}
+
 export const payoutResolutionSchema = payoutReasonSchema.extend({ adjustmentVnd: money });
 export function payoutReviewOpen(
   statement: z.infer<typeof payoutStatementSchema>,
@@ -167,16 +196,41 @@ export function payoutApprovalOpen(
     now.getTime() < new Date(row.cutoffAt).getTime() + 7 * 24 * 60 * 60 * 1000
   );
 }
-const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 /** Accountant form: settle the seller's unsettled entries of a chosen date range now. */
-export const onDemandPayoutSchema = z
-  .object({ periodFrom: dateOnly, periodTo: dateOnly })
-  .refine((value) => value.periodFrom <= value.periodTo, { path: ['periodTo'] });
-export type OnDemandPayoutValues = z.infer<typeof onDemandPayoutSchema>;
-/** Today in Vietnam time as yyyy-mm-dd, the business calendar used by statements. */
-export function vietnamToday(now: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+export function onDemandPayoutSchemaFor(clock = () => new Date()) {
+  return z
+    .object({ periodFrom: calendarDateSchema, periodTo: calendarDateSchema })
+    .superRefine((values, context) => {
+      const { periodFrom, periodTo } = values;
+      if (
+        !calendarDateSchema.safeParse(periodFrom).success ||
+        !calendarDateSchema.safeParse(periodTo).success
+      ) {
+        return;
+      }
+      const now = clock();
+      const today = vietnamToday(now);
+      if (periodFrom > today || periodTo > today) {
+        context.addIssue({
+          code: 'custom',
+          path: [periodFrom > today ? 'periodFrom' : 'periodTo'],
+          message: 'payoutPeriod',
+        });
+        return;
+      }
+      if (periodFrom > periodTo) {
+        context.addIssue({ code: 'custom', path: ['periodTo'], message: 'dateOrder' });
+        return;
+      }
+      const { start, end } = onDemandPeriodBounds(values, now);
+      if (end <= start || end.getTime() - start.getTime() > 92 * DAY_MS) {
+        context.addIssue({ code: 'custom', path: ['periodTo'], message: 'payoutPeriod' });
+      }
+    });
 }
+export const onDemandPayoutSchema = onDemandPayoutSchemaFor();
+export type OnDemandPayoutValues = z.infer<typeof onDemandPayoutSchema>;
+export { vietnamToday };
 /**
  * Converts the chosen Vietnam dates into the API period: from the start of the first day up to
  * the end of the last day, or up to now when the range ends today (a period cannot end in the future).
@@ -185,11 +239,15 @@ export function onDemandPeriod(
   values: OnDemandPayoutValues,
   now: Date,
 ): { periodFrom: string; periodTo: string } {
+  const { start, end } = onDemandPeriodBounds(values, now);
+  return { periodFrom: start.toISOString(), periodTo: end.toISOString() };
+}
+
+function onDemandPeriodBounds(values: OnDemandPayoutValues, now: Date) {
   const start = new Date(`${values.periodFrom}T00:00:00+07:00`);
   const dayAfterEnd = new Date(`${values.periodTo}T00:00:00+07:00`);
   dayAfterEnd.setUTCDate(dayAfterEnd.getUTCDate() + 1);
-  const end = dayAfterEnd > now ? now : dayAfterEnd;
-  return { periodFrom: start.toISOString(), periodTo: end.toISOString() };
+  return { start, end: dayAfterEnd > now ? now : dayAfterEnd };
 }
 /** Short, human-readable reference for an internal record id. */
 export function shortReference(id: string): string {
@@ -226,4 +284,7 @@ export const closeoutOffsetSchema = payoutReasonSchema.extend({
   evidenceKey: z.string().min(1).max(500),
 });
 export const closeoutRefundSchema = closeoutOffsetSchema.merge(payoutTransferSchema);
+export const closeoutRefundFormSchema = closeoutRefundSchema.extend({
+  transferredAt: recordedTransferTime,
+});
 export type CloseoutSummary = z.infer<typeof closeoutSummarySchema>;

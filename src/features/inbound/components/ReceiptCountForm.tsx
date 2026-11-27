@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Alert, Badge, Button, Card, Input, Select } from '@/components/Common';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
 import { useAccess } from '@/hooks/useAccess';
+import { reportIncompleteDateInput, vietnamToday } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
@@ -50,6 +51,7 @@ export function ReceiptCountForm({
   onNavigationLockChange,
 }: Props) {
   const t = useTranslations('Receiving');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocale();
   const { can } = useAccess();
   const owner = useAuthStore((state) => state.user);
@@ -100,6 +102,16 @@ export function ReceiptCountForm({
       )(values, context, options),
     defaultValues: { inboundLineId: '', lots: [] },
   });
+  function lotDateError(message?: string): string | undefined {
+    if (!message) return undefined;
+    if (message === 'countManufactureRequired' || message === 'countExpiryRequired') {
+      return t(message);
+    }
+    if (message === 'manufactureFuture' || message === 'expiryAfterManufacture') {
+      return dateText(message);
+    }
+    return dateText('invalidDate');
+  }
   const { fields, append, remove } = useFieldArray({ control, name: 'lots' });
   const lineId = watch('inboundLineId');
   const line = receipt?.lines.find((row) => row.id === lineId);
@@ -429,14 +441,22 @@ export function ReceiptCountForm({
               <form
                 className="space-y-4"
                 noValidate
-                onSubmit={handleSubmit(
-                  (values) => {
-                    if (receipt) {
-                      void send(countCommand(values, operationKey.current, receipt.version, line));
-                    }
-                  },
-                  () => notifyInvalidForm(),
-                )}
+                onSubmit={(event) => {
+                  if (reportIncompleteDateInput(event.currentTarget)) {
+                    event.preventDefault();
+                    return;
+                  }
+                  void handleSubmit(
+                    (values) => {
+                      if (receipt) {
+                        void send(
+                          countCommand(values, operationKey.current, receipt.version, line),
+                        );
+                      }
+                    },
+                    () => notifyInvalidForm(),
+                  )(event);
+                }}
               >
                 <fieldset disabled={isLocked || loading} className="space-y-4">
                   <Select
@@ -552,17 +572,9 @@ export function ReceiptCountForm({
                                 (line?.trackExpiry && !line.shelfLifeDays),
                               )}
                               type="date"
+                              max={vietnamToday()}
                               {...register(`lots.${index}.manufacturedOn`)}
-                              error={
-                                errors.lots?.[index]?.manufacturedOn
-                                  ? t(
-                                      errors.lots[index]?.manufacturedOn?.message ===
-                                        'countManufactureRequired'
-                                        ? 'countManufactureRequired'
-                                        : 'countInvalid',
-                                    )
-                                  : undefined
-                              }
+                              error={lotDateError(errors.lots?.[index]?.manufacturedOn?.message)}
                             />
                           )}
                           {line?.trackExpiry && (
@@ -576,16 +588,7 @@ export function ReceiptCountForm({
                               }
                               type="date"
                               {...register(`lots.${index}.expiresOn`)}
-                              error={
-                                errors.lots?.[index]?.expiresOn
-                                  ? t(
-                                      errors.lots[index]?.expiresOn?.message ===
-                                        'countExpiryRequired'
-                                        ? 'countExpiryRequired'
-                                        : 'countInvalid',
-                                    )
-                                  : undefined
-                              }
+                              error={lotDateError(errors.lots?.[index]?.expiresOn?.message)}
                             />
                           )}
                         </div>

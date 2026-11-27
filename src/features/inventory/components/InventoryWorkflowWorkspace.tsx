@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Alert, Button, PageHeader, Select } from '@/components/Common';
+import { Alert, Badge, Button, PageHeader, Select, Tabs } from '@/components/Common';
 import { useAccess } from '@/hooks/useAccess';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -14,6 +15,22 @@ import {
   type WorkflowPutback,
 } from '../api/inventoryWorkflowApi';
 import { useWarehouseOptions } from '../hooks/useWarehouseOptions';
+
+const STATUS_BADGE: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
+  POSTED: 'success',
+  APPROVED: 'success',
+  EXECUTED: 'success',
+  CONFIRMED: 'success',
+  COMPLETED: 'success',
+  REVIEW: 'warning',
+  REQUESTED: 'info',
+  PLANNED: 'info',
+  COUNTING: 'info',
+  ASSIGNED: 'info',
+  REJECTED: 'error',
+  REVOKED: 'error',
+  CANCELLED: 'error',
+};
 export function InventoryWorkflowWorkspace({
   initialTab,
 }: {
@@ -115,23 +132,51 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
     }
   }
   const status = (s: string) => (t.has(`status.${s}`) ? t(`status.${s}`) : t('unknownStatus'));
+  const badgeVariant = (s: string) => STATUS_BADGE[s] ?? 'default';
+  const visibleTabs = (
+    actorScope === 'TENANT'
+      ? (['disposals'] as const)
+      : (['counts', 'putbacks', 'disposals'] as const)
+  ).map((id) => ({ id, label: t(id) }));
   if (!permitted) return <Alert variant="error" title={t('forbidden')} />;
   return (
     <div className="space-y-5">
       <PageHeader title={t('title')} description={t('description')} />
-      <Select
-        label={t('warehouse')}
-        disabled={!!action || warehousesLoading || !!warehouseError}
-        value={wh}
-        onChange={(e) => {
-          setSelected(e.target.value);
-          setCursor(undefined);
-        }}
-        options={[
-          { value: '', label: t('selectWarehouse') },
-          ...warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` })),
-        ]}
-      />
+      <div className="sc-surface flex flex-wrap items-end justify-between gap-4 p-4">
+        <div className="min-w-[260px] flex-1 sm:max-w-md">
+          <Select
+            label={t('warehouse')}
+            disabled={!!action || warehousesLoading || !!warehouseError}
+            value={wh}
+            onChange={(e) => {
+              setSelected(e.target.value);
+              setCursor(undefined);
+            }}
+            options={[
+              { value: '', label: t('selectWarehouse') },
+              ...warehouses.map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` })),
+            ]}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={loading || !wh}
+            onClick={() => setReload((v) => v + 1)}
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            {t('refresh')}
+          </Button>
+          {canPlan && tab === 'counts' && wh && (
+            <Button onClick={() => setAction({ kind: 'countPlan' })}>{t('countPlan')}</Button>
+          )}
+          {manager && tab === 'putbacks' && wh && (
+            <Button onClick={() => setAction({ kind: 'putbackRequest' })}>
+              {t('putbackRequest')}
+            </Button>
+          )}
+        </div>
+      </div>
       {warehousesLoading && <p role="status">{t('loading')}</p>}
       {warehouseError && (
         <Alert variant="error" title={t('loadError')}>
@@ -143,103 +188,128 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
       {!warehousesLoading && !warehouseError && !warehouses.length && (
         <Alert>{t('noWarehouse')}</Alert>
       )}
-      <div className="flex flex-wrap gap-2">
-        {(actorScope === 'TENANT'
-          ? (['disposals'] as const)
-          : (['counts', 'putbacks', 'disposals'] as const)
-        ).map((id) => (
-          <Button
-            key={id}
-            variant={tab === id ? 'primary' : 'outline'}
-            disabled={!!action}
-            onClick={() => {
-              setTab(id);
-              setCursor(undefined);
-            }}
-          >
-            {t(id)}
-          </Button>
-        ))}
-        <Button variant="outline" disabled={loading || !wh} onClick={() => setReload((v) => v + 1)}>
-          {t('refresh')}
-        </Button>
-        {canPlan && tab === 'counts' && wh && (
-          <Button onClick={() => setAction({ kind: 'countPlan' })}>{t('countPlan')}</Button>
-        )}
-        {manager && tab === 'putbacks' && wh && (
-          <Button onClick={() => setAction({ kind: 'putbackRequest' })}>
-            {t('putbackRequest')}
-          </Button>
-        )}
-      </div>
+      <Tabs
+        id="inventory-workflows"
+        label={t('title')}
+        tabs={visibleTabs}
+        activeId={tab}
+        onChange={(id) => {
+          if (action) return;
+          setTab(id as 'counts' | 'disposals' | 'putbacks');
+          setCursor(undefined);
+        }}
+      />
       {(error || downloadError) && <Alert variant="error" title={t('loadError')} />}
-      {loading && <p role="status">{t('loading')}</p>}
-      <div className="space-y-3" aria-busy={loading}>
+      {loading && (
+        <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
+          {t('loading')}
+        </p>
+      )}
+      <div className="space-y-4" aria-busy={loading}>
         {tab === 'counts' &&
           counts.map((c) => (
-            <section key={c.id} className="sc-surface space-y-3 p-4">
-              <p>
-                {status(c.status)} · {t('round')} {c.round ?? 1}
-              </p>
-              <details className="text-xs">
-                <summary>{t('reference')}</summary>
-                <p className="break-all">{c.id}</p>
-              </details>
-              {c.snapshotAt && (
-                <p>
-                  {t('snapshotAt')}: {new Date(c.snapshotAt).toLocaleString(locale)}
-                </p>
-              )}
-              {c.countWindowStart && c.countWindowEnd && (
-                <p>
-                  {t('window')}: {new Date(c.countWindowStart).toLocaleString(locale)} –{' '}
-                  {new Date(c.countWindowEnd).toLocaleString(locale)}
-                </p>
-              )}
-              {c.createReason && <p>{c.createReason}</p>}
-              {c.reviewReason && <p>{c.reviewReason}</p>}
-              {c.lines.map((l) => (
-                <div key={l.id} className="flex flex-wrap items-center gap-3">
-                  <span>
-                    {l.sku} · {l.lotCode} · {l.binCode}
+            <section key={c.id} className="sc-surface space-y-4 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Badge status={badgeVariant(c.status)} label={status(c.status)} />
+                  <span className="text-sm font-semibold text-[var(--sc-text-primary)]">
+                    {t('round')} {c.round ?? 1}
                   </span>
-                  {manager && (
-                    <span>
-                      {t('expected')}: {l.expectedQty} · {t('variance')}: {l.varianceQty ?? '—'}
-                      {l.variancePercent === undefined || l.variancePercent === null
-                        ? ''
-                        : ` (${l.variancePercent}%)`}
-                    </span>
-                  )}
-                  <span>
-                    {t('observed')}: {l.observedQty ?? '—'}
-                  </span>
-                  {l.hasEvidence && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void evidence('counts', l.id)}
-                    >
-                      {t('viewEvidence')}
-                    </Button>
-                  )}
-                  {canObserve &&
-                    l.observedQty === null &&
-                    ['PLANNED', 'COUNTING'].includes(c.status) && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          setAction({ kind: 'observe', id: c.id, lineId: l.id, version: c.version })
-                        }
-                      >
-                        {t('observe')}
-                      </Button>
-                    )}
                 </div>
-              ))}
-              <div className="flex flex-wrap gap-2">
+                <details className="text-right text-xs text-[var(--sc-text-secondary)]">
+                  <summary className="cursor-pointer font-medium">{t('reference')}</summary>
+                  <p className="mt-1 break-all font-mono">{c.id}</p>
+                </details>
+              </div>
+              {(c.snapshotAt || c.countWindowStart || c.createReason || c.reviewReason) && (
+                <div className="grid gap-1.5 rounded-lg bg-[var(--sc-bg-secondary)] p-3 text-sm text-[var(--sc-text-secondary)] sm:grid-cols-2">
+                  {c.snapshotAt && (
+                    <p className="m-0">
+                      {t('snapshotAt')}:{' '}
+                      <span className="font-medium text-[var(--sc-text-primary)]">
+                        {new Date(c.snapshotAt).toLocaleString(locale)}
+                      </span>
+                    </p>
+                  )}
+                  {c.countWindowStart && c.countWindowEnd && (
+                    <p className="m-0">
+                      {t('window')}:{' '}
+                      <span className="font-medium text-[var(--sc-text-primary)]">
+                        {new Date(c.countWindowStart).toLocaleString(locale)} –{' '}
+                        {new Date(c.countWindowEnd).toLocaleString(locale)}
+                      </span>
+                    </p>
+                  )}
+                  {c.createReason && <p className="m-0 sm:col-span-2">{c.createReason}</p>}
+                  {c.reviewReason && <p className="m-0 sm:col-span-2">{c.reviewReason}</p>}
+                </div>
+              )}
+              <div className="divide-y divide-[var(--sc-border-default)] rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)]">
+                {c.lines.map((l) => (
+                  <div
+                    key={l.id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-semibold text-[var(--sc-text-primary)]">{l.sku}</span>
+                      <span className="ml-2 text-xs text-[var(--sc-text-secondary)]">
+                        {l.lotCode} · {l.binCode}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 tabular-nums">
+                      {manager && (
+                        <span className="text-[var(--sc-text-secondary)]">
+                          {t('expected')}:{' '}
+                          <strong className="text-[var(--sc-text-primary)]">{l.expectedQty}</strong>{' '}
+                          · {t('variance')}:{' '}
+                          <strong className="text-[var(--sc-text-primary)]">
+                            {l.varianceQty ?? '—'}
+                            {l.variancePercent === undefined || l.variancePercent === null
+                              ? ''
+                              : ` (${l.variancePercent}%)`}
+                          </strong>
+                        </span>
+                      )}
+                      <span className="text-[var(--sc-text-secondary)]">
+                        {t('observed')}:{' '}
+                        <strong className="text-[var(--sc-text-primary)]">
+                          {l.observedQty ?? '—'}
+                        </strong>
+                      </span>
+                      {l.hasEvidence && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void evidence('counts', l.id)}
+                        >
+                          {t('viewEvidence')}
+                        </Button>
+                      )}
+                      {canObserve &&
+                        l.observedQty === null &&
+                        ['PLANNED', 'COUNTING'].includes(c.status) && (
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              setAction({
+                                kind: 'observe',
+                                id: c.id,
+                                lineId: l.id,
+                                version: c.version,
+                              })
+                            }
+                          >
+                            {t('observe')}
+                          </Button>
+                        )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2 border-t border-[var(--sc-border-default)] pt-3">
                 {canPlan && ['PLANNED', 'COUNTING'].includes(c.status) && (
                   <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => setAction({ kind: 'countAssign', id: c.id, version: c.version })}
                   >
@@ -248,6 +318,7 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
                 )}
                 {canPlan && c.status === 'REVIEW' && (
                   <Button
+                    size="sm"
                     onClick={() => setAction({ kind: 'countReview', id: c.id, version: c.version })}
                   >
                     {t('countReview')}
@@ -255,6 +326,7 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
                 )}
                 {canPlan && c.status !== 'POSTED' && (
                   <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => setAction({ kind: 'resnapshot', id: c.id, version: c.version })}
                   >
@@ -263,7 +335,10 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
                 )}
                 {/* UC-59: the Manager who approved the plan posts it; Staff never post. */}
                 {canPlan && c.status === 'APPROVED' && (
-                  <Button onClick={() => setAction({ kind: 'post', id: c.id, version: c.version })}>
+                  <Button
+                    size="sm"
+                    onClick={() => setAction({ kind: 'post', id: c.id, version: c.version })}
+                  >
                     {t('post')}
                   </Button>
                 )}
@@ -272,30 +347,44 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
           ))}
         {tab === 'disposals' &&
           disposals.map((d) => (
-            <section key={d.id} className="sc-surface space-y-3 p-4">
-              <p>
-                {d.sku} · {d.lotCode} · {d.binCode} · {t('qty')}: {d.qty} · {status(d.status)}
-              </p>
-              <p>{d.reason}</p>
-              <p className="text-sm">
-                {t('executedQty', { qty: d.executedQty })} ·{' '}
-                {t(
-                  d.authorizationMode === 'POLICY' ? 'policyAuthorization' : 'consentAuthorization',
+            <section key={d.id} className="sc-surface space-y-3 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="m-0 text-sm font-semibold text-[var(--sc-text-primary)]">
+                    {d.sku} · {d.lotCode} · {d.binCode}
+                  </p>
+                  <p className="mb-0 mt-1 text-xs text-[var(--sc-text-secondary)]">
+                    {t('qty')}: {d.qty} · {t('executedQty', { qty: d.executedQty })} ·{' '}
+                    {t(
+                      d.authorizationMode === 'POLICY'
+                        ? 'policyAuthorization'
+                        : 'consentAuthorization',
+                    )}
+                  </p>
+                </div>
+                <Badge status={badgeVariant(d.status)} label={status(d.status)} />
+              </div>
+              <div className="space-y-1 rounded-lg bg-[var(--sc-bg-secondary)] p-3 text-sm text-[var(--sc-text-secondary)]">
+                <p className="m-0 text-[var(--sc-text-primary)]">{d.reason}</p>
+                {d.authorizationMode === 'POLICY' && d.policyExpiresAt && (
+                  <p className="m-0 text-xs">
+                    {t('policyExpiry', {
+                      date: new Date(d.policyExpiresAt).toLocaleString(locale, {
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                      }),
+                    })}
+                  </p>
                 )}
-              </p>
-              {d.authorizationMode === 'POLICY' && d.policyExpiresAt && (
-                <p className="text-sm">
-                  {t('policyExpiry', {
-                    date: new Date(d.policyExpiresAt).toLocaleString(locale, {
-                      timeZone: 'Asia/Ho_Chi_Minh',
-                    }),
-                  })}
-                </p>
-              )}
-              {d.reviewReason && <p>{d.reviewReason}</p>}
-              <div className="flex gap-2">
+                {d.reviewReason && (
+                  <p className="m-0 text-xs">
+                    {t('reason')}: {d.reviewReason}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {manager && d.status === 'REQUESTED' && (
                   <Button
+                    size="sm"
                     onClick={() =>
                       setAction({ kind: 'disposalReview', id: d.id, version: d.version })
                     }
@@ -305,6 +394,7 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
                 )}
                 {staff && d.status === 'APPROVED' && (
                   <Button
+                    size="sm"
                     onClick={() => setAction({ kind: 'execute', id: d.id, version: d.version })}
                   >
                     {t('execute')}
@@ -312,13 +402,19 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
                 )}
                 {actorScope === 'TENANT' && ['REQUESTED', 'APPROVED'].includes(d.status) && (
                   <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => setAction({ kind: 'revoke', id: d.id, version: d.version })}
                   >
                     {t('revoke')}
                   </Button>
                 )}
                 {actorScope === 'PLATFORM' && d.hasEvidence && (
-                  <Button variant="outline" onClick={() => void evidence('disposals', d.id)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void evidence('disposals', d.id)}
+                  >
                     {t('viewEvidence')}
                   </Button>
                 )}
@@ -327,34 +423,49 @@ function Workspace({ initialTab }: { initialTab?: 'counts' | 'disposals' | 'putb
           ))}
         {tab === 'putbacks' &&
           putbacks.map((p) => (
-            <section key={p.id} className="sc-surface flex flex-wrap items-center gap-3 p-4">
-              <span>
-                {p.sku} · {p.lotCode} → {p.binCode} · {t('qty')}: {p.qty} · {status(p.status)}
-              </span>
-              {manager && p.status === 'ASSIGNED' && (
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setAction({ kind: 'putbackRetarget', id: p.id, version: p.version })
-                  }
-                >
-                  {t('putbackRetarget')}
-                </Button>
-              )}
-              {staff && p.status === 'ASSIGNED' && (
-                <Button
-                  onClick={() =>
-                    setAction({ kind: 'putbackConfirm', id: p.id, version: p.version })
-                  }
-                >
-                  {t('putbackConfirm')}
-                </Button>
-              )}
+            <section
+              key={p.id}
+              className="sc-surface flex flex-wrap items-center justify-between gap-3 p-4"
+            >
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <Badge status={badgeVariant(p.status)} label={status(p.status)} />
+                <span className="font-medium text-[var(--sc-text-primary)]">
+                  {p.sku} · {p.lotCode} → {p.binCode}
+                </span>
+                <span className="text-[var(--sc-text-secondary)]">
+                  {t('qty')}: {p.qty}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {manager && p.status === 'ASSIGNED' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setAction({ kind: 'putbackRetarget', id: p.id, version: p.version })
+                    }
+                  >
+                    {t('putbackRetarget')}
+                  </Button>
+                )}
+                {staff && p.status === 'ASSIGNED' && (
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setAction({ kind: 'putbackConfirm', id: p.id, version: p.version })
+                    }
+                  >
+                    {t('putbackConfirm')}
+                  </Button>
+                )}
+              </div>
             </section>
           ))}
       </div>
       {wh && !loading && !error && counts.length + disposals.length + putbacks.length === 0 && (
-        <p>{t('empty')}</p>
+        <div className="sc-surface p-8 text-center text-sm text-[var(--sc-text-secondary)]">
+          {t('empty')}
+        </div>
       )}
       <div className="flex gap-2">
         {cursor && (

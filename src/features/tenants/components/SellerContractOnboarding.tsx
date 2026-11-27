@@ -32,6 +32,7 @@ import { CommercialCustomInquiry } from './CommercialCustomInquiry';
 import { CommercialPdfPreview } from './CommercialPdfPreview';
 import { CommercialPreparationForm } from './CommercialPreparationForm';
 import { CommercialQuotaPanel } from './CommercialQuotaPanel';
+import { PlanIncludedServices } from './PlanIncludedServices';
 import { useSellerCommercial } from '../hooks/useSellerCommercial';
 
 import type { CommercialPlan } from '../api/commercialApi';
@@ -54,6 +55,10 @@ export function SellerContractOnboarding() {
     (item) => item.contractId === currentContract?.id && item.canRestartSigning,
   );
   const contract = canRestartSigning ? undefined : currentContract;
+  const showsQuotaPlan =
+    can('contract.sign') &&
+    contract &&
+    ['ACCEPTED', 'CONFIRMED', 'TERMINATING'].includes(contract.status);
   const request = flow.state?.signingRequests.find((item) => item.contractId === contract?.id);
   const signingNotice =
     request?.status === 'IN_PROGRESS' && flow.signingNotice?.requestId === request.id
@@ -299,6 +304,10 @@ export function SellerContractOnboarding() {
                             </div>
                           )}
                         </dl>
+                        <PlanIncludedServices
+                          labels={plan.includedServiceLabels}
+                          className="mb-3"
+                        />
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -359,11 +368,12 @@ export function SellerContractOnboarding() {
             key={selectedPlan.id}
             plan={selectedPlan}
             busy={flow.busy}
+            warehouseSelectionEnabled={flow.warehouseSelectionEnabled}
             onPreview={() => {
               void flow.preview(selectedPlan.agreementId);
             }}
-            onSubmit={async (profile) => {
-              if (await flow.start(selectedPlan, profile)) setSelectedPlan(null);
+            onSubmit={async (profile, warehouseIds) => {
+              if (await flow.start(selectedPlan, profile, warehouseIds)) setSelectedPlan(null);
             }}
           />
           {flow.error && <Alert variant="error">{flow.error.message}</Alert>}
@@ -500,6 +510,44 @@ export function SellerContractOnboarding() {
               </div>
             ))}
           </dl>
+
+          {!showsQuotaPlan && (
+            <PlanIncludedServices
+              labels={contract.includedServiceLabels}
+              className="border-b border-[var(--sc-border-default)] px-5 py-3.5 sm:px-6"
+            />
+          )}
+
+          {!showsQuotaPlan && contract.selectedWarehouses !== undefined && (
+            <div className="space-y-2 border-b border-[var(--sc-border-default)] px-5 py-3.5 sm:px-6">
+              <p className="m-0 text-xs font-medium text-[var(--sc-text-secondary)]">
+                {t('contractSelectedWarehousesTitle')}
+              </p>
+              {contract.selectedWarehouses === null ? (
+                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                  {contract.contractKind === 'CUSTOM'
+                    ? t('enterpriseAllWarehouses')
+                    : t('legacyAllWarehouses')}
+                </p>
+              ) : contract.selectedWarehouses.length === 0 ? (
+                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                  {t('noSelectedWarehouses')}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {contract.selectedWarehouses.map((warehouse) => (
+                    <Badge
+                      key={warehouse.id}
+                      status="info"
+                      variant="solid"
+                      size="sm"
+                      label={`${warehouse.code} — ${warehouse.name}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Status Notices & Active SignNow Session */}
           {(request?.status === 'PREPARING' ||
@@ -703,11 +751,7 @@ export function SellerContractOnboarding() {
         </Card>
       )}
 
-      {can('contract.sign') &&
-        contract &&
-        ['ACCEPTED', 'CONFIRMED', 'TERMINATING'].includes(contract.status) && (
-          <CommercialQuotaPanel key={contract.id} />
-        )}
+      {showsQuotaPlan && <CommercialQuotaPanel key={contract.id} />}
 
       {flow.pdfUrl && (
         <CommercialPdfPreview

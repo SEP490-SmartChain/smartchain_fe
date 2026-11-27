@@ -387,7 +387,7 @@ function ReturnQueue({
             {r.lines.map((l) => (
               <div
                 key={l.id}
-                className="space-y-3 rounded-[12px] border border-[var(--sc-border-default)] p-4"
+                className="space-y-4 rounded-[12px] border border-[var(--sc-border-default)] p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -430,12 +430,12 @@ function ReturnQueue({
                   ))}
                 </dl>
                 {l.reviewReason && (
-                  <p className="m-0 text-sm">
+                  <p className="m-0 rounded-[8px] border border-[var(--sc-border-default)] px-3 py-2 text-sm">
                     <span className="text-[var(--sc-text-secondary)]">{t('reviewNote')}: </span>
                     {l.reviewReason}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3 border-t border-[var(--sc-border-default)] pt-4 empty:hidden">
                   {l.hasEvidence && (
                     <Button variant="outline" size="sm" onClick={() => void photo(r.id, l.id)}>
                       {t('viewPhoto')}

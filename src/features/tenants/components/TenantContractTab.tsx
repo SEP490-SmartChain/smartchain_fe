@@ -14,6 +14,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useIsRealtimeConnected, useRealtimeSync } from '@/features/realtime-notifications';
+import { calendarDateSchema, vietnamToday } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -34,7 +35,7 @@ const customSchema = z.object({
   serviceTariffVersionId: z.string().uuid(),
   freightTariffVersionId: z.string().uuid(),
   agreementVersionRef: z.string().trim().min(1).max(100),
-  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  effectiveFrom: calendarDateSchema,
   depositRequiredVnd: money,
   creditLimitVnd: money,
   claimCapVnd: money,
@@ -53,6 +54,7 @@ const confirmationSchema = z.object({ reason: z.string().trim().min(3).max(500) 
 
 export function TenantContractTab({ tenantId }: { tenantId: string }) {
   const t = useTranslations('CommercialAdmin');
+  const dateText = useTranslations('DateValidation');
   const [payment, setPayment] = useState<{
     contractId: string;
     invoice?: OnboardingInvoice;
@@ -78,7 +80,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
       serviceTariffVersionId: '',
       freightTariffVersionId: '',
       agreementVersionRef: '',
-      effectiveFrom: new Date().toISOString().slice(0, 10),
+      effectiveFrom: vietnamToday(),
       depositRequiredVnd: '',
       creditLimitVnd: '',
       claimCapVnd: '',
@@ -404,7 +406,7 @@ export function TenantContractTab({ tenantId }: { tenantId: string }) {
                 label={t('effectiveFrom')}
                 isRequired
                 type="date"
-                error={invalid('effectiveFrom')}
+                error={invalid('effectiveFrom') ? dateText('invalidDate') : undefined}
                 {...custom.register('effectiveFrom')}
               />
               <Input

@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 
+import { useForm } from 'react-hook-form';
+
+import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarClock, PauseCircle, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { useAccess } from '@/hooks/useAccess';
+import { parseLocalDateTime } from '@/lib/dateValidation';
 import { createUuid } from '@/lib/uuid';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
@@ -17,6 +22,20 @@ import { warehouseApi, type Downtime, type WarehouseOutstanding } from '../api/w
 
 import type { Warehouse } from '../types/warehouse';
 
+const downtimeSchema = z
+  .object({ start: z.string(), end: z.string(), reason: z.string().trim().min(3).max(500) })
+  .superRefine((values, context) => {
+    const start = parseLocalDateTime(values.start, 'vietnam');
+    const end = parseLocalDateTime(values.end, 'vietnam');
+    if (!start) context.addIssue({ code: 'custom', path: ['start'], message: 'invalidDateTime' });
+    if (!end) context.addIssue({ code: 'custom', path: ['end'], message: 'invalidDateTime' });
+    if (start && end && end <= start) {
+      context.addIssue({ code: 'custom', path: ['end'], message: 'timeOrder' });
+    }
+  });
+
+const downtimeDefaults = { start: '', end: '', reason: '' };
+
 export function WarehouseDowntimePanel({
   warehouse,
   onSaved,
@@ -25,6 +44,7 @@ export function WarehouseDowntimePanel({
   readonly onSaved: () => void;
 }) {
   const t = useTranslations('Warehouses');
+  const dateText = useTranslations('DateValidation');
   const locale = useLocale();
   const { can } = useAccess();
   const principal = useAuthStore((s) => s.user);
@@ -33,9 +53,15 @@ export function WarehouseDowntimePanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [start, setStart] = useState('');
-  const [end, setEnd] = useState('');
-  const [reason, setReason] = useState('');
+  const {
+    register,
+    reset,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(downtimeSchema),
+    defaultValues: downtimeDefaults,
+  });
   const [retry, setRetry] = useState(0);
   const [operationKey, setOperationKey] = useState(() => createUuid());
   useEffect(() => {
@@ -44,9 +70,7 @@ export function WarehouseDowntimePanel({
     setCounts(null);
     setError(null);
     setLoading(true);
-    setStart('');
-    setEnd('');
-    setReason('');
+    reset(downtimeDefaults);
     setOperationKey(createUuid());
     void Promise.all([warehouseApi.downtime(warehouse.id), warehouseApi.outstanding(warehouse.id)])
       .then(([intervals, work]) => {
@@ -64,29 +88,20 @@ export function WarehouseDowntimePanel({
     return () => {
       active = false;
     };
-  }, [warehouse.id, warehouse.version, principal, t, retry]);
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault();
+  }, [warehouse.id, warehouse.version, principal, t, retry, reset]);
+  const save = handleSubmit(async ({ start, end, reason }) => {
     if (!can('warehouses.downtime.manage') || saving) return;
-    // datetime-local values are explicitly entered in the warehouse's Vietnam time zone.
-    const startAt = new Date(`${start}:00+07:00`);
-    const endAt = new Date(`${end}:00+07:00`);
-    if (
-      !Number.isFinite(startAt.getTime()) ||
-      !Number.isFinite(endAt.getTime()) ||
-      endAt <= startAt ||
-      reason.trim().length < 3
-    ) {
-      setError(t('intervalError'));
-      return;
-    }
+    const startAt = parseLocalDateTime(start, 'vietnam');
+    const endAt = parseLocalDateTime(end, 'vietnam');
+    if (!startAt || !endAt) return;
+
     setSaving(true);
     setError(null);
     try {
       await warehouseApi.schedule(warehouse.id, {
         startAt: startAt.toISOString(),
         endAt: endAt.toISOString(),
-        reason: reason.trim(),
+        reason,
         operationKey,
         expectedVersion: warehouse.version,
       });
@@ -101,8 +116,7 @@ export function WarehouseDowntimePanel({
     } finally {
       setSaving(false);
     }
-  };
-  const changed = () => setOperationKey(createUuid());
+  });
   return (
     <section className={styles.stack} aria-label={t('downtimeTitle')}>
       <div>
@@ -170,7 +184,12 @@ export function WarehouseDowntimePanel({
           </div>
         </div>
         {can('warehouses.downtime.manage') && warehouse.status === 'ACTIVE' && (
-          <form onSubmit={save} className={styles.panel}>
+          <form
+            onSubmit={save}
+            onChange={() => setOperationKey(createUuid())}
+            className={styles.panel}
+            noValidate
+          >
             <h3 className={`${styles.panelTitle} mb-2`}>
               <Plus size={20} className={styles.icon} aria-hidden="true" />
               {t('schedule')}
@@ -182,33 +201,28 @@ export function WarehouseDowntimePanel({
               <Input
                 label={t('startAt')}
                 type="datetime-local"
-                value={start}
                 required
-                onChange={(e) => {
-                  setStart(e.target.value);
-                  changed();
-                }}
+                {...register('start', { deps: ['end'] })}
+                error={errors.start ? dateText('invalidDateTime') : undefined}
               />
               <Input
                 label={t('endAt')}
                 type="datetime-local"
-                value={end}
                 required
-                onChange={(e) => {
-                  setEnd(e.target.value);
-                  changed();
-                }}
+                {...register('end')}
+                error={
+                  errors.end
+                    ? dateText(errors.end.message === 'timeOrder' ? 'timeOrder' : 'invalidDateTime')
+                    : undefined
+                }
               />
               <Input
                 label={t('reason')}
-                value={reason}
                 minLength={3}
                 maxLength={500}
                 required
-                onChange={(e) => {
-                  setReason(e.target.value);
-                  changed();
-                }}
+                {...register('reason')}
+                error={errors.reason ? t('intervalError') : undefined}
               />
             </fieldset>
             <div className={styles.formActions}>
