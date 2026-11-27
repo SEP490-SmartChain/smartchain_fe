@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
@@ -9,7 +9,9 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
+import { Select } from '@/components/Common/Select/Select';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
+import { ApiError } from '@/services/apiClient';
 
 import {
   commercialApi,
@@ -17,13 +19,17 @@ import {
   type CommercialPlan,
   type ContractBusinessProfile,
 } from '../api/commercialApi';
-import { contractBusinessProfileSchema } from '../schemas/contractBusinessProfileSchema';
+import {
+  AUTHORITY_OPTIONS,
+  contractBusinessProfileSchema,
+} from '../schemas/contractBusinessProfileSchema';
 
 import type { z } from 'zod';
 
 interface PreparationProps {
   plan: CommercialPlan;
   busy: boolean;
+  error?: Error | null;
   onSubmit: (profile?: ContractBusinessProfile) => Promise<void>;
   onPreview: () => void;
 }
@@ -33,12 +39,22 @@ const PROFILE_FIELDS = [
   'address',
   'registrationNumber',
   'representativeName',
-  'representativeTitle',
-  'authorityBasis',
   'phone',
 ] as const;
 
-export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: PreparationProps) {
+const PROFILE_MISMATCH_FIELDS = new Map<string, (typeof PROFILE_FIELDS)[number]>([
+  ['COMMERCIAL.BUSINESS_NAME_MISMATCH', 'legalName'],
+  ['COMMERCIAL.BUSINESS_TAX_ID_MISMATCH', 'registrationNumber'],
+  ['COMMERCIAL.BUSINESS_PHONE_MISMATCH', 'phone'],
+] as const);
+
+export function CommercialPreparationForm({
+  plan,
+  busy,
+  error,
+  onSubmit,
+  onPreview,
+}: PreparationProps) {
   const t = useTranslations('Commercial');
   const locale = useLocale();
   const tariffText = useTranslations('ServiceTariffs');
@@ -65,25 +81,49 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
   const schema = contractBusinessProfileSchema(plan.requiresBusinessProfile);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
+    mode: 'onTouched',
     defaultValues: {
       legalName: '',
       address: '',
       registrationNumber: '',
       representativeName: '',
-      representativeTitle: '',
       authorityBasis: '',
+      authorizationReference: '',
       phone: '',
       hasReviewedTerms: false,
     },
   });
+  const authorityBasis = useWatch({ control: form.control, name: 'authorityBasis' });
+  const canPrepare = Boolean(rates && agreementId && plan.agreementVersionRef) && !busy;
+  const mismatchField =
+    error instanceof ApiError ? PROFILE_MISMATCH_FIELDS.get(error.code) : undefined;
+  const { setError } = form;
+  useEffect(() => {
+    if (mismatchField && error && !busy) {
+      setError(mismatchField, { type: 'server', message: error.message }, { shouldFocus: true });
+    }
+  }, [busy, error, mismatchField, setError]);
   const submit = form.handleSubmit(
-    async ({ hasReviewedTerms: _reviewed, registrationNumber, ...profile }) => {
-      if (!rates) return;
-      await onSubmit(
-        plan.requiresBusinessProfile
-          ? { ...profile, ...(registrationNumber ? { registrationNumber } : {}) }
-          : undefined,
-      );
+    async ({
+      hasReviewedTerms: _reviewed,
+      registrationNumber,
+      authorityBasis,
+      authorizationReference,
+      ...profile
+    }) => {
+      if (!canPrepare) return;
+      if (!plan.requiresBusinessProfile) return onSubmit();
+      if (!authorityBasis) return;
+      const signingCapacity = t(`authorityOptions.${authorityBasis}`);
+      await onSubmit({
+        ...profile,
+        representativeTitle: signingCapacity,
+        authorityBasis:
+          authorityBasis === 'authorized'
+            ? `${signingCapacity} (${authorizationReference})`
+            : signingCapacity,
+        ...(registrationNumber ? { registrationNumber } : {}),
+      });
     },
     () => notifyInvalidForm(),
   );
@@ -256,14 +296,47 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
             <Input
               key={field}
               label={t(`profile.${field}`)}
+              type={field === 'phone' ? 'tel' : 'text'}
               required={field !== 'registrationNumber'}
               {...form.register(field)}
               disabled={busy}
-              error={form.formState.errors[field] ? t('profileInvalid') : undefined}
+              error={
+                form.formState.errors[field]
+                  ? form.formState.errors[field]?.type === 'server'
+                    ? form.formState.errors[field]?.message
+                    : t(`profileErrors.${field}`)
+                  : undefined
+              }
             />
           ))}
+          <Select
+            label={t('profile.representativeTitle')}
+            placeholder={t('selectAuthority')}
+            isRequired
+            {...form.register('authorityBasis')}
+            disabled={busy}
+            options={AUTHORITY_OPTIONS.map((value) => ({
+              value,
+              label: t(`authorityOptions.${value}`),
+            }))}
+            error={form.formState.errors.authorityBasis ? t('selectAuthority') : undefined}
+          />
+          {authorityBasis === 'authorized' && (
+            <Input
+              label={t('authorizationReference')}
+              required
+              {...form.register('authorizationReference')}
+              disabled={busy}
+              error={
+                form.formState.errors.authorizationReference
+                  ? t('profileErrors.authorizationReference')
+                  : undefined
+              }
+            />
+          )}
         </div>
       )}
+      {error && !mismatchField && <Alert variant="error">{error.message}</Alert>}
       <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 p-3.5">
         <Checkbox
           {...form.register('hasReviewedTerms')}
@@ -278,7 +351,11 @@ export function CommercialPreparationForm({ plan, busy, onSubmit, onPreview }: P
         <Button type="button" variant="outline" size="sm" onClick={onPreview} disabled={busy}>
           {t('preview')}
         </Button>
-        <Button type="submit" disabled={!rates} isLoading={busy || form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={!canPrepare}
+          isLoading={busy || form.formState.isSubmitting}
+        >
           {t('confirmPrepare')}
         </Button>
       </div>

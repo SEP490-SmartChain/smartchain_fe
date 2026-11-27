@@ -356,9 +356,10 @@ export function SellerContractOnboarding() {
           width="720px"
         >
           <CommercialPreparationForm
-            key={selectedPlan.id}
+            key={`${selectedPlan.id}:${selectedPlan.agreementId}:${selectedPlan.agreementVersionRef}`}
             plan={selectedPlan}
             busy={flow.busy}
+            error={flow.error}
             onPreview={() => {
               void flow.preview(selectedPlan.agreementId);
             }}
@@ -366,7 +367,6 @@ export function SellerContractOnboarding() {
               if (await flow.start(selectedPlan, profile)) setSelectedPlan(null);
             }}
           />
-          {flow.error && <Alert variant="error">{flow.error.message}</Alert>}
         </Modal>
       )}
 

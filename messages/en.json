@@ -526,7 +526,21 @@
     "prepareTitle": "Prepare agreement — {plan} plan",
     "profileHelp": "Contracting party details and the plan price are frozen in the agreement. ORCA publishes the common terms; review the whole agreement before signing.",
     "registeredProfileHelp": "The company name, tax ID (if registered), and business contact phone must match your workspace registration.",
-    "profileInvalid": "Check the value, length and format; line breaks are not allowed.",
+    "selectAuthority": "Select signing authority",
+    "authorityOptions": {
+      "owner": "Household business owner, sole proprietor, or individual",
+      "legalRepresentative": "Legal representative",
+      "authorized": "Authorized representative"
+    },
+    "authorizationReference": "Authorization details (e.g. reference and date)",
+    "profileErrors": {
+      "legalName": "Enter the registered legal name, using 2 to 150 characters.",
+      "address": "Enter the contracting address with 5 to 250 characters, including letters.",
+      "registrationNumber": "Enter 3 to 30 characters using only letters, digits and hyphens.",
+      "representativeName": "Enter the signer's full name using 2 to 100 characters and no digits.",
+      "phone": "Enter a phone number with 7 to 15 digits.",
+      "authorizationReference": "Enter 5 to 150 characters, including the document number or issue date."
+    },
     "reviewedTerms": "I have read this plan’s terms and confirm the contracting party details and my authority to sign.",
     "reviewRequired": "Read and confirm the terms before preparing the agreement.",
     "confirmPrepare": "Confirm details and prepare agreement",
@@ -535,7 +549,7 @@
       "address": "Contracting party address",
       "registrationNumber": "Business / tax registration number (if any)",
       "representativeName": "Signing representative name",
-      "representativeTitle": "Position / signing capacity",
+      "representativeTitle": "Signing capacity",
       "authorityBasis": "Authority or authorization basis",
       "phone": "Contact phone"
     },

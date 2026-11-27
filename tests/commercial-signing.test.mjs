@@ -82,6 +82,8 @@ test('reading sample terms never submits the contract preparation form', () => {
     assert.match(preview[1], /\btype="button"/, 'sample preview must not submit the form');
     assert.ok(prepare, 'explicit preparation action must be present');
     assert.match(prepare[1], /\btype="submit"/);
+    assert.equal(/<select\b[^>]*name="authorityBasis"/.test(html), requiresBusinessProfile);
+    assert.doesNotMatch(html, /name="representativeTitle"/);
   }
 });
 after(async () => {
@@ -262,17 +264,30 @@ test('a new contracting party template requires complete details and explicit re
     address: 'Demo address',
     registrationNumber: '',
     representativeName: 'Demo Owner',
-    representativeTitle: 'Owner',
-    authorityBasis: 'Self represented',
+    authorityBasis: 'owner',
+    authorizationReference: '',
     phone: '0900000000',
     hasReviewedTerms: true,
   };
   assert.equal(profileSchema(true).safeParse(values).success, true);
   for (const change of [
     { legalName: '  ' },
+    { legalName: 'abc123' },
+    { legalName: 'abcxyz' },
     { address: 'four' },
+    { address: '123456' },
+    { registrationNumber: '---' },
     { phone: 'invalid' },
+    { phone: '000 000 0000' },
     { representativeName: 'Owner\nAdmin' },
+    { representativeName: '12345' },
+    { representativeName: 'ABC XYZ' },
+    { representativeName: 'Nguyễn -- Văn A' },
+    { authorityBasis: 'aaaaa' },
+    { authorityBasis: 'lau công' },
+    { authorityBasis: 'kế toán' },
+    { authorityBasis: 'authorized', authorizationReference: 'aaaaa' },
+    { authorityBasis: 'authorized', authorizationReference: 'Giấy ủy quyền' },
     { authorityBasis: 'a'.repeat(201) },
     { hasReviewedTerms: false },
   ]) {
@@ -284,13 +299,33 @@ test('a new contracting party template requires complete details and explicit re
       address: '',
       registrationNumber: '',
       representativeName: '',
-      representativeTitle: '',
       authorityBasis: '',
+      authorizationReference: '',
       phone: '',
       hasReviewedTerms: true,
     }).success,
     true,
   );
+  assert.equal(
+    profileSchema(true).safeParse({
+      ...values,
+      representativeName: 'Nguyễn Thị Ánh',
+      authorityBasis: 'authorized',
+      authorizationReference: 'Số 12/2026 ngày 15/11/2026',
+    }).success,
+    true,
+  );
+  const formatted = profileSchema(true).parse({
+    ...values,
+    legalName: 'ABC',
+    registrationNumber: '0123456789',
+    phone: '+84 (900) 000-000',
+    authorityBasis: 'authorized',
+    authorizationReference: '2026-01',
+    representativeTitle: 'lau công',
+  });
+  assert.equal(formatted.phone, '+84900000000');
+  assert.equal(Object.hasOwn(formatted, 'representativeTitle'), false);
 });
 test('signing links accept only the provider HTTPS origins', () => {
   assert.equal(safeUrl('https://app.signnow.com/sign/token'), 'https://app.signnow.com/sign/token');
