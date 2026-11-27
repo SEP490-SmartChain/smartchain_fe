@@ -78,7 +78,7 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
       isOpen={product !== null}
       onClose={onClose}
       title={t('configurationTitle')}
-      width="560px"
+      width="640px"
     >
       <form
         onSubmitCapture={() => setSubmitError('')}
@@ -93,11 +93,13 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
         )}
         <Checkbox
           label={t('trackLot')}
+          helperText={t('trackLotHelp')}
           {...register('trackLot')}
           error={errors.trackLot ? t('expiryRequiresLot') : undefined}
         />
         <Checkbox
           label={t('trackExpiry')}
+          helperText={t('trackExpiryHelp')}
           {...register('trackExpiry', {
             onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
               if (event.target.checked) return;
@@ -113,33 +115,43 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
         />
         <Checkbox
           label={t('manufactureRequired')}
+          helperText={t('manufactureRequiredHelp')}
           {...register('manufactureRequired')}
           error={errors?.manufactureRequired?.message}
         />
         {tracksExpiry ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {(
-              [
-                'shelfLifeDays',
-                'minInboundShelfLifePct',
-                'minOutboundDays',
-                'nearExpiryDays',
-              ] as const
-            ).map((field) => (
-              <Input
-                key={field}
-                label={t(field)}
-                type="number"
-                min={field === 'shelfLifeDays' ? 1 : 0}
-                max={field === 'minInboundShelfLifePct' ? 100 : 36500}
-                step={field === 'minInboundShelfLifePct' ? '0.01' : '1'}
-                {...register(field, {
-                  setValueAs: (value: unknown) =>
-                    field === 'shelfLifeDays' ? parseOptionalShelfLifeDays(value) : Number(value),
-                })}
-                error={errors[field] ? t('configurationInvalid') : undefined}
-              />
-            ))}
+          <div className="space-y-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-primary)] p-4">
+            <p className="m-0 text-sm font-medium text-[var(--sc-text-primary)]">
+              {t('expiryRulesTitle')}
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(
+                [
+                  'shelfLifeDays',
+                  'minInboundShelfLifePct',
+                  'minOutboundDays',
+                  'nearExpiryDays',
+                ] as const
+              ).map((field) => (
+                <Input
+                  key={field}
+                  label={t(field)}
+                  placeholder={
+                    field === 'shelfLifeDays' ? t('shelfLifeDaysPlaceholder') : undefined
+                  }
+                  helperText={t(`${field}Help`)}
+                  type="number"
+                  min={field === 'shelfLifeDays' ? 1 : 0}
+                  max={field === 'minInboundShelfLifePct' ? 100 : 36500}
+                  step={field === 'minInboundShelfLifePct' ? '0.01' : '1'}
+                  {...register(field, {
+                    setValueAs: (value: unknown) =>
+                      field === 'shelfLifeDays' ? parseOptionalShelfLifeDays(value) : Number(value),
+                  })}
+                  error={errors[field] ? t('configurationInvalid') : undefined}
+                />
+              ))}
+            </div>
           </div>
         ) : (
           <p className="text-sm text-[var(--sc-text-secondary)]">{t('noExpiryHint')}</p>

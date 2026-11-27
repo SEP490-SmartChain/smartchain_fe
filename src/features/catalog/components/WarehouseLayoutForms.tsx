@@ -111,6 +111,7 @@ export function BinForm({
   readonly onSave: (values: BinFormValues) => Promise<string | undefined>;
 }) {
   const t = useTranslations('WarehouseLayout');
+  const volumeText = useTranslations('VolumeValidation');
   const [saveError, setSaveError] = useState('');
   const {
     register,
@@ -209,8 +210,14 @@ export function BinForm({
         <Input
           label={t('maxVolumeM3')}
           inputMode="decimal"
+          isRequired
+          helperText={volumeText('decimalHint')}
           {...register('maxVolumeM3')}
-          error={errors.maxVolumeM3 ? t('invalid') : undefined}
+          error={
+            errors.maxVolumeM3
+              ? volumeText(errors.maxVolumeM3.message === 'positive' ? 'positive' : 'invalid')
+              : undefined
+          }
         />
         {bin && (
           <Checkbox

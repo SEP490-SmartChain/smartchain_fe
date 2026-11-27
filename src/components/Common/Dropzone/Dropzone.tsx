@@ -15,6 +15,8 @@ export interface DropzoneProps {
   maxSizeMb?: number;
   disabled?: boolean;
   className?: string;
+  /** Accessible name of the hidden file input when the dropzone has an external label. */
+  inputLabel?: string;
 }
 
 function formatFileSize(bytes: number) {
@@ -31,6 +33,7 @@ export function Dropzone({
   maxSizeMb = 10,
   disabled = false,
   className,
+  inputLabel,
 }: DropzoneProps) {
   const inputId = useId();
   const t = useTranslations('Common');
@@ -67,6 +70,7 @@ export function Dropzone({
         id={inputId}
         type="file"
         className="sr-only"
+        aria-label={inputLabel}
         accept={accept}
         multiple={multiple}
         disabled={disabled}

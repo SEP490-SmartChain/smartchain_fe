@@ -60,8 +60,10 @@ carton count, optional lot/expiry and expected arrival. The detail dialog reads 
 latest server revision, actual quantities and receipt/discrepancy references.
 Draft edit, versioned submit and cancellation are state guarded. Creation retries
 reuse an operation UUID; mutations and pending reads ignore obsolete identities.
-Submitted cartons have an SVG Code 128 preview and print layout using the existing
-encoder. Cancelled carton labels cannot be printed from this screen.
+After submission, the detail screen previews and prints one QR that encodes the ASN
+code. The label includes the declared carton count. Warehouse staff scan the QR once
+to find the ASN and record the physical count during receiving. Previously issued carton
+labels remain valid for lookup. Draft and cancelled ASNs have no print action.
 
 UC-36 uses P1's read-only `GET /v1/asns/allocation-suggestion` (SS-1004).
 Seller reviews the 30-day history or disclosed regional baseline, shelf-life cap
@@ -93,7 +95,7 @@ unmounts the previous work and aborts its pending reads. Pending receipt/putaway
 lock the shared selector and tabs until the existing retry flow resolves them.
 
 `/warehouse/receiving` lists ASNs in the selected assigned warehouse. Warehouse
-Staff can enter an ASN code or scan the seller's carton reference, then confirm
+Staff can enter or scan the ASN code or scan an issued carton reference, then confirm
 physical arrival. Manager can read the directory but cannot check in without a
 Staff role. The command posts only the displayed ASN version to
 `POST /v1/warehouses/:warehouseId/asns/:id/arrival`.
@@ -157,10 +159,10 @@ The API contract and storage deployment requirements are documented in
 
 ## Mobile receiving and spot checks (FU-21 / UC-37–41)
 
-Assigned Staff scans or enters an ASN, carton, SKU or barcode to find the shipment. In a
+Assigned Staff scans the ASN QR or enters the ASN code to find the shipment. In a
 receipt, scanning a product selects an uncounted line only when it matches uniquely.
 An issued carton label is sent in full and matched against the ASN's saved labels in
-the selected warehouse. The search continues to accept the ASN code and product codes.
+the selected warehouse.
 Staff records video, counts the matching units, inspects their lots and reports exceptions.
 Wrong products are set aside and described in the shortfall report and video notes.
 Use a zero count for a line with no matching items.
@@ -360,3 +362,14 @@ receipt-to-billing integration tests.
 Assigned Staff can scan an eligible storage bin and enter the quantity physically stored there. Using a different bin requires a reason. The task remains open for its unplaced balance and uses a new operation key for the next scan. Transport retries preserve the exact submitted command. Warehouse Managers can view confirmed movements and replan or reassign the remaining balance.
 
 For a full placement, Staff scans the bin and confirms the displayed remaining quantity. The form asks for a quantity when Staff selects partial putaway or the scanned bin cannot fit the full balance. Alternate bin scans offer common reasons and an option to enter a different reason.
+
+## ORCA-SELLER-WH-001 Scoped ASN destination options
+
+`AsnForm` loads eligible active destinations from `GET /v1/asns/warehouse-options`
+(`asnApi.warehouseOptions`) with `Cache-Control: no-store` instead of the public
+warehouse catalog. For new drafts, a single active warehouse is auto-selected cleanly in
+a read-only field, zero eligible warehouses block submission with guidance, and
+pre-existing drafts targeting a warehouse outside the current plan show a non-blocking
+warning. In `AsnCommand`, a `409 INBOUND.ASN_WAREHOUSE_NOT_SELECTED` from
+`submit-check` explains the contract warehouse scope blocker and disables submission
+while keeping backend RLS/controller validation authoritative.

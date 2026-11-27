@@ -2,14 +2,12 @@ import { z } from 'zod';
 
 import { apiClient, type ApiResponse } from '@/services/apiClient';
 
+import { reportDateRangeSchema } from '../schemas/reportSchema';
+
 export const webhookStatus = z.enum(['PENDING', 'DELIVERED', 'FAILED', 'EXHAUSTED']);
-export const webhookFilters = z
-  .object({
-    from: z.iso.date(),
-    to: z.iso.date(),
-    status: z.union([webhookStatus, z.literal('')]),
-  })
-  .refine((v) => v.from <= v.to && Date.parse(v.to) - Date.parse(v.from) < 92 * 86400000);
+export const webhookFilters = reportDateRangeSchema.safeExtend({
+  status: z.union([webhookStatus, z.literal('')]),
+});
 export type WebhookFilters = z.infer<typeof webhookFilters>;
 const row = z
   .object({

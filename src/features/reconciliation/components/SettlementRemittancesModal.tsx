@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { Select } from '@/components/Common/Select/Select';
+import { localDateTimeInput } from '@/lib/dateValidation';
 import { useAuthStore } from '@/stores/authStore';
 import { useLocaleStore } from '@/stores/localeStore';
 
@@ -27,6 +28,7 @@ interface Props {
 
 export function SettlementRemittancesModal({ batchId, onClose, onChanged }: Props) {
   const t = useTranslations('SettlementMoney');
+  const dateText = useTranslations('DateValidation');
   const revision = useAuthStore((state) => state.revision);
   const locale = useLocaleStore((state) => state.locale);
   const localeTag = locale === 'vi' ? 'vi-VN' : 'en-US';
@@ -192,7 +194,8 @@ export function SettlementRemittancesModal({ batchId, onClose, onChanged }: Prop
                 label={t('receivedAt')}
                 type="datetime-local"
                 {...register('receivedAt')}
-                error={'receivedAt' in errors ? t('invalid') : undefined}
+                max={localDateTimeInput(new Date())}
+                error={'receivedAt' in errors ? dateText('recordedTime') : undefined}
               />
               <Input
                 label={t('evidence')}

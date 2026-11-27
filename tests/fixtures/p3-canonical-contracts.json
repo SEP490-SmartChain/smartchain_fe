@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceSha": "eb5891cd299675b62bbf244d3249a5ae4f77f6f45d6fd712de0ca02dd2ca2e8f",
-  "wireSha": "35d8727bb8a0ddb253a41c2572604fbe395cc08aac52933cf60a2e2ce5289d2f",
+  "sourceSha": "dd2ef9ff6d874dfc983606410660cf269a7cccecd08b4b2158ff3fdc2fbcc7ed",
+  "wireSha": "92f811460f19b15880c340455a5db28d3b6fe03696403cb90323bb781a7f3eca",
   "requests": {
     "countPlan": {
       "operationId": "00000000-0000-4000-8000-000000000101",
@@ -355,7 +355,11 @@
         {
           "id": "00000000-0000-4000-8000-000000000133",
           "fulfillmentOrderId": "00000000-0000-4000-8000-000000000132",
+          "orderCode": "P3-SYNTHETIC-ORDER",
+          "parcelSequenceNo": 1,
+          "deliveredAt": "2026-10-01T03:00:00.000Z",
           "sku": "P3-SYNTHETIC-SKU",
+          "productName": "P3 synthetic product",
           "lotCode": "LOT-P3-001",
           "remainingQty": 1
         }

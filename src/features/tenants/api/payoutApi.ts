@@ -107,6 +107,14 @@ export const payoutApi = {
         .parse(response.meta?.pagination),
     };
   },
+  /** Accountant queue across sellers: frozen statements waiting for manual approval. */
+  async awaitingApproval(signal?: AbortSignal) {
+    const response = await apiClient.get<ApiResponse<unknown>>(
+      `${root}/statements/awaiting-approval`,
+      { signal, silent: true },
+    );
+    return { items: z.array(payoutStatementSchema).parse(response.data) };
+  },
   async list(filters: Omit<Filters, 'accountKind'>, signal?: AbortSignal) {
     const response = await apiClient.get<ApiResponse<unknown>>(
       `${root}/statements${query(filters)}`,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Boxes, MapPin, Plus, Search } from 'lucide-react';
+import { Boxes, MapPin, Plus, QrCode, Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -10,6 +10,7 @@ import { Button } from '@/components/Common/Button/Button';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
 import { useAccess } from '@/hooks/useAccess';
+import { formatCapacityDecimal } from '@/lib/volumeValidation';
 import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -20,16 +21,6 @@ import { warehouseLayoutApi, type Bin, type Zone } from '../api/warehouseLayoutA
 
 import type { BinFormValues, ZoneFormValues } from '../schemas/warehouseLayoutSchema';
 import type { Warehouse } from '../types/warehouse';
-
-function formatCapacity(value: string, locale: string, decimalSeparator: string): string {
-  const [integerPart, fractionPart] = value.split('.');
-  if (!/^\d+$/.test(integerPart) || (fractionPart !== undefined && !/^\d+$/.test(fractionPart))) {
-    return value;
-  }
-  const integer = BigInt(integerPart).toLocaleString(locale);
-  const fraction = fractionPart?.replace(/0+$/, '');
-  return fraction ? `${integer}${decimalSeparator}${fraction}` : integer;
-}
 
 export function WarehouseLayoutPanel({
   warehouse,
@@ -44,9 +35,6 @@ export function WarehouseLayoutPanel({
 }) {
   const t = useTranslations('WarehouseLayout');
   const locale = useLocale();
-  const decimalSeparator =
-    new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === 'decimal')
-      ?.value ?? '.';
   const { can } = useAccess();
   const principal = useAuthStore((state) => state.user);
   const canManage = can('warehouses.layout.manage');
@@ -67,6 +55,7 @@ export function WarehouseLayoutPanel({
   const [error, setError] = useState<string | null>(null);
   const [zoneForm, setZoneForm] = useState<{ zone: Zone | null } | null>(null);
   const [binForm, setBinForm] = useState<{ bin: Bin | null } | null>(null);
+  const [qrBinId, setQrBinId] = useState<string | null>(null);
   useEffect(() => {
     onEditingChange?.(zoneForm !== null || binForm !== null);
     return () => onEditingChange?.(false);
@@ -83,6 +72,11 @@ export function WarehouseLayoutPanel({
     binRevision.current++;
   }, []);
   const selectedZone = zones.find((zone) => zone.id === zoneId);
+  const canPreviewLabels =
+    selectedZone?.warehouseId === warehouse.id &&
+    bins.every((bin) => bin.warehouseId === warehouse.id && bin.zoneId === selectedZone.id);
+  const previewBin = bins.find((bin) => bin.id === qrBinId);
+  const closeQrPreview = () => setQrBinId(null);
   const loadZones = useCallback(
     async (cursor?: string) => {
       const token = ++zoneRevision.current;
@@ -147,6 +141,7 @@ export function WarehouseLayoutPanel({
     setBinSearch('');
     setZoneForm(null);
     setBinForm(null);
+    setQrBinId(null);
     void loadZones();
     return invalidateScope;
   }, [principal, loadZones, invalidateScope]);
@@ -264,6 +259,7 @@ export function WarehouseLayoutPanel({
             disabled={loading || !zones.length}
             onChange={(event) => {
               setBinForm(null);
+              closeQrPreview();
               setZoneId(event.target.value);
             }}
             options={zones.map((zone) => ({
@@ -352,15 +348,29 @@ export function WarehouseLayoutPanel({
                 <tr key={bin.id} className="border-t border-[var(--sc-border-default)]">
                   <td className={styles.binCode}>{bin.code}</td>
                   <td>
-                    <span className={styles.barcodeValue} title={bin.barcode}>
-                      {bin.barcode}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className={`${styles.barcodeValue} min-w-0`} title={bin.barcode}>
+                        {bin.barcode}
+                      </span>
+                      {canPreviewLabels && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          aria-label={t('viewBinQrFor', { code: bin.code })}
+                          onClick={() => setQrBinId(bin.id)}
+                        >
+                          <QrCode size={14} aria-hidden="true" />
+                          {t('viewBinQr')}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                   <td className={styles.numeric}>
-                    {formatCapacity(bin.maxWeightG, locale, decimalSeparator)}
+                    {formatCapacityDecimal(bin.maxWeightG, locale)}
                   </td>
                   <td className={styles.numeric}>
-                    {formatCapacity(bin.maxVolumeM3, locale, decimalSeparator)}
+                    {formatCapacityDecimal(bin.maxVolumeM3, locale)}
                   </td>
                   <td className="px-3 py-2">
                     <Badge
@@ -385,15 +395,21 @@ export function WarehouseLayoutPanel({
           </table>
         </div>
       )}
-      {!!bins.length && (
+      {!!bins.length && binCursor && (
         <div className={styles.tableFooter}>
-          <BinLabels key={`${warehouse.id}:${zoneId}`} bins={bins} warehouseCode={warehouse.code} />
-          {binCursor && (
-            <Button variant="outline" disabled={loading} onClick={() => void loadBins(binCursor)}>
-              {t('moreBins')}
-            </Button>
-          )}
+          <Button variant="outline" disabled={loading} onClick={() => void loadBins(binCursor)}>
+            {t('moreBins')}
+          </Button>
         </div>
+      )}
+      {selectedZone && canPreviewLabels && previewBin && (
+        <BinLabels
+          key={`${previewBin.id}:${previewBin.barcode}`}
+          bin={previewBin}
+          warehouseCode={warehouse.code}
+          zoneCode={selectedZone.code}
+          onClose={closeQrPreview}
+        />
       )}
       {!!zoneId && !bins.length && !loading && !error && (
         <div className={styles.empty}>

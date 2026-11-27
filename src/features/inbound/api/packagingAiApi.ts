@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
+import { calendarDateSchema } from '@/lib/dateValidation';
 import { apiClient, type ApiResponse } from '@/services/apiClient';
+
+import { receiptLotDateIssue } from '../schemas/receiptCountSchema';
 
 const date = z.iso.date();
 const lot = z
@@ -16,11 +19,15 @@ export const packagingAcceptanceSchema = z
   .object({
     confirmed: z.literal(true),
     lotCode: lot.optional(),
-    manufacturedOn: date.optional(),
-    expiresOn: date.optional(),
+    manufacturedOn: calendarDateSchema.optional(),
+    expiresOn: calendarDateSchema.optional(),
   })
   .strict()
-  .refine((value) => Boolean(value.lotCode || value.expiresOn));
+  .refine((value) => Boolean(value.lotCode || value.expiresOn))
+  .superRefine((value, context) => {
+    const issue = receiptLotDateIssue(value.manufacturedOn, value.expiresOn);
+    if (issue) context.addIssue({ code: 'custom', path: [issue.field], message: issue.message });
+  });
 export type PackagingAcceptance = z.infer<typeof packagingAcceptanceSchema>;
 export const packagingRequestSchema = z
   .object({

@@ -11,6 +11,7 @@ before(async () => {
     envFile: false,
     optimizeDeps: { noDiscovery: true, include: [] },
     root: fileURLToPath(new URL('..', import.meta.url)),
+    resolve: { alias: { '@': fileURLToPath(new URL('../src', import.meta.url)) } },
     server: { middlewareMode: true, watch: null, ws: false },
   });
   const schema = await server.ssrLoadModule('/src/features/tenants/schemas/payoutSchema.ts');

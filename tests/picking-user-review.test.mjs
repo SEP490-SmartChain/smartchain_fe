@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { test } from 'node:test';
+import { after, before, test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { createServer } from 'vite';
 import { z } from 'zod';
 
 function sourceTree(path) {
@@ -14,16 +16,24 @@ function sourceTree(path) {
   );
 }
 
-const schemaTree = sourceTree('../src/features/orders/schemas/pickingSchema.ts');
-const schemaDeclaration = schemaTree.statements.find(
-  (node) =>
-    ts.isVariableStatement(node) &&
-    node.declarationList.declarations.some(
-      (declaration) => declaration.name.text === 'pickWaveFormSchema',
-    ),
-);
-const schemaExpression = schemaDeclaration.declarationList.declarations[0].initializer;
-const schema = new Function('z', `return (${schemaExpression.getText(schemaTree)});`)(z);
+const validCutoff = '2026-11-05T08:00';
+let server, schema;
+before(async () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  server = await createServer({
+    root,
+    configFile: false,
+    envFile: false,
+    optimizeDeps: { noDiscovery: true, include: [] },
+    resolve: { alias: { '@': `${root}/src` } },
+    server: { middlewareMode: true, watch: null, ws: false },
+  });
+  const { pickWaveFormSchemaFor } = await server.ssrLoadModule(
+    '/src/features/orders/schemas/pickingSchema.ts',
+  );
+  schema = pickWaveFormSchemaFor(() => new Date('2026-11-05T09:30'));
+});
+after(() => server?.close());
 
 function renderWaveForm(values, previewCalls, submissions, validationAlerts = []) {
   const tree = sourceTree('../src/features/orders/components/PickingWorkspace.tsx');
@@ -93,7 +103,7 @@ function nodes(node) {
 }
 
 test('wave preview accepts cutoff and capacity before assignment, while creation still requires assignee', async () => {
-  const values = { cutoffAt: '2026-11-05T08:00:00Z', maxParcels: 20, assigneeId: '' };
+  const values = { cutoffAt: validCutoff, maxParcels: 20, assigneeId: '' };
   const previewCalls = [];
   const submissions = [];
   const validationAlerts = [];
@@ -103,7 +113,7 @@ test('wave preview accepts cutoff and capacity before assignment, while creation
   );
   previewButton.props.onClick();
   await new Promise(setImmediate);
-  assert.deepEqual(previewCalls, [['warehouse-a', '2026-11-05T08:00:00.000Z', 20]]);
+  assert.deepEqual(previewCalls, [['warehouse-a', new Date(validCutoff).toISOString(), 20]]);
 
   const form = nodes(ui).find((node) => node.type === 'form');
   await form.props.onSubmit();
@@ -119,7 +129,7 @@ test('wave preview still validates capacity before requesting an estimate', asyn
   const previewCalls = [];
   const validationAlerts = [];
   const ui = renderWaveForm(
-    { cutoffAt: '2026-11-05T08:00:00Z', maxParcels: 51, assigneeId: '' },
+    { cutoffAt: validCutoff, maxParcels: 51, assigneeId: '' },
     previewCalls,
     [],
     validationAlerts,
@@ -134,7 +144,7 @@ test('wave preview still validates capacity before requesting an estimate', asyn
 
 test('wave creation does not require a preview first and defaults the cut-off to now', async () => {
   const values = {
-    cutoffAt: '2026-11-05T08:00:00Z',
+    cutoffAt: validCutoff,
     maxParcels: 20,
     assigneeId: '00000000-0000-4000-8000-000000000001',
   };

@@ -6,10 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 
-import { Alert, Button, Input, Select } from '@/components/Common';
+import { Alert, Button, Dropzone, Input, Select } from '@/components/Common';
 import Modal from '@/components/Common/Modal/Modal';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
+import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
 import { returnWorkflowApi, type ReturnLine } from '../api/returnWorkflowApi';
@@ -24,7 +25,18 @@ export type ReturnAction = {
   id: string;
   version: number;
   line?: ReturnLine;
+  /** Human-readable code printed on the parcel (waybill), shown instead of the internal id. */
+  label?: string;
 };
+const PHOTO_ACCEPT = 'image/png,image/jpeg,image/webp';
+const PHOTO_MAX_MB = 5;
+/** Client size/type checks and the server's byte-signature check both reject the photo itself. */
+function isPhotoRejected(cause: unknown): boolean {
+  return (
+    (cause instanceof Error && cause.message === 'INVALID_EVIDENCE') ||
+    (cause instanceof ApiError && cause.code === 'UPLOAD.EVIDENCE_INVALID')
+  );
+}
 export function ReturnActionForm({
   warehouseId,
   action,
@@ -41,6 +53,7 @@ export function ReturnActionForm({
   const [operationId] = useState(createUuid),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false),
+    [photoError, setPhotoError] = useState(false),
     [file, setFile] = useState<File | null>(null),
     [bins, setBins] = useState<{ id: string; code: string; zoneType: string }[]>([]);
   const running = useRef(false),
@@ -60,8 +73,6 @@ export function ReturnActionForm({
       toBinId: '',
       destination: 'SELLABLE',
       binScan: '',
-      skuScan: '',
-      lotScan: '',
     },
   });
   useEffect(() => {
@@ -82,6 +93,7 @@ export function ReturnActionForm({
     running.current = true;
     setBusy(true);
     setError(false);
+    setPhotoError(false);
     try {
       if (!pending.current) {
         const common = { operationId, expectedVersion: action.version };
@@ -124,7 +136,7 @@ export function ReturnActionForm({
             reason: v.reason,
           };
         } else if (action.kind === 'stock') {
-          if (!action.line || !v.binScan || !v.skuScan || !v.lotScan) {
+          if (!action.line || !v.binScan.trim()) {
             throw new Error('SCAN_REQUIRED');
           }
           z.uuid().parse(v.toBinId);
@@ -134,16 +146,20 @@ export function ReturnActionForm({
             toBinId: v.toBinId,
             destination: v.destination,
             binScan: v.binScan,
-            skuScan: v.skuScan,
-            lotScan: v.lotScan,
           };
         } else pending.current = common;
       }
       if (useAuthStore.getState().revision !== revision) return;
       await returnWorkflowApi.command(warehouseId, `${action.id}/${action.kind}`, pending.current);
       if (useAuthStore.getState().revision === revision) onAccepted();
-    } catch {
-      if (useAuthStore.getState().revision === revision) setError(true);
+    } catch (cause) {
+      if (useAuthStore.getState().revision !== revision) return;
+      if (action.kind === 'inspection' && isPhotoRejected(cause)) {
+        // The rejected photo was never accepted, so a different photo may be chosen and sent.
+        pending.current = null;
+        setFile(null);
+        setPhotoError(true);
+      } else setError(true);
     } finally {
       running.current = false;
       setBusy(false);
@@ -159,11 +175,27 @@ export function ReturnActionForm({
       }}
     >
       <form className="space-y-4" onSubmit={handleSubmit(submit, () => notifyInvalidForm())}>
-        <p className="break-all text-sm">
-          {action.id}
-          {action.line ? ` · ${action.line.sku} · ${action.line.lotCode}` : ''}
-        </p>
+        {(action.label || action.kind === 'arrival') && (
+          <p className="m-0 break-all text-sm">{action.label ?? t('noWaybillYet')}</p>
+        )}
+        {action.line && (
+          <dl className="m-0 grid gap-3 rounded-[12px] border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+            <div className="min-w-0">
+              <dt className="text-xs text-[var(--sc-text-secondary)]">{t('productLabel')}</dt>
+              <dd className="m-0 mt-0.5 break-all text-sm font-semibold text-[var(--sc-text-primary)]">
+                {action.line.sku}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-xs text-[var(--sc-text-secondary)]">{t('originalLot')}</dt>
+              <dd className="m-0 mt-0.5 break-all font-mono text-xs text-[var(--sc-text-primary)]">
+                {action.line.lotCode}
+              </dd>
+            </div>
+          </dl>
+        )}
         {error && <Alert variant="error" title={t('commandError')} />}
+        {photoError && <Alert variant="error" title={t('photoInvalid')} />}
         {inputError && <Alert variant="error" title={t('invalid')} />}
         <fieldset disabled={busy || !!pending.current} className="space-y-3">
           {action.kind === 'authorize' && (
@@ -207,12 +239,21 @@ export function ReturnActionForm({
                   label: t(`classification_${value}`),
                 }))}
               />
-              <Input
-                label={t('photo')}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium text-[var(--sc-text-primary)]">{t('photo')}</p>
+                <Dropzone
+                  files={file ? [file] : []}
+                  onFilesChange={(next) => {
+                    setFile(next[0] ?? null);
+                    setPhotoError(false);
+                  }}
+                  accept={PHOTO_ACCEPT}
+                  multiple={false}
+                  maxSizeMb={PHOTO_MAX_MB}
+                  disabled={busy || !!pending.current}
+                  inputLabel={t('photo')}
+                />
+              </div>
             </>
           )}
           {action.kind === 'review' && (
@@ -247,14 +288,15 @@ export function ReturnActionForm({
                   })),
                 ]}
               />
-              {(['binScan', 'skuScan', 'lotScan'] as const).map((key) => (
-                <Input key={key} label={t(key)} {...register(key)} error={errors[key]?.message} />
-              ))}
+              <Input
+                label={t('binScan')}
+                {...register('binScan')}
+                error={errors.binScan?.message}
+              />
             </>
           )}
         </fieldset>
-        {!!pending.current && <Alert variant="info" title={t('retrySame')} />}
-        <div className="flex gap-2">
+        <div className="flex gap-3 pt-1">
           <Button type="submit" isLoading={busy}>
             {t(pending.current ? 'retry' : 'submit')}
           </Button>

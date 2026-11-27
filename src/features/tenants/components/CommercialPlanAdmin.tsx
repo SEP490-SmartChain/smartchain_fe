@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, FileSignature, Layers, Plus, RefreshCw } from 'lucide-react';
@@ -10,14 +10,19 @@ import { z } from 'zod';
 import { Alert } from '@/components/Common/Alert/Alert';
 import { Badge } from '@/components/Common/Badge/Badge';
 import { Button } from '@/components/Common/Button/Button';
+import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import Modal from '@/components/Common/Modal/Modal';
 import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { Select } from '@/components/Common/Select/Select';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
+import { calendarDateSchema, vietnamToday } from '@/lib/dateValidation';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
+import { storageVolumeSchema } from '@/lib/volumeValidation';
+import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { PlanIncludedServices, planServiceLabel } from './PlanIncludedServices';
 import { commercialApi, type PublishedCommercialTerms } from '../api/commercialApi';
 import { freightTariffLabel } from '../lib/freightTariffLabel';
 
@@ -28,9 +33,9 @@ const planSchema = z.object({
   monthlyFeeVnd: money,
   salesOrderAllowance: z.number().int().min(0).max(100000000),
   warehouseAllowance: z.number().int().min(1).max(100000),
-  storageAllowanceM3: z.string().regex(/^(0|[1-9]\d{0,13})(\.\d{1,6})?$/),
-  includedServices: z.string().max(20000),
-  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  storageAllowanceM3: storageVolumeSchema,
+  includedServices: z.array(z.string().min(1).max(200)).max(100),
+  effectiveFrom: calendarDateSchema,
 });
 const agreementSchema = z.object({
   planVersionId: z.string().uuid(),
@@ -67,7 +72,14 @@ function canPublishPlan(plan: AdminPlan, now: number): boolean {
 }
 
 export function CommercialPlanAdmin() {
+  const revision = useAuthStore((state) => state.revision);
+  return <CommercialPlanAdminContent key={revision} revision={revision} />;
+}
+
+function CommercialPlanAdminContent({ revision }: { revision: number }) {
   const t = useTranslations('CommercialAdmin');
+  const dateText = useTranslations('DateValidation');
+  const volumeText = useTranslations('VolumeValidation');
   const locale = useLocale();
   const [activeTab, setActiveTab] = useState('versions');
   const [replacementPlanId, setReplacementPlanId] = useState<string | null>(null);
@@ -77,10 +89,15 @@ export function CommercialPlanAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [planSource, setPlanSource] = useState<AdminPlan>();
+  const [planNeedsReload, setPlanNeedsReload] = useState(false);
+  const planSourceInitialized = useRef(false);
   const publishingPlan = useRef(false);
   const active = useRef(false);
   const controller = useRef<AbortController | null>(null);
-  const revision = useAuthStore((state) => state.revision);
+  const termsRequest = useRef(0);
+  const serviceHelpId = useId();
+  const serviceErrorId = useId();
   const plan = useForm<z.infer<typeof planSchema>>({
     resolver: zodResolver(planSchema),
     defaultValues: {
@@ -90,8 +107,8 @@ export function CommercialPlanAdmin() {
       salesOrderAllowance: 500,
       warehouseAllowance: 1,
       storageAllowanceM3: '10',
-      includedServices: '',
-      effectiveFrom: new Date().toISOString().slice(0, 10),
+      includedServices: [],
+      effectiveFrom: vietnamToday(),
     },
   });
   const agreement = useForm<z.infer<typeof agreementSchema>>({
@@ -102,68 +119,100 @@ export function CommercialPlanAdmin() {
     control: agreement.control,
     name: ['planVersionId', 'serviceTariffVersionId', 'freightTariffVersionId'],
   });
-  const current = () => active.current && revision === useAuthStore.getState().revision;
-  const reload = async (signal?: AbortSignal) => {
-    try {
-      const result = await commercialApi.publishedTerms(signal);
-      if (current() && !signal?.aborted) {
-        setTerms(result);
-        setError(null);
+  const { getValues, resetField } = plan;
+  const serviceOptions = terms?.includedServiceOptions;
+  const beginPlanVersion = useCallback(
+    (result: PublishedCommercialTerms, code: string) => {
+      if (!result.includedServiceOptions) return;
+      const previous = result.plans.reduce<AdminPlan | undefined>(
+        (latest, item) =>
+          item.code === code && item.versionNo > (latest?.versionNo ?? 0) ? item : latest,
+        undefined,
+      );
+      const validCodes = new Set(result.includedServiceOptions.map((item) => item.code));
+      resetField('includedServices', {
+        defaultValue:
+          previous?.includedServiceSelections
+            ?.map((item) => item.code)
+            .filter((code) => validCodes.has(code)) ?? [],
+      });
+      setPlanSource(previous);
+      setPlanNeedsReload(false);
+      planSourceInitialized.current = true;
+    },
+    [resetField],
+  );
+  const current = useCallback(
+    () => active.current && revision === useAuthStore.getState().revision,
+    [revision],
+  );
+  const reload = useCallback(
+    async (signal?: AbortSignal, resetSource = false) => {
+      const request = ++termsRequest.current;
+      try {
+        const result = await commercialApi.publishedTerms(signal);
+        if (current() && !signal?.aborted && request === termsRequest.current) {
+          setTerms(result);
+          if (resetSource || !planSourceInitialized.current) {
+            beginPlanVersion(result, getValues('code'));
+          }
+          setError(null);
+        }
+      } catch (failure) {
+        if (current() && !signal?.aborted && request === termsRequest.current) {
+          setError(failure instanceof Error ? failure.message : t('loadError'));
+        }
       }
-    } catch (failure) {
-      if (current() && !signal?.aborted) {
-        setError(failure instanceof Error ? failure.message : t('loadError'));
-      }
-    }
-  };
+    },
+    [beginPlanVersion, current, getValues, t],
+  );
   useEffect(() => {
     active.current = true;
     const abort = new AbortController();
     controller.current = abort;
-    void commercialApi
-      .publishedTerms(abort.signal)
-      .then((result) => {
-        if (!abort.signal.aborted) setTerms(result);
-      })
-      .catch((failure) => {
-        if (!abort.signal.aborted) {
-          setError(failure instanceof Error ? failure.message : t('loadError'));
-        }
-      });
+    void reload(abort.signal);
     return () => {
       active.current = false;
       abort.abort();
     };
-  }, [revision, t]);
+  }, [reload]);
   const savePlan = plan.handleSubmit(
     async (value) => {
-      if (publishingPlan.current) return;
+      if (publishingPlan.current || !serviceOptions || planNeedsReload) return;
+      if (
+        value.includedServices.some((code) => !serviceOptions.some((item) => item.code === code))
+      ) {
+        setPlanNeedsReload(true);
+        return;
+      }
       publishingPlan.current = true;
       setBusy(true);
       setError(null);
       setNotice(null);
       try {
-        const includedServices = value.includedServices
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean);
-        const expectedVersionNo = Math.max(
-          0,
-          ...(terms?.plans
-            .filter((item) => item.code === value.code)
-            .map((item) => item.versionNo) ?? []),
-        );
         const result = await commercialApi.createPlan(
-          { ...value, includedServices, expectedVersionNo },
+          { ...value, expectedVersionNo: planSource?.versionNo ?? 0 },
           controller.current?.signal,
         );
         if (!current()) return;
         agreement.setValue('planVersionId', value.code === 'ENTERPRISE' ? '' : result.id);
         setNotice(t('planSaved'));
-        await reload(controller.current?.signal);
+        setTerms(null);
+        planSourceInitialized.current = false;
+        await reload(controller.current?.signal, true);
         if (current()) setActiveTab('versions');
       } catch (failure) {
-        if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
+        if (current()) {
+          if (
+            failure instanceof ApiError &&
+            ['COMMERCIAL.PLAN_VERSION_STALE', 'COMMERCIAL.INVALID_INCLUDED_SERVICE_CODE'].includes(
+              failure.code,
+            )
+          ) {
+            setPlanNeedsReload(true);
+          }
+          setError(failure instanceof Error ? failure.message : t('saveError'));
+        }
       } finally {
         publishingPlan.current = false;
         if (current()) setBusy(false);
@@ -293,6 +342,11 @@ export function CommercialPlanAdmin() {
   const formatDate = (value: string) =>
     new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
   const selectedVersion = terms?.plans.find((item) => item.id === selectedVersionId);
+  const previousServiceText = planSource?.includedServiceSelections
+    ? planSource.includedServiceSelections
+        .filter((selection) => !serviceOptions?.some(({ code }) => code === selection.code))
+        .map((item) => planServiceLabel(item, locale))
+    : (planSource?.includedServices ?? []);
   const sortedPlans = [...(terms?.plans ?? [])].sort(
     (a, b) => a.code.localeCompare(b.code) || b.versionNo - a.versionNo,
   );
@@ -499,6 +553,7 @@ export function CommercialPlanAdmin() {
             <Select
               label={t('planCode')}
               isRequired
+              disabled={busy}
               options={['BASIC', 'STANDARD', 'ENTERPRISE'].map((value) => ({
                 value,
                 label: value,
@@ -518,8 +573,8 @@ export function CommercialPlanAdmin() {
                     plan.setValue('salesOrderAllowance', Number.NaN);
                     plan.setValue('warehouseAllowance', Number.NaN);
                     plan.setValue('storageAllowanceM3', '');
-                    plan.setValue('includedServices', '');
                   }
+                  if (terms) beginPlanVersion(terms, code);
                 },
               })}
               error={plan.formState.errors?.code?.message}
@@ -557,26 +612,91 @@ export function CommercialPlanAdmin() {
               label={t('storageAllowance')}
               isRequired
               inputMode="decimal"
-              helperText={t('storageHint')}
-              error={fields('storageAllowanceM3')}
+              helperText={`${t('storageHint')} ${volumeText('decimalHint')}`}
+              error={plan.formState.errors.storageAllowanceM3 ? volumeText('invalid') : undefined}
               {...plan.register('storageAllowanceM3')}
-            />
-            <Input
-              label={t('includedServices')}
-              helperText={t('servicesHint')}
-              error={fields('includedServices')}
-              {...plan.register('includedServices')}
             />
             <Input
               label={t('effectiveFrom')}
               isRequired
               type="date"
-              error={fields('effectiveFrom')}
+              error={fields('effectiveFrom') ? dateText('invalidDate') : undefined}
               {...plan.register('effectiveFrom')}
             />
           </div>
+          <fieldset className="space-y-2" disabled={!serviceOptions || busy || planNeedsReload}>
+            <legend className="text-sm font-medium text-[var(--sc-text-primary)]">
+              {t('includedServices')}
+            </legend>
+            <Controller
+              control={plan.control}
+              name="includedServices"
+              render={({ field, fieldState }) => (
+                <>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {serviceOptions?.map((option, index) => (
+                      <Checkbox
+                        key={option.code}
+                        ref={index === 0 ? field.ref : undefined}
+                        name={field.name}
+                        label={planServiceLabel(option, locale)}
+                        checked={field.value.includes(option.code)}
+                        onBlur={field.onBlur}
+                        onChange={(event) => {
+                          field.onChange(
+                            event.target.checked
+                              ? [...field.value, option.code]
+                              : field.value.filter((code) => code !== option.code),
+                          );
+                        }}
+                        aria-describedby={
+                          fieldState.invalid ? `${serviceHelpId} ${serviceErrorId}` : serviceHelpId
+                        }
+                        aria-invalid={fieldState.invalid || undefined}
+                      />
+                    ))}
+                  </div>
+                  {fieldState.invalid && (
+                    <Alert id={serviceErrorId} variant="error" compact>
+                      {t('invalid')}
+                    </Alert>
+                  )}
+                </>
+              )}
+            />
+            <p id={serviceHelpId} className="m-0 text-xs text-[var(--sc-text-secondary)]">
+              {t('servicesHint')}
+            </p>
+          </fieldset>
+          {!serviceOptions && (
+            <p role="status" className="m-0 text-sm text-[var(--sc-text-secondary)]">
+              {terms || error ? t('serviceOptionsUnavailable') : t('loading')}
+            </p>
+          )}
+          {planNeedsReload && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void reload(controller.current?.signal, true)}
+            >
+              {t('reloadPlanServices')}
+            </Button>
+          )}
+          {previousServiceText.length > 0 && (
+            <div className="rounded-lg border border-[var(--sc-border-default)] p-3 text-sm">
+              <p className="m-0 font-medium">{t('previousServiceText')}</p>
+              <ul className="mb-0 mt-2 list-disc space-y-1 pl-5 text-[var(--sc-text-secondary)]">
+                {[...new Set(previousServiceText)].map((item) => (
+                  <li key={item} className="whitespace-pre-wrap break-words">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex justify-end border-t border-[var(--sc-border-default)] pt-4">
-            <Button type="submit" isLoading={busy} disabled={!terms}>
+            <Button type="submit" isLoading={busy} disabled={!serviceOptions || planNeedsReload}>
               {t('publishPlan')}
             </Button>
           </div>
@@ -806,29 +926,17 @@ export function CommercialPlanAdmin() {
               </div>
             )}
 
-            {selectedVersion.includedServices && (
-              <div className="rounded-lg border border-[var(--sc-border-default)] p-3.5">
-                <h4 className="text-xs font-medium text-[var(--sc-text-secondary)]">
-                  {t('includedServices')}
-                </h4>
-                {selectedVersion.includedServices.length ? (
-                  <ul className="mt-2 flex flex-wrap gap-1.5">
-                    {[...new Set(selectedVersion.includedServices)].map((service) => (
-                      <li
-                        key={service}
-                        className="rounded bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs text-[var(--sc-text-primary)]"
-                      >
-                        {service}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-xs text-[var(--sc-text-tertiary)]">
-                    {t('noIncludedServices')}
-                  </p>
-                )}
-              </div>
-            )}
+            <PlanIncludedServices
+              labels={
+                selectedVersion.includedServiceSelections ??
+                selectedVersion.includedServices?.map((label) => ({
+                  labelVi: label,
+                  labelEn: label,
+                }))
+              }
+              className="rounded-lg border border-[var(--sc-border-default)] p-3.5"
+              showEmpty={selectedVersion.includedServices !== undefined}
+            />
           </div>
         </Modal>
       )}

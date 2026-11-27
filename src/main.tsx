@@ -38,6 +38,8 @@ const ClaimsPage = React.lazy(() => import('@/pages/workspace/ClaimsPage'));
 const AnalyticsPage = React.lazy(() => import('@/pages/workspace/AnalyticsPage'));
 const SettingsPage = React.lazy(() => import('@/pages/workspace/SettingsPage'));
 const BillingPage = React.lazy(() => import('@/pages/workspace/BillingPage'));
+const PayoutApprovalsPage = React.lazy(() => import('@/pages/admin/PayoutApprovalsPage'));
+const PeriodClosePage = React.lazy(() => import('@/pages/admin/PeriodClosePage'));
 const StaffAccountsPage = React.lazy(() => import('@/pages/workspace/StaffAccountsPage'));
 const WarehousesPage = React.lazy(() => import('@/pages/workspace/WarehousesPage'));
 const WorkspaceAuditPage = React.lazy(() => import('@/pages/workspace/AuditPage'));
@@ -150,6 +152,8 @@ function App() {
                   <Route path="/orders" element={<OrdersPage />} />
                   <Route path="/returns" element={<ReturnsPage />} />
                   <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/payouts" element={<PayoutApprovalsPage />} />
+                  <Route path="/period-close" element={<PeriodClosePage />} />
                   <Route path="/statements" element={<StatementsPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/inventory/forecast" element={<DemandForecastPage />} />

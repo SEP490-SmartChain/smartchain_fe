@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,17 +25,27 @@ import { Input } from '@/components/Common/Input/Input';
 import { PageHeader } from '@/components/Common/PageHeader/PageHeader';
 import { SearchableSelect } from '@/components/Common/Select/SearchableSelect';
 import { Select } from '@/components/Common/Select/Select';
+import type { Warehouse as CatalogWarehouse } from '@/features/catalog';
 import { useAccess } from '@/hooks/useAccess';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { createUuid } from '@/lib/uuid';
+import { ApiError } from '@/services/apiClient';
 import { useAuthStore } from '@/stores/authStore';
 
+import { PlanIncludedServices } from './PlanIncludedServices';
+import { PlanWarehousePicker } from './PlanWarehousePicker';
 import {
   commercialApi,
   type CommercialPlan,
   type CommercialQuota,
   type SellerCommercialState,
 } from '../api/commercialApi';
+import {
+  buildWarehouseSelectionFingerprint,
+  loadActivePlatformWarehouses,
+  normalizeWarehouseIds,
+  validatePlanWarehouseSelection,
+} from '../lib/warehouseSelection';
 
 const changeSchema = z.object({ planVersionId: z.string().uuid() });
 const closeSchema = z.object({ reason: z.string().trim().min(3).max(500) });
@@ -62,17 +72,25 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
   const { can } = useAccess();
   const [quota, setQuota] = useState<CommercialQuota | null>(null);
   const [plans, setPlans] = useState<CommercialPlan[]>([]);
+  const [warehouseSelectionEnabled, setWarehouseSelectionEnabled] = useState(false);
   const [state, setState] = useState<SellerCommercialState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [warehouses, setWarehouses] = useState<CatalogWarehouse[]>([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(false);
+  const [warehousesError, setWarehousesError] = useState<string | null>(null);
+  const [warehousesRevision, setWarehousesRevision] = useState(0);
+  const [selectedWarehouseIds, setSelectedWarehouseIds] = useState<string[]>([]);
+  const [warehousesConfirmed, setWarehousesConfirmed] = useState(false);
   const controller = useRef<AbortController | null>(null);
-  const operation = useRef<{ planVersionId: string; key: string } | null>(null);
+  const operation = useRef<{ fingerprint: string; key: string; uncertain: boolean } | null>(null);
   const revision = useAuthStore((value) => value.revision);
   const change = useForm<z.infer<typeof changeSchema>>({
     resolver: zodResolver(changeSchema),
     defaultValues: { planVersionId: '' },
   });
+  const selectedTargetPlanId = useWatch({ control: change.control, name: 'planVersionId' });
   const rejection = useForm<z.infer<typeof closeSchema>>({
     resolver: zodResolver(closeSchema),
     defaultValues: { reason: '' },
@@ -103,6 +121,13 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
           setQuota(result);
           setState(contracts);
           setPlans(catalog.plans);
+          setWarehouseSelectionEnabled(catalog.warehouseSelectionEnabled);
+          setSelectedWarehouseIds(
+            result.selectedWarehouses
+              ? normalizeWarehouseIds(result.selectedWarehouses.map((w) => w.id))
+              : [],
+          );
+          setWarehousesConfirmed(false);
         }
       } catch (failure) {
         if (!abort.signal.aborted) {
@@ -114,15 +139,66 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
       abort.abort();
     };
   }, [tenantId, revision, t]);
+  const targetPlan = plans.find((item) => item.id === selectedTargetPlanId);
+  const hasConfiguredWarehouses =
+    quota?.selectedWarehouses !== undefined && quota?.selectedWarehouses !== null;
+  const requiresWarehouseSelection =
+    Boolean(targetPlan) && (warehouseSelectionEnabled || hasConfiguredWarehouses);
+  const warehouseValidation =
+    requiresWarehouseSelection && targetPlan
+      ? validatePlanWarehouseSelection(targetPlan, selectedWarehouseIds)
+      : null;
+  const warehouseChangeReady =
+    !requiresWarehouseSelection || (Boolean(warehouseValidation?.valid) && warehousesConfirmed);
+  useEffect(() => {
+    if (tenantId || !requiresWarehouseSelection) return;
+    const abort = new AbortController();
+    setWarehousesLoading(true);
+    setWarehousesError(null);
+    void loadActivePlatformWarehouses(abort.signal).then(
+      (result) => {
+        if (abort.signal.aborted) return;
+        setWarehouses(result);
+        setWarehousesLoading(false);
+      },
+      (failure: unknown) => {
+        if (abort.signal.aborted) return;
+        setWarehousesLoading(false);
+        setWarehousesError(failure instanceof Error ? failure.message : t('loadError'));
+      },
+    );
+    return () => {
+      abort.abort();
+    };
+  }, [tenantId, requiresWarehouseSelection, warehousesRevision, t]);
   const contract = state?.contracts.find((item) => item.id === state.currentContractId);
   const requestChange = change.handleSubmit(
     async (input) => {
       if (!contract) return;
+      if (!warehouseChangeReady) {
+        notifyInvalidForm();
+        return;
+      }
       setBusy(true);
       setError(null);
       setNotice(null);
-      if (operation.current?.planVersionId !== input.planVersionId) {
-        operation.current = { planVersionId: input.planVersionId, key: createUuid() };
+      const warehouseIdsToSend =
+        requiresWarehouseSelection && warehouseValidation
+          ? warehouseValidation.normalizedIds
+          : undefined;
+      const fingerprint = buildWarehouseSelectionFingerprint(
+        input.planVersionId,
+        warehouseIdsToSend,
+      );
+      if (operation.current?.uncertain && operation.current.fingerprint !== fingerprint) {
+        try {
+          await commercialApi.quotas(tenantId, controller.current?.signal);
+        } catch {
+          // Best-effort status check before rotating key.
+        }
+      }
+      if (operation.current?.fingerprint !== fingerprint) {
+        operation.current = { fingerprint, key: createUuid(), uncertain: false };
       }
       try {
         await commercialApi.requestPlanChange(
@@ -130,13 +206,20 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
           contract.version,
           operation.current.key,
           controller.current?.signal,
+          warehouseIdsToSend,
         );
         if (current()) {
           operation.current = null;
+          setWarehousesConfirmed(false);
           setNotice(t('requested'));
           await reload();
         }
       } catch (failure) {
+        if (failure instanceof ApiError && failure.status >= 400 && failure.status < 500) {
+          operation.current = null;
+        } else if (operation.current) {
+          operation.current.uncertain = true;
+        }
         if (current()) setError(failure instanceof Error ? failure.message : t('saveError'));
       } finally {
         if (current()) setBusy(false);
@@ -362,6 +445,40 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
             </div>
           </div>
 
+          <PlanIncludedServices
+            labels={quota.plan.includedServiceLabels}
+            className="border-b border-[var(--sc-border-default)] px-5 py-3.5 sm:px-6"
+          />
+
+          {quota.selectedWarehouses !== undefined && (
+            <div className="space-y-2 border-b border-[var(--sc-border-default)] px-5 py-3.5 sm:px-6">
+              <p className="m-0 text-xs font-medium text-[var(--sc-text-secondary)]">
+                {t('selectedWarehousesTitle')}
+              </p>
+              {quota.selectedWarehouses === null ? (
+                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                  {t('legacyAllWarehouses')}
+                </p>
+              ) : quota.selectedWarehouses.length === 0 ? (
+                <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
+                  {t('noSelectedWarehouses')}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {quota.selectedWarehouses.map((warehouse) => (
+                    <Badge
+                      key={warehouse.id}
+                      status="info"
+                      variant="solid"
+                      size="sm"
+                      label={`${warehouse.code} — ${warehouse.name}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {quota.usage && !quota.usage.storageUsageComplete && (
             <div className="border-b border-[var(--sc-border-default)] px-5 py-3 sm:px-6">
               <Alert variant="warning" compact>
@@ -399,6 +516,9 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
                   <span className="ml-2 text-xs text-[var(--sc-text-primary)]">
                     {plans.find((plan) => plan.id === item.planVersionId)?.name ?? t('change')} ·{' '}
                     {item.effectiveOn}
+                    {item.selectedWarehouseIds && item.selectedWarehouseIds.length > 0
+                      ? ` · ${t('selectedWarehouseCount', { count: item.selectedWarehouseIds.length })}`
+                      : ''}
                   </span>
                 </p>
                 {tenantId && item.status === 'REQUESTED' && can('platform.plans.manage') && (
@@ -502,10 +622,29 @@ function CommercialQuotaContent({ tenantId, compact }: { tenantId?: string; comp
                       error={change.formState.errors.planVersionId ? t('invalid') : undefined}
                       {...change.register('planVersionId')}
                     />
-                    <Button type="submit" isLoading={busy} disabled={pendingChange}>
+                    <Button
+                      type="submit"
+                      isLoading={busy}
+                      disabled={pendingChange || !warehouseChangeReady}
+                    >
                       {t('sendChange')}
                     </Button>
                   </div>
+                  {requiresWarehouseSelection && targetPlan ? (
+                    <PlanWarehousePicker
+                      plan={targetPlan}
+                      warehouses={warehouses}
+                      loading={warehousesLoading}
+                      errorMessage={warehousesError}
+                      selectedIds={selectedWarehouseIds}
+                      confirmed={warehousesConfirmed}
+                      disabled={busy || pendingChange}
+                      currentSelectedIds={quota?.selectedWarehouses?.map((w) => w.id)}
+                      onChangeIds={setSelectedWarehouseIds}
+                      onChangeConfirmed={setWarehousesConfirmed}
+                      onRetry={() => setWarehousesRevision((count) => count + 1)}
+                    />
+                  ) : null}
                   <p className="m-0 text-xs text-[var(--sc-text-secondary)]">
                     {t('changeHint')} {t('enterpriseHint')}
                   </p>

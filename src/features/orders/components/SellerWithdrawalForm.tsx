@@ -360,9 +360,11 @@ export function SellerWithdrawalForm({
               {...address.register('wardCode')}
               error={address.formState.errors.wardCode ? t('invalid') : undefined}
             />
-            <Button type="submit" disabled={disabled || !data}>
-              {t('saveAddress')}
-            </Button>
+            <div className="flex items-end">
+              <Button type="submit" className="w-full" disabled={disabled || !data}>
+                {t('saveAddress')}
+              </Button>
+            </div>
             {unsavedAddress && (
               <Alert variant="warning" role="status" className="sm:col-span-2">
                 <p>{t('unsavedAddress')}</p>

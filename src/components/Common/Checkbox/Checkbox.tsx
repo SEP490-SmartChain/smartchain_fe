@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
   error?: string;
+  helperText?: string;
 }
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
@@ -18,6 +19,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       className,
       label,
       error: formError,
+      helperText,
       onInvalid,
       onInput,
       'aria-describedby': describedBy,
@@ -29,6 +31,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     const reactId = React.useId();
     const error = formError || nativeError;
     const errorId = error ? reactId + '-error' : undefined;
+    const helperId = helperText && !error ? `${reactId}-helper` : undefined;
     return (
       <div className="flex flex-col gap-1.5">
         <label className="group flex cursor-pointer items-center gap-2.5">
@@ -46,7 +49,9 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
               )}
               {...props}
               aria-invalid={error ? true : props['aria-invalid']}
-              aria-describedby={[describedBy, errorId].filter(Boolean).join(' ') || undefined}
+              aria-describedby={
+                [describedBy, errorId, helperId].filter(Boolean).join(' ') || undefined
+              }
               onInvalid={(event) => {
                 handleInvalid(event);
                 onInvalid?.(event);
@@ -83,6 +88,11 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           <Alert id={errorId} variant="error" compact className="ml-6">
             {error}
           </Alert>
+        )}
+        {helperText && !error && (
+          <p id={helperId} className="ml-6 text-xs leading-4 text-[var(--sc-text-secondary)]">
+            {helperText}
+          </p>
         )}
       </div>
     );

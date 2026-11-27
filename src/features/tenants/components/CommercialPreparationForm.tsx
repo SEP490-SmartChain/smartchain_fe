@@ -10,15 +10,21 @@ import { Button } from '@/components/Common/Button/Button';
 import { Checkbox } from '@/components/Common/Checkbox/Checkbox';
 import { Input } from '@/components/Common/Input/Input';
 import { Select } from '@/components/Common/Select/Select';
+import type { Warehouse } from '@/features/catalog';
 import { notifyInvalidForm } from '@/lib/errorNotifications';
 import { ApiError } from '@/services/apiClient';
 
+import { PlanWarehousePicker } from './PlanWarehousePicker';
 import {
   commercialApi,
   type AgreementRates,
   type CommercialPlan,
   type ContractBusinessProfile,
 } from '../api/commercialApi';
+import {
+  loadActivePlatformWarehouses,
+  validatePlanWarehouseSelection,
+} from '../lib/warehouseSelection';
 import {
   AUTHORITY_OPTIONS,
   contractBusinessProfileSchema,
@@ -30,7 +36,8 @@ interface PreparationProps {
   plan: CommercialPlan;
   busy: boolean;
   error?: Error | null;
-  onSubmit: (profile?: ContractBusinessProfile) => Promise<void>;
+  warehouseSelectionEnabled?: boolean;
+  onSubmit: (profile?: ContractBusinessProfile, warehouseIds?: string[]) => Promise<void>;
   onPreview: () => void;
 }
 
@@ -52,6 +59,7 @@ export function CommercialPreparationForm({
   plan,
   busy,
   error,
+  warehouseSelectionEnabled = false,
   onSubmit,
   onPreview,
 }: PreparationProps) {
@@ -61,6 +69,12 @@ export function CommercialPreparationForm({
   const [rates, setRates] = useState<AgreementRates | null>(null);
   const [ratesError, setRatesError] = useState(false);
   const [ratesRevision, setRatesRevision] = useState(0);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehousesLoading, setWarehousesLoading] = useState(false);
+  const [warehousesError, setWarehousesError] = useState<string | null>(null);
+  const [warehousesRevision, setWarehousesRevision] = useState(0);
+  const [selectedWarehouseIds, setSelectedWarehouseIds] = useState<string[]>([]);
+  const [warehousesConfirmed, setWarehousesConfirmed] = useState(false);
   const agreementId = plan.agreementId;
   useEffect(() => {
     if (!agreementId) return;
@@ -75,6 +89,35 @@ export function CommercialPreparationForm({
     );
     return () => controller.abort();
   }, [agreementId, ratesRevision]);
+  useEffect(() => {
+    if (!warehouseSelectionEnabled) return;
+    const controller = new AbortController();
+    setWarehousesLoading(true);
+    setWarehousesError(null);
+    void loadActivePlatformWarehouses(controller.signal).then(
+      (result) => {
+        if (controller.signal.aborted) return;
+        setWarehouses(result);
+        setWarehousesLoading(false);
+      },
+      (failure: unknown) => {
+        if (controller.signal.aborted) return;
+        setWarehousesLoading(false);
+        setWarehousesError(failure instanceof Error ? failure.message : t('warehouseLoadError'));
+      },
+    );
+    return () => controller.abort();
+  }, [warehouseSelectionEnabled, warehousesRevision, t]);
+  const warehousePlanRule = {
+    code: plan.code ?? 'BASIC',
+    warehouseAllowance: plan.warehouseAllowance ?? 1,
+  };
+  const warehouseValidation = validatePlanWarehouseSelection(
+    warehousePlanRule,
+    selectedWarehouseIds,
+  );
+  const warehousesReady =
+    !warehouseSelectionEnabled || (warehouseValidation.valid && warehousesConfirmed);
   const money = new Intl.NumberFormat(locale, { style: 'currency', currency: 'VND' });
   const range = (from: number | string, to: number | string | null) =>
     to === null ? t('unboundedRate', { from }) : t('boundedRate', { from, to });
@@ -112,18 +155,28 @@ export function CommercialPreparationForm({
       ...profile
     }) => {
       if (!canPrepare) return;
-      if (!plan.requiresBusinessProfile) return onSubmit();
+      if (!warehousesReady) {
+        notifyInvalidForm();
+        return;
+      }
+      const warehouseIds = warehouseSelectionEnabled
+        ? warehouseValidation.normalizedIds
+        : undefined;
+      if (!plan.requiresBusinessProfile) return onSubmit(undefined, warehouseIds);
       if (!authorityBasis) return;
       const signingCapacity = t(`authorityOptions.${authorityBasis}`);
-      await onSubmit({
-        ...profile,
-        representativeTitle: signingCapacity,
-        authorityBasis:
-          authorityBasis === 'authorized'
-            ? `${signingCapacity} (${authorizationReference})`
-            : signingCapacity,
-        ...(registrationNumber ? { registrationNumber } : {}),
-      });
+      await onSubmit(
+        {
+          ...profile,
+          representativeTitle: signingCapacity,
+          authorityBasis:
+            authorityBasis === 'authorized'
+              ? `${signingCapacity} (${authorizationReference})`
+              : signingCapacity,
+          ...(registrationNumber ? { registrationNumber } : {}),
+        },
+        warehouseIds,
+      );
     },
     () => notifyInvalidForm(),
   );
@@ -336,6 +389,20 @@ export function CommercialPreparationForm({
           )}
         </div>
       )}
+      {warehouseSelectionEnabled ? (
+        <PlanWarehousePicker
+          plan={warehousePlanRule}
+          warehouses={warehouses}
+          loading={warehousesLoading}
+          errorMessage={warehousesError}
+          selectedIds={selectedWarehouseIds}
+          confirmed={warehousesConfirmed}
+          disabled={busy}
+          onChangeIds={setSelectedWarehouseIds}
+          onChangeConfirmed={setWarehousesConfirmed}
+          onRetry={() => setWarehousesRevision((count) => count + 1)}
+        />
+      ) : null}
       {error && !mismatchField && <Alert variant="error">{error.message}</Alert>}
       <div className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/30 p-3.5">
         <Checkbox
@@ -353,7 +420,7 @@ export function CommercialPreparationForm({
         </Button>
         <Button
           type="submit"
-          disabled={!canPrepare}
+          disabled={!canPrepare || !warehousesReady}
           isLoading={busy || form.formState.isSubmitting}
         >
           {t('confirmPrepare')}
