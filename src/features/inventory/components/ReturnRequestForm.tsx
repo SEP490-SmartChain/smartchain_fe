@@ -38,6 +38,7 @@ export function ReturnRequestForm({
     [error, setError] = useState(false),
     [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
+  const [prefill, setPrefill] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const pending = useRef<unknown>(null),
     running = useRef(false);
   const {
@@ -82,6 +83,30 @@ export function ReturnRequestForm({
     return () => abort.abort();
   }, [warehouseId, cursor]);
   const selectedId = watch('sourceId');
+  const selectedParcelId = sources.find((s) => s.id === selectedId)?.fulfillmentOrderId;
+  // BR-47: the buyer usually hands the parcel back where it was delivered, so a newly chosen
+  // parcel starts from its original recipient; the seller can still edit every field.
+  useEffect(() => {
+    if (!selectedParcelId) return;
+    const abort = new AbortController();
+    setPrefill('loading');
+    returnWorkflowApi
+      .pickupDefault(warehouseId, selectedParcelId, abort.signal)
+      .then((p) => {
+        if (abort.signal.aborted || useAuthStore.getState().revision !== revision) return;
+        const options = { shouldDirty: true } as const;
+        setValue('name', p.name, options);
+        setValue('phone', p.phone, options);
+        setValue('address', p.address, options);
+        setValue('provinceCode', p.provinceCode, options);
+        setValue('wardCode', p.wardCode, options);
+        setPrefill('done');
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setPrefill('error');
+      });
+    return () => abort.abort();
+  }, [warehouseId, selectedParcelId, revision, setValue]);
   const needle = query.trim().toLowerCase();
   const visibleSources = needle
     ? sources.filter((s) =>
@@ -255,6 +280,19 @@ export function ReturnRequestForm({
           </div>
           <div className="space-y-3 border-t border-[var(--sc-border-default)] pt-4">
             <p className="m-0 text-sm font-semibold">{t('pickupSection')}</p>
+            {prefill === 'loading' && (
+              <p role="status" className="m-0 text-sm text-[var(--sc-text-secondary)]">
+                {t('pickupPrefillLoading')}
+              </p>
+            )}
+            {prefill === 'done' && (
+              <p role="status" className="m-0 text-sm text-[var(--sc-text-secondary)]">
+                {t('pickupPrefilled')}
+              </p>
+            )}
+            {prefill === 'error' && (
+              <Alert variant="info" compact title={t('pickupPrefillError')} />
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               {(['name', 'phone'] as const).map((key) => (
                 <Input
@@ -276,6 +314,7 @@ export function ReturnRequestForm({
               setValue={setValue}
               errors={errors}
               provinceCode={watch('provinceCode')}
+              wardCode={watch('wardCode')}
             />
           </div>
         </fieldset>

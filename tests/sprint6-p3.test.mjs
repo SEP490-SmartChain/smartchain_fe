@@ -144,6 +144,27 @@ test('private evidence never opens after session scope changes during a read', a
   };
   await assert.rejects(returns.download(wh, id, id), { code: 'AUTH.SCOPE_CHANGED' });
 });
+test('pickup default reads the original recipient of one parcel and rejects extra fields', async () => {
+  const pickup = {
+    name: 'Synthetic Person',
+    phone: '0000000123',
+    address: 'Synthetic address',
+    provinceCode: '01',
+    wardCode: '00001',
+  };
+  let url = '';
+  globalThis.fetch = async (input) => {
+    url = String(input instanceof Request ? input.url : input);
+    return ok(pickup);
+  };
+
+  assert.deepEqual(await returns.pickupDefault(wh, id), pickup);
+  assert.match(url, new RegExp(`/returns/eligible/${id}/pickup$`));
+
+  globalThis.fetch = async () => ok({ ...pickup, codAmount: '1000' });
+  await assert.rejects(returns.pickupDefault(wh, id));
+  await assert.rejects(returns.pickupDefault(wh, 'not-a-uuid'));
+});
 test('return form requires a real pickup and a positive bounded physical quantity', () => {
   const input = {
     sourceId: id,
