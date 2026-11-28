@@ -87,3 +87,9 @@ Packing selects the assigned warehouse and loads that ID directly, including par
 first queue page. Seller order codes are display labels, not handoff identities. Legacy scan
 replays without these fields remain valid but do not auto-navigate. Tests: `tests/picking-user-review.test.mjs`,
 `tests/access-policy.test.mjs`.
+
+## Seller Freight Estimate & Post-Creation Lookup (ORCA-SELLER-FREIGHT-001 · P1–P3)
+
+- **P1 Quick lookup**: Secondary `Tra cước` button next to `Tạo đơn` (`QuickFreightLookupModal`) quotes 1 assumed parcel from a valid D2 contract warehouse without PII, and optionally prefills `ManualOrderForm` via one-time `FreightDraftSeed` without assigning any order `warehouseId`.
+- **P2 In-form lookup**: `OrderFormFreightSection` inside `ManualOrderForm` binds a single shared `deliveryTier`. `DIRECT` mode preserves `collectionAmount` untouched with no copy action; `CALCULATED` mode supports one-click `Dùng mức này` into `paymentBreakdown.shippingChargeAmount` (blocked if `shippingPaidAmount > quote`) and marks stale `COD` updates without auto-overwriting later.
+- **P3 Post-creation lookup**: `OrderFreightCell`, `OrderFreightBulkBar`, and `OrderDetailFreightSection` display separate recorded vs estimated outbound freight (`RECORDED` reads confirmed outbound billing events with 0 carrier calls; split parcels never combine subtotals; `RECORDED` wins over stale in-flight estimates). Tests: `tests/seller-freight-contract.test.mjs`, `tests/seller-freight-lookup.test.mjs`, `tests/seller-freight-form.test.mjs`, `tests/seller-order-freight-selection.test.mjs`, `tests/seller-freight-integration.test.mjs`.

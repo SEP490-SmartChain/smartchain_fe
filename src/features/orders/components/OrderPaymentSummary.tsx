@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 
+import { OrderCodCollection } from './OrderCodCollection';
 import { orderCollectionTotal, type SellerOrder } from '../api/ordersApi';
 import { formatOrderMoney } from '../lib/orderPresentation';
 
@@ -12,6 +13,8 @@ interface OrderPaymentSummaryProps {
     | 'totalAmount'
     | 'paymentBreakdown'
     | 'collectionMode'
+    | 'excelShipPolicy'
+    | 'autoCod'
   >;
   isSnapshot?: boolean;
 }
@@ -27,6 +30,8 @@ export function OrderPaymentSummary({ payment, isSnapshot = false }: OrderPaymen
   });
   const p = payment.paymentBreakdown;
   const direct = payment.collectionMode === 'DIRECT';
+  const autoCod = payment.autoCod;
+  const policy = payment.excelShipPolicy;
   const row = (label: string, amount: string) => (
     <div className="flex items-baseline justify-between gap-4">
       <dt className="text-[var(--sc-text-secondary)]">{label}</dt>
@@ -36,20 +41,31 @@ export function OrderPaymentSummary({ payment, isSnapshot = false }: OrderPaymen
   return (
     <section
       aria-label={t('paymentOverview')}
-      className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4"
+      className="min-w-0 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/65 p-4"
     >
-      <p className="text-sm font-medium">{t('collectionShort')}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{formatOrderMoney(total)}</p>
-      {isSnapshot && (
-        <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">{t('intakeSnapshot')}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.03em] text-[var(--sc-text-secondary)]">
+        {t('collectionShort')}
+      </p>
+      <div className="mt-1.5 text-2xl font-bold tracking-tight tabular-nums text-[var(--sc-text-primary)]">
+        {autoCod ? <OrderCodCollection cod={autoCod} variant="summary" /> : formatOrderMoney(total)}
+      </div>
+      {policy && (
+        <p className="mt-2.5 inline-flex items-center rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-2 py-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+          {t(`excelShipping.policy.${policy.mode}`)}
+        </p>
       )}
-      {total !== '0' && !direct && (
+      {isSnapshot && (
+        <p className="mt-1 text-xs text-[var(--sc-text-secondary)]">
+          {t(autoCod ? 'excelShipping.collectionHint' : 'intakeSnapshot')}
+        </p>
+      )}
+      {(autoCod || total !== '0') && !direct && (
         <dl className="mt-3 space-y-2 text-sm">
           {row(t('goodsDueShort'), payment.codAmount)}
-          {row(t('shippingDueShort'), shipping)}
+          {!autoCod && row(t('shippingDueShort'), shipping)}
         </dl>
       )}
-      {total === '0' && <p className="mt-3 text-sm">{t('noCollection')}</p>}
+      {!autoCod && total === '0' && <p className="mt-3 text-sm">{t('noCollection')}</p>}
       {!direct && (
         <details className="mt-4 border-t border-[var(--sc-border-default)] pt-3 text-sm">
           <summary className="rounded font-medium focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
@@ -66,10 +82,10 @@ export function OrderPaymentSummary({ payment, isSnapshot = false }: OrderPaymen
                     (BigInt(payment.totalAmount) - BigInt(p.discountAmount)).toString(),
                   )}
                 {row(t('goodsPaidShort'), p.goodsPaidAmount)}
-                {payment.shippingFeePayer === 'RECIPIENT' && (
+                {payment.shippingFeePayer === 'RECIPIENT' && p.shippingChargeAmount !== null && (
                   <>
                     {row(t('shippingChargeShort'), p.shippingChargeAmount)}
-                    {row(t('shippingPaidShort'), p.shippingPaidAmount)}
+                    {!policy && row(t('shippingPaidShort'), p.shippingPaidAmount)}
                   </>
                 )}
               </>

@@ -76,17 +76,45 @@ function CancellationActionsSession({
     state.checked &&
     state.cancellation?.status === 'NOT_REQUESTED' &&
     !state.pending;
+  const idleCancelable =
+    canStart && !state.review && !state.errorKey && !state.busy && !processing && !cancelled;
+  if (idleCancelable) {
+    return (
+      <details className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-4 py-3">
+        <summary className="cursor-pointer select-none text-sm font-medium text-[var(--sc-error-dark)] focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
+          {t('actions')}
+        </summary>
+        <div className="mt-3 border-t border-[var(--sc-border-default)] pt-3">
+          <form
+            className="space-y-3"
+            onSubmit={reason.handleSubmit(
+              (values) => {
+                session.review(values.reason, order.version);
+              },
+              () => notifyInvalidForm(),
+            )}
+          >
+            <Input
+              label={t('cancelReason')}
+              required
+              {...reason.register('reason')}
+              disabled={state.busy}
+              error={reason.formState.errors.reason ? t('invalidInput') : undefined}
+            />
+            <Button type="submit" variant="softDanger" size="sm" disabled={state.busy}>
+              {t('reviewCancellation')}
+            </Button>
+          </form>
+        </div>
+      </details>
+    );
+  }
   return (
     <section
-      className="mt-5 space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
+      className="space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
       aria-label={t('actions')}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="font-semibold">{t('actions')}</h4>
-        <Button variant="ghost" size="sm" disabled={state.busy} onClick={onChanged}>
-          {t('reload')}
-        </Button>
-      </div>
+      <h4 className="text-sm font-semibold text-[var(--sc-text-primary)]">{t('actions')}</h4>
       {!cancellable && !cancelled && <p className="text-sm">{t('unavailableAfterHandover')}</p>}
       {state.errorKey && !(cancelled && state.errorKey === 'statusError') && (
         <Alert variant="error" role="alert">
@@ -133,7 +161,7 @@ function CancellationActionsSession({
             disabled={state.busy}
             error={reason.formState.errors.reason ? t('invalidInput') : undefined}
           />
-          <Button type="submit" variant="outline" disabled={state.busy}>
+          <Button type="submit" variant="softDanger" size="sm" disabled={state.busy}>
             {t('reviewCancellation')}
           </Button>
         </form>
@@ -143,7 +171,9 @@ function CancellationActionsSession({
           className="space-y-3 rounded-xl border border-[var(--sc-warning-border)] p-4"
           aria-label={t('reviewTitle')}
         >
-          <h5 className="font-semibold">{t('reviewTitle')}</h5>
+          <h5 className="text-sm font-semibold text-[var(--sc-warning-dark)]">
+            {t('reviewTitle')}
+          </h5>
           <p className="break-all">{t('reviewOrder', { code: orderCode ?? t('thisOrder') })}</p>
           <p>{t('reviewConsequences')}</p>
           <p className="break-words">{t('reviewReason', { reason: state.review.reason })}</p>

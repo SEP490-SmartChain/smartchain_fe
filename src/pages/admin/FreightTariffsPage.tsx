@@ -21,7 +21,8 @@ export default function FreightTariffsPage() {
   const t = useTranslations('ServiceTariffs');
   const { can } = useAccess();
   const user = useAuthStore((state) => state.user);
-  const scopeKey = `${user?.userId}:${user?.actorScope}:${user?.roles.join(',')}`;
+  const revision = useAuthStore((state) => state.revision);
+  const scopeKey = `${revision}:${user?.userId}:${user?.actorScope}:${user?.roles.join(',')}`;
   const [searchParams, setSearchParams] = useSearchParams();
   const canManageCarriers = can('carriers.credentials.manage');
   const tab = canManageCarriers ? initialTab(searchParams.get('tab')) : 'service';

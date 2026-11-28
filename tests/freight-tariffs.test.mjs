@@ -223,6 +223,90 @@ test('delivery tier filter marks the cheapest for economy and the fastest for ex
   });
 });
 
+test('the Admin quote comparison adds the saved markup only to a deliverable quote', () => {
+  const quote = { priceVnd: 20000, isDeliverable: true };
+  assert.equal(display.sellerQuoteVnd(quote, '5000'), 25000n);
+  assert.equal(display.sellerQuoteVnd(quote, '0'), 20000n);
+  assert.equal(display.sellerQuoteVnd(quote, undefined), null);
+  assert.equal(display.sellerQuoteVnd({ ...quote, isDeliverable: false }, '5000'), null);
+  assert.equal(display.sellerQuoteVnd({ ...quote, priceVnd: null }, '5000'), null);
+  assert.equal(display.sellerQuoteVnd({ ...quote, priceVnd: 0 }, '5000'), null);
+  assert.equal(
+    display.sellerQuoteVnd({ ...quote, priceVnd: Number.MAX_SAFE_INTEGER }, '1'),
+    9007199254740992n,
+  );
+});
+
+test('D11 markup endpoint loads the version and writes the exact VND string', async () => {
+  const { freightMarkupApi } = await server.ssrLoadModule(
+    '/src/features/catalog/api/freightMarkupApi.ts',
+  );
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    assert.ok(String(url).endsWith('/v1/platform/tariffs/freight-markup'));
+    const method = options?.method ?? 'GET';
+    calls.push(method);
+    if (method === 'GET') return ok({ markupVnd: '5000', version: 6 });
+    assert.deepEqual(JSON.parse(options.body), { markupVnd: '0', expectedVersion: 6 });
+    return ok({ markupVnd: '0', version: 7 });
+  };
+  const loaded = await freightMarkupApi.read();
+  assert.deepEqual(loaded, { markupVnd: '5000', version: 6 });
+  assert.deepEqual(
+    await freightMarkupApi.save({ markupVnd: '0', expectedVersion: loaded.version }),
+    {
+      markupVnd: '0',
+      version: 7,
+    },
+  );
+  assert.deepEqual(calls, ['GET', 'PUT']);
+  for (const malformed of [-10, '', '-1', '1.23', '1000000000000']) {
+    globalThis.fetch = async () => ok({ markupVnd: malformed, version: 7 });
+    await assert.rejects(freightMarkupApi.read());
+  }
+});
+
+test('D11 Seller switch uses its own versioned endpoint and Owner permission', async () => {
+  const { sellerDispatchPolicyApi } = await server.ssrLoadModule(
+    '/src/features/orders/api/sellerDispatchPolicyApi.ts',
+  );
+  store.getState().setSession({
+    accessToken: 'test-token',
+    expiresIn: 3600,
+    user: {
+      userId: id,
+      tenantId: id,
+      email: 'test@orca.test',
+      fullName: 'Test',
+      actorScope: 'TENANT',
+      roles: ['SELLER_OWNER'],
+      permissions: [],
+    },
+  });
+  globalThis.fetch = async (url, options) => {
+    assert.ok(String(url).endsWith('/v1/orders/policy/dispatch'));
+    if (options?.method === 'GET') return ok({ autoConfirm: true, version: 8 });
+    assert.equal(options?.method, 'PUT');
+    assert.deepEqual(JSON.parse(options.body), { autoConfirm: false, expectedVersion: 8 });
+    return ok({ autoConfirm: false, version: 9 });
+  };
+  const loaded = await sellerDispatchPolicyApi.read();
+  assert.deepEqual(loaded, { autoConfirm: true, version: 8 });
+  assert.deepEqual(
+    await sellerDispatchPolicyApi.save({ autoConfirm: false, expectedVersion: loaded.version }),
+    { autoConfirm: false, version: 9 },
+  );
+  globalThis.fetch = async () => ok({ autoConfirm: 'false', version: 9 });
+  await assert.rejects(sellerDispatchPolicyApi.read());
+  assert.equal(policy.can(['SELLER_OWNER'], 'orders.policy.manage'), true);
+  assert.equal(policy.can(['SELLER_STAFF'], 'orders.policy.manage'), false);
+  assert.equal(policy.can(['ORCA_ADMIN'], 'orders.policy.manage'), false);
+  assert.match(
+    read('src/pages/workspace/SettingsPage.tsx'),
+    /can\('orders.policy.manage'\) && <SellerDispatchPolicySettings/,
+  );
+});
+
 test('last price update ignores running, failed and old file-import jobs', () => {
   const job = (status, finishedAt, source = 'SANDBOX_API') => ({ status, finishedAt, source });
   assert.equal(display.latestPriceUpdate([]), null);

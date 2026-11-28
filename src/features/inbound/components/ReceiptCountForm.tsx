@@ -19,6 +19,7 @@ import { InboundScanButton } from './InboundScanButton';
 import { ReceiptCartonPanel } from './ReceiptCartonPanel';
 import { ReceiptDiscrepancyPanel } from './ReceiptDiscrepancyPanel';
 import { ReceiptInspectionForm } from './ReceiptInspectionForm';
+import { ReceiptPolicyAdjustment } from './ReceiptPolicyAdjustment';
 import { ReceiptPackagingPanel } from './ReceiptPackagingPanel';
 import { ReceiptPhotos } from './ReceiptPhotos';
 import { ReceiptReviewPanel } from './ReceiptReviewPanel';
@@ -292,11 +293,36 @@ export function ReceiptCountForm({
         </Button>
       )}
       {uncertain && <Alert variant="warning" title={t('countUncertain')} />}
+      {receipt?.lines.some((item) => item.policySource === 'LEGACY_LIVE') && (
+        <Alert variant="warning" title={t('legacyLotPolicy')} />
+      )}
+      {receipt?.lines.some((item) => item.policySource === 'APPROVED_ADJUSTMENT') && (
+        <Alert variant="info" title={t('adjustedLotPolicy')} />
+      )}
+      {receipt?.lines.some((item) => item.policySource === 'SUBMITTED_SNAPSHOT') && (
+        <p role="status">{t('submittedLotPolicy')}</p>
+      )}
       {reinspection && receipt?.lastReview && (
         <Alert variant="warning" title={t('reinspectionTitle')}>
           <p className="whitespace-pre-wrap break-words">{receipt.lastReview.reason}</p>
         </Alert>
       )}
+      {receipt &&
+        owner?.roles?.includes('WAREHOUSE_MANAGER') &&
+        can('warehouse.asn.review') &&
+        receipt.status !== 'CANCELLED' &&
+        receipt.lines.some((line) => line.productId) && (
+          <ReceiptPolicyAdjustment
+            warehouseId={warehouseId}
+            receipt={receipt}
+            disabled={isLocked}
+            onPendingChange={(locked) => handlePending('policy-adjustment', locked)}
+            onChanged={() => {
+              setRefresh((value) => value + 1);
+              onReceiptChanged();
+            }}
+          />
+        )}
       {receipt && (
         <Card>
           <div className={styles.overview}>

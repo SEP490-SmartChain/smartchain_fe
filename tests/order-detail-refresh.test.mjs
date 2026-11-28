@@ -11,7 +11,15 @@ const code = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS },
 }).outputText;
 
-function mount({ status = 'VALIDATED', active = true, holdReason = null, read = true } = {}) {
+function mount({
+  status = 'VALIDATED',
+  active = true,
+  holdReason = null,
+  read = true,
+  autoCod,
+  realtimeConnected = false,
+  fulfillmentOrders = [],
+} = {}) {
   const timers = new Map();
   let cleanup,
     listener,
@@ -19,7 +27,7 @@ function mount({ status = 'VALIDATED', active = true, holdReason = null, read = 
     timerId = 0,
     calls = 0,
     signal;
-  let order = { id: 'order-a', status, holdReason, version: 3 };
+  let order = { id: 'order-a', status, holdReason, version: 3, autoCod, fulfillmentOrders };
   let result = { ...order, status: 'BACKORDER', version: 4 };
   let error = null;
   const exports = {};
@@ -60,9 +68,9 @@ function mount({ status = 'VALIDATED', active = true, holdReason = null, read = 
       return bindings[name];
     },
     exports,
-    (fn) => {
+    (fn, delay) => {
       const id = ++timerId;
-      timers.set(id, fn);
+      timers.set(id, { fn, delay });
       return id;
     },
     (id) => timers.delete(id),
@@ -72,6 +80,7 @@ function mount({ status = 'VALIDATED', active = true, holdReason = null, read = 
     owner: true,
     detail: order,
     active,
+    realtimeConnected,
     setDetail: (update) => {
       order = update(order);
     },
@@ -81,10 +90,10 @@ function mount({ status = 'VALIDATED', active = true, holdReason = null, read = 
   });
   return {
     async tick() {
-      const [id, fn] = timers.entries().next().value ?? [];
-      if (fn) {
+      const [id, timer] = timers.entries().next().value ?? [];
+      if (timer) {
         timers.delete(id);
-        fn();
+        timer.fn();
       }
       await new Promise(setImmediate);
     },
@@ -113,6 +122,9 @@ function mount({ status = 'VALIDATED', active = true, holdReason = null, read = 
     },
     get timers() {
       return timers.size;
+    },
+    get delay() {
+      return timers.values().next().value?.delay;
     },
   };
 }
@@ -148,6 +160,37 @@ test('pending cancellation remains eligible for status refresh', async () => {
   await r.tick();
   assert.equal(r.calls, 1);
   r.cleanup();
+});
+
+test('AUTO COD can refresh without a carrier notification while the detail is open', async () => {
+  const pending = mount({
+    status: 'ALLOCATED',
+    autoCod: { state: 'PARTIAL' },
+    realtimeConnected: true,
+  });
+  assert.equal(pending.delay, 15000);
+  await pending.tick();
+  assert.equal(pending.calls, 1);
+  pending.cleanup();
+
+  const finalized = mount({
+    status: 'DISPATCHED',
+    autoCod: { state: 'FINAL' },
+    realtimeConnected: true,
+    fulfillmentOrders: [
+      { shipments: [{ direction: 'OUTBOUND', active: true, bookingState: 'CONFIRMED' }] },
+    ],
+  });
+  assert.equal(finalized.timers, 0);
+  const uncertain = mount({
+    status: 'ALLOCATED',
+    autoCod: { state: 'FINAL' },
+    fulfillmentOrders: [
+      { shipments: [{ direction: 'OUTBOUND', active: true, bookingState: 'UNKNOWN' }] },
+    ],
+  });
+  assert.equal(uncertain.delay, 15000);
+  uncertain.cleanup();
 });
 
 test('scope changes abort an in-flight result and prevent another seller from seeing it', async () => {

@@ -23,6 +23,10 @@ export const pickLineSchema = z
     productName: z.string(),
     binCode: z.string(),
     lotCode: z.string(),
+    binBarcode: z.string().nullable().optional(),
+    productBarcode: z.string().nullable().optional(),
+    skuQr: z.string().optional(),
+    lotQr: z.string().optional(),
     pickedQty: z.number().int().nonnegative(),
     remainingQty: z.number().int().nonnegative(),
     shortage: z
@@ -190,7 +194,11 @@ export const pickingApi = {
   async detail(warehouseId: string, id: string, signal?: AbortSignal, cursor?: string | null) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       `${base}/waves/${encodeURIComponent(id)}`,
-      { params: { warehouseId, ...(cursor ? { cursor } : {}) }, signal, silent: true },
+      {
+        params: { warehouseId, scanContract: '2', ...(cursor ? { cursor } : {}) },
+        signal,
+        silent: true,
+      },
     );
     const parsed = detail.parse(data);
     if (parsed.id !== id) throw new Error('Wave identity mismatch');

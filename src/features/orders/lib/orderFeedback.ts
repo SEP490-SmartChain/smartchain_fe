@@ -10,11 +10,18 @@ export function importRowFeedback(
     return row.issues
       .map((issue) => {
         const field = t(`fields.${issue.field}`);
-        return t(`import_issues.${issue.reason}`, {
+        const message = t(`import_issues.${issue.reason}`, {
           field,
           amount: issue.amount ? BigInt(issue.amount).toLocaleString('vi-VN') : '',
           maximum: issue.maximum ? BigInt(issue.maximum).toLocaleString('vi-VN') : '',
         });
+        return issue.row !== undefined && issue.column
+          ? t('excelShipping.issueLocation', {
+              row: String(issue.row),
+              column: issue.column,
+              message,
+            })
+          : message;
       })
       .join(' ');
   }

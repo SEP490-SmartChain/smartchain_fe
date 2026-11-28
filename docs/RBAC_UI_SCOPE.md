@@ -15,6 +15,8 @@ không grant plan/agreement publication, finance posting hoặc carrier secrets.
 
 API-only freight (18/11/2026): `/admin/tariffs` shows Admin three tabs: carrier API prices, automatic carrier selection and service fees. Accountant keeps only service fees; direct `?tab=prices` or `?tab=selection` does not mount carrier-account or proposal views. No new role capability or backend grant is introduced. Manual freight tariff editors are removed; historical contracts and service tariff management remain.
 
+Seller freight lookup (`ORCA-SELLER-FREIGHT-001`, P1–P3): uses the existing `orders.create` Owner-only UI capability granted strictly to pure `TENANT` `SELLER_OWNER` (`SELLER_STAFF`, all `PLATFORM` roles, mixed-scope, and invalid scopes denied). On `/orders`: Owners with `SUSPENDED`/`CLOSED` status lose `canQuoteFreight` (cannot request new carrier quotes in P1/P2/P3) while keeping `canViewFreight` to inspect historical recorded outbound freight (`RECORDED`) via `order-status`.
+
 Ngày 02/10/2026. Baseline làm việc: `Report3_Software Requirement Specification.docx` §2.1, §3.1.3, các UC và BR. Tài liệu thay mô tả orca bốn role. Đây là đặc tả UI theo yêu cầu mới, **không phải tuyên bố các grant/API/screen đã triển khai hoặc được duyệt đầy đủ**.
 
 Policy hiện có ở `src/lib/accessPolicy.ts`; backend có core-auth action catalog riêng. Mọi gap được giữ rõ ở mục 8. Không viết policy code trong đợt tài liệu này. Ma trận screen không được dùng thay action-level API authorization.

@@ -71,10 +71,10 @@ export function OrderLifecycleActions({
   if (!eligible) return null;
   return (
     <section
-      className="mt-5 space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
+      className="space-y-3 rounded-xl border border-[var(--sc-border-default)] p-4"
       aria-label={t('actions')}
     >
-      <h4 className="font-semibold">{t('actions')}</h4>
+      <h4 className="text-sm font-semibold text-[var(--sc-text-primary)]">{t('actions')}</h4>
       {error && (
         <Alert variant="error">
           {error}

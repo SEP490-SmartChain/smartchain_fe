@@ -72,7 +72,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              'h-[42px] w-full appearance-none rounded-lg border bg-[var(--sc-bg-surface)] px-3 py-2 pr-10 text-sm leading-[18px] text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none',
+              'h-[42px] w-full appearance-none truncate rounded-lg border bg-[var(--sc-bg-surface)] py-0 pl-3 pr-3 text-sm leading-[40px] text-[var(--sc-text-primary)] shadow-[var(--sc-shadow-button)] outline-none',
               'cursor-pointer transition-[border-color,box-shadow,background-color] duration-150',
               'hover:border-[var(--sc-primary-light)] focus:border-[var(--sc-primary)] focus:shadow-[var(--sc-shadow-focus)]',
               'disabled:cursor-not-allowed disabled:bg-[var(--sc-bg-secondary)] disabled:text-[var(--sc-text-disabled)]',
@@ -103,11 +103,17 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <ChevronDown
-            size={16}
+          <span
             aria-hidden="true"
-            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--sc-text-tertiary)]"
-          />
+            className={cn(
+              'pointer-events-none absolute inset-y-[1px] right-[1px] flex w-9 items-center justify-center rounded-r-[7px]',
+              props.disabled
+                ? 'bg-[var(--sc-bg-secondary)] text-[var(--sc-text-disabled)]'
+                : 'bg-[var(--sc-bg-surface)] text-[var(--sc-text-tertiary)]',
+            )}
+          >
+            <ChevronDown size={16} aria-hidden="true" />
+          </span>
         </div>
 
         {error && (

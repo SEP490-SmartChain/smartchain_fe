@@ -6,22 +6,25 @@ import { Alert } from '@/components/Common/Alert/Alert';
 import { Button } from '@/components/Common/Button/Button';
 import { Tabs } from '@/components/Common/Tabs/Tabs';
 
+import { FreightMarkupSettings } from './FreightMarkupSettings';
 import { RatePriceUpdateCard } from './RatePriceUpdateCard';
 import { RateQuoteComparisonTable } from './RateQuoteComparison';
 import { RateSnapshotsTable } from './RateSnapshotsTable';
 import { RateUpdateHistory } from './RateUpdateHistory';
 import { rateIntelligenceApi, type RateSnapshot } from '../api/rateIntelligenceApi';
 import { useRateCollection } from '../hooks/useRateCollection';
+import type { FreightMarkup } from '../schemas/freightMarkupSchema';
 import { latestPriceUpdate } from '../utils/rateDisplay';
 
 type ViewId = 'matrix' | 'bands' | 'history';
 
-/** Read-only carrier API prices: freshness, an update action and the latest collected prices. */
+/** Carrier API prices, collection status and the ORCA freight markup. */
 export function CarrierPriceBoard() {
   const t = useTranslations('RateIntelligence');
   const { accounts, jobs, carriers, isLoading, hasLoadError, refresh, refreshToken } =
     useRateCollection();
   const [view, setView] = useState<ViewId>('matrix');
+  const [freightMarkup, setFreightMarkup] = useState<FreightMarkup | null>(null);
   const [snapshots, setSnapshots] = useState<RateSnapshot[]>([]);
   const [isSnapshotLoading, setIsSnapshotLoading] = useState(false);
   const [hasSnapshotError, setHasSnapshotError] = useState(false);
@@ -82,6 +85,7 @@ export function CarrierPriceBoard() {
 
   return (
     <div className="space-y-5">
+      <FreightMarkupSettings onLoaded={setFreightMarkup} />
       {hasLoadError ? (
         <Alert variant="error">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -119,7 +123,12 @@ export function CarrierPriceBoard() {
         ]}
       />
 
-      {view === 'matrix' ? <RateQuoteComparisonTable refreshToken={refreshToken} /> : null}
+      {view === 'matrix' ? (
+        <RateQuoteComparisonTable
+          refreshToken={refreshToken}
+          markupVnd={freightMarkup?.markupVnd}
+        />
+      ) : null}
       {view === 'bands' && hasSnapshotError ? (
         <Alert variant="error">
           <div className="flex flex-wrap items-center justify-between gap-3">

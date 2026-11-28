@@ -146,7 +146,34 @@ const staffSchema = z
   .max(500)
   .refine((v) => new Set(v.map((i) => i.id)).size === v.length);
 const path = (w: string) => `/v1/warehouses/${encodeURIComponent(w)}/putaway`;
+const labelDetailsSchema = z
+  .object({
+    binBarcode: scan.nullable(),
+    skuQr: scan,
+    lotQr: scan,
+    verified: z.boolean(),
+  })
+  .strict();
+
 export const putawayApi = {
+  async labels(w: string, task: PutawayTask, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `${path(w)}/${encodeURIComponent(task.id)}/labels`,
+      { signal, silent: true },
+    );
+    return labelDetailsSchema.parse(data);
+  },
+  async verifyLabels(w: string, task: PutawayTask, binBarcode: string, signal?: AbortSignal) {
+    const { data } = await apiClient.post<ApiResponse<unknown>>(
+      `${path(w)}/${encodeURIComponent(task.id)}/labels/verification`,
+      { expectedVersion: task.version, binBarcode: scan.parse(binBarcode.trim()) },
+      { signal, silent: true },
+    );
+    return z
+      .object({ binCode: scan, verified: z.literal(true) })
+      .strict()
+      .parse(data);
+  },
   async waiting(w: string, cursor: string | null, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       `${path(w)}/waiting${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,

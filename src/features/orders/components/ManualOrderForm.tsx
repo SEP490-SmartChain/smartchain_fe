@@ -23,23 +23,29 @@ import {
 } from '../api/ordersApi';
 import { useOrderLocations } from '../hooks/useOrderLocations';
 import { orderErrorKey } from '../lib/orderFeedback';
-import { orderScope, sellerOrderAccess } from '../lib/orderScope';
+import { orderScope, sellerFreightAccess, sellerOrderAccess } from '../lib/orderScope';
+import { OrderFormFreightSection } from '../seller-freight/form';
+import { consumeFreightDraftSeed, type FreightDraftSeed } from '../seller-freight/shared';
 
 export function ManualOrderForm({
   scope,
   isOpen,
+  initialSeed = null,
   onClose,
   onAccepted,
   onBusyChange,
 }: {
   scope: string;
   isOpen: boolean;
+  initialSeed?: FreightDraftSeed | null;
   onClose: () => void;
   onAccepted: (id: string, code: string) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
   const t = useTranslations('Orders');
+  const tCommon = useTranslations('Common');
   const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
+  const freightAccess = sellerFreightAccess();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
@@ -77,6 +83,7 @@ export function ManualOrderForm({
   }, [scope]);
   const [error, setError] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [interactedInOpen, setInteractedInOpen] = useState(false);
   const form = useForm<ManualDraft>({
     resolver: zodResolver(manualDraftSchema),
     mode: 'onTouched',
@@ -106,7 +113,48 @@ export function ManualOrderForm({
       items: [{ productId: '', qty: 1, unitPrice: '' }],
     },
   });
+  useEffect(() => {
+    setConfirmDiscard(false);
+    setError(null);
+    if (!isOpen) {
+      setInteractedInOpen(false);
+      form.clearErrors();
+    }
+  }, [isOpen, form]);
   const lines = useFieldArray({ control: form.control, name: 'items' });
+  const consumedSeeds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    consumedSeeds.current.clear();
+  }, [scope]);
+  useEffect(() => {
+    if (!isOpen || !initialSeed) return;
+    const seed = consumeFreightDraftSeed(scope, initialSeed, consumedSeeds.current);
+    if (!seed) return;
+    form.setValue('toProvinceCode', seed.toProvinceCode, { shouldDirty: true });
+    form.setValue('toWardCode', seed.toWardCode, { shouldDirty: true });
+    form.setValue('deliveryTier', seed.deliveryTier, { shouldDirty: true });
+    if (!form.getValues('declaredValue') && seed.referenceDeclaredValueVnd) {
+      form.setValue('declaredValue', seed.referenceDeclaredValueVnd, { shouldDirty: true });
+    }
+    if (
+      form.getValues('entryMode') === 'DIRECT' &&
+      !form.getValues('collectionAmount') &&
+      seed.referenceCodVnd
+    ) {
+      form.setValue('collectionAmount', seed.referenceCodVnd, { shouldDirty: true });
+    }
+    if (seed.items.length > 0) {
+      form.setValue(
+        'items',
+        seed.items.map((item) => ({
+          productId: item.productId,
+          qty: item.qty,
+          unitPrice: '',
+        })),
+        { shouldDirty: true },
+      );
+    }
+  }, [isOpen, initialSeed, scope, form]);
   const resetDraft = () => {
     form.reset();
     automaticCode.current = `ORCA-${createUuid().replaceAll('-', '').slice(0, 12).toUpperCase()}`;
@@ -132,6 +180,7 @@ export function ManualOrderForm({
   let paymentError = false;
   const paymentErrors: Record<string, string> = {};
   let paymentSummary: ReturnType<typeof calculateOrderPayment> | null = null;
+  const isMoney = (value: string | undefined) => /^(0|[1-9]\d{0,11})$/.test(value ?? '');
   try {
     if (
       !direct &&
@@ -145,29 +194,36 @@ export function ManualOrderForm({
         .toString();
       if (
         /^(|0|[1-9]\d{0,11})$/.test(draft.codAmount) &&
-        /^(0|[1-9]\d{0,11})$/.test(draft.customerShippingFee)
+        /^(0|[1-9]\d{0,11})$/.test(draft.customerShippingFee) &&
+        draft.paymentBreakdown
       ) {
-        if (draft.paymentBreakdown) {
-          const p = draft.paymentBreakdown;
-          const isMoney = (v: string) => /^(0|[1-9]\d{0,11})$/.test(v);
-          if (isMoney(p.discountAmount)) {
-            const net = BigInt(goodsTotal) - BigInt(p.discountAmount);
-            if (net < BigInt(0)) paymentErrors.discountAmount = t('discount_exceeds');
-            else if (
-              paymentMode === 'PARTIAL' &&
-              isMoney(p.goodsPaidAmount) &&
-              BigInt(p.goodsPaidAmount) > net
-            ) {
-              paymentErrors.goodsPaidAmount = t('goods_paid_exceeds');
-            }
-          }
-          if (
-            isMoney(p.shippingChargeAmount) &&
-            isMoney(p.shippingPaidAmount) &&
-            BigInt(p.shippingPaidAmount) > BigInt(p.shippingChargeAmount)
+        const p = draft.paymentBreakdown;
+        if (isMoney(p.discountAmount)) {
+          const net = BigInt(goodsTotal) - BigInt(p.discountAmount);
+          if (net < BigInt(0)) {
+            paymentErrors.discountAmount = t('discount_exceeds');
+          } else if (
+            paymentMode === 'PARTIAL' &&
+            isMoney(p.goodsPaidAmount) &&
+            BigInt(p.goodsPaidAmount) > net
           ) {
-            paymentErrors.shippingPaidAmount = t('shipping_paid_exceeds');
+            paymentErrors.goodsPaidAmount = t('goods_paid_exceeds');
           }
+        }
+        if (
+          isMoney(p.shippingChargeAmount) &&
+          isMoney(p.shippingPaidAmount) &&
+          BigInt(p.shippingPaidAmount) > BigInt(p.shippingChargeAmount)
+        ) {
+          paymentErrors.shippingPaidAmount = t('shipping_paid_exceeds');
+        }
+        if (
+          isMoney(p.discountAmount) &&
+          isMoney(p.goodsPaidAmount) &&
+          isMoney(p.shippingChargeAmount) &&
+          isMoney(p.shippingPaidAmount) &&
+          Object.keys(paymentErrors).length === 0
+        ) {
           paymentSummary = calculateOrderPayment(
             goodsTotal,
             draft.paymentBreakdown,
@@ -213,7 +269,7 @@ export function ManualOrderForm({
   const itemGroupError =
     form.formState.errors.items?.root?.message || form.formState.errors.items?.message;
   const submit = form.handleSubmit(
-    async (draft) => {
+    async (submittedDraft) => {
       if (
         running.current ||
         orderScope() !== scope ||
@@ -222,9 +278,34 @@ export function ManualOrderForm({
       ) {
         return;
       }
+      if (submittedDraft.entryMode !== 'DIRECT') {
+        const invalidPriceIndices = submittedDraft.items
+          .map((item, idx) => (isMoney(item.unitPrice) ? -1 : idx))
+          .filter((idx) => idx >= 0);
+        if (invalidPriceIndices.length > 0) {
+          for (const idx of invalidPriceIndices) {
+            form.setError(`items.${idx}.unitPrice`, {
+              type: 'manual',
+              message: t('invalid_field'),
+            });
+          }
+          notifyInvalidForm();
+          return;
+        }
+        if (Object.keys(paymentErrors).length > 0) {
+          for (const [fieldKey, message] of Object.entries(paymentErrors)) {
+            form.setError(
+              `paymentBreakdown.${fieldKey as 'discountAmount' | 'goodsPaidAmount' | 'shippingPaidAmount'}`,
+              { type: 'manual', message },
+            );
+          }
+          notifyInvalidForm();
+          return;
+        }
+      }
       let input;
       try {
-        input = completeManualDraft(draft, automaticCode.current);
+        input = completeManualDraft(submittedDraft, automaticCode.current);
       } catch {
         setError(t('payment_breakdown_error'));
         return;
@@ -268,62 +349,104 @@ export function ManualOrderForm({
               : 'invalid_field',
         )
       : undefined;
+  const collectionAmountError = form.formState.errors.collectionAmount
+    ? (draft.collectionAmount ?? '').trim() === ''
+      ? t('collectionRequired')
+      : t('money_error')
+    : undefined;
+  const touchedBreakdown = form.formState.touchedFields.paymentBreakdown;
+  const submittedOnce = form.formState.submitCount > 0;
+  const visiblePaymentError = (
+    key: 'discountAmount' | 'goodsPaidAmount' | 'shippingChargeAmount' | 'shippingPaidAmount',
+  ) => {
+    const schemaErr = form.formState.errors.paymentBreakdown?.[key] ? t('money_error') : undefined;
+    if (schemaErr) return schemaErr;
+    const compareErr = paymentErrors[key];
+    if (compareErr && interactedInOpen && (touchedBreakdown?.[key] || submittedOnce)) {
+      return compareErr;
+    }
+    return undefined;
+  };
   return (
     <Modal isOpen={isOpen} title={t('create')} width="900px" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-5">
-        <Alert>{t('manual_hint')}</Alert>
-        {form.formState.isDirty && (
-          <p className="text-sm text-[var(--sc-text-secondary)]">{t('draft_kept_hint')}</p>
-        )}
-        {error && <Alert variant="error">{error}</Alert>}
-        <fieldset disabled={form.formState.isSubmitting} className="space-y-5">
-          <Select
-            label={t('entryMode')}
-            {...form.register('entryMode', {
-              onChange: (event: { target: { value: string } }) => {
-                // Hidden fields from the other entry mode must not block submission.
-                if (event.target.value === 'DIRECT') {
-                  form.setValue('codAmount', '');
-                  form.setValue('customerShippingFee', '0');
-                  form.setValue('shippingFeePayer', 'SENDER');
-                  for (const field of [
-                    'discountAmount',
-                    'goodsPaidAmount',
-                    'shippingChargeAmount',
-                    'shippingPaidAmount',
-                  ] as const) {
-                    if (
-                      !/^(0|[1-9]\d{0,11})$/.test(form.getValues(`paymentBreakdown.${field}`) ?? '')
-                    ) {
-                      form.setValue(`paymentBreakdown.${field}`, '0');
+      <form
+        onSubmit={submit}
+        onBlurCapture={() => setInteractedInOpen(true)}
+        onSubmitCapture={() => setInteractedInOpen(true)}
+        className="space-y-4"
+      >
+        <div className="space-y-3 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm leading-5 text-[var(--sc-text-secondary)]">{t('manual_hint')}</p>
+            {form.formState.isDirty && (
+              <p className="text-xs text-[var(--sc-text-tertiary)]">{t('draft_kept_hint')}</p>
+            )}
+          </div>
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            <Select
+              label={t('entryMode')}
+              {...form.register('entryMode', {
+                onChange: (event: { target: { value: string } }) => {
+                  // Hidden fields from the other entry mode must not block submission.
+                  if (event.target.value === 'DIRECT') {
+                    form.setValue('codAmount', '');
+                    form.setValue('customerShippingFee', '0');
+                    form.setValue('shippingFeePayer', 'SENDER');
+                    for (const field of [
+                      'discountAmount',
+                      'goodsPaidAmount',
+                      'shippingChargeAmount',
+                      'shippingPaidAmount',
+                    ] as const) {
+                      if (!isMoney(form.getValues(`paymentBreakdown.${field}`))) {
+                        form.setValue(`paymentBreakdown.${field}`, '0');
+                      }
                     }
+                    draft.items.forEach((item, index) => {
+                      if (!/^(|0|[1-9]\d{0,11})$/.test(item.unitPrice)) {
+                        form.setValue(`items.${index}.unitPrice`, '');
+                      }
+                    });
+                  } else if (
+                    !/^(|0|[1-9]\d{0,11})$/.test(form.getValues('collectionAmount') ?? '')
+                  ) {
+                    form.setValue('collectionAmount', '');
                   }
-                  draft.items.forEach((item, index) => {
-                    if (!/^(|0|[1-9]\d{0,11})$/.test(item.unitPrice)) {
-                      form.setValue(`items.${index}.unitPrice`, '');
-                    }
-                  });
-                } else if (!/^(|0|[1-9]\d{0,11})$/.test(form.getValues('collectionAmount') ?? '')) {
-                  form.setValue('collectionAmount', '');
-                }
-                form.clearErrors();
-              },
-            })}
-            error={form.formState.errors?.entryMode?.message}
-            options={[
-              { value: 'DIRECT', label: t('directEntry') },
-              { value: 'CALCULATED', label: t('calculatedEntry') },
-            ]}
-          />
-          <section className="space-y-4">
-            <h3 className="text-lg font-semibold">{t('recipient_section')}</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+                  form.clearErrors();
+                },
+              })}
+              error={form.formState.errors?.entryMode?.message}
+              options={[
+                { value: 'DIRECT', label: t('directEntry') },
+                { value: 'CALCULATED', label: t('calculatedEntry') },
+              ]}
+            />
+            <Select
+              label={t('deliveryTier')}
+              {...form.register('deliveryTier')}
+              error={form.formState.errors?.deliveryTier?.message}
+              options={[
+                { value: 'ECONOMY', label: t('deliveryTierEconomy') },
+                { value: 'BALANCED', label: t('deliveryTierBalanced') },
+                { value: 'EXPRESS', label: t('deliveryTierExpress') },
+              ]}
+            />
+          </div>
+        </div>
+        {error && <Alert variant="error">{error}</Alert>}
+        <fieldset disabled={form.formState.isSubmitting} className="space-y-4">
+          <section className="space-y-4 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-5">
+            <h3 className="text-base font-semibold text-[var(--sc-text-primary)]">
+              {t('recipient_section')}
+            </h3>
+            <div className="grid items-start gap-4 sm:grid-cols-2">
               <Input
                 label={t('fields.recipientName')}
                 {...form.register('recipientName')}
                 error={invalid('recipientName')}
                 required
                 autoComplete="name"
+                placeholder={t('fields.recipientName')}
               />
               <Input
                 label={t('fields.recipientPhone')}
@@ -350,22 +473,24 @@ export function ManualOrderForm({
               <Select
                 label={t('fields.toWardCode')}
                 {...form.register('toWardCode')}
+                placeholder={!province ? t('select_province_first') : undefined}
                 options={addresses.locations
                   .filter((l) => l.type === 'WARD' && l.parentCode === province)
                   .map((l) => ({ value: l.code, label: l.name }))}
                 required
                 disabled={!province || addresses.loading || addresses.error}
-                helperText={!province ? t('select_province_first') : undefined}
                 error={invalid('toWardCode')}
               />
-              <Input
-                label={t('fields.recipientAddress')}
-                {...form.register('recipientAddress')}
-                required
-                autoComplete="street-address"
-                helperText={t('street_hint')}
-                error={invalid('recipientAddress')}
-              />
+              <div className="sm:col-span-2">
+                <Input
+                  label={t('fields.recipientAddress')}
+                  {...form.register('recipientAddress')}
+                  required
+                  autoComplete="street-address"
+                  helperText={t('street_hint')}
+                  error={invalid('recipientAddress')}
+                />
+              </div>
             </div>
             {(addresses.error || (!addresses.loading && !addresses.locations.length)) && (
               <Alert variant="error">
@@ -376,22 +501,46 @@ export function ManualOrderForm({
               </Alert>
             )}
           </section>
-          <section className="space-y-4">
-            <h3 className="text-lg font-semibold">{t('items_section')}</h3>
-            <Input
-              label={t('search_products')}
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={t('search_products_hint')}
-              helperText={t('search_products_help')}
-            />
-            {searching && <p role="status">{t('searching_products')}</p>}
-            {search.trim() && (
-              <Button type="button" variant="ghost" onClick={() => setSearch('')}>
-                {t('clear_product_search')}
-              </Button>
-            )}
+          <section className="space-y-4 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-base font-semibold text-[var(--sc-text-primary)]">
+                {t('items_section')}
+              </h3>
+              {!direct && (
+                <div className="rounded-md border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] px-2.5 py-1 text-xs text-[var(--sc-text-secondary)]">
+                  {t('goods_total')}:{' '}
+                  <span className="font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                    {goodsTotal === null
+                      ? t('enter_valid_prices')
+                      : `${BigInt(goodsTotal).toLocaleString('vi-VN')} ₫`}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Input
+                label={t('search_products')}
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={t('search_products_hint')}
+                helperText={t('search_products_help')}
+              />
+              {(searching || Boolean(search.trim())) && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {searching && (
+                    <p role="status" className="text-xs text-[var(--sc-text-secondary)]">
+                      {t('searching_products')}
+                    </p>
+                  )}
+                  {search.trim() && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setSearch('')}>
+                      {t('clear_product_search')}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
             {products.error && (
               <Alert variant="error">
                 {t('products_error')}
@@ -405,22 +554,25 @@ export function ManualOrderForm({
             )}
             {search.trim() && !searching && !products.error && products.products.length > 0 && (
               <div className="space-y-2" aria-label={t('product_search_results')}>
-                <p role="status">
+                <p role="status" className="text-xs text-[var(--sc-text-secondary)]">
                   {t('product_search_count', { count: products.products.length })}
                 </p>
                 <ul className="max-h-48 space-y-2 overflow-y-auto">
                   {products.products.map((product) => (
                     <li
                       key={product.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-[var(--sc-border-default)] p-3"
+                      className="flex items-center justify-between gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3"
                     >
                       <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-[var(--sc-text-secondary)]">{product.sku}</p>
+                        <p className="text-sm font-medium text-[var(--sc-text-primary)]">
+                          {product.name}
+                        </p>
+                        <p className="text-xs text-[var(--sc-text-secondary)]">{product.sku}</p>
                       </div>
                       <Button
                         type="button"
                         variant="secondary"
+                        size="sm"
                         aria-label={t(
                           selectedIds.includes(product.id)
                             ? 'product_already_added_name'
@@ -447,6 +599,7 @@ export function ManualOrderForm({
                   <Button
                     type="button"
                     variant="secondary"
+                    size="sm"
                     isLoading={products.isLoadingMore}
                     onClick={() => void products.loadMore()}
                   >
@@ -455,199 +608,229 @@ export function ManualOrderForm({
                 )}
               </div>
             )}
-            {lines.fields.map((field, index) => (
-              <div
-                key={field.id}
-                className={`grid gap-3 ${direct ? 'sm:grid-cols-[2fr_1fr_auto]' : 'sm:grid-cols-[2fr_1fr_1fr_auto]'}`}
-              >
-                <Select
-                  label={t('product')}
-                  {...form.register(`items.${index}.productId`, {
-                    onChange: (event: { target: { value: string } }) => {
-                      if (event.target.value !== selectedIds[index]) {
-                        form.setValue(`items.${index}.unitPrice`, '', { shouldDirty: true });
-                        form.clearErrors(`items.${index}.unitPrice`);
-                      }
-                    },
-                  })}
-                  options={options.filter(
-                    (option) =>
-                      option.value === draft.items[index]?.productId ||
-                      !selectedIds.includes(option.value),
-                  )}
-                  required
-                  error={
-                    form.formState.errors.items?.[index]?.productId
-                      ? t('choose_product')
-                      : undefined
-                  }
-                />
-                <Input
-                  label={t('quantity')}
-                  type="number"
-                  min={1}
-                  max={1000000}
-                  {...form.register(`items.${index}.qty`, { valueAsNumber: true })}
-                  required
-                  error={
-                    form.formState.errors.items?.[index]?.qty ? t('quantity_error') : undefined
-                  }
-                />
-                {!direct && (
-                  <Input
-                    label={t('unit_price')}
-                    inputMode="numeric"
-                    {...form.register(`items.${index}.unitPrice`, {
-                      setValueAs: normalizeOrderMoneyInput,
-                    })}
-                    placeholder={t('price_placeholder')}
-                    helperText={
-                      /^(0|[1-9]\d{0,11})$/.test(draft.items[index]?.unitPrice) &&
-                      Number.isInteger(draft.items[index]?.qty) &&
-                      draft.items[index]?.qty > 0
-                        ? `${t('line_total')}: ${(BigInt(draft.items[index].qty) * BigInt(draft.items[index].unitPrice)).toLocaleString('vi-VN')} ₫`
-                        : t('price_hint')
-                    }
-                    required
-                    error={
-                      form.formState.errors.items?.[index]?.unitPrice ? t('money_error') : undefined
-                    }
-                  />
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  aria-label={t('remove_product_line', { number: index + 1 })}
-                  onClick={() => lines.remove(index)}
-                  disabled={lines.fields.length <= 1}
-                >
-                  {t('remove')}
-                </Button>
-              </div>
-            ))}
+            <div className="space-y-3">
+              {lines.fields.map((field, index) => {
+                const rawUnitPrice = draft.items[index]?.unitPrice ?? '';
+                const unitPriceInvalid =
+                  Boolean(form.formState.errors.items?.[index]?.unitPrice) ||
+                  (interactedInOpen &&
+                    (Boolean(form.formState.touchedFields.items?.[index]?.unitPrice) ||
+                      submittedOnce) &&
+                    !direct &&
+                    !isMoney(normalizeOrderMoneyInput(rawUnitPrice)));
+                const unitPriceError = unitPriceInvalid
+                  ? rawUnitPrice.trim() === ''
+                    ? t('invalid_field')
+                    : t('money_error')
+                  : undefined;
+                const hasValidLineTotal =
+                  isMoney(draft.items[index]?.unitPrice) &&
+                  Number.isInteger(draft.items[index]?.qty) &&
+                  draft.items[index]?.qty > 0;
+
+                return (
+                  <div
+                    key={field.id}
+                    className="space-y-2 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)] p-3"
+                  >
+                    <div
+                      className={`grid items-start gap-3 ${
+                        direct
+                          ? 'sm:grid-cols-[minmax(0,2fr)_120px_auto]'
+                          : 'sm:grid-cols-[minmax(0,2fr)_110px_minmax(0,1.2fr)_auto]'
+                      }`}
+                    >
+                      <Select
+                        label={t('product')}
+                        {...form.register(`items.${index}.productId`, {
+                          onChange: (event: { target: { value: string } }) => {
+                            if (event.target.value !== selectedIds[index]) {
+                              form.setValue(`items.${index}.unitPrice`, '', { shouldDirty: true });
+                              form.clearErrors(`items.${index}.unitPrice`);
+                            }
+                          },
+                        })}
+                        options={options.filter(
+                          (option) =>
+                            option.value === draft.items[index]?.productId ||
+                            !selectedIds.includes(option.value),
+                        )}
+                        required
+                        error={
+                          form.formState.errors.items?.[index]?.productId
+                            ? t('choose_product')
+                            : undefined
+                        }
+                      />
+                      <Input
+                        label={t('quantity')}
+                        type="number"
+                        min={1}
+                        max={1000000}
+                        {...form.register(`items.${index}.qty`, { valueAsNumber: true })}
+                        required
+                        error={
+                          form.formState.errors.items?.[index]?.qty
+                            ? t('quantity_error')
+                            : undefined
+                        }
+                      />
+                      {!direct && (
+                        <Input
+                          label={t('unit_price')}
+                          inputMode="numeric"
+                          {...form.register(`items.${index}.unitPrice`, {
+                            setValueAs: normalizeOrderMoneyInput,
+                          })}
+                          placeholder={t('price_placeholder')}
+                          required
+                          error={unitPriceError}
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-[42px] sm:mt-7"
+                        aria-label={t('remove_product_line', { number: index + 1 })}
+                        onClick={() => lines.remove(index)}
+                        disabled={lines.fields.length <= 1}
+                      >
+                        {t('remove')}
+                      </Button>
+                    </div>
+                    {!direct && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--sc-text-secondary)]">
+                        <span>{t('price_hint')}</span>
+                        {hasValidLineTotal && (
+                          <span className="font-medium tabular-nums text-[var(--sc-text-primary)]">
+                            {t('line_total')}:{' '}
+                            {(
+                              BigInt(draft.items[index].qty) * BigInt(draft.items[index].unitPrice)
+                            ).toLocaleString('vi-VN')}{' '}
+                            ₫
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
             {itemGroupError && (
-              <Alert variant="error" compact>
+              <Alert variant="error" compact notify={false}>
                 {t('items_error')}
               </Alert>
             )}
-            {products.hasNextPage && !search.trim() && (
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="secondary"
-                isLoading={products.isLoadingMore}
-                onClick={() => void products.loadMore()}
+                size="sm"
+                disabled={lines.fields.length >= 100}
+                onClick={() => lines.append({ productId: '', qty: 1, unitPrice: '' })}
               >
-                {t('more_products')}
+                {t('add_item')}
               </Button>
-            )}
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={lines.fields.length >= 100}
-              onClick={() => lines.append({ productId: '', qty: 1, unitPrice: '' })}
-            >
-              {t('add_item')}
-            </Button>
+              {products.hasNextPage && !search.trim() && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  isLoading={products.isLoadingMore}
+                  onClick={() => void products.loadMore()}
+                >
+                  {t('more_products')}
+                </Button>
+              )}
+            </div>
           </section>
-          {direct && (
-            <section className="space-y-4">
-              <Select
-                label={t('deliveryTier')}
-                {...form.register('deliveryTier')}
-                error={form.formState.errors?.deliveryTier?.message}
-                options={[
-                  { value: 'ECONOMY', label: t('deliveryTierEconomy') },
-                  { value: 'BALANCED', label: t('deliveryTierBalanced') },
-                  { value: 'EXPRESS', label: t('deliveryTierExpress') },
-                ]}
-              />
-              <Input
-                label={t('collectionAmount')}
-                inputMode="numeric"
-                required
-                {...form.register('collectionAmount', { setValueAs: normalizeOrderMoneyInput })}
-                error={form.formState.errors.collectionAmount ? t('collectionRequired') : undefined}
-                helperText={t('collectionHint')}
-              />
-              <Input
-                label={t('deliveryNote')}
-                {...form.register('deliveryNote')}
-                maxLength={500}
-                error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
-              />
-            </section>
-          )}
-          {!direct && (
-            <section className="space-y-4">
-              <h3 className="text-lg font-semibold">{t('payment_section')}</h3>
-              <Select
-                label={t('deliveryTier')}
-                {...form.register('deliveryTier')}
-                error={form.formState.errors?.deliveryTier?.message}
-                options={[
-                  { value: 'ECONOMY', label: t('deliveryTierEconomy') },
-                  { value: 'BALANCED', label: t('deliveryTierBalanced') },
-                  { value: 'EXPRESS', label: t('deliveryTierExpress') },
-                ]}
-              />
-              <Input
-                label={t('deliveryNote')}
-                {...form.register('deliveryNote')}
-                maxLength={500}
-                error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
-              />
-              <p>
-                {t('goods_total')}:{' '}
-                {goodsTotal === null
-                  ? t('enter_valid_prices')
-                  : `${BigInt(goodsTotal).toLocaleString('vi-VN')} ₫`}
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Select
-                  label={t('payment_method')}
-                  value={paymentMode}
-                  onChange={(event) => {
-                    const mode = event.target.value as 'COD' | 'PAID' | 'PARTIAL';
-                    form.setValue('goodsPaymentMode', mode);
-                    form.setValue('paymentBreakdown.goodsPaidAmount', '0');
-                  }}
-                  options={[
-                    { value: 'COD', label: t('payment_cod') },
-                    { value: 'PAID', label: t('payment_paid') },
-                    { value: 'PARTIAL', label: t('payment_partial') },
-                  ]}
-                />
-                {paymentMode === 'PARTIAL' && (
+          <section className="space-y-4 rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4 sm:p-5">
+            <h3 className="text-base font-semibold text-[var(--sc-text-primary)]">
+              {t('payment_section')}
+            </h3>
+            {direct ? (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
                   <Input
-                    label={t('goods_paid')}
-                    {...form.register('paymentBreakdown.goodsPaidAmount', {
-                      setValueAs: normalizeOrderMoneyInput,
-                    })}
+                    label={t('collectionAmount')}
                     inputMode="numeric"
-                    helperText={t('goods_paid_hint')}
-                    error={
-                      paymentErrors.goodsPaidAmount ||
-                      (form.formState.errors.paymentBreakdown?.goodsPaidAmount
-                        ? t('money_error')
-                        : undefined)
-                    }
+                    placeholder="Ví dụ: 200000 (nhập 0 nếu không thu hộ)"
+                    required
+                    {...form.register('collectionAmount', { setValueAs: normalizeOrderMoneyInput })}
+                    error={collectionAmountError}
+                    helperText={t('collectionHint')}
                   />
-                )}
+                  {(draft.collectionAmount ?? '').trim() === '' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        form.setValue('collectionAmount', '0', {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                      className="text-xs font-medium text-[var(--sc-primary)] underline-offset-2 hover:underline"
+                    >
+                      Không thu hộ (0 ₫)
+                    </button>
+                  )}
+                </div>
                 <Input
-                  label={t('discount')}
-                  inputMode="numeric"
-                  {...form.register('paymentBreakdown.discountAmount', {
-                    setValueAs: normalizeOrderMoneyInput,
-                  })}
-                  helperText={t('discount_hint')}
-                  error={
-                    paymentErrors.discountAmount ||
-                    (form.formState.errors.paymentBreakdown?.discountAmount
-                      ? t('money_error')
-                      : undefined)
-                  }
+                  label={t('deliveryNote')}
+                  {...form.register('deliveryNote')}
+                  maxLength={500}
+                  error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
                 />
-                <>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid items-start gap-4 sm:grid-cols-2">
+                  <Select
+                    label={t('payment_method')}
+                    value={paymentMode}
+                    onChange={(event) => {
+                      const mode = event.target.value as 'COD' | 'PAID' | 'PARTIAL';
+                      form.setValue('goodsPaymentMode', mode);
+                      form.setValue('paymentBreakdown.goodsPaidAmount', '0');
+                    }}
+                    options={[
+                      { value: 'COD', label: t('payment_cod') },
+                      { value: 'PAID', label: t('payment_paid') },
+                      { value: 'PARTIAL', label: t('payment_partial') },
+                    ]}
+                  />
+                  <Input
+                    label={t('deliveryNote')}
+                    {...form.register('deliveryNote')}
+                    maxLength={500}
+                    error={form.formState.errors.deliveryNote ? t('invalid_field') : undefined}
+                  />
+                </div>
+                <div className="grid items-start gap-4 sm:grid-cols-2">
+                  <div className={paymentMode === 'PARTIAL' ? '' : 'sm:col-span-2'}>
+                    <Input
+                      label={t('discount')}
+                      inputMode="numeric"
+                      {...form.register('paymentBreakdown.discountAmount', {
+                        setValueAs: normalizeOrderMoneyInput,
+                      })}
+                      helperText={t('discount_hint')}
+                      error={visiblePaymentError('discountAmount')}
+                    />
+                  </div>
+                  {paymentMode === 'PARTIAL' && (
+                    <Input
+                      label={t('goods_paid')}
+                      {...form.register('paymentBreakdown.goodsPaidAmount', {
+                        setValueAs: normalizeOrderMoneyInput,
+                      })}
+                      inputMode="numeric"
+                      helperText={t('goods_paid_hint')}
+                      error={visiblePaymentError('goodsPaidAmount')}
+                    />
+                  )}
+                </div>
+                <div className="grid items-start gap-4 sm:grid-cols-2">
                   <Input
                     label={t('shipping_charge')}
                     inputMode="numeric"
@@ -655,12 +838,7 @@ export function ManualOrderForm({
                       setValueAs: normalizeOrderMoneyInput,
                     })}
                     helperText={t('shipping_charge_hint')}
-                    error={
-                      paymentErrors.shippingChargeAmount ||
-                      (form.formState.errors.paymentBreakdown?.shippingChargeAmount
-                        ? t('money_error')
-                        : undefined)
-                    }
+                    error={visiblePaymentError('shippingChargeAmount')}
                   />
                   <Input
                     label={t('shipping_paid')}
@@ -669,48 +847,74 @@ export function ManualOrderForm({
                       setValueAs: normalizeOrderMoneyInput,
                     })}
                     helperText={t('shipping_paid_hint')}
-                    error={
-                      paymentErrors.shippingPaidAmount ||
-                      (form.formState.errors.paymentBreakdown?.shippingPaidAmount
-                        ? t('money_error')
-                        : undefined)
-                    }
-                  />
-                </>
-              </div>
-              {paymentError && <Alert variant="error">{t('payment_breakdown_error')}</Alert>}
-              {paymentSummary && goodsTotal !== null ? (
-                <div aria-live="polite">
-                  <OrderPaymentSummary
-                    payment={{
-                      ...paymentSummary,
-                      totalAmount: goodsTotal,
-                      shippingFeePayer: payer,
-                    }}
+                    error={visiblePaymentError('shippingPaidAmount')}
                   />
                 </div>
-              ) : (
-                <p role="status" className="text-sm text-[var(--sc-text-secondary)]">
-                  {t(paymentError ? 'check_payment_amounts' : 'enter_valid_prices')}
-                </p>
-              )}
-            </section>
-          )}
-          <details className="space-y-4 rounded-lg border border-[var(--sc-border-default)] p-4">
-            <summary className="cursor-pointer">{t('optional_section')}</summary>
-            <Input
-              label={t('fields.externalOrderCode')}
-              {...form.register('externalOrderCode')}
-              helperText={t('automatic_code_hint')}
-              error={invalid('externalOrderCode')}
+              </div>
+            )}
+            <OrderFormFreightSection
+              scope={scope}
+              isOpen={isOpen}
+              canQuote={freightAccess.canQuoteFreight}
+              draft={draft}
+              products={cachedProducts}
+              initialSeed={initialSeed}
+              selectedTier={draft.deliveryTier ?? 'ECONOMY'}
+              onSelectTier={(tier) => form.setValue('deliveryTier', tier, { shouldDirty: true })}
+              onApplyCalculatedShippingCharge={(amountVnd) =>
+                form.setValue('paymentBreakdown.shippingChargeAmount', amountVnd, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
             />
-            <Input
-              label={t('fields.declaredValue')}
-              {...form.register('declaredValue', { setValueAs: normalizeOrderMoneyInput })}
-              inputMode="numeric"
-              helperText={t(direct ? 'declaredCatalogHint' : 'automatic_value_hint')}
-              error={invalid('declaredValue')}
-            />
+            {!direct && (
+              <>
+                {paymentError && (
+                  <Alert variant="error" notify={false}>
+                    {t('payment_breakdown_error')}
+                  </Alert>
+                )}
+                {paymentSummary && goodsTotal !== null ? (
+                  <div aria-live="polite">
+                    <OrderPaymentSummary
+                      payment={{
+                        ...paymentSummary,
+                        totalAmount: goodsTotal,
+                        shippingFeePayer: payer,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    role="status"
+                    className="rounded-lg border border-dashed border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)] px-3.5 py-2.5 text-xs text-[var(--sc-text-secondary)]"
+                  >
+                    {t(paymentError ? 'check_payment_amounts' : 'enter_valid_prices')}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+          <details className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4">
+            <summary className="cursor-pointer text-sm font-medium text-[var(--sc-text-primary)]">
+              {t('optional_section')}
+            </summary>
+            <div className="mt-4 grid items-start gap-4 sm:grid-cols-2">
+              <Input
+                label={t('fields.externalOrderCode')}
+                {...form.register('externalOrderCode')}
+                helperText={t('automatic_code_hint')}
+                error={invalid('externalOrderCode')}
+              />
+              <Input
+                label={t('fields.declaredValue')}
+                {...form.register('declaredValue', { setValueAs: normalizeOrderMoneyInput })}
+                inputMode="numeric"
+                helperText={t(direct ? 'declaredCatalogHint' : 'automatic_value_hint')}
+                error={invalid('declaredValue')}
+              />
+            </div>
           </details>
           {confirmDiscard && (
             <Alert variant="warning">
@@ -725,26 +929,33 @@ export function ManualOrderForm({
               </div>
             </Alert>
           )}
-          <div className="flex justify-end gap-3">
-            {form.formState.isDirty && !confirmDiscard && (
-              <Button type="button" variant="ghost" onClick={() => setConfirmDiscard(true)}>
-                {t('discard_draft')}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--sc-border-default)] pt-4">
+            <div>
+              {form.formState.isDirty && !confirmDiscard && (
+                <Button type="button" variant="ghost" onClick={() => setConfirmDiscard(true)}>
+                  {t('discard_draft')}
+                </Button>
+              )}
+            </div>
+            <div className="ml-auto flex items-center gap-2.5">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                {tCommon('close')}
               </Button>
-            )}
-            <Button
-              type="submit"
-              isLoading={form.formState.isSubmitting}
-              disabled={
-                !canIntake ||
-                paymentError ||
-                products.isLoading ||
-                addresses.loading ||
-                addresses.error ||
-                !addresses.locations.length
-              }
-            >
-              {t('submit')}
-            </Button>
+              <Button
+                type="submit"
+                isLoading={form.formState.isSubmitting}
+                disabled={
+                  !canIntake ||
+                  paymentError ||
+                  products.isLoading ||
+                  addresses.loading ||
+                  addresses.error ||
+                  !addresses.locations.length
+                }
+              >
+                {t('submit')}
+              </Button>
+            </div>
           </div>
         </fieldset>
       </form>

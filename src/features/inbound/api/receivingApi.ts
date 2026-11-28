@@ -107,6 +107,12 @@ export const receivingStateSchema = z
           trackExpiry: z.boolean(),
           shelfLifeDays: z.number().int().positive().nullable(),
           minInboundShelfLifePct: z.number().min(0).max(100),
+          productId: z.string().uuid().optional(),
+          minOutboundDays: z.number().int().nonnegative().optional(),
+          nearExpiryDays: z.number().int().nonnegative().optional(),
+          policySource: z
+            .enum(['SUBMITTED_SNAPSHOT', 'LEGACY_LIVE', 'APPROVED_ADJUSTMENT'])
+            .optional(),
           count: receiptCountSchema.nullable(),
         })
         .strict(),
@@ -133,7 +139,7 @@ export const receivingApi = {
   async receipt(warehouseId: string, asnId: string, signal?: AbortSignal): Promise<ReceivingState> {
     const { data } = await apiClient.get<ApiResponse<unknown>>(
       `/v1/warehouses/${encodeURIComponent(warehouseId)}/asns/${encodeURIComponent(asnId)}/receiving`,
-      { signal, silent: true },
+      { params: { policyContract: '2' }, signal, silent: true },
     );
     const result = receivingStateSchema.parse(data);
     if (result.asnId !== asnId) throw new Error('Receipt belongs to another ASN');

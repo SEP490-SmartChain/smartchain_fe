@@ -1,7 +1,7 @@
 /** A document reference is navigation only, never authority or a business command. */
 export function notificationTarget(
   search: string,
-  key: 'invoiceId' | 'statementId' | 'orderId',
+  key: 'invoiceId' | 'statementId' | 'orderId' | 'parcelId',
 ): string | null {
   if (search.length > 2048) return null;
   const params = new URLSearchParams(search);

@@ -9,7 +9,10 @@ import { readFileSync } from 'node:fs';
 
 let server;
 let orders;
+let orderPolicyApi;
 let OrderDetail;
+let OrderCollectionAmount;
+let OrderCollectionTotal;
 let presentation;
 let feedback;
 let policy;
@@ -79,7 +82,11 @@ before(async () => {
     server: { middlewareMode: true, watch: null, ws: false },
   });
   orders = await server.ssrLoadModule('/src/features/orders/api/ordersApi.ts');
+  ({ orderPolicyApi } = await server.ssrLoadModule('/src/features/orders/api/orderPolicyApi.ts'));
   ({ OrderDetail } = await server.ssrLoadModule('/src/features/orders/components/OrderDetail.tsx'));
+  ({ OrderCollectionAmount, OrderCollectionTotal } = await server.ssrLoadModule(
+    '/src/features/orders/components/OrderCodCollection.tsx',
+  ));
   presentation = await server.ssrLoadModule('/src/features/orders/lib/orderPresentation.ts');
   feedback = await server.ssrLoadModule('/src/features/orders/lib/orderFeedback.ts');
   policy = await server.ssrLoadModule('/src/lib/accessPolicy.ts');
@@ -488,6 +495,72 @@ test('import preview uses the read-only validation endpoint and keeps readable g
   assert.deepEqual(result.items[0].excelRows, [2, 3]);
   assert.equal(result.items[0].orderId, undefined);
 });
+test('detailed Excel preview separates each shipping policy and pinpoints invalid cells', async () => {
+  globalThis.fetch = async (url) => {
+    assert.ok(String(url).endsWith('/import-preview'));
+    return ok({
+      accepted: 0,
+      ready: 3,
+      rejected: 1,
+      items: [
+        { mode: 'SHOP_PAYS' },
+        { mode: 'CUSTOMER_FIXED', agreedFeeVnd: '20000' },
+        { mode: 'CUSTOMER_CARRIER_QUOTE' },
+      ]
+        .map((excelShipPolicy, index) => ({
+          row: 2 + index * 2,
+          rowId: `policy-${index}`,
+          excelRows: [2 + index * 2, 3 + index * 2],
+          status: 'READY',
+          excelShipPolicy,
+          goodsDueVnd: '200000',
+          finalOrderCodVnd: ['200000', '220000', null][index],
+        }))
+        .concat({
+          row: 8,
+          rowId: 'policy-conflict',
+          excelRows: [8, 9],
+          status: 'REJECTED',
+          code: 'ORDERS.INVALID_IMPORT_ROW',
+          issues: [{ field: 'excelShipPolicy', reason: 'INCONSISTENT', row: 9, column: 'M' }],
+        }),
+    });
+  };
+  const result = await orders.ordersApi.import(new File(['xlsx'], 'orders.xlsx'), undefined, true);
+  assert.deepEqual(
+    result.items
+      .slice(0, 3)
+      .map(({ goodsDueVnd, finalOrderCodVnd }) => [goodsDueVnd, finalOrderCodVnd]),
+    [
+      ['200000', '200000'],
+      ['200000', '220000'],
+      ['200000', null],
+    ],
+  );
+  assert.equal(result.items[1].excelShipPolicy.agreedFeeVnd, '20000');
+  assert.equal(
+    feedback.importRowFeedback(result.items[3], (key, values) => {
+      if (key === 'excelShipping.issueLocation')
+        return `${values.row}${values.column} ${values.message}`;
+      return values ? `${key} ${values.field}` : key;
+    }),
+    '9M import_issues.INCONSISTENT fields.excelShipPolicy',
+  );
+});
+test('parcel approval binds the shipment and leaves legacy order hold requests compatible', async () => {
+  const shipmentId = '00000000-0000-4000-8000-000000000003';
+  const controller = new AbortController();
+  const bodies = [];
+  globalThis.fetch = async (url, { body, signal }) => {
+    assert.ok(String(url).endsWith(`/orders/${id}/confirm-hold`));
+    assert.equal(signal, controller.signal);
+    bodies.push(JSON.parse(body));
+    return ok({ id, status: 'ALLOCATED', version: 3 });
+  };
+  await orderPolicyApi.transition(id, 'confirm-hold', 3, controller.signal, shipmentId);
+  await orderPolicyApi.transition(id, 'confirm-hold', 3, controller.signal);
+  assert.deepEqual(bodies, [{ expectedVersion: 3, shipmentId }, { expectedVersion: 3 }]);
+});
 test('existing imports retain the order link and exact correction amounts are readable', () => {
   const result = orders.importResultSchema.parse({
     items: [{ row: 2, rowId: 'existing', status: 'ACCEPTED', existing: true, orderId: id }],
@@ -737,6 +810,184 @@ function renderDetail(overrides = {}, locale = 'vi') {
     ),
   );
 }
+test('order list shows customer collection components separately from total COD', () => {
+  const base = { ...summary, ...financial, codAmount: '200000' };
+  const pending = {
+    state: 'PENDING',
+    goodsDueVnd: '200000',
+    fixedParcelCount: 0,
+    parcelCount: null,
+    fixedCodSubtotalVnd: '0',
+    finalOrderCodVnd: null,
+  };
+  const auto = {
+    ...base,
+    customerShippingFee: '0',
+    shippingFeePayer: 'RECIPIENT',
+    excelShipPolicy: { mode: 'CUSTOMER_CARRIER_QUOTE' },
+  };
+  const render = (component, props) =>
+    renderToStaticMarkup(
+      createElement(
+        NextIntlClientProvider,
+        { locale: 'vi', messages: viewMessages, timeZone: 'Asia/Ho_Chi_Minh' },
+        createElement(component, props),
+      ),
+    );
+  const goods = (order) => render(OrderCollectionAmount, { order, field: 'goods' });
+  const shipping = (order) => render(OrderCollectionAmount, { order, field: 'shipping' });
+  const total = (order) => render(OrderCollectionTotal, { order });
+
+  const shopPays = { ...base, excelShipPolicy: { mode: 'SHOP_PAYS' } };
+  assert.match(goods(shopPays), />200\.000 ₫</);
+  assert.match(shipping(shopPays), />0 ₫</);
+  assert.match(total(shopPays), />200\.000 ₫</);
+
+  const fixed = {
+    ...base,
+    customerShippingFee: '20000',
+    shippingFeePayer: 'RECIPIENT',
+    excelShipPolicy: { mode: 'CUSTOMER_FIXED', agreedFeeVnd: '20000' },
+  };
+  assert.match(goods(fixed), />200\.000 ₫</);
+  assert.match(shipping(fixed), />20\.000 ₫</);
+  assert.match(total(fixed), />220\.000 ₫</);
+
+  const waiting = { ...auto, autoCod: pending };
+  assert.match(goods(waiting), />200\.000 ₫</);
+  assert.match(shipping(waiting), />Chờ chốt</);
+  assert.match(total(waiting), />Chưa chốt tổng</);
+  assert.doesNotMatch(total(waiting), /200\.000|>0 ₫</);
+
+  const partial = {
+    ...auto,
+    autoCod: {
+      ...pending,
+      state: 'PARTIAL',
+      fixedParcelCount: 1,
+      parcelCount: 2,
+      fixedCodSubtotalVnd: '92000',
+    },
+  };
+  assert.match(goods(partial), />200\.000 ₫</);
+  assert.match(shipping(partial), />Chờ chốt</);
+  assert.match(total(partial), /Chưa chốt tổng.*Đã chốt 92\.000 ₫ · 1\/2 kiện/);
+  assert.doesNotMatch(total(partial), /232\.000|200\.000/);
+
+  const final = {
+    ...auto,
+    autoCod: {
+      ...partial.autoCod,
+      state: 'FINAL',
+      fixedParcelCount: 2,
+      fixedCodSubtotalVnd: '232000',
+      finalOrderCodVnd: '232000',
+    },
+  };
+  assert.match(goods(final), />200\.000 ₫</);
+  assert.match(shipping(final), />32\.000 ₫</);
+  assert.match(total(final), />232\.000 ₫</);
+
+  const direct = { ...base, codAmount: '220000', collectionMode: 'DIRECT' };
+  assert.match(goods(direct), />—<\/span>/);
+  assert.match(shipping(direct), />—<\/span>/);
+  assert.match(total(direct), />220\.000 ₫</);
+});
+test('automatic COD separates pending, partial, held and finalized amounts in order detail', () => {
+  const pendingCod = {
+    state: 'PENDING',
+    goodsDueVnd: '200000',
+    fixedParcelCount: 0,
+    parcelCount: null,
+    fixedCodSubtotalVnd: '0',
+    finalOrderCodVnd: null,
+  };
+  const paymentBreakdown = {
+    discountAmount: '0',
+    goodsPaidAmount: '200000',
+    shippingChargeAmount: null,
+    shippingPaidAmount: null,
+  };
+  const order = {
+    status: 'ALLOCATED',
+    codAmount: '200000',
+    shippingFeePayer: 'RECIPIENT',
+    excelShipPolicy: { mode: 'CUSTOMER_CARRIER_QUOTE' },
+    autoCod: pendingCod,
+    paymentBreakdown,
+  };
+  const parcel = (sequenceNo, codAmount, quotedFeeVnd, finalCodVnd, approvalShipmentId = null) => ({
+    id: `00000000-0000-4000-8000-00000000000${sequenceNo + 3}`,
+    warehouseId: id,
+    sequenceNo,
+    status: 'PACKED',
+    items: [],
+    parcels: [],
+    shipments: [],
+    codAmount,
+    autoCod: { goodsDueVnd: codAmount, quotedFeeVnd, finalCodVnd, approvalShipmentId },
+  });
+  const parsed = orders.parseOrder({ ...summary, ...financial, ...order }, true);
+  assert.deepEqual(parsed.autoCod, pendingCod);
+  const staffDetail = { ...summary, items: [], statusHistory: [], fulfillmentOrders: [] };
+  for (const field of ['excelShipPolicy', 'autoCod', 'paymentBreakdown']) {
+    assert.throws(() => orders.parseOrder({ ...summary, [field]: order[field] }, false));
+  }
+  const { codAmount: _cod, ...staffParcel } = parcel(1, '120000', '20000', '140000');
+  assert.throws(() =>
+    orders.parseOrderDetail({ ...staffDetail, fulfillmentOrders: [staffParcel] }, false),
+  );
+  assert.throws(() =>
+    orders.parseOrder({ ...parsed, autoCod: { ...pendingCod, finalOrderCodVnd: '0' } }, true),
+  );
+
+  const pending = renderDetail(order);
+  assert.ok(pending.includes('200.000 ₫ tiền hàng'));
+  assert.ok(pending.includes('Phí ship chờ chốt'));
+  assert.ok(!pending.includes(viewMessages.Orders.noCollection));
+  const partial = renderDetail({
+    ...order,
+    autoCod: {
+      ...pendingCod,
+      state: 'PARTIAL',
+      fixedParcelCount: 1,
+      parcelCount: 2,
+      fixedCodSubtotalVnd: '140000',
+    },
+    fulfillmentOrders: [
+      parcel(1, '120000', '20000', '140000'),
+      parcel(2, '80000', '12000', '92000', id),
+    ],
+  });
+  for (const text of [
+    'Đã chốt 140.000 ₫ · 1/2 kiện',
+    'COD kiện chờ duyệt',
+    '140.000 ₫',
+    '92.000 ₫',
+    '20.000 ₫',
+    '12.000 ₫',
+  ]) {
+    assert.ok(partial.includes(text), text);
+  }
+  assert.ok(!partial.includes('232.000 ₫'));
+  const final = renderDetail({
+    ...order,
+    autoCod: {
+      ...pendingCod,
+      state: 'FINAL',
+      fixedParcelCount: 2,
+      parcelCount: 2,
+      fixedCodSubtotalVnd: '232000',
+      finalOrderCodVnd: '232000',
+    },
+    fulfillmentOrders: [
+      parcel(1, '120000', '20000', '140000'),
+      parcel(2, '80000', '12000', '92000'),
+    ],
+  });
+  assert.ok(final.includes('232.000 ₫'));
+  assert.ok(!final.includes('phí ship chờ tính'));
+});
 test('detail separates collection, recipient and line totals; collapses audit information without losing deposits', () => {
   const html = renderDetail({
     totalAmount: '400000',
@@ -1186,4 +1437,75 @@ test('direct collection explanations are collapsed while the amount and snapshot
     !details[2].includes('1.500.000 ₫'),
     'primary amount stays outside the collapsed explanation',
   );
+});
+
+test('ORCA freight section in OrderDetail is gated cleanly away from Staff and shown when freightRow is provided to Owner', () => {
+  const sampleRow = {
+    orderId: summary.id,
+    state: 'VISIBLE',
+    parcelCount: 1,
+    recorded: { count: 1, subtotalVnd: '35000' },
+    estimated: { count: 0, subtotalVnd: null },
+    parcels: [
+      {
+        parcelIndex: 1,
+        fulfillmentOrderId: '00000000-0000-4000-8000-000000000010',
+        packingRecordId: '00000000-0000-4000-8000-000000000011',
+        freight: {
+          state: 'RECORDED',
+          amountVnd: '35000',
+          recordedAt: '2026-11-28T01:00:00.000Z',
+        },
+      },
+    ],
+  };
+
+  const ownerWithFreight = renderToStaticMarkup(
+    createElement(
+      NextIntlClientProvider,
+      { locale: 'vi', messages: viewMessages, timeZone: 'Asia/Ho_Chi_Minh' },
+      createElement(OrderDetail, {
+        order: {
+          ...summary,
+          ...financial,
+          totalAmount: '400000',
+          codAmount: '400000',
+          declaredValue: '400000',
+          recipientName: 'Synthetic recipient',
+          recipientPhone: '0900000000',
+          recipientAddress: 'Synthetic address',
+          provinceName: 'Test province',
+          wardName: 'Test ward',
+          items: [
+            {
+              productId: id,
+              productName: 'Test product',
+              sku: 'TEST-SKU',
+              qty: 2,
+              unitPrice: '200000',
+            },
+          ],
+          fulfillmentOrders: [],
+          statusHistory: [
+            { fromStatus: null, toStatus: 'RECEIVED', reason: null, changedAt: summary.createdAt },
+          ],
+        },
+        freightRow: sampleRow,
+        freightLoading: false,
+        canQuoteFreight: true,
+        onLookupFreight: () => {},
+      }),
+    ),
+  );
+  assert.ok(ownerWithFreight.includes('Cước ORCA'));
+  assert.ok(ownerWithFreight.includes('35.000 ₫'));
+
+  const staffWithoutFreight = renderDetail({
+    codAmount: undefined,
+    totalAmount: undefined,
+    recipientName: undefined,
+    recipientPhone: undefined,
+    recipientAddress: undefined,
+  });
+  assert.ok(!staffWithoutFreight.includes('Cước ORCA'));
 });

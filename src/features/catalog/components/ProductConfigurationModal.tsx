@@ -80,6 +80,7 @@ export function ProductConfigurationModal({ product, onClose, onChanged }: Props
       title={t('configurationTitle')}
       width="640px"
     >
+      <p className="mb-3 text-sm">{t('lotPolicyFutureAsns')}</p>
       <form
         onSubmitCapture={() => setSubmitError('')}
         className="space-y-4"

@@ -32,10 +32,11 @@ export const orderPolicyApi = {
     action: 'confirm-hold',
     expectedVersion: number,
     signal?: AbortSignal,
+    shipmentId?: string,
   ) {
     const { data } = await apiClient.post<ApiResponse<unknown>>(
       `/v1/orders/${id}/${action}`,
-      { expectedVersion },
+      { expectedVersion, ...(shipmentId ? { shipmentId } : {}) },
       { signal, silent: true },
     );
     return transition.parse(data);

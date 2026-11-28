@@ -28,6 +28,17 @@ export function formatVnd(value: string | number): string {
   return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(value));
 }
 
+export function sellerQuoteVnd(
+  quote: { priceVnd: number | null; isDeliverable: boolean } | undefined,
+  markupVnd: string | undefined,
+): bigint | null {
+  const price = quote?.priceVnd;
+  if (!quote?.isDeliverable || price == null || !Number.isSafeInteger(price) || price <= 0) {
+    return null;
+  }
+  return markupVnd === undefined ? null : BigInt(price) + BigInt(markupVnd);
+}
+
 export function formatDelta(value: number): string {
   return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
 }

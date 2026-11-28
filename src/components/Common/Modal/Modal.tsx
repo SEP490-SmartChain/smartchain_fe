@@ -70,8 +70,8 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="sc-modal-enter flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-[var(--sc-shadow-popover)]"
-        style={{ maxWidth: width, height }}
+        className="sc-modal-enter flex max-h-[90vh] w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-elevated)] shadow-[var(--sc-shadow-popover)]"
+        style={{ maxWidth: `min(${width}, 100%)`, height }}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-[var(--sc-border-default)] px-5 py-4 sm:px-6">
           <h3 id={titleId} className="m-0 text-lg font-medium text-[var(--sc-text-primary)]">

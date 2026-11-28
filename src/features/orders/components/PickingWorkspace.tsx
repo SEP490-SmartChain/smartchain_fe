@@ -1286,23 +1286,24 @@ function PickLineCard({
     const scanned: Partial<Record<PickScanField, string>> = structured
       ? { binScan: structured.bin, skuScan: structured.sku, lotScan: structured.lot }
       : { [field]: normalizeScannedCode(rawCode) };
-    const expected = { binScan: line.binCode, skuScan: line.sku, lotScan: line.lotCode };
-    let next: (typeof PICK_STEPS)[number] = field;
-    for (const name of PICK_SCAN_FIELDS.slice(PICK_SCAN_FIELDS.indexOf(field))) {
-      const code = scanned[name];
-      if (!code && name !== field) break;
-      const actual = name === 'binScan' && code ? await resolveScannedBinIfNeeded(code) : code;
-      if (actual === null) return;
-      f.setValue(name, actual ?? '', { shouldDirty: true });
-      if (!actual || actual !== expected[name]) {
-        setStep(name);
-        f.setError(name, { message: t(`errors.${PICK_SCAN_ERRORS[name]}`) }, { shouldFocus: true });
-        return;
-      }
-      f.clearErrors(name);
-      next = getNextPickScanField(name);
+    const code = scanned[field];
+    const actual =
+      field === 'binScan' && code && code !== line.binBarcode
+        ? await resolveScannedBinIfNeeded(code)
+        : code;
+    if (actual === null) return;
+    const allowed = {
+      binScan: [line.binCode, line.binBarcode],
+      skuScan: [line.sku, line.productBarcode, line.skuQr],
+      lotScan: [line.lotCode, line.lotQr],
+    };
+    f.setValue(field, actual ?? '', { shouldDirty: true });
+    if (!actual || !allowed[field].includes(actual)) {
+      f.setError(field, { message: t(`errors.${PICK_SCAN_ERRORS[field]}`) }, { shouldFocus: true });
+      return;
     }
-    setStep(next);
+    f.clearErrors(field);
+    setStep(getNextPickScanField(field));
   }
   const stepIndex = PICK_STEPS.indexOf(step);
   const backStep = PICK_STEPS[stepIndex - 1];
@@ -1491,7 +1492,6 @@ function PickLineCard({
                       readOnly={resolvingBin}
                       disabled={disabled}
                       required
-                      helperText={step === 'lotScan' ? t('lotOptional') : undefined}
                       error={f.formState.errors[step]?.message}
                     />
                   </div>
@@ -1517,20 +1517,6 @@ function PickLineCard({
                     onClick={() => setStep(backStep)}
                   >
                     {t('previousStep')}
-                  </Button>
-                )}
-                {step === 'lotScan' && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={disabled}
-                    onClick={() => {
-                      f.setValue('lotScan', '');
-                      f.clearErrors('lotScan');
-                      setStep('qty');
-                    }}
-                  >
-                    {t('skipLot')}
                   </Button>
                 )}
                 <Button type="submit" className="min-h-11" disabled={disabled || resolvingBin}>

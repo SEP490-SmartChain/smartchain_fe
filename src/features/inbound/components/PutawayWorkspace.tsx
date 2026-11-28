@@ -26,6 +26,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 import { InboundScanButton } from './InboundScanButton';
 import { PutawayBinOverridePanel } from './PutawayBinOverridePanel';
+import { PutawayLabels } from './PutawayLabels';
 import { PutawayPreparationPanel } from './PutawayPreparationPanel';
 import { PutawayTaskCard, PutawayWaitingActions } from './PutawayWorkCards';
 import { RelocationWorkspace } from './RelocationWorkspace';
@@ -581,6 +582,14 @@ function PutawayTaskForm({
           {t('expected', { from: task.fromBinCode, to: task.toBinCode, qty: remaining })}
         </p>
         {detailsError && <Alert variant="warning">{t('placementDetailsError')}</Alert>}
+        {manager && (
+          <PutawayLabels
+            key={task.id}
+            warehouse={warehouse}
+            task={task}
+            disabled={disabled || busy}
+          />
+        )}
         {history && history.length > 0 && (
           <section aria-label={t('placementHistory')} className="space-y-2">
             <h3 className="font-semibold">{t('placementHistory')}</h3>

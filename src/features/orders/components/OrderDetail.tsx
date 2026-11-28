@@ -2,15 +2,37 @@ import { useState } from 'react';
 
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Alert, Badge, Tabs } from '@/components/Common';
+import { Alert, Tabs } from '@/components/Common';
+
+import {
+  OrderDetailFreightSection,
+  OrderLifecycleBadge,
+  WaybillTrackingChip,
+} from '../seller-freight/order-selection';
+import type { SellerOrderDetail } from '../api/ordersApi';
+import { orderHistoryReasonKey, orderReasonKey } from '../lib/orderFeedback';
+import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
+import type { OrderFreightRow } from '../seller-freight/shared';
 
 import { OrderPaymentSummary } from './OrderPaymentSummary';
-import { orderHistoryReasonKey, orderReasonKey } from '../lib/orderFeedback';
-import { formatOrderDate, formatOrderMoney, orderStatusTone } from '../lib/orderPresentation';
 
-import type { SellerOrderDetail } from '../api/ordersApi';
-
-export function OrderDetail({ order }: { order: SellerOrderDetail }) {
+export function OrderDetail({
+  order,
+  freightRow,
+  freightLoading = false,
+  canQuoteFreight = false,
+  onLookupFreight,
+  headerAction,
+  priorityActions,
+}: {
+  order: SellerOrderDetail;
+  freightRow?: OrderFreightRow;
+  freightLoading?: boolean;
+  canQuoteFreight?: boolean;
+  onLookupFreight?: () => void;
+  headerAction?: React.ReactNode;
+  priorityActions?: React.ReactNode;
+}) {
   const t = useTranslations('Orders');
   const locale = useLocale();
   const [detailTab, setDetailTab] = useState('overview');
@@ -27,11 +49,14 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
   );
   const latest = history[0];
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <header className="space-y-2">
-        <h3 className="break-words text-xl font-semibold">{order.externalOrderCode}</h3>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 className="min-w-0 break-words text-xl font-semibold">{order.externalOrderCode}</h3>
+          {headerAction}
+        </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Badge status={orderStatusTone(order.status)} label={status(order.status)} />
+          <OrderLifecycleBadge status={order.status} label={status(order.status)} />
           <span className="text-[var(--sc-text-secondary)]">
             {order.kind === 'WITHDRAWAL'
               ? t('withdrawalOrder')
@@ -99,6 +124,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
             {t('backorderReminder')}
           </Alert>
         )}
+      {priorityActions}
       <Tabs
         label={t('detailTabs')}
         tabs={[
@@ -109,9 +135,9 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
         onChange={setDetailTab}
       />
       {detailTab === 'allocation' ? (
-        <section className="space-y-4" aria-label={t('allocationTab')}>
+        <section className="space-y-3" aria-label={t('allocationTab')}>
           {order.fulfillmentOrders.length > 0 && !(owner && allocationCost) && (
-            <Alert>
+            <Alert compact>
               {t(
                 order.kind === 'WITHDRAWAL'
                   ? 'withdrawalAllocationExplanation'
@@ -123,14 +149,26 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
               )}
             </Alert>
           )}
-          {!order.fulfillmentOrders.length && <p>{t('allocationNotRecorded')}</p>}
+          {!order.fulfillmentOrders.length && (
+            <p className="text-sm text-[var(--sc-text-secondary)]">{t('allocationNotRecorded')}</p>
+          )}
           {order.fulfillmentOrders.map((child) => (
             <article
               key={child.id}
-              className="rounded-xl border border-[var(--sc-border-default)] p-4"
+              className="rounded-xl border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] p-4"
             >
-              <h4 className="font-semibold">{child.warehouseName ?? t('warehouse_unavailable')}</h4>
-              <p className="mt-2 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-semibold text-[var(--sc-text-primary)]">
+                    {child.warehouseName ?? t('warehouse_unavailable')}
+                  </h4>
+                  <span className="rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+                    {t('deliveryNumber', { number: child.sequenceNo })}
+                  </span>
+                </div>
+                <OrderLifecycleBadge status={child.status} label={status(child.status)} />
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-[var(--sc-text-secondary)]">
                 {order.kind === 'WITHDRAWAL'
                   ? t('withdrawalSelection')
                   : child.allocation?.reason === 'EXPIRY_FIRST'
@@ -141,15 +179,24 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                         ? t('nearestWarehouse')
                         : t('allocationUnavailable')}
               </p>
-              <ul className="mt-3 space-y-2">
-                {child.allocation?.lots.map((lot) => (
-                  <li key={`${lot.sku}-${lot.lotCode}-${lot.binCode}`} className="text-sm">
-                    {lot.sku} ·{' '}
-                    {t('allocationLot', { lot: lot.lotCode, bin: lot.binCode, qty: lot.qty })}
-                    {lot.expiresOn && ` · ${lot.expiresOn}`}
-                  </li>
-                ))}
-              </ul>
+              {Boolean(child.allocation?.lots.length) && (
+                <ul className="mt-3 divide-y divide-[var(--sc-border-default)] rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/45">
+                  {child.allocation?.lots.map((lot) => (
+                    <li
+                      key={`${lot.sku}-${lot.lotCode}-${lot.binCode}`}
+                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 text-xs"
+                    >
+                      <span className="font-mono font-semibold text-[var(--sc-text-primary)]">
+                        {lot.sku}
+                      </span>
+                      <span className="tabular-nums text-[var(--sc-text-secondary)]">
+                        {t('allocationLot', { lot: lot.lotCode, bin: lot.binCode, qty: lot.qty })}
+                        {lot.expiresOn && ` · ${lot.expiresOn}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </article>
           ))}
         </section>
@@ -189,6 +236,16 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                 <Alert>{t('withdrawalFees')}</Alert>
               ) : (
                 <OrderPaymentSummary payment={order} isSnapshot />
+              )}
+              {(freightRow || onLookupFreight) && (
+                <div className="min-w-0 sm:col-span-2">
+                  <OrderDetailFreightSection
+                    row={freightRow}
+                    loading={freightLoading}
+                    canQuote={canQuoteFreight}
+                    onLookupOrder={() => onLookupFreight?.()}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -374,29 +431,40 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                     <h5 className="text-sm font-semibold">
                       {t('deliveryNumber', { number: child.sequenceNo })}
                     </h5>
-                    <Badge status={orderStatusTone(child.status)} label={status(child.status)} />
+                    <OrderLifecycleBadge status={child.status} label={status(child.status)} />
                   </div>
                   <p className="mt-2 break-words text-sm">
                     {t('warehouse')}: {child.warehouseName ?? t('warehouse_pending')}
                   </p>
                   {child.shipments.length ? (
                     child.shipments.map((shipment) => (
-                      <p key={shipment.id} className="mt-2 break-words text-sm">
-                        {t(shipment.direction === 'RETURN' ? 'returnTracking' : 'trackingLabel')}:{' '}
-                        {shipment.trackingNumber ?? t('tracking_pending')} ·{' '}
-                        {status(shipment.status)}
-                        {!shipment.active && <span> · {t('inactiveShipment')}</span>}
+                      <div key={shipment.id} className="mt-2 break-words text-sm">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="text-[var(--sc-text-secondary)]">
+                            {t(
+                              shipment.direction === 'RETURN' ? 'returnTracking' : 'trackingLabel',
+                            )}
+                            :
+                          </span>
+                          {shipment.trackingNumber ? (
+                            <WaybillTrackingChip trackingNumber={shipment.trackingNumber} />
+                          ) : (
+                            <span>{t('tracking_pending')}</span>
+                          )}
+                          <span>· {status(shipment.status)}</span>
+                          {!shipment.active && <span>· {t('inactiveShipment')}</span>}
+                        </div>
                         {['UNKNOWN', 'CANCEL_UNKNOWN', 'FAILED', 'CANCEL_REQUESTED'].includes(
                           shipment.bookingState,
                         ) && (
-                          <span className="block text-[var(--sc-warning-dark)]">
+                          <span className="mt-1 block text-[var(--sc-warning-dark)]">
                             {t.has(`bookingStates.${shipment.bookingState}`)
                               ? t(`bookingStates.${shipment.bookingState}`)
                               : t('processing')}
                           </span>
                         )}
                         {shipment.latestEvent && (
-                          <span className="block text-[var(--sc-text-secondary)]">
+                          <span className="mt-1 block text-[var(--sc-text-secondary)]">
                             {t('lastCarrierUpdate')}:{' '}
                             {t.has(`statuses.${shipment.latestEvent.standardStatus}`)
                               ? t(`statuses.${shipment.latestEvent.standardStatus}`)
@@ -408,22 +476,65 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                             {!shipment.latestEvent.isApplied && ` · ${t('trackingRecordedOnly')}`}
                           </span>
                         )}
-                      </p>
+                      </div>
                     ))
                   ) : (
                     <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
                       {t('tracking_pending')}
                     </p>
                   )}
+                  {child.autoCod && (
+                    <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1.5 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/55 px-3 py-2.5 text-sm">
+                      <dt className="text-[var(--sc-text-secondary)]">{t('goodsDueShort')}</dt>
+                      <dd className="text-right tabular-nums">
+                        {formatOrderMoney(child.autoCod.goodsDueVnd)}
+                      </dd>
+                      <dt className="text-[var(--sc-text-secondary)]">
+                        {t('excelShipping.quotedFee')}
+                      </dt>
+                      <dd className="text-right tabular-nums">
+                        {child.autoCod.quotedFeeVnd === null
+                          ? t('excelShipping.awaitingQuote')
+                          : formatOrderMoney(child.autoCod.quotedFeeVnd)}
+                      </dd>
+                      {child.autoCod.finalCodVnd !== null && (
+                        <>
+                          <dt
+                            className={`mt-1 border-t border-[var(--sc-border-default)] pt-1.5 font-medium ${
+                              child.autoCod.approvalShipmentId
+                                ? 'text-[var(--sc-warning-dark)]'
+                                : 'text-[var(--sc-text-primary)]'
+                            }`}
+                          >
+                            {t(
+                              child.autoCod.approvalShipmentId
+                                ? 'excelShipping.childCodApproval'
+                                : 'excelShipping.childFixedCod',
+                            )}
+                          </dt>
+                          <dd
+                            className={`mt-1 border-t border-[var(--sc-border-default)] pt-1.5 text-right font-semibold tabular-nums ${
+                              child.autoCod.approvalShipmentId
+                                ? 'text-[var(--sc-warning-dark)]'
+                                : 'text-[var(--sc-primary-dark)]'
+                            }`}
+                          >
+                            {formatOrderMoney(child.autoCod.finalCodVnd)}
+                          </dd>
+                        </>
+                      )}
+                    </dl>
+                  )}
                   <details className="mt-3 text-sm">
                     <summary className="rounded font-medium focus-visible:outline-2 focus-visible:outline-[var(--sc-primary)]">
                       {t('deliveryDetails')}
                     </summary>
-                    {child.codAmount !== undefined && (
-                      <p className="mt-3">
-                        {t('childCod')}: {formatOrderMoney(child.codAmount)}
-                      </p>
-                    )}
+                    {order.excelShipPolicy?.mode !== 'CUSTOMER_CARRIER_QUOTE' &&
+                      child.codAmount !== undefined && (
+                        <p className="mt-3">
+                          {t('childCod')}: {formatOrderMoney(child.codAmount)}
+                        </p>
+                      )}
                     <ul className="mt-2 space-y-1">
                       {child.items.map((item) => (
                         <li key={item.productId} className="break-words">

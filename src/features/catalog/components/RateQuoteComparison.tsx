@@ -15,8 +15,8 @@ import {
   balancedServiceId,
   formatDays,
   formatDelta,
-  formatVnd,
   formatWeight,
+  sellerQuoteVnd,
   tierHighlights,
   zoneKey,
   type DeliveryTierFilter,
@@ -25,6 +25,7 @@ import {
 interface RateQuoteComparisonProps {
   /** Changes whenever a price update finishes, so the table reloads. */
   refreshToken?: string;
+  markupVnd?: string;
 }
 
 const TIER_OPTIONS = ['ALL', 'ECONOMY', 'BALANCED', 'EXPRESS'] as const;
@@ -63,9 +64,13 @@ function fastestServiceId(row: RateQuoteRow, comparable: ReadonlySet<string>): s
     .serviceId;
 }
 
-export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteComparisonProps) {
+export function RateQuoteComparisonTable({
+  refreshToken = '',
+  markupVnd,
+}: RateQuoteComparisonProps) {
   const locale = useLocale();
   const t = useTranslations('RateIntelligence');
+  const vnd = new Intl.NumberFormat(locale, { style: 'currency', currency: 'VND' });
   const [data, setData] = useState<RateQuoteComparison | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -239,6 +244,7 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                       const cell = row.quotes.find((quote) => quote.serviceId === column.serviceId);
                       const isCheapest = cell !== undefined && cell.serviceId === cheapest;
                       const isBalanced = cell !== undefined && cell.serviceId === balanced;
+                      const salePriceVnd = sellerQuoteVnd(cell, markupVnd);
                       return (
                         <td
                           key={column.serviceId}
@@ -253,7 +259,9 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                           ) : (
                             <>
                               <span className="font-medium text-[var(--sc-text-primary)]">
-                                {formatVnd(cell.priceVnd)} đ
+                                {t('quoteCarrierPrice', {
+                                  amount: vnd.format(BigInt(cell.priceVnd)),
+                                })}
                               </span>
                               {isCheapest ? (
                                 <span className="ml-2 text-xs font-medium text-[var(--sc-success-dark)]">
@@ -263,6 +271,16 @@ export function RateQuoteComparisonTable({ refreshToken = '' }: RateQuoteCompari
                               {isBalanced ? (
                                 <span className="ml-2 text-xs font-medium text-[var(--sc-success-dark)]">
                                   {t('quotesBalanced')}
+                                </span>
+                              ) : null}
+                              {salePriceVnd !== null && markupVnd !== undefined ? (
+                                <span className="mt-1 grid gap-1 text-xs text-[var(--sc-text-secondary)]">
+                                  <span>
+                                    {t('quoteMarkup', { amount: vnd.format(BigInt(markupVnd)) })}
+                                  </span>
+                                  <span className="font-medium text-[var(--sc-text-primary)]">
+                                    {t('quoteSellerPrice', { amount: vnd.format(salePriceVnd) })}
+                                  </span>
                                 </span>
                               ) : null}
                               {cell.zone ? (

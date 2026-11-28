@@ -30,6 +30,47 @@ export const paymentBreakdownSchema = z
     shippingPaidAmount: money,
   })
   .strict();
+const paymentSnapshotSchema = z.union([
+  paymentBreakdownSchema,
+  paymentBreakdownSchema.extend({
+    shippingChargeAmount: z.null(),
+    shippingPaidAmount: z.null(),
+  }),
+]);
+const excelShipPolicySchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('SHOP_PAYS') }).strict(),
+  z.object({ mode: z.literal('CUSTOMER_FIXED'), agreedFeeVnd: money }).strict(),
+  z.object({ mode: z.literal('CUSTOMER_CARRIER_QUOTE') }).strict(),
+]);
+const autoCodSchema = z
+  .object({
+    state: z.enum(['PENDING', 'PARTIAL', 'FINAL']),
+    goodsDueVnd: money,
+    fixedParcelCount: z.number().int().nonnegative(),
+    parcelCount: z.number().int().nonnegative().nullable(),
+    fixedCodSubtotalVnd: money,
+    finalOrderCodVnd: money.nullable(),
+  })
+  .strict()
+  .refine(({ state, finalOrderCodVnd }) => (state === 'FINAL') === (finalOrderCodVnd !== null), {
+    path: ['finalOrderCodVnd'],
+  });
+const autoParcelCodSchema = z
+  .object({
+    goodsDueVnd: money,
+    quotedFeeVnd: money.nullable(),
+    finalCodVnd: money.nullable(),
+    approvalShipmentId: z.uuid().nullable(),
+  })
+  .strict()
+  .refine(({ quotedFeeVnd, finalCodVnd, approvalShipmentId }) =>
+    finalCodVnd === null
+      ? quotedFeeVnd === null && approvalShipmentId === null
+      : quotedFeeVnd !== null,
+  );
+export type AutoCodView = z.infer<typeof autoCodSchema>;
+export type AutoParcelCodView = z.infer<typeof autoParcelCodSchema>;
+
 export function calculateOrderPayment(
   gross: string,
   payment: z.infer<typeof paymentBreakdownSchema>,
@@ -247,7 +288,9 @@ const baseOrder = z.object({
 });
 const financial = {
   collectionMode: z.literal('DIRECT').optional(),
-  paymentBreakdown: paymentBreakdownSchema.nullable().optional(),
+  paymentBreakdown: paymentSnapshotSchema.nullable().optional(),
+  excelShipPolicy: excelShipPolicySchema.optional(),
+  autoCod: autoCodSchema.optional(),
   codAmount: money,
   totalAmount: money,
   declaredValue: money,
@@ -256,7 +299,12 @@ const financial = {
   // Optional so responses from a backend without the tier column still parse; absent means ECONOMY.
   deliveryTier: z.enum(['ECONOMY', 'BALANCED', 'EXPRESS']).optional(),
 };
-const ownerOrder = baseOrder.extend(financial).strict();
+const ownerOrder = baseOrder
+  .extend({
+    ...financial,
+    dispatchReviewState: z.enum(['AWAITING_INITIAL', 'AWAITING_PACKED']).nullable().optional(),
+  })
+  .strict();
 const staffOrder = baseOrder.strict();
 const item = z.object({
   identitySource: z.enum(['SNAPSHOT', 'CURRENT_CATALOG']).optional(),
@@ -342,6 +390,7 @@ const ownerDetail = ownerOrder
       child
         .extend({
           codAmount: money,
+          autoCod: autoParcelCodSchema.optional(),
           allocationCost: z
             .object({
               extraShippingFeeVnd: aggregateMoney.nullable(),
@@ -364,6 +413,7 @@ export type SellerOrderDetail = Omit<z.infer<typeof staffDetail>, 'items' | 'ful
     items: (z.infer<typeof item> & { unitPrice?: string })[];
     fulfillmentOrders: (z.infer<typeof child> & {
       codAmount?: string;
+      autoCod?: AutoParcelCodView;
       allocationCost?: {
         extraShippingFeeVnd: string | null;
         savedGoodsValueVnd: string | null;
@@ -393,6 +443,9 @@ export const importResultSchema = z
           code: z.string().optional(),
           fields: z.array(z.string()).optional(),
           existing: z.boolean().optional(),
+          excelShipPolicy: excelShipPolicySchema.optional(),
+          goodsDueVnd: money.optional(),
+          finalOrderCodVnd: money.nullable().optional(),
           issues: z
             .array(
               z
@@ -409,6 +462,11 @@ export const importResultSchema = z
                   ]),
                   amount: money.optional(),
                   maximum: money.optional(),
+                  row: z.number().int().positive().optional(),
+                  column: z
+                    .string()
+                    .regex(/^[A-Z]{1,3}$/)
+                    .optional(),
                 })
                 .strict(),
             )

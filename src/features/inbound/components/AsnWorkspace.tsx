@@ -434,6 +434,7 @@ function AsnCommand({
             )}
           </div>
         )}
+        {action === 'submit' && <p className="text-sm">{t('submitLotPolicySnapshot')}</p>}
         {action === 'cancel' && (
           <Input
             label={t('cancelReason')}

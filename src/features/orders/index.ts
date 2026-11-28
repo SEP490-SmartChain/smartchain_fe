@@ -13,6 +13,7 @@ export { SellerWithdrawalForm } from './components/SellerWithdrawalForm';
 export { orderScope } from './lib/orderScope';
 
 export { OrderPolicySettings } from './components/OrderPolicySettings';
+export { SellerDispatchPolicySettings } from './components/SellerDispatchPolicySettings';
 export { PackingWorkspace } from './components/PackingWorkspace';
 
 export { HandoverWorkspace } from './components/HandoverWorkspace';

@@ -14,6 +14,9 @@ export interface DropzoneProps {
   multiple?: boolean;
   maxSizeMb?: number;
   disabled?: boolean;
+  compact?: boolean;
+  title?: string;
+  hint?: string;
   className?: string;
   /** Accessible name of the hidden file input when the dropzone has an external label. */
   inputLabel?: string;
@@ -32,6 +35,9 @@ export function Dropzone({
   multiple = true,
   maxSizeMb = 10,
   disabled = false,
+  compact = false,
+  title,
+  hint,
   className,
   inputLabel,
 }: DropzoneProps) {
@@ -82,7 +88,8 @@ export function Dropzone({
       <label
         htmlFor={inputId}
         className={cn(
-          'flex min-h-52 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-10 text-center transition-[border-color,background-color,transform]',
+          'flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed text-center transition-[border-color,background-color,transform]',
+          compact ? 'min-h-[112px] px-5 py-5' : 'min-h-52 px-6 py-10',
           isDragging
             ? 'scale-[1.01] border-[var(--sc-primary)] bg-[var(--sc-primary-alpha-08)]'
             : 'border-[var(--sc-border-strong)] bg-[var(--sc-bg-secondary)] hover:border-[var(--sc-primary)] hover:bg-[var(--sc-primary-alpha-08)]',
@@ -102,14 +109,19 @@ export function Dropzone({
           addFiles(event.dataTransfer.files);
         }}
       >
-        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)] text-[var(--sc-primary-dark)]">
-          <UploadCloud size={23} strokeWidth={1.6} />
+        <span
+          className={cn(
+            'flex items-center justify-center rounded-xl bg-[var(--sc-primary-lighter)] text-[var(--sc-primary-dark)]',
+            compact ? 'mb-2.5 h-9 w-9' : 'mb-4 h-12 w-12',
+          )}
+        >
+          <UploadCloud size={compact ? 19 : 23} strokeWidth={1.6} />
         </span>
         <span className="text-sm font-medium text-[var(--sc-text-primary)]">
-          {t('dropzone_title')}
+          {title ?? t('dropzone_title')}
         </span>
         <span className="mt-1 text-xs leading-4 text-[var(--sc-text-secondary)]">
-          {t('dropzone_hint', { size: maxSizeMb })}
+          {hint ?? t('dropzone_hint', { size: maxSizeMb })}
         </span>
       </label>
 
