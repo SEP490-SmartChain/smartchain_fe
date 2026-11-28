@@ -14,6 +14,7 @@ interface ReturnPickupDivisionFieldsProps {
   setValue: UseFormSetValue<ReturnRequestForm>;
   errors: FieldErrors<ReturnRequestForm>;
   provinceCode: string;
+  wardCode: string;
 }
 
 type LoadState = 'loading' | 'ready' | 'error';
@@ -24,6 +25,7 @@ export function ReturnPickupDivisionFields({
   setValue,
   errors,
   provinceCode,
+  wardCode,
 }: ReturnPickupDivisionFieldsProps) {
   const t = useTranslations('Returns');
   const [provinces, setProvinces] = useState<AdminDivision[]>([]),
@@ -68,6 +70,17 @@ export function ReturnPickupDivisionFields({
       });
     return () => abort.abort();
   }, [provinceCode, attempt]);
+
+  // A prefilled code can arrive before its options exist; the native select keeps it blank until
+  // it is applied again once those options have rendered.
+  useEffect(() => {
+    if (provinceCode && provinces.some((row) => row.code === provinceCode)) {
+      setValue('provinceCode', provinceCode);
+    }
+  }, [provinces, provinceCode, setValue]);
+  useEffect(() => {
+    if (wardCode && wards.some((row) => row.code === wardCode)) setValue('wardCode', wardCode);
+  }, [wards, wardCode, setValue]);
 
   if (provinceState === 'error' || wardState === 'error') {
     return (

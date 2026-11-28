@@ -85,6 +85,23 @@ export const returnWorkflowApi = {
       .strict()
       .parse(data);
   },
+  /** Original delivery recipient of one eligible parcel; the seller may still edit it. */
+  async pickupDefault(wh: string, fulfillmentOrderId: string, signal?: AbortSignal) {
+    const { data } = await apiClient.get<ApiResponse<unknown>>(
+      `${base(wh)}/eligible/${z.uuid().parse(fulfillmentOrderId)}/pickup`,
+      { signal, silent: true },
+    );
+    return z
+      .object({
+        name: z.string(),
+        phone: z.string(),
+        address: z.string(),
+        provinceCode: z.string(),
+        wardCode: z.string(),
+      })
+      .strict()
+      .parse(data);
+  },
   async bins(wh: string, signal?: AbortSignal) {
     const { data } = await apiClient.get<ApiResponse<unknown>>(`${base(wh)}/bins`, {
       signal,
