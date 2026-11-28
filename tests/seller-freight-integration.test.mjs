@@ -175,6 +175,16 @@ function renderWithIntl(node, locale = 'vi') {
   );
 }
 
+test('seller quotes accept the carrier charge plus markup while input VND stays limited to 12 digits', async () => {
+  const { positiveQuoteVndSchema, inputVndSchema } = await server.ssrLoadModule(
+    '/src/features/orders/seller-freight/shared/schema.ts',
+  );
+  const salePrice = (999999999999n + 5000n).toString();
+  assert.equal(positiveQuoteVndSchema.safeParse(salePrice).success, true);
+  assert.equal(inputVndSchema.safeParse(salePrice).success, false);
+  assert.equal(positiveQuoteVndSchema.safeParse('10000000000000').success, false);
+});
+
 test('SellerOrders enforces RBAC & suspended state across vi/en locales', () => {
   useAuthStore
     .getState()
@@ -198,12 +208,14 @@ test('SellerOrders enforces RBAC & suspended state across vi/en locales', () => 
   );
 
   const ownerEnHtml = renderWithIntl(createElement(SellerOrders), 'en');
+  assert.ok(ownerEnHtml.includes(enMessages.Orders.freight.selectVisible));
   assert.ok(ownerEnHtml.includes(enMessages.Orders.freight.quickButton));
 
   useAuthStore
     .getState()
     .setSession({ user: ownerSuspended, accessToken: 'owner-susp-token', expiresIn: 900 });
   const suspendedHtml = renderWithIntl(createElement(SellerOrders), 'vi');
+  assert.ok(!suspendedHtml.includes(viMessages.Orders.freight.selectVisible));
   assert.match(
     suspendedHtml,
     new RegExp(
@@ -225,6 +237,7 @@ test('SellerOrders enforces RBAC & suspended state across vi/en locales', () => 
     .getState()
     .setSession({ user: staffUser, accessToken: 'staff-token', expiresIn: 900 });
   const staffHtml = renderWithIntl(createElement(SellerOrders), 'vi');
+  assert.ok(!staffHtml.includes(viMessages.Orders.freight.selectVisible));
   for (const label of collectionHeaders) assert.ok(!staffHtml.includes(label), label);
   assert.ok(!staffHtml.includes(viMessages.Orders.freight.quickButton));
   assert.deepEqual(orderScope.sellerFreightAccess(staffUser, orderScope.orderScope(staffUser)), {
@@ -760,8 +773,13 @@ test('OrderDetail, OrderFreightCell, OrderDetailFreightSection & OrderFreightBul
     fulfillmentOrders: fixedParcels,
   };
   const fixedRows = renderWithIntl(
-    createElement(OrderWaybillDetails, { freight: twoWaybillsRow, order: fixedOrder }),
+    createElement(OrderWaybillDetails, {
+      freight: twoWaybillsRow,
+      order: fixedOrder,
+      parcelLabelSpan: 3,
+    }),
   );
+  assert.match(fixedRows, /colSpan="3"/i);
   assert.match(fixedRows, /Kiện 2.*80\.000 ₫<\/td>.*>0 ₫<\/dd>.*>80\.000 ₫<\/td>/);
   assert.match(fixedRows, /Kiện 1.*120\.000 ₫<\/td>.*>20\.000 ₫<\/dd>.*>140\.000 ₫<\/td>/);
   const directRows = renderWithIntl(

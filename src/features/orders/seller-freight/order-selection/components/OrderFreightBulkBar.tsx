@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { Alert, Button } from '@/components/Common';
 
 import type { OrderFreightBatchProgress } from '../model/orderFreightCoordinator';
@@ -15,31 +17,31 @@ export function OrderFreightBulkBar({
   readonly onLookupSelected: () => void;
   readonly onClearSelection: () => void;
 }) {
+  const t = useTranslations('Orders.freight');
   if (!canQuote || (selectedCount === 0 && !progress.running)) {
     return null;
   }
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-surface-raised)] px-4 py-2.5"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--sc-border-default)] bg-[var(--sc-bg-surface)] px-4 py-2.5"
       data-testid="order-freight-bulk-bar"
     >
       <div className="space-y-0.5 text-sm">
         <span className="font-medium text-[var(--sc-text-primary)]">
-          Đã chọn {selectedCount} đơn
+          {t('bulkSelected', { count: selectedCount })}
         </span>
         {progress.running && (
           <p className="text-xs tabular-nums text-[var(--sc-text-secondary)]" role="status">
-            Đang tra cước: {progress.completedOrders}/{progress.totalOrders} đơn
+            {t('bulkProgress', { done: progress.completedOrders, total: progress.totalOrders })}
             {progress.rateLimitedRetrySeconds
-              ? ` · Tạm đợi ${progress.rateLimitedRetrySeconds}s theo giới hạn tần suất...`
+              ? ` · ${t('bulkRetry', { seconds: progress.rateLimitedRetrySeconds })}`
               : ''}
           </p>
         )}
         {!progress.running && progress.failedOrderIds.length > 0 && (
           <Alert variant="warning">
-            {progress.failedOrderIds.length} đơn chưa tra được do gián đoạn tạm thời. Các dòng đã
-            ghi nhận vẫn được giữ nguyên.
+            {t('bulkFailed', { count: progress.failedOrderIds.length })}
           </Alert>
         )}
       </div>
@@ -52,7 +54,7 @@ export function OrderFreightBulkBar({
           disabled={selectedCount === 0 || progress.running}
           onClick={onLookupSelected}
         >
-          Tra cước đã chọn ({selectedCount})
+          {t('bulkButton', { count: selectedCount })}
         </Button>
         <Button
           type="button"
@@ -60,7 +62,7 @@ export function OrderFreightBulkBar({
           disabled={progress.running}
           onClick={onClearSelection}
         >
-          Bỏ chọn
+          {t('bulkClear')}
         </Button>
       </div>
     </div>

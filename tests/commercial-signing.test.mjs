@@ -86,6 +86,8 @@ test('reading sample terms never submits the contract preparation form', () => {
     assert.match(preview[1], /\btype="button"/, 'sample preview must not submit the form');
     assert.ok(prepare, 'explicit preparation action must be present');
     assert.match(prepare[1], /\btype="submit"/);
+    assert.equal(/<select\b[^>]*name="authorityBasis"/.test(html), requiresBusinessProfile);
+    assert.doesNotMatch(html, /name="representativeTitle"/);
   }
 });
 after(async () => {
@@ -266,17 +268,30 @@ test('a new contracting party template requires complete details and explicit re
     address: 'Demo address',
     registrationNumber: '',
     representativeName: 'Demo Owner',
-    representativeTitle: 'Owner',
-    authorityBasis: 'Self represented',
+    authorityBasis: 'owner',
+    authorizationReference: '',
     phone: '0900000000',
     hasReviewedTerms: true,
   };
   assert.equal(profileSchema(true).safeParse(values).success, true);
   for (const change of [
     { legalName: '  ' },
+    { legalName: 'abc123' },
+    { legalName: 'abcxyz' },
     { address: 'four' },
+    { address: '123456' },
+    { registrationNumber: '---' },
     { phone: 'invalid' },
+    { phone: '000 000 0000' },
     { representativeName: 'Owner\nAdmin' },
+    { representativeName: '12345' },
+    { representativeName: 'ABC XYZ' },
+    { representativeName: 'Nguyễn -- Văn A' },
+    { authorityBasis: 'aaaaa' },
+    { authorityBasis: 'lau công' },
+    { authorityBasis: 'kế toán' },
+    { authorityBasis: 'authorized', authorizationReference: 'aaaaa' },
+    { authorityBasis: 'authorized', authorizationReference: 'Giấy ủy quyền' },
     { authorityBasis: 'a'.repeat(201) },
     { hasReviewedTerms: false },
   ]) {
@@ -288,13 +303,33 @@ test('a new contracting party template requires complete details and explicit re
       address: '',
       registrationNumber: '',
       representativeName: '',
-      representativeTitle: '',
       authorityBasis: '',
+      authorizationReference: '',
       phone: '',
       hasReviewedTerms: true,
     }).success,
     true,
   );
+  assert.equal(
+    profileSchema(true).safeParse({
+      ...values,
+      representativeName: 'Nguyễn Thị Ánh',
+      authorityBasis: 'authorized',
+      authorizationReference: 'Số 12/2026 ngày 15/11/2026',
+    }).success,
+    true,
+  );
+  const formatted = profileSchema(true).parse({
+    ...values,
+    legalName: 'ABC',
+    registrationNumber: '0123456789',
+    phone: '+84 (900) 000-000',
+    authorityBasis: 'authorized',
+    authorizationReference: '2026-01',
+    representativeTitle: 'lau công',
+  });
+  assert.equal(formatted.phone, '+84900000000');
+  assert.equal(Object.hasOwn(formatted, 'representativeTitle'), false);
 });
 test('signing links accept only the provider HTTPS origins', () => {
   assert.equal(safeUrl('https://app.signnow.com/sign/token'), 'https://app.signnow.com/sign/token');
@@ -422,7 +457,7 @@ test('warehouseSelection validates Basic exact-1 and Standard 1..3 canonically s
   );
 });
 
-test('CommercialPreparationForm renders warehouse picker when warehouseSelectionEnabled is true', () => {
+test('CommercialPreparationForm renders both signing capacity and enabled warehouse selection', () => {
   const messages = JSON.parse(
     readFileSync(new URL('../messages/vi.json', import.meta.url), 'utf8'),
   );
@@ -434,7 +469,7 @@ test('CommercialPreparationForm renders warehouse picker when warehouseSelection
         plan: {
           code: 'STANDARD',
           warehouseAllowance: 3,
-          requiresBusinessProfile: false,
+          requiresBusinessProfile: true,
         },
         busy: false,
         warehouseSelectionEnabled: true,
@@ -444,6 +479,7 @@ test('CommercialPreparationForm renders warehouse picker when warehouseSelection
     ),
   );
   assert.ok(html.includes(messages.Commercial.warehouseSelectionTitle));
+  assert.match(html, /<select\b[^>]*name="authorityBasis"/);
   assert.ok(
     html.includes(messages.Commercial.warehouseSelectionStandardRule.replace('{max}', '3')),
   );
@@ -488,11 +524,20 @@ test('commercialApi plans, start, and contracts support warehouseSelectionEnable
   const catalog = await api.plans();
   assert.equal(catalog.warehouseSelectionEnabled, true);
 
-  await api.start(agreementId, 'AG-1', id, undefined, undefined, [whA]);
+  const businessProfile = {
+    legalName: 'Demo Seller',
+    address: 'Demo address',
+    representativeName: 'Demo Owner',
+    representativeTitle: 'Authorized representative',
+    authorityBasis: 'Authorized representative (2026-01)',
+    phone: '0900000000',
+  };
+  await api.start(agreementId, 'AG-1', id, undefined, businessProfile, [whA]);
   assert.deepEqual(JSON.parse(calls[1].body), {
     agreementId,
     agreementVersionRef: 'AG-1',
     operationKey: id,
+    businessProfile,
     warehouseIds: [whA],
   });
 

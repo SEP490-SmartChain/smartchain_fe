@@ -162,7 +162,10 @@ test('pick detail passes the continuation cursor within the current warehouse', 
     const second = await api.pickingApi.detail('warehouse', id, undefined, first.nextCursor);
     assert.equal(first.nextCursor, cursor);
     assert.equal(second.nextCursor, null);
-    assert.deepEqual(calls, [{ warehouseId: 'warehouse' }, { warehouseId: 'warehouse', cursor }]);
+    assert.deepEqual(calls, [
+      { warehouseId: 'warehouse', scanContract: '2' },
+      { warehouseId: 'warehouse', scanContract: '2', cursor },
+    ]);
   } finally {
     client.get = original;
   }

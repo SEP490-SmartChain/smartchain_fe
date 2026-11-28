@@ -33,7 +33,12 @@ export function sellerQuoteVnd(
   markupVnd: string | undefined,
 ): bigint | null {
   const price = quote?.priceVnd;
-  if (!quote?.isDeliverable || price == null || !Number.isSafeInteger(price) || price <= 0) {
+  if (
+    !quote?.isDeliverable ||
+    typeof price !== 'number' ||
+    !Number.isSafeInteger(price) ||
+    price <= 0
+  ) {
     return null;
   }
   return markupVnd === undefined ? null : BigInt(price) + BigInt(markupVnd);

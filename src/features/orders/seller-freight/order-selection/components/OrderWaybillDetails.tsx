@@ -40,11 +40,16 @@ function waybillMoney(order: SellerOrderDetail, child: Fulfillment | undefined) 
 }
 
 interface OrderWaybillDetailsProps {
+  parcelLabelSpan?: number;
   order: SellerOrderDetail;
   freight: Extract<OrderFreightRow, { state: 'VISIBLE' }>;
 }
 
-export function OrderWaybillDetails({ order, freight }: OrderWaybillDetailsProps) {
+export function OrderWaybillDetails({
+  order,
+  freight,
+  parcelLabelSpan = 1,
+}: OrderWaybillDetailsProps) {
   const t = useTranslations('Orders');
   const waybills = freight.parcels.filter(
     (parcel): parcel is typeof parcel & { trackingNumber: string } =>
@@ -69,7 +74,11 @@ export function OrderWaybillDetails({ order, freight }: OrderWaybillDetailsProps
         id={index === 0 ? `waybill-details-${order.id}` : undefined}
         className="border-b border-[var(--sc-border-default)] bg-[var(--sc-bg-secondary)]/50"
       >
-        <th scope="row" className="px-4 py-2 text-left text-xs font-medium">
+        <th
+          colSpan={parcelLabelSpan}
+          scope="row"
+          className="px-4 py-2 text-left text-xs font-medium"
+        >
           {parcelNumber !== undefined
             ? t('waybillParcel', { number: parcelNumber })
             : t('collectionList.parcel')}

@@ -57,6 +57,7 @@ import {
   useQuickFreightLookup,
 } from '../seller-freight/lookup';
 import {
+  OrderFreightBulkBar,
   OrderFreightCell,
   OrderShippingAmounts,
   validDispatchEstimate,
@@ -225,8 +226,9 @@ function SellerOrdersSession({
     [modal, detailId, visibleOrderIds],
   );
   useEffect(() => {
-    if (freightAccess.canViewFreight && freightOrderIds.length > 0)
+    if (freightAccess.canViewFreight && freightOrderIds.length > 0) {
       void refreshOrderFreightStatus(freightOrderIds);
+    }
   }, [freightAccess.canViewFreight, freightOrderIds, refreshOrderFreightStatus]);
   useEffect(() => {
     if (!waybillRequestKey || !expandedWaybillId || orderScope() !== scope) return;
@@ -544,6 +546,30 @@ function SellerOrdersSession({
   };
 
   const columns: ColumnDef<SellerOrder>[] = [
+    ...(freightAccess.canQuoteFreight
+      ? [
+          {
+            key: '__freightSelect',
+            label: (
+              <Checkbox
+                aria-label={t('freight.selectVisible')}
+                checked={
+                  visibleOrderIds.length > 0 &&
+                  visibleOrderIds.every((id) => orderFreight.selectedOrderIds.has(id))
+                }
+                onChange={orderFreight.toggleAllVisible}
+              />
+            ),
+            render: (order: SellerOrder) => (
+              <Checkbox
+                aria-label={t('freight.selectOrder', { code: order.externalOrderCode })}
+                checked={orderFreight.selectedOrderIds.has(order.id)}
+                onChange={() => orderFreight.toggleOne(order.id)}
+              />
+            ),
+          } satisfies ColumnDef<SellerOrder>,
+        ]
+      : []),
     ...(reviewable.length > 0
       ? [
           {
@@ -738,8 +764,9 @@ function SellerOrdersSession({
               isLoading={orders.loading}
               onClick={() => {
                 void orders.reload();
-                if (freightAccess.canViewFreight && freightOrderIds.length)
+                if (freightAccess.canViewFreight && freightOrderIds.length) {
                   void refreshOrderFreightStatus(freightOrderIds);
+                }
               }}
             >
               <RefreshCw size={16} />
@@ -903,6 +930,15 @@ function SellerOrdersSession({
             </Button>
           </div>
         )}
+        {freightAccess.canQuoteFreight && (
+          <OrderFreightBulkBar
+            selectedCount={orderFreight.selectedOrderIds.size}
+            canQuote={freightAccess.canQuoteFreight}
+            progress={orderFreight.state.lookupProgress}
+            onLookupSelected={() => handleOrderLookupRequest([...orderFreight.selectedOrderIds])}
+            onClearSelection={orderFreight.clearSelection}
+          />
+        )}
         <DataTable
           dense
           ariaLabel={t('title')}
@@ -920,7 +956,13 @@ function SellerOrdersSession({
             }
             const result = waybillResult?.requestKey === waybillRequestKey ? waybillResult : null;
             if (result?.detail) {
-              return <OrderWaybillDetails order={result.detail} freight={expandedFreightRow} />;
+              return (
+                <OrderWaybillDetails
+                  order={result.detail}
+                  freight={expandedFreightRow}
+                  parcelLabelSpan={columns.findIndex((column) => column.key === 'status')}
+                />
+              );
             }
             return (
               <tr id={`waybill-details-${order.id}`}>

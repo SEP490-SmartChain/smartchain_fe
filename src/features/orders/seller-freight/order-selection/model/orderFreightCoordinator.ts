@@ -1,4 +1,5 @@
 import { FreightApiError } from '../../lookup/api/freightEstimateApi';
+
 import type {
   OrderFreightClient,
   OrderFreightRow,
@@ -83,8 +84,9 @@ export function mergeStatusRow(
       (existing.orderVersion === incoming.orderVersion &&
         existing.sourceRevision !== incoming.sourceRevision &&
         Date.parse(existing.asOf) > Date.parse(incoming.asOf)))
-  )
+  ) {
     return existing;
+  }
   if (
     !existing ||
     existing.state !== 'VISIBLE' ||

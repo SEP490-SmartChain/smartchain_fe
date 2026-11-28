@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/Common';
 
 import { formatFreightVnd } from '../../lookup/components/FreightTierCards';
+
 import type { DispatchFreightEstimate, OrderFreightRow, ParcelFreight } from '../../shared';
 
 type ReviewFreight = Extract<ParcelFreight, { state: 'REVIEW_REQUIRED' }>;
@@ -94,8 +95,9 @@ export function OrderFreightCell({
   for (const { freight } of parcels) {
     const group = groups.get(freight.state) ?? { count: 0, amount: null };
     group.count++;
-    if ('amountVnd' in freight)
+    if ('amountVnd' in freight) {
       group.amount = (group.amount ?? BigInt(0)) + BigInt(freight.amountVnd);
+    }
     groups.set(freight.state, group);
   }
   const canLookup =

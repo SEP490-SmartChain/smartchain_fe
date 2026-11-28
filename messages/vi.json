@@ -537,7 +537,21 @@
     "prepareTitle": "Chuẩn bị hợp đồng — Gói {plan}",
     "profileHelp": "Thông tin bên ký và giá của gói được khóa trong bản hợp đồng. Các điều kiện chung do ORCA công bố; bạn cần kiểm tra toàn bộ nội dung trước khi ký.",
     "registeredProfileHelp": "Tên doanh nghiệp, mã số thuế (nếu đã đăng ký) và số liên hệ phải khớp hồ sơ cửa hàng.",
-    "profileInvalid": "Kiểm tra nội dung, độ dài và định dạng; không dùng xuống dòng.",
+    "selectAuthority": "Chọn căn cứ đại diện",
+    "authorityOptions": {
+      "owner": "Chủ hộ / chủ doanh nghiệp tư nhân / cá nhân tự ký",
+      "legalRepresentative": "Người đại diện theo pháp luật",
+      "authorized": "Người được ủy quyền"
+    },
+    "authorizationReference": "Thông tin giấy ủy quyền (ví dụ số và ngày lập)",
+    "profileErrors": {
+      "legalName": "Nhập tên pháp lý đã đăng ký, từ 2 đến 150 ký tự.",
+      "address": "Nhập địa chỉ bên ký, từ 5 đến 250 ký tự và có chữ cái.",
+      "registrationNumber": "Nhập từ 3 đến 30 ký tự, chỉ dùng chữ cái, số và dấu gạch ngang.",
+      "representativeName": "Nhập họ tên người ký từ 2 đến 100 ký tự, không nhập số.",
+      "phone": "Nhập số điện thoại có từ 7 đến 15 chữ số.",
+      "authorizationReference": "Nhập thông tin giấy ủy quyền từ 5 đến 150 ký tự, có số văn bản hoặc ngày lập."
+    },
     "reviewedTerms": "Tôi đã đọc điều khoản của gói này và xác nhận thông tin bên ký, căn cứ đại diện là đúng.",
     "reviewRequired": "Bạn cần đọc điều khoản và xác nhận trước khi chuẩn bị hợp đồng.",
     "confirmPrepare": "Xác nhận thông tin và tạo bản chờ ký",
@@ -546,7 +560,7 @@
       "address": "Địa chỉ bên ký",
       "registrationNumber": "Mã số doanh nghiệp / mã số thuế (nếu có)",
       "representativeName": "Họ tên người đại diện ký",
-      "representativeTitle": "Chức vụ / tư cách ký",
+      "representativeTitle": "Tư cách ký",
       "authorityBasis": "Căn cứ đại diện hoặc ủy quyền",
       "phone": "Điện thoại liên hệ"
     },
@@ -760,7 +774,7 @@
     "importGuidePriceText": "để trống nếu muốn lấy giá mặc định từ sheet San pham.",
     "importGuideDetailedLabel": "Riêng mẫu chi tiết:",
     "importGuideDetailedText": "chọn chính sách phí ship ở dòng đầu của mỗi đơn; chỉ nhập số tiền phí khi chọn Khách trả mức shop đã báo.",
-    "importGuideSkuLink": "Xem danh sách mã sản phẩm (SKU)",
+    "importGuideSkuLink": "Xem danh sách mã sản phẩm",
     "import_hint": "Tối đa 100 dòng sản phẩm, tệp .xlsx không quá 1 MiB. Kiểm tra dữ liệu trước khi xác nhận tạo đơn.",
     "view_skus": "Xem mã sản phẩm trong danh mục",
     "invalid_file": "Chọn tệp .xlsx.",
@@ -1111,6 +1125,13 @@
     "tracking_none": "Không có mã vận đơn",
     "deliveryTierBalanced": "Cân bằng",
     "freight": {
+      "bulkSelected": "Đã chọn {count} đơn",
+      "bulkProgress": "Đang tra cước: {done}/{total} đơn",
+      "bulkRetry": "Tạm đợi {seconds}s theo giới hạn tần suất",
+      "bulkFailed": "{count} đơn chưa tra được do gián đoạn tạm thời. Các dòng đã ghi nhận vẫn được giữ nguyên.",
+      "bulkClear": "Bỏ chọn",
+      "selectVisible": "Chọn tất cả đơn đang hiển thị để tra cước",
+      "selectOrder": "Chọn đơn {code} để tra cước",
       "quickButton": "Tra cước",
       "columnTitle": "Cước ORCA",
       "bulkButton": "Tra cước đã chọn ({count})",
@@ -3380,9 +3401,9 @@
     }
   },
   "Receiving": {
-    "adjustedLotPolicy": "Kiểm nhận dùng cấu hình điều chỉnh do Manager xác nhận.",
+    "adjustedLotPolicy": "Kiểm nhận dùng cấu hình điều chỉnh do quản lý kho xác nhận.",
     "adjustmentTitle": "Điều chỉnh lô và hạn dùng trên phiếu",
-    "adjustmentSku": "SKU cần điều chỉnh",
+    "adjustmentSku": "Mã sản phẩm cần điều chỉnh",
     "adjustmentReason": "Lý do điều chỉnh",
     "adjustmentTrackLot": "Theo dõi lô",
     "adjustmentTrackExpiry": "Theo dõi hạn dùng",
@@ -3869,11 +3890,11 @@
       "CANCELLED": "Phiếu đã hủy. Không dùng nhãn của phiếu này để nhận hàng."
     },
     "singleWarehouseAutoSelected": "Tự động chọn theo kho ORCA đang hoạt động trong gói dịch vụ của bạn.",
-    "noEligibleWarehouses": "Hiện chưa có kho ORCA đang hoạt động nào thuộc gói dịch vụ để tạo ASN mới. Kiểm tra lại cấu hình kho hoặc liên hệ hỗ trợ.",
+    "noEligibleWarehouses": "Hiện chưa có kho ORCA đang hoạt động nào thuộc gói dịch vụ để tạo phiếu báo hàng mới. Kiểm tra lại cấu hình kho hoặc liên hệ hỗ trợ.",
     "draftWarehouseUnselected": "Kho đích của bản nháp này không nằm trong danh sách kho đang hoạt động của gói hiện tại nên không thể gửi.",
-    "submitLotPolicySnapshot": "ORCA chốt cấu hình lô và hạn dùng của từng SKU khi gửi phiếu này.",
+    "submitLotPolicySnapshot": "ORCA chốt cấu hình lô và hạn dùng của từng mã sản phẩm khi gửi phiếu này.",
     "submitWarehouseNotSelected": "Kho đích của bản nháp này không nằm trong danh sách kho đang hoạt động của gói hiện tại.",
-    "submitWarehouseNotSelectedGuidance": "Hãy hủy bản nháp này hoặc gửi yêu cầu đổi gói có bao gồm kho này trước khi tạo và gửi ASN."
+    "submitWarehouseNotSelectedGuidance": "Hãy hủy bản nháp này hoặc gửi yêu cầu đổi gói có bao gồm kho này trước khi tạo và gửi phiếu báo hàng."
   },
   "Shipments": {
     "journeyStatuses": {
@@ -4263,14 +4284,14 @@
     "printLabelPreview": "In tem",
     "labelHeading": "Tem trước khi cất hàng",
     "labelHelp": "Dùng lại QR kệ đã dán. Dán tem vào đúng hàng hoặc thùng cùng lô nếu thiếu mã quét. Quét QR trên ô kệ thực tế trước khi xác minh.",
-    "printStockLabels": "In tem SKU và lô",
+    "printStockLabels": "In tem mã sản phẩm và lô",
     "printBinLabel": "In QR ô kệ",
     "scanVerifiedBin": "QR trên ô kệ đã dán",
     "labelsAttest": "Tôi đã kiểm tra tem hàng/lô và QR được dán đúng ô kệ.",
     "verifyLabels": "Xác minh đã dán tem",
     "labelsVerified": "Đã xác minh tem tại ô {bin}.",
     "labelsError": "Không thể tải hoặc xác minh tem. Hãy thử lại.",
-    "labelSku": "SKU {value}",
+    "labelSku": "Mã sản phẩm {value}",
     "labelLot": "Lô {value}",
     "labelBin": "Ô kệ {value}",
     "scanWithCamera": "Mở camera · {field}",
