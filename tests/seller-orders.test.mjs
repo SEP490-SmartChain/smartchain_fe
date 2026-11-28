@@ -1187,3 +1187,74 @@ test('direct collection explanations are collapsed while the amount and snapshot
     'primary amount stays outside the collapsed explanation',
   );
 });
+
+test('ORCA freight section in OrderDetail is gated cleanly away from Staff and shown when freightRow is provided to Owner', () => {
+  const sampleRow = {
+    orderId: summary.id,
+    state: 'VISIBLE',
+    parcelCount: 1,
+    recorded: { count: 1, subtotalVnd: '35000' },
+    estimated: { count: 0, subtotalVnd: null },
+    parcels: [
+      {
+        parcelIndex: 1,
+        fulfillmentOrderId: '00000000-0000-4000-8000-000000000010',
+        packingRecordId: '00000000-0000-4000-8000-000000000011',
+        freight: {
+          state: 'RECORDED',
+          amountVnd: '35000',
+          recordedAt: '2026-11-28T01:00:00.000Z',
+        },
+      },
+    ],
+  };
+
+  const ownerWithFreight = renderToStaticMarkup(
+    createElement(
+      NextIntlClientProvider,
+      { locale: 'vi', messages: viewMessages, timeZone: 'Asia/Ho_Chi_Minh' },
+      createElement(OrderDetail, {
+        order: {
+          ...summary,
+          ...financial,
+          totalAmount: '400000',
+          codAmount: '400000',
+          declaredValue: '400000',
+          recipientName: 'Synthetic recipient',
+          recipientPhone: '0900000000',
+          recipientAddress: 'Synthetic address',
+          provinceName: 'Test province',
+          wardName: 'Test ward',
+          items: [
+            {
+              productId: id,
+              productName: 'Test product',
+              sku: 'TEST-SKU',
+              qty: 2,
+              unitPrice: '200000',
+            },
+          ],
+          fulfillmentOrders: [],
+          statusHistory: [
+            { fromStatus: null, toStatus: 'RECEIVED', reason: null, changedAt: summary.createdAt },
+          ],
+        },
+        freightRow: sampleRow,
+        freightLoading: false,
+        canQuoteFreight: true,
+        onLookupFreight: () => {},
+      }),
+    ),
+  );
+  assert.ok(ownerWithFreight.includes('Cước ORCA'));
+  assert.ok(ownerWithFreight.includes('35.000 ₫'));
+
+  const staffWithoutFreight = renderDetail({
+    codAmount: undefined,
+    totalAmount: undefined,
+    recipientName: undefined,
+    recipientPhone: undefined,
+    recipientAddress: undefined,
+  });
+  assert.ok(!staffWithoutFreight.includes('Cước ORCA'));
+});

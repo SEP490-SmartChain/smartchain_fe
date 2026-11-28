@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLocation } from 'react-router-dom';
 
@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from 'next-intl';
 
 import {
   Alert,
-  Badge,
   Button,
   Card,
   Dropzone,
@@ -43,7 +42,33 @@ import { useOrderDetailRefresh } from '../hooks/useOrderDetailRefresh';
 import { useOrders } from '../hooks/useOrders';
 import { importRowFeedback, orderErrorKey, orderReasonKey } from '../lib/orderFeedback';
 import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
-import { orderScope, sellerOrderAccess, sellerWithdrawalAccess } from '../lib/orderScope';
+import {
+  orderScope,
+  sellerFreightAccess,
+  sellerOrderAccess,
+  sellerWithdrawalAccess,
+} from '../lib/orderScope';
+import {
+  DEFAULT_QUICK_PARCEL,
+  QuickFreightLookupModal,
+  useQuickFreightLookup,
+} from '../seller-freight/lookup';
+import {
+  OrderFreightBulkBar,
+  OrderFreightCell,
+  OrderLifecycleBadge,
+  OrderWaybillCell,
+  buildAssumptionModalTargets,
+  buildLookupItemsFromAssumptions,
+  createInitialAssumptionParcels,
+  useOrderFreight,
+} from '../seller-freight/order-selection';
+import {
+  preventInvalidIntegerKeyDown,
+  validateParcelIntegerField,
+  type FreightDraftSeed,
+  type ParcelDimensions,
+} from '../seller-freight/shared';
 
 export function SellerOrders() {
   const linkedOrder = notificationTarget(useLocation().search, 'orderId');
@@ -82,9 +107,27 @@ function SellerOrdersSession({
   const [filters, setFilters] = useState(draftFilters);
   const dateIssue = calendarRangeIssue(draftFilters.from, draftFilters.to);
   const orders = useOrders(scope, filters, owner);
+  const freightAccess = sellerFreightAccess();
   const [modal, setModal] = useState<
-    'manual' | 'import' | 'detail' | 'sheet' | 'withdrawal' | null
+    | 'manual'
+    | 'import'
+    | 'detail'
+    | 'sheet'
+    | 'withdrawal'
+    | 'freight'
+    | 'freight-assumption'
+    | null
   >(null);
+  const [manualSeed, setManualSeed] = useState<FreightDraftSeed | null>(null);
+  const [assumptionTargets, setAssumptionTargets] = useState<string[]>([]);
+  const [assumptionParcelsByKey, setAssumptionParcelsByKey] = useState<
+    Record<string, ParcelDimensions>
+  >({});
+  const [assumptionDraftsByKey, setAssumptionDraftsByKey] = useState<
+    Record<string, { weightG: string; lengthCm: string; widthCm: string; heightCm: string }>
+  >({});
+  const [assumptionTouched, setAssumptionTouched] = useState<Record<string, boolean>>({});
+  const [assumptionSubmitted, setAssumptionSubmitted] = useState(false);
   const [detail, setDetail] = useState<SellerOrderDetail | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -93,7 +136,32 @@ function SellerOrdersSession({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const activeDetailId = useRef<string | null>(null);
+  const assumptionReturnModal = useRef<'detail' | null>(null);
   const isRealtimeConnected = useIsRealtimeConnected();
+  const running = useRef(false);
+  const controllers = useRef(new Set<AbortController>());
+  const visibleOrderIdsKey = orders.items.map((o) => o.id).join(',');
+  const visibleOrderIds = useMemo(
+    () => (visibleOrderIdsKey ? visibleOrderIdsKey.split(',') : []),
+    [visibleOrderIdsKey],
+  );
+  const orderFreight = useOrderFreight({ scope, visibleOrderIds });
+  const { refreshStatus: refreshOrderFreightStatus } = orderFreight;
+  const assumptionOrigins = useQuickFreightLookup({
+    scope,
+    isOpen: modal === 'freight-assumption',
+    enabled: freightAccess.canQuoteFreight,
+  });
+  useEffect(() => {
+    if (freightAccess.canViewFreight && visibleOrderIds.length > 0) {
+      void refreshOrderFreightStatus(visibleOrderIds);
+    }
+  }, [freightAccess.canViewFreight, visibleOrderIds, refreshOrderFreightStatus]);
+  useEffect(() => {
+    if (modal === 'detail' && detailId && freightAccess.canViewFreight) {
+      void refreshOrderFreightStatus([detailId]);
+    }
+  }, [modal, detailId, freightAccess.canViewFreight, refreshOrderFreightStatus]);
   useOrderDetailRefresh({
     scope,
     owner,
@@ -104,6 +172,9 @@ function SellerOrdersSession({
   });
   useRealtimeSync(['outbound.orders', 'shipments.tracking'], () => {
     orders.reload();
+    if (freightAccess.canViewFreight && visibleOrderIds.length > 0) {
+      void refreshOrderFreightStatus(visibleOrderIds);
+    }
     const currentId = activeDetailId.current;
     if (modal === 'detail' && currentId && !running.current && orderScope() === scope) {
       void execute(async (signal) => {
@@ -116,8 +187,6 @@ function SellerOrdersSession({
       });
     }
   });
-  const running = useRef(false);
-  const controllers = useRef(new Set<AbortController>());
   useEffect(() => {
     const pending = controllers.current;
     const abort = () => pending.forEach((controller) => controller.abort());
@@ -233,12 +302,196 @@ function SellerOrdersSession({
       URL.revokeObjectURL(url);
     }, true);
   }
+  const assumptionModalTargets = useMemo(
+    () => buildAssumptionModalTargets(assumptionTargets, orderFreight.state.rowsByOrderId),
+    [assumptionTargets, orderFreight.state.rowsByOrderId],
+  );
+  const requiresAssumptionOrigin = assumptionModalTargets.some((target) => target.requiresOrigin);
+
+  const handleOrderLookupRequest = (targetIds: string[]) => {
+    if (!freightAccess.canQuoteFreight || targetIds.length === 0) return;
+    if (targetIds.length === 1) {
+      const targetId = targetIds[0];
+      const existing = targetId ? orderFreight.state.rowsByOrderId[targetId] : undefined;
+      if (
+        existing?.state === 'VISIBLE' &&
+        existing.parcels.some((p) => p.freight.state === 'NEEDS_INPUT')
+      ) {
+        const nextTargets = buildAssumptionModalTargets(
+          [targetId],
+          orderFreight.state.rowsByOrderId,
+        );
+        const initialParcels = createInitialAssumptionParcels(nextTargets, DEFAULT_QUICK_PARCEL);
+        const initialDrafts: Record<
+          string,
+          { weightG: string; lengthCm: string; widthCm: string; heightCm: string }
+        > = {};
+        for (const [key, parcel] of Object.entries(initialParcels)) {
+          initialDrafts[key] = {
+            weightG: String(parcel.weightG),
+            lengthCm: String(parcel.lengthCm),
+            widthCm: String(parcel.widthCm),
+            heightCm: String(parcel.heightCm),
+          };
+        }
+        assumptionReturnModal.current = modal === 'detail' ? 'detail' : null;
+        setAssumptionTargets([targetId]);
+        setAssumptionParcelsByKey(initialParcels);
+        setAssumptionDraftsByKey(initialDrafts);
+        setAssumptionTouched({});
+        setAssumptionSubmitted(false);
+        setModal('freight-assumption');
+        return;
+      }
+    }
+    void orderFreight.lookupOrders(targetIds.map((orderId) => ({ orderId })));
+  };
+
+  const updateAssumptionParcelField = (
+    key: string,
+    field: 'weightG' | 'lengthCm' | 'widthCm' | 'heightCm',
+    rawValue: string,
+  ) => {
+    const limits =
+      field === 'weightG'
+        ? { label: 'Cân nặng', min: 1, max: 1_000_000, unit: 'g' }
+        : { label: field, min: 1, max: 1_000, unit: 'cm' };
+    const check = validateParcelIntegerField(rawValue, limits);
+    setAssumptionDraftsByKey((prev) => {
+      const current = prev[key] ?? {
+        weightG: String(DEFAULT_QUICK_PARCEL.weightG),
+        lengthCm: String(DEFAULT_QUICK_PARCEL.lengthCm),
+        widthCm: String(DEFAULT_QUICK_PARCEL.widthCm),
+        heightCm: String(DEFAULT_QUICK_PARCEL.heightCm),
+      };
+      return {
+        ...prev,
+        [key]: { ...current, [field]: rawValue },
+      };
+    });
+    setAssumptionParcelsByKey((prev) => {
+      const current = prev[key] ?? { ...DEFAULT_QUICK_PARCEL, itemCount: 1 };
+      return {
+        ...prev,
+        [key]: { ...current, [field]: check.value ?? 0 },
+      };
+    });
+  };
+
+  const getAssumptionFieldChecks = (key: string) => {
+    const draft = assumptionDraftsByKey[key] ?? {
+      weightG: String(DEFAULT_QUICK_PARCEL.weightG),
+      lengthCm: String(DEFAULT_QUICK_PARCEL.lengthCm),
+      widthCm: String(DEFAULT_QUICK_PARCEL.widthCm),
+      heightCm: String(DEFAULT_QUICK_PARCEL.heightCm),
+    };
+    return {
+      draft,
+      weightG: validateParcelIntegerField(draft.weightG, {
+        label: 'Cân nặng',
+        min: 1,
+        max: 1_000_000,
+        unit: 'g',
+      }),
+      lengthCm: validateParcelIntegerField(draft.lengthCm, {
+        label: 'Dài',
+        min: 1,
+        max: 1_000,
+        unit: 'cm',
+      }),
+      widthCm: validateParcelIntegerField(draft.widthCm, {
+        label: 'Rộng',
+        min: 1,
+        max: 1_000,
+        unit: 'cm',
+      }),
+      heightCm: validateParcelIntegerField(draft.heightCm, {
+        label: 'Cao',
+        min: 1,
+        max: 1_000,
+        unit: 'cm',
+      }),
+    };
+  };
+
+  const hasInvalidAssumptionParcel = assumptionModalTargets.some((target) => {
+    const checks = getAssumptionFieldChecks(target.key);
+    return (
+      checks.weightG.value === null ||
+      checks.lengthCm.value === null ||
+      checks.widthCm.value === null ||
+      checks.heightCm.value === null
+    );
+  });
+
+  const handleCloseAssumptionModal = () => {
+    const returnTo = assumptionReturnModal.current;
+    assumptionReturnModal.current = null;
+    setAssumptionSubmitted(false);
+    setModal(returnTo);
+  };
+
+  const handleConfirmAssumptionLookup = () => {
+    setAssumptionSubmitted(true);
+    if (
+      assumptionModalTargets.length === 0 ||
+      hasInvalidAssumptionParcel ||
+      (requiresAssumptionOrigin && !assumptionOrigins.state.selectedOriginId)
+    ) {
+      return;
+    }
+    const items = buildLookupItemsFromAssumptions({
+      targetOrderIds: assumptionTargets,
+      rowsByOrderId: orderFreight.state.rowsByOrderId,
+      parcelsByKey: assumptionParcelsByKey,
+      selectedOriginId: assumptionOrigins.state.selectedOriginId,
+      defaultParcel: DEFAULT_QUICK_PARCEL,
+    });
+    const returnTo = assumptionReturnModal.current;
+    assumptionReturnModal.current = null;
+    setAssumptionSubmitted(false);
+    setModal(returnTo);
+    void orderFreight.lookupOrders(items);
+  };
+
   const columns: ColumnDef<SellerOrder>[] = [
+    ...(freightAccess.canViewFreight
+      ? [
+          {
+            key: '__freightSelect',
+            label: (
+              <input
+                type="checkbox"
+                aria-label="Chọn tất cả đơn đang tải"
+                checked={
+                  visibleOrderIds.length > 0 &&
+                  visibleOrderIds.every((id) => orderFreight.selectedOrderIds.has(id))
+                }
+                onChange={orderFreight.toggleAllVisible}
+              />
+            ),
+            render: (order: SellerOrder) => (
+              <input
+                type="checkbox"
+                aria-label={`Chọn đơn ${order.externalOrderCode}`}
+                checked={orderFreight.selectedOrderIds.has(order.id)}
+                onChange={() => orderFreight.toggleOne(order.id)}
+              />
+            ),
+          } satisfies ColumnDef<SellerOrder>,
+        ]
+      : []),
     {
       key: 'externalOrderCode',
       label: t('order_code'),
       render: (order) => (
-        <Button variant="ghost" size="sm" disabled={busy} onClick={() => openDetail(order.id)}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={busy}
+          className="h-auto px-2 py-1 font-mono font-semibold text-[var(--sc-primary-dark)] hover:bg-[var(--sc-primary-alpha-08)]"
+          onClick={() => openDetail(order.id)}
+        >
           {order.externalOrderCode}
         </Button>
       ),
@@ -246,57 +499,95 @@ function SellerOrdersSession({
     {
       key: 'sourceChannel',
       label: t('fields.sourceChannel'),
-      render: (order) =>
-        order.kind === 'WITHDRAWAL'
-          ? t('withdrawalOrder')
-          : order.sourceChannel === 'manual'
-            ? t('manual_channel')
-            : order.sourceChannel === 'excel'
-              ? t('excel_channel')
-              : order.sourceChannel,
+      render: (order) => (
+        <span className="inline-flex items-center whitespace-nowrap rounded-md bg-[var(--sc-bg-secondary)] px-2 py-0.5 text-xs font-medium text-[var(--sc-text-secondary)]">
+          {order.kind === 'WITHDRAWAL'
+            ? t('withdrawalOrder')
+            : order.sourceChannel === 'manual'
+              ? t('manual_channel')
+              : order.sourceChannel === 'excel'
+                ? t('excel_channel')
+                : order.sourceChannel}
+        </span>
+      ),
     },
     {
       key: 'status',
       label: t('status'),
       render: (order) => (
-        <div>
-          <Badge
-            status={
-              ['FAILED', 'CANCELLED'].includes(order.status)
-                ? 'error'
-                : ['ON_HOLD', 'BACKORDER', 'MANUAL_REVIEW'].includes(order.status)
-                  ? 'warning'
-                  : 'default'
-            }
-            label={t(`statuses.${order.status}`)}
-          />
+        <div className="flex flex-col items-start gap-1">
+          <OrderLifecycleBadge status={order.status} label={t(`statuses.${order.status}`)} />
           {order.holdReason && (
-            <p className="mt-1 text-xs">{t(orderReasonKey(order.holdReason))}</p>
+            <p className="text-xs text-[var(--sc-warning-dark)]">
+              {t(orderReasonKey(order.holdReason))}
+            </p>
           )}
         </div>
       ),
     },
+    ...(freightAccess.canViewFreight
+      ? [
+          {
+            key: 'trackingNumber',
+            label: t('trackingLabel'),
+            render: (order: SellerOrder) => (
+              <OrderWaybillCell
+                row={orderFreight.state.rowsByOrderId[order.id]}
+                orderKind={order.kind}
+                loading={orderFreight.state.statusLoading}
+              />
+            ),
+          } satisfies ColumnDef<SellerOrder>,
+        ]
+      : []),
     {
       key: 'createdAt',
       label: t('created_at'),
-      render: (order) => formatOrderDate(order.createdAt, locale),
+      render: (order) => (
+        <span className="whitespace-nowrap tabular-nums text-[var(--sc-text-secondary)]">
+          {formatOrderDate(order.createdAt, locale)}
+        </span>
+      ),
     },
     ...(owner
       ? [
           {
             key: 'codAmount',
             label: t('collectionShort'),
-            render: (order: SellerOrder) =>
-              order.codAmount === undefined
-                ? '—'
-                : formatOrderMoney(
-                    orderCollectionTotal({
-                      codAmount: order.codAmount,
-                      customerShippingFee: order.customerShippingFee ?? '0',
-                      shippingFeePayer: order.shippingFeePayer ?? 'SENDER',
-                    }),
+            align: 'right' as const,
+            render: (order: SellerOrder) => (
+              <span className="whitespace-nowrap font-semibold tabular-nums text-[var(--sc-text-primary)]">
+                {order.codAmount === undefined
+                  ? '—'
+                  : formatOrderMoney(
+                      orderCollectionTotal({
+                        codAmount: order.codAmount,
+                        customerShippingFee: order.customerShippingFee ?? '0',
+                        shippingFeePayer: order.shippingFeePayer ?? 'SENDER',
+                      }),
+                    )}
+              </span>
+            ),
+          } satisfies ColumnDef<SellerOrder>,
+          ...(freightAccess.canViewFreight
+            ? [
+                {
+                  key: 'orcaFreight',
+                  label: t('freight.columnTitle'),
+                  render: (order: SellerOrder) => (
+                    <OrderFreightCell
+                      row={orderFreight.state.rowsByOrderId[order.id]}
+                      loading={
+                        orderFreight.state.statusLoading ||
+                        orderFreight.state.pendingOrderIds.has(order.id)
+                      }
+                      canQuote={freightAccess.canQuoteFreight}
+                      onQuickLookup={() => handleOrderLookupRequest([order.id])}
+                    />
                   ),
-          },
+                } satisfies ColumnDef<SellerOrder>,
+              ]
+            : []),
         ]
       : []),
   ];
@@ -343,6 +634,16 @@ function SellerOrdersSession({
                   {t('import')}
                 </Button>
                 <Button
+                  variant="secondary"
+                  disabled={!freightAccess.canQuoteFreight}
+                  onClick={() => {
+                    setError(null);
+                    setModal('freight');
+                  }}
+                >
+                  {t('freight.quickButton')}
+                </Button>
+                <Button
                   disabled={!canIntake}
                   onClick={() => {
                     setError(null);
@@ -379,7 +680,13 @@ function SellerOrdersSession({
           onSubmit={(event) => {
             event.preventDefault();
             if (dateIssue || reportIncompleteDateInput(event.currentTarget)) return;
-            setFilters({ ...draftFilters });
+            const trimmedFilters: OrderFilters = {
+              ...draftFilters,
+              q: draftFilters.q?.trim() || undefined,
+              channel: draftFilters.channel.trim(),
+            };
+            setDraftFilters(trimmedFilters);
+            setFilters(trimmedFilters);
           }}
           noValidate
           className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-5 @[68rem]:grid-cols-[repeat(5,minmax(0,1fr))_max-content] @[68rem]:gap-3"
@@ -404,6 +711,7 @@ function SellerOrdersSession({
           />
           <Input
             label={t('fields.sourceChannel')}
+            placeholder="manual, excel..."
             value={draftFilters.channel}
             maxLength={100}
             onChange={(event) => setDraftFilters({ ...draftFilters, channel: event.target.value })}
@@ -441,6 +749,17 @@ function SellerOrdersSession({
             </Button>
           </div>
         </form>
+        {freightAccess.canViewFreight && (
+          <div className="px-5 pb-3">
+            <OrderFreightBulkBar
+              selectedCount={orderFreight.selectedOrderIds.size}
+              canQuote={freightAccess.canQuoteFreight}
+              progress={orderFreight.state.lookupProgress}
+              onLookupSelected={() => handleOrderLookupRequest([...orderFreight.selectedOrderIds])}
+              onClearSelection={orderFreight.clearSelection}
+            />
+          </div>
+        )}
         <DataTable
           ariaLabel={t('title')}
           columns={columns}
@@ -494,6 +813,7 @@ function SellerOrdersSession({
         <ManualOrderForm
           scope={scope}
           isOpen={modal === 'manual'}
+          initialSeed={manualSeed}
           onClose={() => {
             if (!busy) setModal(null);
           }}
@@ -505,6 +825,190 @@ function SellerOrdersSession({
           }}
         />
       )}
+      {freightAccess.canQuoteFreight && (
+        <QuickFreightLookupModal
+          scope={scope}
+          isOpen={modal === 'freight'}
+          onClose={() => setModal(null)}
+          canQuote={freightAccess.canQuoteFreight}
+          canCreateOrder={canIntake}
+          onCreateOrderWithSeed={(seed) => {
+            setManualSeed(seed);
+            setModal('manual');
+          }}
+        />
+      )}
+      <Modal
+        isOpen={modal === 'freight-assumption'}
+        title="Giả định kiện để tra cước"
+        width="min(94vw, 560px)"
+        onClose={handleCloseAssumptionModal}
+      >
+        <div className="space-y-4">
+          <Alert variant="info">
+            {assumptionModalTargets.length > 1
+              ? `Đơn có ${assumptionModalTargets.length} kiện chưa đóng gói. Nhập kích thước dự kiến cho từng kiện để hỏi giá hãng (không tạo vận đơn).`
+              : 'Đơn chưa có vận đơn/đóng gói cần xác nhận ước tính cho kiện chưa có số đo (không tạo vận đơn).'}
+          </Alert>
+          {requiresAssumptionOrigin && (
+            <Select
+              label="Kho gửi giả định"
+              isRequired
+              placeholder="Chọn kho hợp đồng"
+              value={assumptionOrigins.state.selectedOriginId}
+              error={
+                (assumptionTouched.origin || assumptionSubmitted) &&
+                !assumptionOrigins.state.selectedOriginId
+                  ? 'Chọn kho hợp đồng để tra cước.'
+                  : undefined
+              }
+              onBlur={() => setAssumptionTouched((prev) => ({ ...prev, origin: true }))}
+              onChange={(event) => {
+                setAssumptionTouched((prev) => ({ ...prev, origin: true }));
+                assumptionOrigins.setSelectedOrigin(event.target.value);
+              }}
+              options={assumptionOrigins.state.origins.map((origin) => ({
+                value: origin.id,
+                label: `${origin.name} (${origin.code})`,
+              }))}
+            />
+          )}
+          <div className="max-h-[55vh] space-y-3 overflow-y-auto pr-1">
+            {assumptionModalTargets.map((target) => {
+              const checks = getAssumptionFieldChecks(target.key);
+              const labelPrefix =
+                assumptionModalTargets.length > 1 ? `Kiện #${target.parcelNumber}` : null;
+              const showAssumptionError = (
+                field: 'weightG' | 'lengthCm' | 'widthCm' | 'heightCm',
+              ) => {
+                const check = checks[field];
+                if (!check.error) return undefined;
+                if (
+                  !check.isEmpty ||
+                  assumptionTouched[`${target.key}:${field}`] ||
+                  assumptionSubmitted
+                ) {
+                  return check.error;
+                }
+                return undefined;
+              };
+              return (
+                <fieldset
+                  key={target.key}
+                  className="space-y-2 rounded-lg border border-[var(--sc-border-default)] p-3"
+                >
+                  {labelPrefix && (
+                    <legend className="px-1.5 text-xs font-semibold text-[var(--sc-text-primary)]">
+                      {labelPrefix}
+                    </legend>
+                  )}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <Input
+                      label="Cân nặng (g)"
+                      isRequired
+                      aria-label={labelPrefix ? `${labelPrefix} - Cân nặng (g)` : 'Cân nặng (g)'}
+                      type="text"
+                      inputMode="numeric"
+                      value={checks.draft.weightG}
+                      error={showAssumptionError('weightG')}
+                      onKeyDown={preventInvalidIntegerKeyDown}
+                      onBlur={() =>
+                        setAssumptionTouched((prev) => ({
+                          ...prev,
+                          [`${target.key}:weightG`]: true,
+                        }))
+                      }
+                      onChange={(event) =>
+                        updateAssumptionParcelField(target.key, 'weightG', event.target.value)
+                      }
+                    />
+                    <Input
+                      label="Dài (cm)"
+                      isRequired
+                      aria-label={labelPrefix ? `${labelPrefix} - Dài (cm)` : 'Dài (cm)'}
+                      type="text"
+                      inputMode="numeric"
+                      value={checks.draft.lengthCm}
+                      error={showAssumptionError('lengthCm')}
+                      onKeyDown={preventInvalidIntegerKeyDown}
+                      onBlur={() =>
+                        setAssumptionTouched((prev) => ({
+                          ...prev,
+                          [`${target.key}:lengthCm`]: true,
+                        }))
+                      }
+                      onChange={(event) =>
+                        updateAssumptionParcelField(target.key, 'lengthCm', event.target.value)
+                      }
+                    />
+                    <Input
+                      label="Rộng (cm)"
+                      isRequired
+                      aria-label={labelPrefix ? `${labelPrefix} - Rộng (cm)` : 'Rộng (cm)'}
+                      type="text"
+                      inputMode="numeric"
+                      value={checks.draft.widthCm}
+                      error={showAssumptionError('widthCm')}
+                      onKeyDown={preventInvalidIntegerKeyDown}
+                      onBlur={() =>
+                        setAssumptionTouched((prev) => ({
+                          ...prev,
+                          [`${target.key}:widthCm`]: true,
+                        }))
+                      }
+                      onChange={(event) =>
+                        updateAssumptionParcelField(target.key, 'widthCm', event.target.value)
+                      }
+                    />
+                    <Input
+                      label="Cao (cm)"
+                      isRequired
+                      aria-label={labelPrefix ? `${labelPrefix} - Cao (cm)` : 'Cao (cm)'}
+                      type="text"
+                      inputMode="numeric"
+                      value={checks.draft.heightCm}
+                      error={showAssumptionError('heightCm')}
+                      onKeyDown={preventInvalidIntegerKeyDown}
+                      onBlur={() =>
+                        setAssumptionTouched((prev) => ({
+                          ...prev,
+                          [`${target.key}:heightCm`]: true,
+                        }))
+                      }
+                      onChange={(event) =>
+                        updateAssumptionParcelField(target.key, 'heightCm', event.target.value)
+                      }
+                    />
+                  </div>
+                </fieldset>
+              );
+            })}
+          </div>
+          {assumptionSubmitted &&
+            (hasInvalidAssumptionParcel ||
+              (requiresAssumptionOrigin && !assumptionOrigins.state.selectedOriginId)) && (
+              <Alert variant="error" compact>
+                Vui lòng nhập đầy đủ số đo nguyên dương hợp lệ (cân nặng 1–1.000.000 g; dài/rộng/cao
+                1–1.000 cm) và kho gửi trước khi tra cước.
+              </Alert>
+            )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={handleCloseAssumptionModal}>
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={assumptionModalTargets.length === 0}
+              onClick={handleConfirmAssumptionLookup}
+            >
+              {assumptionModalTargets.length > 1
+                ? `Xác nhận tra cho ${assumptionModalTargets.length} kiện`
+                : 'Xác nhận tra cho 1 kiện'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
       <Modal
         isOpen={modal === 'import'}
         title={t('import')}
@@ -676,7 +1180,16 @@ function SellerOrdersSession({
                 {t('refresh')}
               </Button>
             </div>
-            <OrderDetail order={detail} />
+            <OrderDetail
+              order={detail}
+              freightRow={orderFreight.state.rowsByOrderId[detail.id]}
+              freightLoading={
+                orderFreight.state.statusLoading ||
+                orderFreight.state.pendingOrderIds.has(detail.id)
+              }
+              canQuoteFreight={freightAccess.canQuoteFreight}
+              onLookupFreight={() => handleOrderLookupRequest([detail.id])}
+            />
             <OrderLifecycleActions
               key={`OrderLifecycleActions:${detail.id}`}
               order={detail}

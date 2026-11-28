@@ -1041,7 +1041,18 @@
     "withdrawalAllocationExplanation": "Eligible stock is reserved from the warehouse and lot you selected.",
     "withdrawalSelection": "Based on the warehouse and lot selected in the withdrawal request.",
     "tracking_none": "No tracking number",
-    "deliveryTierBalanced": "Balanced"
+    "deliveryTierBalanced": "Balanced",
+    "freight": {
+      "quickButton": "Estimate freight",
+      "columnTitle": "ORCA freight",
+      "bulkButton": "Estimate selected ({count})",
+      "formTitle": "Estimated ORCA freight",
+      "formHelper": "Estimated for 1 parcel from the selected contract warehouse. Separate from customer shipping charges.",
+      "useRateButton": "Use this amount",
+      "recalculateCodButton": "Re-estimate for updated COD",
+      "codStaleHint": "COD total changed after updating customer shipping. Re-estimate to view the updated carrier quote.",
+      "paidExceedsQuoteError": "Shipping already paid exceeds this freight estimate and cannot be applied automatically."
+    }
   },
   "Sidebar": {
     "freight_tariffs": "Pricing",

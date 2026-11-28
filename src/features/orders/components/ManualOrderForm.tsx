@@ -23,23 +23,28 @@ import {
 } from '../api/ordersApi';
 import { useOrderLocations } from '../hooks/useOrderLocations';
 import { orderErrorKey } from '../lib/orderFeedback';
-import { orderScope, sellerOrderAccess } from '../lib/orderScope';
+import { orderScope, sellerFreightAccess, sellerOrderAccess } from '../lib/orderScope';
+import { OrderFormFreightSection } from '../seller-freight/form';
+import { consumeFreightDraftSeed, type FreightDraftSeed } from '../seller-freight/shared';
 
 export function ManualOrderForm({
   scope,
   isOpen,
+  initialSeed = null,
   onClose,
   onAccepted,
   onBusyChange,
 }: {
   scope: string;
   isOpen: boolean;
+  initialSeed?: FreightDraftSeed | null;
   onClose: () => void;
   onAccepted: (id: string, code: string) => void;
   onBusyChange: (busy: boolean) => void;
 }) {
   const t = useTranslations('Orders');
   const canIntake = useAuthStore((state) => state.user?.serviceStatus === 'ACTIVE');
+  const freightAccess = sellerFreightAccess();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
@@ -107,6 +112,39 @@ export function ManualOrderForm({
     },
   });
   const lines = useFieldArray({ control: form.control, name: 'items' });
+  const consumedSeeds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    consumedSeeds.current.clear();
+  }, [scope]);
+  useEffect(() => {
+    if (!isOpen || !initialSeed) return;
+    const seed = consumeFreightDraftSeed(scope, initialSeed, consumedSeeds.current);
+    if (!seed) return;
+    form.setValue('toProvinceCode', seed.toProvinceCode, { shouldDirty: true });
+    form.setValue('toWardCode', seed.toWardCode, { shouldDirty: true });
+    form.setValue('deliveryTier', seed.deliveryTier, { shouldDirty: true });
+    if (!form.getValues('declaredValue') && seed.referenceDeclaredValueVnd) {
+      form.setValue('declaredValue', seed.referenceDeclaredValueVnd, { shouldDirty: true });
+    }
+    if (
+      form.getValues('entryMode') === 'DIRECT' &&
+      !form.getValues('collectionAmount') &&
+      seed.referenceCodVnd
+    ) {
+      form.setValue('collectionAmount', seed.referenceCodVnd, { shouldDirty: true });
+    }
+    if (seed.items.length > 0) {
+      form.setValue(
+        'items',
+        seed.items.map((item) => ({
+          productId: item.productId,
+          qty: item.qty,
+          unitPrice: '',
+        })),
+        { shouldDirty: true },
+      );
+    }
+  }, [isOpen, initialSeed, scope, form]);
   const resetDraft = () => {
     form.reset();
     automaticCode.current = `ORCA-${createUuid().replaceAll('-', '').slice(0, 12).toUpperCase()}`;
@@ -258,6 +296,12 @@ export function ManualOrderForm({
     },
     () => notifyInvalidForm(),
   );
+  const liveMoneyError = (raw: string | undefined): string | undefined => {
+    const trimmed = (raw ?? '').trim();
+    if (trimmed.length === 0) return undefined;
+    const normalized = normalizeOrderMoneyInput(trimmed);
+    return /^(0|[1-9]\d{0,11})$/.test(normalized) ? undefined : t('money_error');
+  };
   const invalid = (field: keyof ManualDraft) =>
     form.formState.errors[field]
       ? t(
@@ -510,7 +554,10 @@ export function ManualOrderForm({
                     }
                     required
                     error={
-                      form.formState.errors.items?.[index]?.unitPrice ? t('money_error') : undefined
+                      liveMoneyError(draft.items[index]?.unitPrice) ||
+                      (form.formState.errors.items?.[index]?.unitPrice
+                        ? t('money_error')
+                        : undefined)
                     }
                   />
                 )}
@@ -549,6 +596,22 @@ export function ManualOrderForm({
               {t('add_item')}
             </Button>
           </section>
+          <OrderFormFreightSection
+            scope={scope}
+            isOpen={isOpen}
+            canQuote={freightAccess.canQuoteFreight}
+            draft={draft}
+            products={cachedProducts}
+            initialSeed={initialSeed}
+            selectedTier={draft.deliveryTier ?? 'ECONOMY'}
+            onSelectTier={(tier) => form.setValue('deliveryTier', tier, { shouldDirty: true })}
+            onApplyCalculatedShippingCharge={(amountVnd) =>
+              form.setValue('paymentBreakdown.shippingChargeAmount', amountVnd, {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+          />
           {direct && (
             <section className="space-y-4">
               <Select
@@ -566,7 +629,10 @@ export function ManualOrderForm({
                 inputMode="numeric"
                 required
                 {...form.register('collectionAmount', { setValueAs: normalizeOrderMoneyInput })}
-                error={form.formState.errors.collectionAmount ? t('collectionRequired') : undefined}
+                error={
+                  liveMoneyError(draft.collectionAmount) ||
+                  (form.formState.errors.collectionAmount ? t('collectionRequired') : undefined)
+                }
                 helperText={t('collectionHint')}
               />
               <Input
@@ -626,6 +692,7 @@ export function ManualOrderForm({
                     inputMode="numeric"
                     helperText={t('goods_paid_hint')}
                     error={
+                      liveMoneyError(draft.paymentBreakdown?.goodsPaidAmount) ||
                       paymentErrors.goodsPaidAmount ||
                       (form.formState.errors.paymentBreakdown?.goodsPaidAmount
                         ? t('money_error')
@@ -641,6 +708,7 @@ export function ManualOrderForm({
                   })}
                   helperText={t('discount_hint')}
                   error={
+                    liveMoneyError(draft.paymentBreakdown?.discountAmount) ||
                     paymentErrors.discountAmount ||
                     (form.formState.errors.paymentBreakdown?.discountAmount
                       ? t('money_error')
@@ -656,6 +724,7 @@ export function ManualOrderForm({
                     })}
                     helperText={t('shipping_charge_hint')}
                     error={
+                      liveMoneyError(draft.paymentBreakdown?.shippingChargeAmount) ||
                       paymentErrors.shippingChargeAmount ||
                       (form.formState.errors.paymentBreakdown?.shippingChargeAmount
                         ? t('money_error')
@@ -670,6 +739,7 @@ export function ManualOrderForm({
                     })}
                     helperText={t('shipping_paid_hint')}
                     error={
+                      liveMoneyError(draft.paymentBreakdown?.shippingPaidAmount) ||
                       paymentErrors.shippingPaidAmount ||
                       (form.formState.errors.paymentBreakdown?.shippingPaidAmount
                         ? t('money_error')
@@ -709,7 +779,7 @@ export function ManualOrderForm({
               {...form.register('declaredValue', { setValueAs: normalizeOrderMoneyInput })}
               inputMode="numeric"
               helperText={t(direct ? 'declaredCatalogHint' : 'automatic_value_hint')}
-              error={invalid('declaredValue')}
+              error={liveMoneyError(draft.declaredValue) || invalid('declaredValue')}
             />
           </details>
           {confirmDiscard && (

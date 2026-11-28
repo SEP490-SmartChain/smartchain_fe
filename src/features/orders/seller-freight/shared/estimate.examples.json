@@ -1,0 +1,279 @@
+{
+  "originsEmpty": {
+    "items": []
+  },
+  "originsPopulated": {
+    "items": [
+      {
+        "id": "00000400-0000-4000-8000-000000000001",
+        "code": "HCM-01",
+        "name": "Kho Thủ Đức"
+      },
+      {
+        "id": "00000400-0000-4000-8000-000000000003",
+        "code": "HN-01",
+        "name": "Kho Gia Lâm"
+      }
+    ]
+  },
+  "estimateInputStandard": {
+    "originWarehouseId": "00000400-0000-4000-8000-000000000001",
+    "toProvinceCode": "01",
+    "toWardCode": "01001",
+    "parcel": {
+      "weightG": 500,
+      "lengthCm": 20,
+      "widthCm": 15,
+      "heightCm": 10,
+      "itemCount": 1
+    },
+    "declaredValueVnd": "200000",
+    "codVnd": "200000"
+  },
+  "estimateResultAllQuoted": {
+    "basis": "ONE_PARCEL_ASSUMPTION",
+    "origin": {
+      "id": "00000400-0000-4000-8000-000000000001",
+      "code": "HCM-01",
+      "name": "Kho Thủ Đức"
+    },
+    "input": {
+      "originWarehouseId": "00000400-0000-4000-8000-000000000001",
+      "toProvinceCode": "01",
+      "toWardCode": "01001",
+      "parcel": {
+        "weightG": 500,
+        "lengthCm": 20,
+        "widthCm": 15,
+        "heightCm": 10,
+        "itemCount": 1
+      },
+      "declaredValueVnd": "200000",
+      "codVnd": "200000"
+    },
+    "quotedAt": "2026-11-28T03:35:00.000Z",
+    "refreshAfter": "2026-11-28T03:40:00.000Z",
+    "tiers": [
+      {
+        "tier": "ECONOMY",
+        "status": "QUOTED",
+        "amountVnd": "32000",
+        "deliveryDays": 3
+      },
+      {
+        "tier": "BALANCED",
+        "status": "QUOTED",
+        "amountVnd": "32000",
+        "deliveryDays": 2
+      },
+      {
+        "tier": "EXPRESS",
+        "status": "UNAVAILABLE",
+        "reason": "ETA_UNAVAILABLE"
+      }
+    ]
+  },
+  "estimateInputAfterCodLoop": {
+    "originWarehouseId": "00000400-0000-4000-8000-000000000001",
+    "toProvinceCode": "01",
+    "toWardCode": "01001",
+    "parcel": {
+      "weightG": 500,
+      "lengthCm": 20,
+      "widthCm": 15,
+      "heightCm": 10,
+      "itemCount": 1
+    },
+    "declaredValueVnd": "200000",
+    "codVnd": "232000"
+  },
+  "estimateResultAfterCodLoop": {
+    "basis": "ONE_PARCEL_ASSUMPTION",
+    "origin": {
+      "id": "00000400-0000-4000-8000-000000000001",
+      "code": "HCM-01",
+      "name": "Kho Thủ Đức"
+    },
+    "input": {
+      "originWarehouseId": "00000400-0000-4000-8000-000000000001",
+      "toProvinceCode": "01",
+      "toWardCode": "01001",
+      "parcel": {
+        "weightG": 500,
+        "lengthCm": 20,
+        "widthCm": 15,
+        "heightCm": 10,
+        "itemCount": 1
+      },
+      "declaredValueVnd": "200000",
+      "codVnd": "232000"
+    },
+    "quotedAt": "2026-11-28T03:36:00.000Z",
+    "refreshAfter": "2026-11-28T03:41:00.000Z",
+    "tiers": [
+      {
+        "tier": "ECONOMY",
+        "status": "QUOTED",
+        "amountVnd": "33000",
+        "deliveryDays": 3
+      },
+      {
+        "tier": "BALANCED",
+        "status": "UNAVAILABLE",
+        "reason": "ADDRESS_UNMAPPED"
+      },
+      {
+        "tier": "EXPRESS",
+        "status": "UNAVAILABLE",
+        "reason": "TEMPORARY"
+      }
+    ]
+  },
+  "orderStatusRequest": {
+    "orderIds": [
+      "00001030-0000-4000-8000-000000000001",
+      "00001030-0000-4000-8000-000000000002",
+      "00001030-0000-4000-8000-000000000003",
+      "00001030-0000-4000-8000-000000000004"
+    ]
+  },
+  "orderLookupRequest": {
+    "items": [
+      {
+        "orderId": "00001030-0000-4000-8000-000000000001",
+        "assumptions": [
+          {
+            "fulfillmentOrderId": null,
+            "originWarehouseId": "00000400-0000-4000-8000-000000000001",
+            "parcel": {
+              "weightG": 500,
+              "lengthCm": 20,
+              "widthCm": 15,
+              "heightCm": 10,
+              "itemCount": 1
+            }
+          }
+        ]
+      },
+      {
+        "orderId": "00001030-0000-4000-8000-000000000002"
+      },
+      {
+        "orderId": "00001030-0000-4000-8000-000000000003",
+        "assumptions": [
+          {
+            "fulfillmentOrderId": "00001050-0000-4000-8000-000000000002",
+            "parcel": {
+              "weightG": 600,
+              "lengthCm": 22,
+              "widthCm": 16,
+              "heightCm": 12,
+              "itemCount": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "orderFreightMixedResponse": {
+    "items": [
+      {
+        "orderId": "00001030-0000-4000-8000-000000000001",
+        "state": "VISIBLE",
+        "orderVersion": 1,
+        "sourceRevision": "rev-dh01-v1",
+        "asOf": "2026-11-28T03:35:00.000Z",
+        "parcelCount": null,
+        "recorded": {
+          "count": 0,
+          "subtotalVnd": null
+        },
+        "estimated": {
+          "count": 1,
+          "subtotalVnd": "32000"
+        },
+        "parcels": [
+          {
+            "fulfillmentOrderId": null,
+            "freight": {
+              "state": "ESTIMATED",
+              "amountVnd": "32000",
+              "quotedAt": "2026-11-28T03:35:00.000Z",
+              "refreshAfter": "2026-11-28T03:40:00.000Z",
+              "tier": "ECONOMY",
+              "basis": "ASSUMED",
+              "origin": {
+                "id": "00000400-0000-4000-8000-000000000001",
+                "code": "HCM-01",
+                "name": "Kho Thủ Đức"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "orderId": "00001030-0000-4000-8000-000000000002",
+        "state": "VISIBLE",
+        "orderVersion": 4,
+        "sourceRevision": "rev-dh02-v4",
+        "asOf": "2026-11-28T03:35:00.000Z",
+        "parcelCount": 1,
+        "recorded": {
+          "count": 1,
+          "subtotalVnd": "35000"
+        },
+        "estimated": {
+          "count": 0,
+          "subtotalVnd": null
+        },
+        "parcels": [
+          {
+            "fulfillmentOrderId": "00001050-0000-4000-8000-000000000001",
+            "freight": {
+              "state": "RECORDED",
+              "amountVnd": "35000",
+              "recordedAt": "2026-11-28T03:10:00.000Z"
+            }
+          }
+        ]
+      },
+      {
+        "orderId": "00001030-0000-4000-8000-000000000003",
+        "state": "VISIBLE",
+        "orderVersion": 3,
+        "sourceRevision": "rev-dh03-v3",
+        "asOf": "2026-11-28T03:35:00.000Z",
+        "parcelCount": 2,
+        "recorded": {
+          "count": 1,
+          "subtotalVnd": "20000"
+        },
+        "estimated": {
+          "count": 0,
+          "subtotalVnd": null
+        },
+        "parcels": [
+          {
+            "fulfillmentOrderId": "00001050-0000-4000-8000-000000000002",
+            "freight": {
+              "state": "RECORDED",
+              "amountVnd": "20000",
+              "recordedAt": "2026-11-28T03:12:00.000Z"
+            }
+          },
+          {
+            "fulfillmentOrderId": "00001050-0000-4000-8000-000000000003",
+            "freight": {
+              "state": "NEEDS_INPUT",
+              "fields": ["parcel"]
+            }
+          }
+        ]
+      },
+      {
+        "orderId": "00001030-0000-4000-8000-000000000004",
+        "state": "NOT_FOUND"
+      }
+    ]
+  }
+}

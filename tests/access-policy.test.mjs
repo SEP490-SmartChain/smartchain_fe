@@ -932,3 +932,22 @@ test('UC-166: warehouse.fulfillmentSlaRisk.view is strictly limited to PLATFORM 
     assert.equal(policy.can(invalid, 'warehouse.fulfillmentSlaRisk.view'), false);
   }
 });
+
+test('ORCA-SELLER-FREIGHT-001: seller freight lookup capability is strictly limited to TENANT SELLER_OWNER', () => {
+  for (const [role, scope] of ALL_ROLES) {
+    assert.equal(
+      policy.can(effective([role], scope), 'orders.create'),
+      role === 'SELLER_OWNER',
+      role,
+    );
+  }
+  for (const invalid of [
+    effective(['SELLER_OWNER'], PLATFORM),
+    effective(['SELLER_STAFF'], TENANT),
+    effective(['SELLER_OWNER', 'OPS_DISPATCHER'], TENANT),
+    effective(['ADMIN'], TENANT),
+    [],
+  ]) {
+    assert.equal(policy.can(invalid, 'orders.create'), false);
+  }
+});

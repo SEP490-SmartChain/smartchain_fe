@@ -32,3 +32,12 @@ export function sellerWithdrawalAccess() {
     can(getEffectiveRoles(user.roles, user.actorScope), 'orders.withdrawal.create')
   );
 }
+export function sellerFreightAccess() {
+  const user = useAuthStore.getState().user;
+  const roles = getEffectiveRoles(user?.roles ?? [], user?.actorScope);
+  const canView = !!user?.tenantId && can(roles, 'orders.create');
+  return {
+    canViewFreight: canView,
+    canQuoteFreight: canView && !['SUSPENDED', 'CLOSED'].includes(user?.serviceStatus ?? ''),
+  };
+}

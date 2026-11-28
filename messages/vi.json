@@ -1041,7 +1041,18 @@
     "withdrawalAllocationExplanation": "Hàng được giữ theo kho và lô bạn đã chọn, sau khi kiểm tra tồn đủ điều kiện.",
     "withdrawalSelection": "Theo kho và lô đã chọn trong yêu cầu rút hàng.",
     "tracking_none": "Không có mã vận đơn",
-    "deliveryTierBalanced": "Cân bằng"
+    "deliveryTierBalanced": "Cân bằng",
+    "freight": {
+      "quickButton": "Tra cước",
+      "columnTitle": "Cước ORCA",
+      "bulkButton": "Tra cước đã chọn ({count})",
+      "formTitle": "Cước ORCA dự kiến",
+      "formHelper": "Ước tính cho 1 kiện từ kho hợp đồng giả định. Số tiền này tách biệt với phí giao hàng thu khách.",
+      "useRateButton": "Dùng mức này",
+      "recalculateCodButton": "Tra lại theo COD mới",
+      "codStaleHint": "Tiền thu hộ COD vừa đổi theo phí giao hàng. Bấm tra lại để xem mức mới (không tự sửa số tiền đã nhập).",
+      "paidExceedsQuoteError": "Phí giao hàng khách đã trả lớn hơn mức cước ORCA dự kiến nên không thể áp dụng tự động."
+    }
   },
   "Sidebar": {
     "freight_tariffs": "Giá cước và phí",

@@ -2,15 +2,33 @@ import { useState } from 'react';
 
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Alert, Badge, Tabs } from '@/components/Common';
+import { Alert, Tabs } from '@/components/Common';
+
+import {
+  OrderDetailFreightSection,
+  OrderLifecycleBadge,
+  WaybillTrackingChip,
+} from '../seller-freight/order-selection';
+import type { SellerOrderDetail } from '../api/ordersApi';
+import { orderHistoryReasonKey, orderReasonKey } from '../lib/orderFeedback';
+import { formatOrderDate, formatOrderMoney } from '../lib/orderPresentation';
+import type { OrderFreightRow } from '../seller-freight/shared';
 
 import { OrderPaymentSummary } from './OrderPaymentSummary';
-import { orderHistoryReasonKey, orderReasonKey } from '../lib/orderFeedback';
-import { formatOrderDate, formatOrderMoney, orderStatusTone } from '../lib/orderPresentation';
 
-import type { SellerOrderDetail } from '../api/ordersApi';
-
-export function OrderDetail({ order }: { order: SellerOrderDetail }) {
+export function OrderDetail({
+  order,
+  freightRow,
+  freightLoading = false,
+  canQuoteFreight = false,
+  onLookupFreight,
+}: {
+  order: SellerOrderDetail;
+  freightRow?: OrderFreightRow;
+  freightLoading?: boolean;
+  canQuoteFreight?: boolean;
+  onLookupFreight?: () => void;
+}) {
   const t = useTranslations('Orders');
   const locale = useLocale();
   const [detailTab, setDetailTab] = useState('overview');
@@ -31,7 +49,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
       <header className="space-y-2">
         <h3 className="break-words text-xl font-semibold">{order.externalOrderCode}</h3>
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Badge status={orderStatusTone(order.status)} label={status(order.status)} />
+          <OrderLifecycleBadge status={order.status} label={status(order.status)} />
           <span className="text-[var(--sc-text-secondary)]">
             {order.kind === 'WITHDRAWAL'
               ? t('withdrawalOrder')
@@ -189,6 +207,16 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                 <Alert>{t('withdrawalFees')}</Alert>
               ) : (
                 <OrderPaymentSummary payment={order} isSnapshot />
+              )}
+              {(freightRow || onLookupFreight) && (
+                <div className="sm:col-span-2">
+                  <OrderDetailFreightSection
+                    row={freightRow}
+                    loading={freightLoading}
+                    canQuote={canQuoteFreight}
+                    onLookupOrder={() => onLookupFreight?.()}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -374,29 +402,40 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                     <h5 className="text-sm font-semibold">
                       {t('deliveryNumber', { number: child.sequenceNo })}
                     </h5>
-                    <Badge status={orderStatusTone(child.status)} label={status(child.status)} />
+                    <OrderLifecycleBadge status={child.status} label={status(child.status)} />
                   </div>
                   <p className="mt-2 break-words text-sm">
                     {t('warehouse')}: {child.warehouseName ?? t('warehouse_pending')}
                   </p>
                   {child.shipments.length ? (
                     child.shipments.map((shipment) => (
-                      <p key={shipment.id} className="mt-2 break-words text-sm">
-                        {t(shipment.direction === 'RETURN' ? 'returnTracking' : 'trackingLabel')}:{' '}
-                        {shipment.trackingNumber ?? t('tracking_pending')} ·{' '}
-                        {status(shipment.status)}
-                        {!shipment.active && <span> · {t('inactiveShipment')}</span>}
+                      <div key={shipment.id} className="mt-2 break-words text-sm">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[var(--sc-text-secondary)]">
+                            {t(
+                              shipment.direction === 'RETURN' ? 'returnTracking' : 'trackingLabel',
+                            )}
+                            :
+                          </span>
+                          {shipment.trackingNumber ? (
+                            <WaybillTrackingChip trackingNumber={shipment.trackingNumber} />
+                          ) : (
+                            <span>{t('tracking_pending')}</span>
+                          )}
+                          <span>· {status(shipment.status)}</span>
+                          {!shipment.active && <span>· {t('inactiveShipment')}</span>}
+                        </div>
                         {['UNKNOWN', 'CANCEL_UNKNOWN', 'FAILED', 'CANCEL_REQUESTED'].includes(
                           shipment.bookingState,
                         ) && (
-                          <span className="block text-[var(--sc-warning-dark)]">
+                          <span className="mt-1 block text-[var(--sc-warning-dark)]">
                             {t.has(`bookingStates.${shipment.bookingState}`)
                               ? t(`bookingStates.${shipment.bookingState}`)
                               : t('processing')}
                           </span>
                         )}
                         {shipment.latestEvent && (
-                          <span className="block text-[var(--sc-text-secondary)]">
+                          <span className="mt-1 block text-[var(--sc-text-secondary)]">
                             {t('lastCarrierUpdate')}:{' '}
                             {t.has(`statuses.${shipment.latestEvent.standardStatus}`)
                               ? t(`statuses.${shipment.latestEvent.standardStatus}`)
@@ -408,7 +447,7 @@ export function OrderDetail({ order }: { order: SellerOrderDetail }) {
                             {!shipment.latestEvent.isApplied && ` · ${t('trackingRecordedOnly')}`}
                           </span>
                         )}
-                      </p>
+                      </div>
                     ))
                   ) : (
                     <p className="mt-2 text-sm text-[var(--sc-text-secondary)]">
